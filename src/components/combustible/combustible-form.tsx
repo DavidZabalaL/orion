@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearCombustible } from "@/app/combustible/actions";
+import { crearCombustible } from "@/app/(app)/combustible/actions";
 import { CheckCircle2 } from "lucide-react";
 
 const fieldStyle: React.CSSProperties = {

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
-import { asignarEconomicoTag } from "@/app/tag/actions";
+import { asignarEconomicoTag } from "@/app/(app)/tag/actions";
 
 type Tag = {
   id: string;

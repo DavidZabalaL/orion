@@ -131,6 +131,47 @@
   --foreground: var(--field-text);
 }
 
+/* ─── TEMA CLARO ─── */
+:root[data-theme="light"] {
+  --color-bg: #f4f6f9;
+  --color-surface-2: #ffffff;
+  --color-surface-3: #eef1f6;
+
+  --field-bg: #ffffff;
+  --field-border: #d7dee8;
+  --field-text: rgba(15, 23, 42, 0.87);
+
+  --shadow-sm: 0px 1px 3px rgba(15, 23, 42, 0.08), 0px 1px 1px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0px 2px 4px -1px rgba(15, 23, 42, 0.08), 0px 4px 5px rgba(15, 23, 42, 0.06), 0px 1px 10px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0px 11px 15px -7px rgba(15, 23, 42, 0.1), 0px 24px 38px 3px rgba(15, 23, 42, 0.08), 0px 9px 46px 8px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0px 8px 32px rgba(15, 40, 120, 0.08);
+
+  --sidebar-bg: #ffffff;
+  --sidebar-item-hover: #f1f4f9;
+  --sidebar-item-active: rgba(43, 127, 255, 0.1);
+  --sidebar-text: #64748b;
+  --sidebar-text-active: #0f1b2d;
+
+  --header-bg: #ffffff;
+  --header-border: rgba(15, 23, 42, 0.08);
+
+  --panel-bg: #ffffff;
+  --panel-header-bg: #eef1f6;
+  --overlay-bg: rgba(15, 23, 42, 0.4);
+  --chip: rgba(15, 23, 42, 0.05);
+
+  --kanban-bg: #eef1f6;
+  --kanban-col: rgba(15, 23, 42, 0.03);
+  --card-active: #e3ecfb;
+  --card-hover: #eef3fb;
+  --row-bg: #ffffff;
+  --row-hover: #f6f8fb;
+  --detail-bg: #f7f9fc;
+
+  --background: var(--color-bg);
+  --foreground: var(--field-text);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

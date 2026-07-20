@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function crearOperador(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -61,15 +62,18 @@ export async function crearOperador(formData: FormData) {
     });
   }
 
-  await prisma.bitacoraCambio.create({
-    data: {
-      entidad: "Operador",
-      entidadId: operador.id,
-      usuarioId: (await prisma.usuario.findFirst({ where: { correo: "control.vehicular@grupokabat.com" } }))!.id,
-      accion: "CREAR",
-      valoresNuevos: { nombre, curp },
-    },
-  });
+  const session = await auth();
+  if (session?.user?.id) {
+    await prisma.bitacoraCambio.create({
+      data: {
+        entidad: "Operador",
+        entidadId: operador.id,
+        usuarioId: session.user.id,
+        accion: "CREAR",
+        valoresNuevos: { nombre, curp },
+      },
+    });
+  }
 
   redirect(`/operadores/${operador.id}`);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { marcarRealizado } from "@/app/mantenimiento/actions";
+import { marcarRealizado } from "@/app/(app)/mantenimiento/actions";
 
 export function MarcarRealizadoButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition();

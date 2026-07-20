@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { invitarUsuario } from "@/app/usuarios/actions";
+import { invitarUsuario } from "@/app/(app)/usuarios/actions";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, FileClock } from "lucide-react";
+import { Plus, FileClock, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -33,13 +33,22 @@ export default async function AltasBajasPage() {
             El alta se hace desde aquí; la baja lógica se inicia desde la Ficha de cada unidad.
           </p>
         </div>
-        <Link
-          href="/altas-bajas/nueva"
-          className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold"
-          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-        >
-          <Plus size={16} /> Dar de alta
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/altas-bajas/importar"
+            className="flex items-center gap-2 rounded-md px-4 h-10"
+            style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+          >
+            <Upload size={16} /> Importar desde Excel
+          </Link>
+          <Link
+            href="/altas-bajas/nueva"
+            className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold"
+            style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+          >
+            <Plus size={16} /> Dar de alta
+          </Link>
+        </div>
       </div>
 
       <div>

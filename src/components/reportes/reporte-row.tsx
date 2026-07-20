@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
-import { alternarReporte } from "@/app/reportes/actions";
+import { alternarReporte } from "@/app/(app)/reportes/actions";
 import { FRECUENCIA_LABEL, TIPOS_REPORTE } from "@/lib/reportes";
 
 export type Reporte = {

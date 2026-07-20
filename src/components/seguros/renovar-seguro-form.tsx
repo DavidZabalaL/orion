@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { RefreshCw, CheckCircle2 } from "lucide-react";
-import { renovarSeguro } from "@/app/seguros/actions";
+import { renovarSeguro } from "@/app/(app)/seguros/actions";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",

@@ -1,6 +1,10 @@
 import { Search, Bell, Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { UserMenu } from "@/components/shell/user-menu";
 
-export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
+type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
+
+export function Header({ onMenuClick, user }: { onMenuClick?: () => void; user: Usuario }) {
   return (
     <header
       className="flex items-center justify-between gap-4 border-b px-4 md:px-6 shrink-0"
@@ -34,6 +38,8 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       <div className="flex items-center gap-4">
+        <ThemeToggle />
+
         <button
           className="relative flex items-center justify-center rounded-md"
           style={{ height: "var(--h-md)", width: "var(--h-md)", color: "var(--sidebar-text)" }}
@@ -46,22 +52,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           />
         </button>
 
-        <div className="flex items-center gap-2">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ background: "var(--brand-navy)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-          >
-            JR
-          </div>
-          <div className="hidden sm:block leading-tight">
-            <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-              Jorge Ramírez
-            </div>
-            <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              Control Vehicular
-            </div>
-          </div>
-        </div>
+        <UserMenu user={user} />
       </div>
     </header>
   );

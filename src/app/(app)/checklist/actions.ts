@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 
 export async function crearChecklist(formData: FormData) {
@@ -17,8 +18,8 @@ export async function crearChecklist(formData: FormData) {
     puntosInspeccion[p.key] = String(formData.get(`punto_${p.key}`) ?? "ok");
   }
 
-  const usuario = await prisma.usuario.findFirst({ where: { correo: "control.vehicular@grupokabat.com" } });
-  if (!usuario) throw new Error("No hay usuario capturador disponible.");
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Sesión no válida.");
 
   await prisma.checklist.create({
     data: {
@@ -26,7 +27,7 @@ export async function crearChecklist(formData: FormData) {
       fecha: new Date(),
       odometro,
       puntosInspeccion,
-      capturadoPorId: usuario.id,
+      capturadoPorId: session.user.id,
     },
   });
 

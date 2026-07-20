@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { registrarPosicion } from "@/app/mapa/actions";
+import { registrarPosicion } from "@/app/(app)/mapa/actions";
 import { CheckCircle2 } from "lucide-react";
 
 const fieldStyle: React.CSSProperties = {

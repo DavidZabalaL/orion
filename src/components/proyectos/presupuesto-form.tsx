@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { redistribuirPresupuesto } from "@/app/proyectos/actions";
+import { redistribuirPresupuesto } from "@/app/(app)/proyectos/actions";
 import { fmtMoney } from "@/lib/formato";
 
 export function PresupuestoForm({ id, presupuestoSemanal, gastado }: { id: string; presupuestoSemanal: number; gastado: number }) {

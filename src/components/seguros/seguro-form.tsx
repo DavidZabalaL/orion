@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { crearSeguro } from "@/app/seguros/actions";
+import { crearSeguro } from "@/app/(app)/seguros/actions";
 import { TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 
 const fieldStyle: React.CSSProperties = {

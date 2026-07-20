@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Public_Sans, Inter, JetBrains_Mono } from "next/font/google";
-import { AppShell } from "@/components/shell/app-shell";
+import { ThemeScript } from "@/components/theme/theme-script";
 import "./globals.css";
 
 const publicSans = Public_Sans({
@@ -35,10 +35,12 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${publicSans.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
-        <AppShell>{children}</AppShell>
-      </body>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

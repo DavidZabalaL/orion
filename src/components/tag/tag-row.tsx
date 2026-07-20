@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
-import { conciliarTag } from "@/app/tag/actions";
+import { conciliarTag } from "@/app/(app)/tag/actions";
 
 type Tag = {
   id: string;

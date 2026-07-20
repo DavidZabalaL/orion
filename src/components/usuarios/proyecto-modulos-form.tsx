@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { actualizarModulosProyecto } from "@/app/usuarios/actions";
+import { actualizarModulosProyecto } from "@/app/(app)/usuarios/actions";
 
 export function ProyectoModulosForm({
   proyecto,

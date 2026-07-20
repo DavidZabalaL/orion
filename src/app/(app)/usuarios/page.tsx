@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Shield, FolderCog } from "lucide-react";
+import { Users, Shield, FolderCog, BellRing } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { InvitarUsuarioForm } from "@/components/usuarios/invitar-usuario-form";
@@ -33,6 +33,9 @@ export default async function UsuariosPage() {
         <div className="flex gap-2">
           <Link href="/usuarios/roles" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
             <Shield size={16} /> Configurar roles
+          </Link>
+          <Link href="/usuarios/notificaciones" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <BellRing size={16} /> Notificaciones
           </Link>
           <Link href="/usuarios/proyectos" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
             <FolderCog size={16} /> Módulos por proyecto

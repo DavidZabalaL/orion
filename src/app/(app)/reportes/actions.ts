@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function crearReporteProgramado(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -18,8 +19,8 @@ export async function crearReporteProgramado(formData: FormData) {
     throw new Error("Nombre, tipo, al menos un campo y un destinatario son obligatorios.");
   }
 
-  const usuario = await prisma.usuario.findFirst({ where: { correo: "control.vehicular@grupokabat.com" } });
-  if (!usuario) throw new Error("No hay usuario disponible.");
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Sesión no válida.");
 
   await prisma.reporteProgramado.create({
     data: {
@@ -30,7 +31,7 @@ export async function crearReporteProgramado(formData: FormData) {
       destinatarios,
       hora,
       frecuencia: frecuencia as never,
-      creadoPorId: usuario.id,
+      creadoPorId: session.user.id,
     },
   });
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
-import { resolverAuditoria } from "@/app/auditoria/actions";
+import { resolverAuditoria } from "@/app/(app)/auditoria/actions";
 
 type Auditoria = {
   id: string;

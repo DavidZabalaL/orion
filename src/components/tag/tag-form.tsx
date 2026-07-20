@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearTag } from "@/app/tag/actions";
+import { crearTag } from "@/app/(app)/tag/actions";
 import { CheckCircle2 } from "lucide-react";
 
 const fieldStyle: React.CSSProperties = {

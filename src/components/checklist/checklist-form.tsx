@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Camera, CheckCircle2 } from "lucide-react";
-import { crearChecklist } from "@/app/checklist/actions";
+import { crearChecklist } from "@/app/(app)/checklist/actions";
 // PUNTOS_INSPECCION moved to @/lib/checklist (server action files may only export async functions)
 
 const fieldStyle: React.CSSProperties = {

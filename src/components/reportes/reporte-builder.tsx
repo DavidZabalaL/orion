@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { crearReporteProgramado } from "@/app/reportes/actions";
+import { crearReporteProgramado } from "@/app/(app)/reportes/actions";
 import { TIPOS_REPORTE, CAMPOS_POR_TIPO } from "@/lib/reportes";
 
 const fieldStyle: React.CSSProperties = {

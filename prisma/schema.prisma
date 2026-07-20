@@ -236,6 +236,7 @@ model Usuario {
   documentosVerificados DocumentoOperador[]
   auditorias        Auditoria[]
   reportesProgramados  ReporteProgramado[]
+  configuracionesNotificaciones ConfiguracionNotificaciones[]
 }
 
 model UsuarioProyecto {
@@ -685,4 +686,44 @@ model ReporteProgramado {
 
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+}
+
+// ───────────────────────── CONFIGURACIÓN DE ALERTAS / NOTIFICACIONES ─────────────────────────
+
+model ConfiguracionNotificaciones {
+  id String @id @default(cuid())
+
+  // Módulo A — unidad disponible sin reporte GPS
+  alertaGpsSinSenalHoras  Int     @default(48)
+  alertaGpsSinSenalActiva Boolean @default(true)
+
+  // Módulo C — mantenimiento / tenencia / verificación / renta
+  alertaMantenimientoDiasPrevios Int[]   @default([15, 5])
+  alertaMantenimientoActiva      Boolean @default(true)
+
+  // Módulo D — caída de rendimiento de combustible
+  alertaRendimientoUmbralPct Int     @default(20)
+  alertaRendimientoActiva    Boolean @default(true)
+
+  // Módulo F — vencimiento de seguros
+  alertaSeguroDiasPrevios Int[]   @default([30, 7])
+  alertaSeguroActiva      Boolean @default(true)
+
+  // Módulo G.1 — señal GPS perdida
+  alertaSenalPerdidaMinutos Int     @default(15)
+  alertaSenalPerdidaActiva  Boolean @default(true)
+
+  // Módulo I — checklist diario faltante
+  alertaChecklistFaltanteActiva Boolean @default(true)
+  alertaChecklistHoraLimite     String  @default("18:00")
+
+  // Módulo L — documentación de operadores
+  alertaDocumentoOperadorDiasPrevios Int[]   @default([60, 30, 7])
+  alertaDocumentoOperadorActiva      Boolean @default(true)
+
+  destinatariosCorreo Json
+
+  actualizadoPorId String?
+  actualizadoPor   Usuario? @relation(fields: [actualizadoPorId], references: [id])
+  updatedAt        DateTime @updatedAt
 }

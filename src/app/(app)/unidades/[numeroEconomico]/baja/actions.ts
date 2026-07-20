@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
   const motivoBaja = String(formData.get("motivoBaja") ?? "");
@@ -41,13 +42,13 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
     data: { fechaHasta: new Date(fechaEfectiva) },
   });
 
-  const usuario = await prisma.usuario.findFirst({ where: { correo: "control.vehicular@grupokabat.com" } });
-  if (usuario) {
+  const session = await auth();
+  if (session?.user?.id) {
     await prisma.bitacoraCambio.create({
       data: {
         entidad: "Unidad",
         entidadId: numeroEconomico,
-        usuarioId: usuario.id,
+        usuarioId: session.user.id,
         accion: "DAR_DE_BAJA",
         valoresAnteriores: { estatus: unidad.estatus },
         valoresNuevos: { estatus: "BAJA", motivoBaja, fechaEfectiva },

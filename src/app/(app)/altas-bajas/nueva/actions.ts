@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -59,13 +60,13 @@ export async function crearUnidad(formData: FormData) {
     },
   });
 
-  const usuario = await prisma.usuario.findFirst({ where: { correo: "control.vehicular@grupokabat.com" } });
-  if (usuario) {
+  const session = await auth();
+  if (session?.user?.id) {
     await prisma.bitacoraCambio.create({
       data: {
         entidad: "Unidad",
         entidadId: numeroEconomico,
-        usuarioId: usuario.id,
+        usuarioId: session.user.id,
         accion: "CREAR",
         valoresNuevos: { numeroEconomico, placas, marca, unidadModelo },
       },

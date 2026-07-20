@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { actualizarPermisosRol } from "@/app/usuarios/actions";
+import { actualizarPermisosRol } from "@/app/(app)/usuarios/actions";
 
 type Permiso = "ninguno" | "ver" | "editar" | "aprobar";
 

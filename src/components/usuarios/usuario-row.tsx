@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
-import { alternarEstatusUsuario } from "@/app/usuarios/actions";
+import { alternarEstatusUsuario } from "@/app/(app)/usuarios/actions";
 
 type Usuario = {
   id: string;

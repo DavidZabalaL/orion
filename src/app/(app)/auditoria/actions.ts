@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function resolverAuditoria(formData: FormData) {
   const id = String(formData.get("id") ?? "");
@@ -14,13 +15,13 @@ export async function resolverAuditoria(formData: FormData) {
     data: { estatus: "RESUELTA", resolucion },
   });
 
-  const usuario = await prisma.usuario.findFirst({ where: { correo: "control.vehicular@grupokabat.com" } });
-  if (usuario) {
+  const session = await auth();
+  if (session?.user?.id) {
     await prisma.bitacoraCambio.create({
       data: {
         entidad: "Auditoria",
         entidadId: auditoria.id,
-        usuarioId: usuario.id,
+        usuarioId: session.user.id,
         accion: "EDITAR",
         valoresAnteriores: { estatus: "ABIERTA" },
         valoresNuevos: { estatus: "RESUELTA", resolucion },
