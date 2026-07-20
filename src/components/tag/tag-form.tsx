@@ -32,12 +32,15 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
   const [guardado, setGuardado] = useState(false);
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-      <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-        Carga de estado de cuenta (captura manual)
-      </h3>
+    <details className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+      <summary
+        className="cursor-pointer"
+        style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}
+      >
+        Registrar una transacción manual
+      </summary>
       <form
-        className="grid grid-cols-2 gap-4 md:grid-cols-6 items-end"
+        className="grid grid-cols-2 gap-4 md:grid-cols-6 items-end mt-4"
         action={(formData) => {
           startTransition(async () => {
             await crearTag(formData);
@@ -84,6 +87,6 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
           {guardado ? <><CheckCircle2 size={16} /> Guardado</> : pending ? "Guardando…" : "Registrar"}
         </button>
       </form>
-    </div>
+    </details>
   );
 }

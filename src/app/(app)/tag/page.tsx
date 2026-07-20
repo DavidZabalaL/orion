@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
-import { Ticket, DollarSign, CheckCircle2, Inbox } from "lucide-react";
+import { Ticket, DollarSign, CheckCircle2, Inbox, Upload } from "lucide-react";
 import { TagForm } from "@/components/tag/tag-form";
 import { TagRow } from "@/components/tag/tag-row";
 import { TagPendienteRow } from "@/components/tag/tag-pendiente-row";
@@ -21,13 +22,18 @@ export default async function TagPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div>
-        <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-          TAG / Peajes
-        </h1>
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Gasto de casetas y conciliación cruzada con GPS.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+            TAG / Peajes
+          </h1>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
+            Gasto de casetas y conciliación cruzada con GPS.
+          </p>
+        </div>
+        <Link href="/tag/importar" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+          <Upload size={16} /> Importar estado de cuenta
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
