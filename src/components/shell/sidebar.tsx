@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { MODULOS } from "@/lib/modulos";
-import { Truck, X } from "lucide-react";
+import { X } from "lucide-react";
+import { OrionIcon } from "@/components/brand/orion-icon";
 
 export function Sidebar({
   mobileOpen = false,
@@ -35,12 +36,7 @@ export function Sidebar({
         className="flex items-center gap-2 px-5 shrink-0"
         style={{ height: "var(--header-height)" }}
       >
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-md"
-          style={{ background: "var(--color-primary)" }}
-        >
-          <Truck size={18} color="#fff" />
-        </div>
+        <OrionIcon size={32} />
         <div className="leading-tight">
           <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
             Orion
