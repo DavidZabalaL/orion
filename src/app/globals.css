@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+:root {
+  /* ─── FONTS ─── */
+  /* --font, --font-ui, --font-mono son inyectados por next/font en layout.tsx */
+
+  /* ─── SPACING (4px grid) ─── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ─── TYPOGRAPHY SCALE ─── */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+
+  /* ─── FONT WEIGHTS ─── */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  /* ─── HEIGHTS ─── */
+  --h-sm: 32px;
+  --h-md: 36px;
+  --h-lg: 40px;
+  --h-xl: 48px;
+
+  /* ─── RADIUS ─── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ─── SEMANTIC COLORS ─── */
+  --color-primary: #2b7fff;
+  --color-success: #01c17b;
+  --color-warning: #ffc229;
+  --color-error: #fca5a5;
+  --color-info: #4d7cfe;
+
+  /* ─── SURFACES (dark mode default) ─── */
+  --color-bg: #040d19;
+  --color-surface-2: #111827;
+  --color-surface-3: #071426;
+
+  /* ─── BRAND PALETTE ─── */
+  --brand-blue: #2b7fff;
+  --brand-navy: #0f4c86;
+  --brand-violet: #7c3aed;
+  --brand-orange: #f97316;
+  --brand-rose: #e11d67;
+
+  /* ─── STATUS COLORS ─── */
+  --color-status-nuevo: #00b4d8;
+  --color-status-revision: #f59e0b;
+  --color-status-asignado: #4d7cfe;
+  --color-status-escena: #ff5263;
+  --color-status-cerrado: #00d492;
+  --status-nuevo-bg: rgba(0, 180, 216, 0.12);
+  --status-revision-bg: rgba(245, 158, 11, 0.12);
+  --status-asignado-bg: rgba(77, 124, 254, 0.12);
+  --status-escena-bg: rgba(255, 82, 99, 0.12);
+  --status-cerrado-bg: rgba(0, 212, 146, 0.12);
+
+  /* ─── PRIORITY ─── */
+  --priority-alta: #fb2c36;
+  --priority-media: #f59e0b;
+  --priority-baja: #4d7cfe;
+  --priority-alta-bg: rgba(251, 44, 54, 0.1);
+  --priority-media-bg: rgba(245, 158, 11, 0.1);
+  --priority-baja-bg: rgba(77, 124, 254, 0.1);
+
+  /* ─── RESOURCE STATUS ─── */
+  --resource-disponible: #00d492;
+  --resource-en-camino: #f59e0b;
+  --resource-en-escena: #ff5263;
+
+  /* ─── FIELD TOKENS ─── */
+  --field-bg: #1a2235;
+  --field-border: #0b213f;
+  --field-text: rgba(255, 255, 255, 0.87);
+
+  /* ─── SHADOWS ─── */
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.12), 0px 1px 1px rgba(0, 0, 0, 0.14), 0px 2px 1px -1px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px rgba(0, 0, 0, 0.14), 0px 1px 10px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0px 11px 15px -7px rgba(0, 0, 0, 0.2), 0px 24px 38px 3px rgba(0, 0, 0, 0.14), 0px 9px 46px 8px rgba(0, 0, 0, 0.12);
+  --shadow-panel: 0px 8px 32px rgba(0, 40, 120, 0.12);
+
+  /* ─── SIDEBAR ─── */
+  --sidebar-bg: #060d1a;
+  --sidebar-item-hover: #111827;
+  --sidebar-item-active: rgba(43, 127, 255, 0.12);
+  --sidebar-text: #99a1af;
+  --sidebar-text-active: #e8edf5;
+
+  /* ─── HEADER ─── */
+  --header-bg: #060d1a;
+  --header-border: rgba(43, 127, 255, 0.1);
+  --header-height: 64px;
+
+  /* ─── PANEL / OVERLAY ─── */
+  --panel-bg: #111827;
+  --panel-header-bg: #202e4b;
+  --overlay-bg: rgba(6, 13, 26, 0.92);
+  --chip: rgba(255, 255, 255, 0.07);
+
+  /* ─── KANBAN / BOARD ─── */
+  --kanban-bg: #080f1c;
+  --kanban-col: rgba(255, 255, 255, 0.03);
+  --card-active: #1b2e4a;
+  --card-hover: #162540;
+  --row-bg: #111e35;
+  --row-hover: #172240;
+  --detail-bg: #0c1928;
+
+  --background: var(--color-bg);
+  --foreground: var(--field-text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--color-primary);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
+
+  --color-status-nuevo: var(--color-status-nuevo);
+  --color-status-revision: var(--color-status-revision);
+  --color-status-asignado: var(--color-status-asignado);
+  --color-status-escena: var(--color-status-escena);
+  --color-status-cerrado: var(--color-status-cerrado);
+
+  --font-sans: var(--font);
+  --font-ui: var(--font-ui);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--field-text);
+  font-family: var(--font);
+  font-size: var(--text-base);
+}
