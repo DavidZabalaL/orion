@@ -43,10 +43,10 @@ export function Sidebar({
         </div>
         <div className="leading-tight">
           <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
-            Control Vehicular
+            Orion
           </div>
           <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-            Grupo Kabat
+            Control Vehicular · Grupo Kabat
           </div>
         </div>
         <button

@@ -1,4 +1,4 @@
-# Control Vehicular — Grupo Kabat
+# Orion — Control Vehicular · Grupo Kabat
 
 Plataforma web (Next.js + Prisma + PostgreSQL) para la administración de la flota vehicular de Grupo Kabat. Sustituye el libro de Excel de 34 hojas usado hoy por el área de Control Vehicular.
 
