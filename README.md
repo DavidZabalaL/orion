@@ -70,6 +70,8 @@ Como solo puede iniciar sesión quien ya exista como `Usuario`, necesitas insert
 
 ## Despliegue en Vercel
 
+El proyecto está conectado al repositorio de GitHub: cada push a `main` dispara un deploy automático a producción.
+
 1. Importa el repositorio en Vercel.
 2. En **Project Settings → Environment Variables**, agrega `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET` y `AZURE_AD_TENANT_ID`.
 3. Vercel corre `npm install` (dispara `postinstall` → `prisma generate`) y luego `npm run build` automáticamente. No hace falta configurar nada más — el schema de Prisma no necesita generarse manualmente.
