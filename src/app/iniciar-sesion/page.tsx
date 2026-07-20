@@ -94,7 +94,7 @@ export default async function IniciarSesionPage({
             >
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-md h-12 font-semibold"
+                className="btn-microsoft flex w-full items-center justify-center gap-3 rounded-md h-12 font-semibold"
                 style={{ background: "#fff", color: "#1b1b1b", border: "1px solid #d7dee8", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
               >
                 <MicrosoftLogo />

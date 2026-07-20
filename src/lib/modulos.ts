@@ -37,6 +37,6 @@ export const MODULOS: Modulo[] = [
   { id: "H", label: "Proyectos y multi-estado", href: "/proyectos", icon: FolderKanban, descripcion: "Estructura de proyectos y presupuesto semanal" },
   { id: "I", label: "Auditoría diaria y calidad", href: "/auditoria", icon: ClipboardList, descripcion: "Conciliación PTTO / REAL / CV" },
   { id: "J", label: "Reportes", href: "/reportes", icon: BarChart3, descripcion: "Dashboard ejecutivo y generador configurable" },
-  { id: "K", label: "Usuarios y roles", href: "/usuarios", icon: Users, descripcion: "Permisos granulares rol × proyecto × módulo × acción" },
+  { id: "K", label: "Administración", href: "/usuarios", icon: Users, descripcion: "Usuarios, roles, notificaciones y módulos por proyecto" },
   { id: "L", label: "Gestión de Operadores", href: "/operadores", icon: IdCard, descripcion: "Expediente digital y alertas de vencimiento" },
 ];

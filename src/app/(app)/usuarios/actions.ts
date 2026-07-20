@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function invitarUsuario(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -33,6 +34,55 @@ export async function alternarEstatusUsuario(formData: FormData) {
   const nuevoEstatus = estatusActual === "DESACTIVADO" ? "ACTIVO" : "DESACTIVADO";
   await prisma.usuario.update({ where: { id }, data: { estatus: nuevoEstatus } });
   revalidatePath("/usuarios");
+}
+
+export async function actualizarUsuario(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const rolId = String(formData.get("rolId") ?? "");
+  const proyectoIds = formData.getAll("proyectoIds").map(String);
+
+  if (!id || !nombre || !rolId) {
+    throw new Error("Nombre y rol son obligatorios.");
+  }
+
+  await prisma.$transaction([
+    prisma.usuarioProyecto.deleteMany({ where: { usuarioId: id } }),
+    prisma.usuario.update({
+      where: { id },
+      data: {
+        nombre,
+        rolId,
+        proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
+      },
+    }),
+  ]);
+
+  revalidatePath("/usuarios");
+}
+
+export type ResultadoEliminarUsuario = { ok: boolean; error?: string };
+
+export async function eliminarUsuario(formData: FormData): Promise<ResultadoEliminarUsuario> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Usuario inválido." };
+
+  const session = await auth();
+  if (session?.user?.id === id) {
+    return { ok: false, error: "No puedes eliminar tu propia cuenta." };
+  }
+
+  try {
+    await prisma.usuarioProyecto.deleteMany({ where: { usuarioId: id } });
+    await prisma.usuario.delete({ where: { id } });
+    revalidatePath("/usuarios");
+    return { ok: true };
+  } catch {
+    return {
+      ok: false,
+      error: "Este usuario ya tiene historial asociado (checklists, auditorías, bitácora, etc.) y no se puede eliminar. Desactívalo en su lugar.",
+    };
+  }
 }
 
 export async function actualizarPermisosRol(formData: FormData) {
