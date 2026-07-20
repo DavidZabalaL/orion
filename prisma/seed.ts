@@ -10,13 +10,16 @@ const DIAS = (n: number) => new Date(Date.now() + n * 86_400_000);
 async function main() {
   console.log("Sembrando datos mock…");
 
-  // ── Roles ──
+  // ── Roles ── (permisos por módulo, ver Parte 5 de la spec — Matriz de Roles y Permisos)
+  const editar = { ver: true, editar: true };
+  const ver = { ver: true };
+
   const rolAdmin = await prisma.rol.upsert({
     where: { nombre: "Administrador" },
     update: {},
     create: {
       nombre: "Administrador",
-      permisos: { "*": { "*": "editar" } },
+      permisos: { "*": { "*": true } },
     },
   });
   const rolCV = await prisma.rol.upsert({
@@ -25,12 +28,9 @@ async function main() {
     create: {
       nombre: "Control Vehicular",
       permisos: {
-        A: { ver: true, editar: true }, B: { ver: true, editar: true },
-        C: { ver: true, editar: true }, D: { ver: true, editar: true },
-        E: { ver: true, editar: true }, F: { ver: true, editar: true },
-        G: { ver: true, editar: true }, H: { ver: true, editar: true },
-        I: { ver: true, editar: true }, J: { ver: true, editar: true },
-        L: { ver: true, editar: true },
+        A: editar, "A.1": editar, B: editar, C: editar, D: editar, E: editar,
+        F: editar, G: editar, "G.1": editar, H: editar, I: editar, J: editar,
+        L: editar,
       },
     },
   });
@@ -39,7 +39,10 @@ async function main() {
     update: {},
     create: {
       nombre: "Coordinador de Proyecto",
-      permisos: { A: { ver: true }, C: { ver: true }, D: { ver: true, reportar: true }, F: { ver: true }, L: { ver: true } },
+      permisos: {
+        A: ver, "A.1": editar, C: ver, D: editar, E: editar, F: ver,
+        G: ver, "G.1": ver, H: ver, I: ver, J: editar, L: ver,
+      },
     },
   });
   const rolDireccion = await prisma.rol.upsert({
@@ -47,7 +50,10 @@ async function main() {
     update: {},
     create: {
       nombre: "Dirección",
-      permisos: { "*": { "*": "ver" } },
+      permisos: {
+        A: ver, B: ver, C: ver, D: ver, E: ver, F: ver,
+        G: ver, "G.1": ver, H: ver, I: ver, J: ver, L: ver,
+      },
     },
   });
 
