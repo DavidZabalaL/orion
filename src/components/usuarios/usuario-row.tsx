@@ -31,6 +31,7 @@ const fieldStyle: React.CSSProperties = {
   height: "var(--h-sm)",
   borderRadius: "var(--radius-md)",
   padding: "0 10px",
+  width: "100%",
 };
 
 export function UsuarioRow({
@@ -58,134 +59,132 @@ export function UsuarioRow({
   }
 
   return (
-    <>
-      <tr style={{ borderBottom: modo === "ver" ? "1px solid var(--field-border)" : "none" }}>
-        <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{u.nombre}</td>
-        <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.correo}</td>
-        <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.rol}</td>
-        <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.proyectos.length ? u.proyectos.join(", ") : "—"}</td>
-        <td className="px-4 py-3"><Badge label={style.label} color={style.color} bg={style.bg} /></td>
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setModo(modo === "editar" ? "ver" : "editar")}
-              className="flex items-center gap-1 rounded-md px-2.5 py-1"
-              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
-            >
-              <Pencil size={12} /> Editar
+    <div className="rounded-xl p-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="min-w-[160px]">
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{u.nombre}</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{u.correo}</div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+          <span>{u.rol}</span>
+          <span style={{ color: "var(--sidebar-text)" }}>{u.proyectos.length ? u.proyectos.join(", ") : "Sin proyectos"}</span>
+        </div>
+
+        <Badge label={style.label} color={style.color} bg={style.bg} />
+
+        <div className="flex flex-wrap items-center gap-2 ml-auto">
+          <button
+            onClick={() => setModo(modo === "editar" ? "ver" : "editar")}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5"
+            style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+          >
+            <Pencil size={12} /> Editar
+          </button>
+          <form action={(fd) => startTransition(() => alternarEstatusUsuario(fd))}>
+            <input type="hidden" name="id" value={u.id} />
+            <input type="hidden" name="estatus" value={u.estatus} />
+            <button type="submit" disabled={pending} className="rounded-md px-2.5 py-1.5 disabled:opacity-60" style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}>
+              {u.estatus === "DESACTIVADO" ? "Reactivar" : "Desactivar"}
             </button>
-            <form action={(fd) => startTransition(() => alternarEstatusUsuario(fd))}>
-              <input type="hidden" name="id" value={u.id} />
-              <input type="hidden" name="estatus" value={u.estatus} />
-              <button type="submit" disabled={pending} className="rounded-md px-2.5 py-1 disabled:opacity-60" style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}>
-                {u.estatus === "DESACTIVADO" ? "Reactivar" : "Desactivar"}
-              </button>
-            </form>
-            <button
-              onClick={() => setModo("confirmar-eliminar")}
-              className="flex items-center gap-1 rounded-md px-2.5 py-1"
-              style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
-            >
-              <Trash2 size={12} /> Eliminar
-            </button>
-          </div>
-        </td>
-      </tr>
+          </form>
+          <button
+            onClick={() => setModo("confirmar-eliminar")}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5"
+            style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+          >
+            <Trash2 size={12} /> Eliminar
+          </button>
+        </div>
+      </div>
 
       {errorEliminar && (
-        <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td colSpan={6} className="px-4 py-3" style={{ background: "var(--status-escena-bg)" }}>
-            <div className="flex items-start gap-2">
-              <TriangleAlert size={15} color="var(--color-status-escena)" className="shrink-0 mt-0.5" />
-              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{errorEliminar}</span>
-              <button onClick={() => setErrorEliminar(null)} className="ml-auto rounded-md px-2 py-0.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
-                Cerrar
-              </button>
-            </div>
-          </td>
-        </tr>
+        <div className="flex items-start gap-2 rounded-md px-3 py-2.5 mt-3" style={{ background: "var(--status-escena-bg)" }}>
+          <TriangleAlert size={15} color="var(--color-status-escena)" className="shrink-0 mt-0.5" />
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{errorEliminar}</span>
+          <button onClick={() => setErrorEliminar(null)} className="ml-auto shrink-0 rounded-md px-2 py-0.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+            Cerrar
+          </button>
+        </div>
       )}
 
       {modo === "confirmar-eliminar" && (
-        <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-            <div className="flex flex-wrap items-center gap-3">
-              <TriangleAlert size={16} color="var(--color-status-escena)" className="shrink-0" />
-              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
-                ¿Seguro que quieres eliminar a <strong>{u.nombre}</strong>? Esta acción no se puede deshacer.
-              </span>
-              <form action={handleEliminar} className="flex items-center gap-2 ml-auto">
-                <input type="hidden" name="id" value={u.id} />
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="rounded-md px-3 h-8 font-semibold disabled:opacity-60"
-                  style={{ background: "var(--color-status-escena)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
-                >
-                  {pending ? "Eliminando…" : "Sí, eliminar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModo("ver")}
-                  className="rounded-md px-3 h-8"
-                  style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
-                >
-                  Cancelar
-                </button>
-              </form>
-            </div>
-          </td>
-        </tr>
+        <div className="rounded-md px-3 py-3 mt-3 flex flex-col gap-3" style={{ background: "var(--field-bg)" }}>
+          <div className="flex items-start gap-2">
+            <TriangleAlert size={16} color="var(--color-status-escena)" className="shrink-0 mt-0.5" />
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+              ¿Seguro que quieres eliminar a <strong>{u.nombre}</strong>? Esta acción no se puede deshacer.
+            </span>
+          </div>
+          <form action={handleEliminar} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="id" value={u.id} />
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-md px-3 h-8 font-semibold disabled:opacity-60"
+              style={{ background: "var(--color-status-escena)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+            >
+              {pending ? "Eliminando…" : "Sí, eliminar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo("ver")}
+              className="rounded-md px-3 h-8"
+              style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
+            >
+              Cancelar
+            </button>
+          </form>
+        </div>
       )}
 
       {modo === "editar" && (
-        <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-            <form
-              action={(fd) => {
-                startTransition(async () => {
-                  await actualizarUsuario(fd);
-                  setModo("ver");
-                });
-              }}
-              className="flex flex-wrap items-end gap-3"
-            >
-              <input type="hidden" name="id" value={u.id} />
-              <div>
-                <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Nombre</label>
-                <input name="nombre" defaultValue={u.nombre} required style={fieldStyle} />
-              </div>
-              <div>
-                <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Rol</label>
-                <select name="rolId" defaultValue={u.rolId} style={fieldStyle}>
-                  {roles.map((r) => (
-                    <option key={r.id} value={r.id}>{r.nombre}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1 min-w-[220px]">
-                <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Proyectos asignados</label>
-                <div className="flex flex-wrap gap-2">
-                  {proyectosDisponibles.map((p) => (
-                    <label key={p.id} className="flex items-center gap-1.5 rounded-md px-2 py-1" style={{ background: "var(--panel-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--field-text)" }}>
-                      <input type="checkbox" name="proyectoIds" value={p.id} defaultChecked={u.proyectoIds.includes(p.id)} />
-                      {p.nombre}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="submit" disabled={pending} className="rounded-md px-3 h-8 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
-                  {pending ? "Guardando…" : "Guardar"}
-                </button>
-                <button type="button" onClick={() => setModo("ver")} className="rounded-md px-3 h-8" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </td>
-        </tr>
+        <form
+          action={(fd) => {
+            startTransition(async () => {
+              await actualizarUsuario(fd);
+              setModo("ver");
+            });
+          }}
+          className="rounded-md p-3 mt-3 flex flex-col gap-3"
+          style={{ background: "var(--field-bg)" }}
+        >
+          <input type="hidden" name="id" value={u.id} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Nombre</label>
+              <input name="nombre" defaultValue={u.nombre} required style={fieldStyle} />
+            </div>
+            <div>
+              <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Rol</label>
+              <select name="rolId" defaultValue={u.rolId} style={fieldStyle}>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.nombre}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block mb-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Proyectos asignados</label>
+            <div className="flex flex-wrap gap-2">
+              {proyectosDisponibles.map((p) => (
+                <label key={p.id} className="flex items-center gap-1.5 rounded-md px-2 py-1" style={{ background: "var(--panel-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--field-text)" }}>
+                  <input type="checkbox" name="proyectoIds" value={p.id} defaultChecked={u.proyectoIds.includes(p.id)} />
+                  {p.nombre}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="submit" disabled={pending} className="rounded-md px-3 h-8 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+              {pending ? "Guardando…" : "Guardar"}
+            </button>
+            <button type="button" onClick={() => setModo("ver")} className="rounded-md px-3 h-8" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+              Cancelar
+            </button>
+          </div>
+        </form>
       )}
-    </>
+    </div>
   );
 }

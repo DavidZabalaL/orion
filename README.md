@@ -1,4 +1,4 @@
-# Orion — Control Vehicular · Grupo Kabat
+# Orión — Control Vehicular · Grupo Kabat
 
 Plataforma web (Next.js + Prisma + PostgreSQL) para la administración de la flota vehicular de Grupo Kabat. Sustituye el libro de Excel de 34 hojas usado hoy por el área de Control Vehicular.
 
@@ -40,12 +40,12 @@ Abre [http://localhost:3000](http://localhost:3000) — redirige a `/unidades`.
 
 ## Login con Microsoft (Azure AD / Entra ID)
 
-Orion requiere que cada usuario inicie sesión con su cuenta de Microsoft corporativa. Solo pueden entrar correos que ya existan como `Usuario` en la base de datos (creados desde **Usuarios y roles → Invitar usuario**, o insertados directamente).
+Orión requiere que cada usuario inicie sesión con su cuenta de Microsoft corporativa. Solo pueden entrar correos que ya existan como `Usuario` en la base de datos (creados desde **Administración → Invitar usuario**, o insertados directamente).
 
 ### 1. Crear el App Registration
 
 1. Entra a [portal.azure.com](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations** → **New registration**.
-2. Nombre: `Orion - Control Vehicular` (o el que prefieras).
+2. Nombre: `Orión - Control Vehicular` (o el que prefieras).
 3. **Supported account types**: "Accounts in this organizational directory only" (single tenant — solo Grupo Kabat).
 4. **Redirect URI** (tipo **Web**): agrega una por cada entorno donde corra la app:
    - `http://localhost:3000/api/auth/callback/microsoft-entra-id` (desarrollo local)

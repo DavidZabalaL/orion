@@ -39,7 +39,7 @@ export function Sidebar({
         <OrionIcon size={32} />
         <div className="leading-tight">
           <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
-            Orion
+            Orión
           </div>
           <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
             Control Vehicular · Grupo Kabat

@@ -22,8 +22,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orion · Control Vehicular — Grupo Kabat",
-  description: "Orion — plataforma de administración de flota vehicular de Grupo Kabat",
+  title: "Orión · Control Vehicular — Grupo Kabat",
+  description: "Orión — plataforma de administración de flota vehicular de Grupo Kabat",
 };
 
 export default function RootLayout({

@@ -56,7 +56,7 @@ export default async function UsuariosPage() {
           Administración
         </h1>
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Usuarios, roles y permisos, módulos por proyecto y notificaciones — todo lo que necesitas para administrar Orion.
+          Usuarios, roles y permisos, módulos por proyecto y notificaciones — todo lo que necesitas para administrar Orión.
         </p>
       </div>
 
@@ -74,35 +74,24 @@ export default async function UsuariosPage() {
 
       <InvitarUsuarioForm roles={roles} proyectos={proyectos} />
 
-      <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <table className="w-full min-w-[720px] border-collapse">
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-              {["Nombre", "Correo", "Rol", "Proyectos asignados", "Estatus", ""].map((h) => (
-                <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.map((u) => (
-              <UsuarioRow
-                key={u.id}
-                usuario={{
-                  id: u.id,
-                  nombre: u.nombre,
-                  correo: u.correo,
-                  rolId: u.rol.id,
-                  rol: u.rol.nombre,
-                  proyectoIds: u.proyectos.map((p) => p.proyecto.id),
-                  proyectos: u.proyectos.map((p) => p.proyecto.nombre),
-                  estatus: u.estatus,
-                }}
-                roles={roles}
-                proyectosDisponibles={proyectos}
-              />
-            ))}
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-3">
+        {usuarios.map((u) => (
+          <UsuarioRow
+            key={u.id}
+            usuario={{
+              id: u.id,
+              nombre: u.nombre,
+              correo: u.correo,
+              rolId: u.rol.id,
+              rol: u.rol.nombre,
+              proyectoIds: u.proyectos.map((p) => p.proyecto.id),
+              proyectos: u.proyectos.map((p) => p.proyecto.nombre),
+              estatus: u.estatus,
+            }}
+            roles={roles}
+            proyectosDisponibles={proyectos}
+          />
+        ))}
       </div>
     </div>
   );

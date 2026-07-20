@@ -5,7 +5,7 @@ import { OrionIcon } from "@/components/brand/orion-icon";
 import logoKabat from "../../../public/Logo-Grupo-Kabat_bl.png";
 
 const ERROR_LABEL: Record<string, string> = {
-  SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orion. Pide a un administrador que te invite desde Usuarios y roles.",
+  SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orión. Pide a un administrador que te invite desde Administración.",
   AccessDenied: "Acceso denegado. Verifica que estés usando tu cuenta de Grupo Kabat.",
 };
 
@@ -39,7 +39,7 @@ export default async function IniciarSesionPage({
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-3">
             <OrionIcon size={44} />
-            <span style={{ fontFamily: "var(--font)", fontSize: 34, fontWeight: 800, color: "#fff" }}>Orion</span>
+            <span style={{ fontFamily: "var(--font)", fontSize: 34, fontWeight: 800, color: "#fff" }}>Orión</span>
           </div>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "rgba(255,255,255,0.55)" }}>
             Control Vehicular de Grupo Kabat
@@ -67,7 +67,7 @@ export default async function IniciarSesionPage({
           <div className="mb-6 flex justify-center lg:hidden">
             <div className="flex items-center gap-3">
               <OrionIcon size={36} />
-              <span style={{ fontFamily: "var(--font)", fontSize: 26, fontWeight: 800, color: "#0f1b2d" }}>Orion</span>
+              <span style={{ fontFamily: "var(--font)", fontSize: 26, fontWeight: 800, color: "#0f1b2d" }}>Orión</span>
             </div>
           </div>
 
