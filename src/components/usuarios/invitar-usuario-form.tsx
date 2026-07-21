@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { CheckCircle2, TriangleAlert } from "lucide-react";
 import { invitarUsuario } from "@/app/(app)/usuarios/actions";
 
 const fieldStyle: React.CSSProperties = {
@@ -27,6 +27,11 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
+type Estado =
+  | { tipo: "idle" }
+  | { tipo: "ok" }
+  | { tipo: "ok-sin-correo"; mensaje?: string };
+
 export function InvitarUsuarioForm({
   roles,
   proyectos,
@@ -35,7 +40,8 @@ export function InvitarUsuarioForm({
   proyectos: { id: string; nombre: string }[];
 }) {
   const [pending, startTransition] = useTransition();
-  const [ok, setOk] = useState(false);
+  const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
     <details className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -43,12 +49,18 @@ export function InvitarUsuarioForm({
         Invitar usuario
       </summary>
       <form
+        ref={formRef}
         className="flex flex-col gap-4 mt-4"
         action={(formData) => {
           startTransition(async () => {
-            await invitarUsuario(formData);
-            setOk(true);
-            setTimeout(() => setOk(false), 2500);
+            const res = await invitarUsuario(formData);
+            if (res.correoEnviado) {
+              setEstado({ tipo: "ok" });
+              formRef.current?.reset();
+            } else {
+              setEstado({ tipo: "ok-sin-correo", mensaje: res.errorCorreo });
+            }
+            setTimeout(() => setEstado({ tipo: "idle" }), 6000);
           });
         }}
       >
@@ -81,13 +93,23 @@ export function InvitarUsuarioForm({
             ))}
           </div>
         </div>
+
+        {estado.tipo === "ok-sin-correo" && (
+          <div className="flex items-start gap-2 rounded-md px-3 py-2.5" style={{ background: "var(--status-revision-bg)" }}>
+            <TriangleAlert size={15} color="var(--color-status-revision)" className="shrink-0 mt-0.5" />
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-revision)" }}>
+              El usuario se creó, pero no se pudo enviar el correo de invitación{estado.mensaje ? `: ${estado.mensaje}` : "."} Comparte el enlace de acceso manualmente.
+            </span>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={pending}
           className="flex items-center justify-center gap-2 rounded-md px-5 h-10 font-semibold disabled:opacity-60 w-fit"
           style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
         >
-          {ok ? <><CheckCircle2 size={16} /> Invitado</> : pending ? "Enviando…" : "Enviar invitación"}
+          {estado.tipo === "ok" ? <><CheckCircle2 size={16} /> Invitación enviada</> : pending ? "Enviando…" : "Enviar invitación"}
         </button>
       </form>
     </details>

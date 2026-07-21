@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { enviarInvitacion } from "@/lib/email";
 
-export async function invitarUsuario(formData: FormData) {
+export type ResultadoInvitarUsuario = { id: string; correoEnviado: boolean; errorCorreo?: string };
+
+export async function invitarUsuario(formData: FormData): Promise<ResultadoInvitarUsuario> {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const correo = String(formData.get("correo") ?? "").trim().toLowerCase();
   const rolId = String(formData.get("rolId") ?? "");
@@ -14,18 +17,23 @@ export async function invitarUsuario(formData: FormData) {
     throw new Error("Nombre, correo y rol son obligatorios.");
   }
 
-  const usuario = await prisma.usuario.create({
-    data: {
-      nombre,
-      correo,
-      rolId,
-      estatus: "INVITADO",
-      proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
-    },
-  });
+  const [usuario, rol] = await prisma.$transaction([
+    prisma.usuario.create({
+      data: {
+        nombre,
+        correo,
+        rolId,
+        estatus: "INVITADO",
+        proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
+      },
+    }),
+    prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { nombre: true } }),
+  ]);
+
+  const resultadoCorreo = await enviarInvitacion({ correo, nombre, rol: rol.nombre });
 
   revalidatePath("/usuarios");
-  return usuario.id;
+  return { id: usuario.id, correoEnviado: resultadoCorreo.enviado, errorCorreo: resultadoCorreo.error };
 }
 
 export async function alternarEstatusUsuario(formData: FormData) {
