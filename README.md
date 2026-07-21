@@ -37,8 +37,11 @@ Abre [http://localhost:3000](http://localhost:3000) — redirige a `/unidades`.
 | `AZURE_AD_CLIENT_ID` | Application (client) ID del App Registration en Microsoft Entra ID |
 | `AZURE_AD_CLIENT_SECRET` | Client secret generado para ese App Registration |
 | `AZURE_AD_TENANT_ID` | Directory (tenant) ID de Grupo Kabat en Microsoft Entra ID |
-| `RESEND_API_KEY` | API key de [Resend](https://resend.com) usada para enviar el correo de invitación |
-| `EMAIL_FROM` | Remitente del correo de invitación, ej. `Orión <orion@grupokabat.com>` (requiere dominio verificado en Resend) |
+| `SMTP_HOST` | Servidor SMTP para el correo de invitación (`smtp.office365.com`) |
+| `SMTP_PORT` | Puerto SMTP (`587`) |
+| `SMTP_USER` | Cuenta de Office 365 usada para autenticar y enviar el correo (`marketing@grupokabat.com`, misma que usa Órbita) |
+| `SMTP_PASS` | Contraseña (o contraseña de aplicación) de esa cuenta |
+| `EMAIL_FROM` | Remitente que ve el destinatario, ej. `Orión <marketing@grupokabat.com>` |
 | `NEXT_PUBLIC_APP_URL` | URL pública de la app (ej. `https://orion-two-phi.vercel.app`), usada para armar el enlace de acceso dentro del correo |
 
 ## Login con Microsoft (Azure AD / Entra ID)
@@ -73,19 +76,18 @@ Como solo puede iniciar sesión quien ya exista como `Usuario`, necesitas insert
 
 ## Correo de invitación
 
-Cuando un administrador invita a alguien desde **Administración → Invitar usuario**, Orión le envía un correo con un botón para entrar (vía [Resend](https://resend.com)).
+Cuando un administrador invita a alguien desde **Administración → Invitar usuario**, Orión le envía un correo con un botón para entrar. Se envía por SMTP directo de Office 365 (vía [Nodemailer](https://nodemailer.com)), el mismo mecanismo que usa Órbita (`kabat-email-platform`) — reutiliza la cuenta `marketing@grupokabat.com`, que ya tiene SMTP AUTH habilitado en el tenant de Microsoft 365.
 
-1. Crea una cuenta en [resend.com](https://resend.com) y copia el API key (`re_...`) → `RESEND_API_KEY`.
-2. Ve a **resend.com/domains → Add Domain** y agrega `grupokabat.com`. Copia los registros DNS (TXT/DKIM, y MX si aplica) que te muestre y agrégalos donde se administra el DNS del dominio. Mientras el dominio no esté verificado, Resend solo permite enviar correos de prueba a la propia cuenta de Resend — usa `EMAIL_FROM="Orión <onboarding@resend.dev>"` temporalmente.
-3. Una vez verificado el dominio, cambia `EMAIL_FROM` a `"Orión <orion@grupokabat.com>"`.
-4. Si el correo falla al enviarse (dominio no verificado, error de Resend, etc.), el usuario **igual se crea** — el panel de Administración avisa que el correo no se pudo enviar para que se comparta el acceso manualmente.
+1. Configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `EMAIL_FROM` (ver tabla de variables de entorno arriba).
+2. Si la cuenta usada tiene MFA activado, `SMTP_PASS` debe ser una "contraseña de aplicación" generada para esa cuenta, no la contraseña normal.
+3. Si el correo falla al enviarse (credenciales inválidas, SMTP AUTH deshabilitado, etc.), el usuario **igual se crea** — el panel de Administración avisa que el correo no se pudo enviar para que se comparta el acceso manualmente.
 
 ## Despliegue en Vercel
 
 El proyecto está conectado al repositorio de GitHub: cada push a `main` dispara un deploy automático a producción.
 
 1. Importa el repositorio en Vercel.
-2. En **Project Settings → Environment Variables**, agrega `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, `RESEND_API_KEY`, `EMAIL_FROM` y `NEXT_PUBLIC_APP_URL` (esta última con el dominio real de producción).
+2. En **Project Settings → Environment Variables**, agrega `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` y `NEXT_PUBLIC_APP_URL` (esta última con el dominio real de producción).
 3. Vercel corre `npm install` (dispara `postinstall` → `prisma generate`) y luego `npm run build` automáticamente. No hace falta configurar nada más — el schema de Prisma no necesita generarse manualmente.
 4. Las migraciones **no** se aplican automáticamente en cada deploy. Para aplicar una migración nueva a la base de producción, corre localmente (apuntando al `DATABASE_URL` de producción):
    ```bash

@@ -1,8 +1,39 @@
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import nodemailer from "nodemailer";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+function crearTransporte() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "smtp.office365.com",
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+      minVersion: "TLSv1.2",
+    },
+    connectionTimeout: 20_000,
+    greetingTimeout: 20_000,
+    socketTimeout: 30_000,
+  });
+}
+
+async function enviarConReintento(mensaje: Parameters<ReturnType<typeof crearTransporte>["sendMail"]>[0], intentos = 3) {
+  const transporte = crearTransporte();
+  for (let intento = 1; intento <= intentos; intento++) {
+    try {
+      return await transporte.sendMail(mensaje);
+    } catch (e) {
+      const codigo = (e as { code?: string; responseCode?: number })?.code;
+      const esErrorAuth = codigo === "EAUTH" || (e as { responseCode?: number })?.responseCode === 535;
+      if (esErrorAuth || intento === intentos) throw e;
+      await new Promise((resolve) => setTimeout(resolve, intento * 1000));
+    }
+  }
+}
 
 function plantillaInvitacion({ nombre, rol, loginUrl }: { nombre: string; rol: string; loginUrl: string }) {
   return `
@@ -73,21 +104,19 @@ export async function enviarInvitacion({
   nombre: string;
   rol: string;
 }): Promise<ResultadoEnvioCorreo> {
-  if (!process.env.RESEND_API_KEY) {
-    return { enviado: false, error: "RESEND_API_KEY no configurado." };
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
   }
 
   const loginUrl = `${SITE_URL}/iniciar-sesion`;
 
   try {
-    const { error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? "Orión <onboarding@resend.dev>",
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
       to: correo,
       subject: "Te invitaron a Orión — Control Vehicular",
       html: plantillaInvitacion({ nombre, rol, loginUrl }),
     });
-
-    if (error) return { enviado: false, error: error.message };
     return { enviado: true };
   } catch (e) {
     return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
