@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { MODULOS } from "@/lib/modulos";
 import { X } from "lucide-react";
 import { OrionIcon } from "@/components/brand/orion-icon";
+import packageJson from "../../../package.json";
 
 export function Sidebar({
   mobileOpen = false,
@@ -87,6 +88,13 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      <div
+        className="px-5 py-3 shrink-0"
+        style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", opacity: 0.5 }}
+      >
+        v{packageJson.version}
+      </div>
       </aside>
     </>
   );
