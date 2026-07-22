@@ -118,12 +118,19 @@ export function Sidebar({
                       style={{
                         background: active ? "var(--sidebar-item-active)" : "transparent",
                         color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+                        border: "1px solid transparent",
                       }}
                       onMouseEnter={(e) => {
-                        if (!active) e.currentTarget.style.background = "var(--sidebar-item-hover)";
+                        if (active) return;
+                        e.currentTarget.style.background = "var(--sidebar-item-hover)";
+                        e.currentTarget.style.borderColor = "var(--field-border)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
                       }}
                       onMouseLeave={(e) => {
-                        if (!active) e.currentTarget.style.background = "transparent";
+                        if (active) return;
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderColor = "transparent";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
                       <Icon size={17} strokeWidth={active ? 2.25 : 1.75} className="shrink-0" />
