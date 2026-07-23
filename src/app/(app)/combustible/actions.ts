@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
-export async function crearCombustible(formData: FormData) {
+export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
+
+export async function crearCombustible(formData: FormData): Promise<ResultadoCrearCombustible> {
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const fecha = String(formData.get("fecha") ?? "");
   const litros = parseFloat(String(formData.get("litros") ?? "0"));
@@ -12,14 +14,35 @@ export async function crearCombustible(formData: FormData) {
   const estacion = String(formData.get("estacion") ?? "").trim() || null;
 
   if (!numeroEconomico || !fecha || !litros || !costo || !kmActual) {
-    throw new Error("Faltan campos obligatorios.");
+    return { ok: false, error: "Faltan campos obligatorios." };
   }
+
+  const unidad = await prisma.unidad.findUnique({
+    where: { numeroEconomico },
+    select: { capacidadTanqueLitros: true, rendimientoPromedio: true },
+  });
+  if (!unidad) return { ok: false, error: "La unidad no existe." };
+  if (!unidad.capacidadTanqueLitros) {
+    return { ok: false, error: "Esta unidad no tiene capacidad de tanque registrada. Captúrala en su ficha antes de registrar cargas." };
+  }
+  const capacidadTanqueLitros = Number(unidad.capacidadTanqueLitros);
 
   const anterior = await prisma.combustible.findFirst({
     where: { numeroEconomico, kmActual: { lt: kmActual } },
     orderBy: { kmActual: "desc" },
   });
   const rendimientoCalculado = anterior ? (kmActual - anterior.kmActual) / litros : null;
+
+  const rendimientoPromedio = unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null;
+  const litrosConsumidosEstimados =
+    anterior && rendimientoPromedio && kmActual > anterior.kmActual
+      ? (kmActual - anterior.kmActual) / rendimientoPromedio
+      : 0;
+  const nivelAntes = anterior?.nivelEstimadoDespues != null
+    ? Math.max(0, Math.min(Number(anterior.nivelEstimadoDespues), capacidadTanqueLitros) - litrosConsumidosEstimados)
+    : 0;
+  const nivelEstimadoDespues = nivelAntes + litros;
+  const alertaSobrellenado = nivelEstimadoDespues > capacidadTanqueLitros;
 
   await prisma.combustible.create({
     data: {
@@ -31,11 +54,14 @@ export async function crearCombustible(formData: FormData) {
       estacion,
       fuente: "MANUAL",
       rendimientoCalculado,
+      nivelEstimadoDespues,
+      alertaSobrellenado,
     },
   });
 
   revalidatePath("/combustible");
   revalidatePath(`/unidades/${numeroEconomico}`);
+  return { ok: true, alertaSobrellenado };
 }
 
 export async function crearMapeoTarjeta(formData: FormData) {

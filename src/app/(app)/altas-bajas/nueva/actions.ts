@@ -18,6 +18,7 @@ export async function crearUnidad(formData: FormData) {
   const tipoVehiculo = String(formData.get("tipoVehiculo") ?? "");
   const tipoCombustible = String(formData.get("tipoCombustible") ?? "");
   const rendimientoPromedio = formData.get("rendimientoPromedio") ? parseFloat(String(formData.get("rendimientoPromedio"))) : null;
+  const capacidadTanqueLitros = parseFloat(String(formData.get("capacidadTanqueLitros") ?? ""));
   const proyectoId = String(formData.get("proyectoId") ?? "");
   const estadoOperacion = String(formData.get("estadoOperacion") ?? "").trim();
   const resguardanteId = String(formData.get("resguardanteId") ?? "") || null;
@@ -27,6 +28,9 @@ export async function crearUnidad(formData: FormData) {
 
   if (!numeroEconomico || !placas || numeroSerie.length !== 17 || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !proyectoId || !estadoOperacion || !propietario || !origenPlaca) {
     throw new Error("Faltan campos obligatorios o el número de serie no tiene 17 caracteres.");
+  }
+  if (!capacidadTanqueLitros || capacidadTanqueLitros <= 0) {
+    throw new Error("La capacidad máxima de tanque es obligatoria y debe ser mayor a 0.");
   }
 
   const [dupEconomico, dupPlacas, dupSerie] = await Promise.all([
@@ -49,6 +53,7 @@ export async function crearUnidad(formData: FormData) {
       tipoVehiculo: tipoVehiculo as never,
       tipoCombustible: tipoCombustible as never,
       rendimientoPromedio,
+      capacidadTanqueLitros,
       proyectoId,
       estadoOperacion,
       estatus: "ACTIVO",

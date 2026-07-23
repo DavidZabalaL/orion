@@ -273,8 +273,7 @@ model Proyecto {
   fechaInicio           DateTime
   fechaFin              DateTime?
   estatus               EstatusProyecto   @default(ACTIVO)
-  presupuestoSemanal     Decimal           @default(0) @db.Decimal(12, 2)
-  semanaActualGastado    Decimal           @default(0) @db.Decimal(12, 2)
+  presupuestoAprobadoAnual Decimal        @default(0) @db.Decimal(12, 2)
   modulosActivos        Json
   procesosActivos       Json
 
@@ -284,8 +283,24 @@ model Proyecto {
   gastosTag             Tag[]
   combustible           Combustible[]
   geocercas             Geocerca[]
+  presupuestosMensuales PresupuestoMensual[]
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
+}
+
+model PresupuestoMensual {
+  id            String   @id @default(cuid())
+  proyectoId    String
+  proyecto      Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  anio          Int
+  mes           Int
+  montoAsignado Decimal  @default(0) @db.Decimal(12, 2)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([proyectoId, anio, mes])
+  @@index([proyectoId, anio])
 }
 
 // ───────────────────────── MÓDULO A/B — UNIDAD ─────────────────────────
@@ -301,6 +316,7 @@ model Unidad {
   tipoCombustible      TipoCombustible
   rendimientoPromedio  Decimal?          @db.Decimal(6, 2)
   kmOficial            Int               @default(0)
+  capacidadTanqueLitros Decimal?         @db.Decimal(6, 2)
 
   proyectoId           String?
   proyecto             Proyecto?         @relation(fields: [proyectoId], references: [id])
@@ -506,6 +522,8 @@ model Combustible {
   proveedorConfigId       String?
   proveedorConfig         ConfiguracionProveedorCombustible?  @relation(fields: [proveedorConfigId], references: [id])
   rendimientoCalculado    Decimal?                            @db.Decimal(6, 2)
+  nivelEstimadoDespues    Decimal?                            @db.Decimal(6, 2)
+  alertaSobrellenado      Boolean                             @default(false)
 
   createdAt               DateTime                            @default(now())
 

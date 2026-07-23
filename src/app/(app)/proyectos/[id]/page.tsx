@@ -6,7 +6,8 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney } from "@/lib/formato";
 import { ESTATUS_UNIDAD_LABEL, ESTATUS_UNIDAD_STYLE } from "@/lib/estatus";
-import { PresupuestoForm } from "@/components/proyectos/presupuesto-form";
+import { PresupuestoAnual } from "@/components/proyectos/presupuesto-anual";
+import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,12 @@ export default async function FichaProyectoPage({ params }: { params: Promise<{ 
 
   if (!proyecto) notFound();
 
-  const [gastos, combustible, tags] = await Promise.all([
+  const anioActual = new Date().getFullYear();
+  const [gastos, combustible, tags, resumenPresupuesto] = await Promise.all([
     prisma.gastoVehicular.aggregate({ where: { numeroEconomico: { in: proyecto.unidades.map((u) => u.numeroEconomico) } }, _sum: { costo: true } }),
     prisma.combustible.aggregate({ where: { numeroEconomico: { in: proyecto.unidades.map((u) => u.numeroEconomico) } }, _sum: { costo: true } }),
     prisma.tag.aggregate({ where: { numeroEconomico: { in: proyecto.unidades.map((u) => u.numeroEconomico) } }, _sum: { monto: true } }),
+    obtenerResumenPresupuestoAnual(proyecto.id, anioActual),
   ]);
 
   const gastoAcumulado = Number(gastos._sum.costo ?? 0) + Number(combustible._sum.costo ?? 0) + Number(tags._sum.monto ?? 0);
@@ -53,9 +56,9 @@ export default async function FichaProyectoPage({ params }: { params: Promise<{ 
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Presupuesto semanal (bolsa)
+          Presupuesto anual y asignación mensual
         </h3>
-        <PresupuestoForm id={proyecto.id} presupuestoSemanal={Number(proyecto.presupuestoSemanal)} gastado={Number(proyecto.semanaActualGastado)} />
+        <PresupuestoAnual proyectoId={proyecto.id} resumen={resumenPresupuesto} />
       </div>
 
       <div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { crearCombustible } from "@/app/(app)/combustible/actions";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, TriangleAlert } from "lucide-react";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -27,22 +27,49 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
+type Estado = { tipo: "idle" } | { tipo: "ok" } | { tipo: "alerta" } | { tipo: "error"; mensaje: string };
+
 export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: string }[] }) {
   const [pending, startTransition] = useTransition();
-  const [guardado, setGuardado] = useState(false);
+  const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
     <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
       <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
         Captura manual de transacción
       </h3>
+      {estado.tipo === "error" && (
+        <div className="flex items-start gap-2 rounded-md px-3 py-2.5 mb-4" style={{ background: "var(--status-escena-bg)" }}>
+          <TriangleAlert size={15} color="var(--color-status-escena)" className="shrink-0 mt-0.5" />
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{estado.mensaje}</span>
+        </div>
+      )}
+      {estado.tipo === "alerta" && (
+        <div className="flex items-start gap-2 rounded-md px-3 py-2.5 mb-4" style={{ background: "var(--status-revision-bg)" }}>
+          <TriangleAlert size={15} color="var(--color-status-revision)" className="shrink-0 mt-0.5" />
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-revision)" }}>
+            La transacción se guardó, pero el nivel estimado de tanque excede la capacidad máxima registrada de la unidad. Verifica la carga.
+          </span>
+        </div>
+      )}
       <form
+        ref={formRef}
         className="grid grid-cols-2 gap-4 md:grid-cols-5 items-end"
         action={(formData) => {
           startTransition(async () => {
-            await crearCombustible(formData);
-            setGuardado(true);
-            setTimeout(() => setGuardado(false), 2500);
+            const res = await crearCombustible(formData);
+            if (!res.ok) {
+              setEstado({ tipo: "error", mensaje: res.error ?? "No se pudo registrar la transacción." });
+              return;
+            }
+            if (res.alertaSobrellenado) {
+              setEstado({ tipo: "alerta" });
+            } else {
+              setEstado({ tipo: "ok" });
+              formRef.current?.reset();
+              setTimeout(() => setEstado({ tipo: "idle" }), 2500);
+            }
           });
         }}
       >
@@ -80,7 +107,7 @@ export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: str
           className="flex items-center justify-center gap-2 rounded-md h-10 font-semibold disabled:opacity-60"
           style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
         >
-          {guardado ? <><CheckCircle2 size={16} /> Guardado</> : pending ? "Guardando…" : "Registrar"}
+          {estado.tipo === "ok" ? <><CheckCircle2 size={16} /> Guardado</> : pending ? "Guardando…" : "Registrar"}
         </button>
       </form>
     </div>

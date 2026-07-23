@@ -89,6 +89,7 @@ export async function importarUnidades(
       tipoCombustible: tipoCombustible.valor as never,
       rendimientoPromedio: fila.rendimientoPromedio ? parseFloat(fila.rendimientoPromedio) : null,
       kmOficial: fila.kmOficial ? parseInt(fila.kmOficial, 10) : 0,
+      capacidadTanqueLitros: fila.capacidadTanqueLitros ? parseFloat(fila.capacidadTanqueLitros) : null,
       proyectoId,
       estadoOperacion,
       estatus: estatus.valor as never,

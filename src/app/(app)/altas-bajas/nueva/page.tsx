@@ -112,6 +112,10 @@ export default async function AltaUnidadPage() {
             <label style={labelStyle}>Rendimiento promedio km/L</label>
             <input name="rendimientoPromedio" type="number" step="0.1" style={fieldStyle} />
           </div>
+          <div>
+            <label style={labelStyle}>Capacidad máxima de tanque (litros) *</label>
+            <input name="capacidadTanqueLitros" type="number" step="0.1" min={1} required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+          </div>
         </Bloque>
 
         <Bloque titulo="Asignación">

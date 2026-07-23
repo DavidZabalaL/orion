@@ -97,13 +97,32 @@ export async function actualizarPermisosRol(formData: FormData) {
   const rolId = String(formData.get("rolId") ?? "");
   const modulos = String(formData.get("modulos") ?? "").split(",");
 
-  const permisos: Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> = {};
+  const rolActual = await prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { permisos: true } });
+  const permisos: Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> = {
+    ...(rolActual.permisos as Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }>),
+  };
   for (const modulo of modulos) {
     const nivel = String(formData.get(`permiso_${modulo}`) ?? "ninguno");
     if (nivel === "ver") permisos[modulo] = { ver: true };
     else if (nivel === "editar") permisos[modulo] = { ver: true, editar: true };
     else if (nivel === "aprobar") permisos[modulo] = { ver: true, editar: true, aprobar: true };
+    else delete permisos[modulo];
   }
+
+  await prisma.rol.update({ where: { id: rolId }, data: { permisos } });
+  revalidatePath("/usuarios/roles");
+}
+
+export async function actualizarPermisoEspecial(formData: FormData) {
+  const rolId = String(formData.get("rolId") ?? "");
+  const permisoId = String(formData.get("permisoId") ?? "");
+  const activo = formData.get("activo") === "1";
+
+  const rolActual = await prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { permisos: true } });
+  const permisos = {
+    ...(rolActual.permisos as Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }>),
+    [permisoId]: { editar: activo },
+  };
 
   await prisma.rol.update({ where: { id: rolId }, data: { permisos } });
   revalidatePath("/usuarios/roles");

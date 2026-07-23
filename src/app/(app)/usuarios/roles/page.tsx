@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { MODULOS } from "@/lib/modulos";
+import { PERMISOS_ESPECIALES } from "@/lib/permisos";
 import { RolPermisosForm } from "@/components/usuarios/rol-permisos-form";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function ConfiguracionRolesPage() {
             key={r.id}
             rol={{ id: r.id, nombre: r.nombre, permisos: r.permisos as Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> }}
             modulos={MODULOS.map((m) => ({ id: m.id, label: m.label }))}
+            permisosEspeciales={PERMISOS_ESPECIALES}
           />
         ))}
       </div>

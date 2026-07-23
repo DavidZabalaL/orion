@@ -51,8 +51,8 @@ export default function NuevoProyectoPage() {
           <input name="fechaInicio" type="date" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Presupuesto semanal (MXN)</label>
-          <input name="presupuestoSemanal" type="number" step="0.01" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+          <label style={labelStyle}>Presupuesto aprobado anual (MXN)</label>
+          <input name="presupuestoAprobadoAnual" type="number" step="0.01" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" className="rounded-md px-5 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>

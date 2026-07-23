@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
+import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ function en(dias: number) {
 }
 
 export default async function ReportesPage() {
+  const anioActual = new Date().getFullYear();
   const [
     unidadesPorEstatus,
     gastoPorCategoria,
@@ -25,16 +27,18 @@ export default async function ReportesPage() {
     prisma.gastoVehicular.count({ where: { estatus: "PROGRAMADO", fecha: { lte: en(15) } } }),
     prisma.seguro.count({ where: { fechaVencimiento: { lte: en(30) }, estatus: { in: ["VIGENTE", "POR_VENCER"] } } }),
     prisma.documentoOperador.count({ where: { fechaVencimiento: { lte: en(60) }, operador: { estatus: "ACTIVO" } } }),
-    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { nombre: true, presupuestoSemanal: true, semanaActualGastado: true } }),
+    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true, presupuestoAprobadoAnual: true } }),
   ]);
+
+  const resumenesPresupuesto = await Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual)));
 
   const totalUnidades = unidadesPorEstatus.reduce((acc, u) => acc + u._count._all, 0);
   const disponibles = unidadesPorEstatus.find((u) => u.estatus === "ACTIVO")?._count._all ?? 0;
   const bajas = unidadesPorEstatus.find((u) => u.estatus === "BAJA")?._count._all ?? 0;
   const gastoTotal = gastoPorCategoria.reduce((acc, g) => acc + Number(g._sum.costo ?? 0), 0);
 
-  const presupuestoTotal = proyectos.reduce((acc, p) => acc + Number(p.presupuestoSemanal), 0);
-  const gastadoTotal = proyectos.reduce((acc, p) => acc + Number(p.semanaActualGastado), 0);
+  const presupuestoTotal = proyectos.reduce((acc, p) => acc + Number(p.presupuestoAprobadoAnual), 0);
+  const gastadoTotal = resumenesPresupuesto.reduce((acc, r) => acc + r.gastoAnual, 0);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -95,15 +99,16 @@ export default async function ReportesPage() {
 
         <div>
           <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Presupuesto semanal por proyecto
+            Presupuesto {anioActual} por proyecto
           </h3>
           <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <div className="flex items-center justify-between mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
               <span>Total</span>
               <span style={{ fontFamily: "var(--font-mono)", color: "var(--sidebar-text-active)" }}>{fmtMoney(gastadoTotal)} / {fmtMoney(presupuestoTotal)}</span>
             </div>
-            {proyectos.map((p) => {
-              const pct = Number(p.presupuestoSemanal) > 0 ? Math.min(100, (Number(p.semanaActualGastado) / Number(p.presupuestoSemanal)) * 100) : 0;
+            {proyectos.map((p, i) => {
+              const resumen = resumenesPresupuesto[i];
+              const pct = resumen.presupuestoAprobadoAnual > 0 ? Math.min(100, (resumen.gastoAnual / resumen.presupuestoAprobadoAnual) * 100) : 0;
               return (
                 <div key={p.nombre}>
                   <div className="flex items-center justify-between mb-1">

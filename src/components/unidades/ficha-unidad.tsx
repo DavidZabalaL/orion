@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -13,6 +13,9 @@ import {
   ArrowLeftRight,
   Ban,
   Printer,
+  Check,
+  X,
+  Lock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,6 +25,7 @@ import {
   TIPO_VEHICULO_LABEL,
 } from "@/lib/estatus";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
+import { actualizarCapacidadTanque } from "@/app/(app)/unidades/actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -43,7 +47,62 @@ const panelStyle: React.CSSProperties = { background: "var(--panel-bg)", boxShad
 const labelStyle: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" };
 const valueStyle: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--field-text)" };
 
-export function FichaUnidad({ unidad }: { unidad: Unidad }) {
+function CapacidadTanqueEditor({ numeroEconomico, capacidadTanqueLitros, puedeEditar }: { numeroEconomico: string; capacidadTanqueLitros: number | null; puedeEditar: boolean }) {
+  const [editando, setEditando] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  if (!editando) {
+    return (
+      <div className="flex items-center gap-2">
+        <span style={valueStyle}>{capacidadTanqueLitros ?? "—"} L</span>
+        {puedeEditar ? (
+          <button onClick={() => setEditando(true)} className="flex items-center justify-center rounded-md" style={{ width: 22, height: 22, color: "var(--sidebar-text)" }} aria-label="Editar capacidad de tanque">
+            <Pencil size={13} />
+          </button>
+        ) : (
+          !capacidadTanqueLitros && <Lock size={13} color="var(--sidebar-text)" />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className="flex items-center gap-2"
+      action={(formData) => {
+        setError(null);
+        startTransition(async () => {
+          const res = await actualizarCapacidadTanque(formData);
+          if (res.ok) setEditando(false);
+          else setError(res.error ?? "No se pudo guardar.");
+        });
+      }}
+    >
+      <input type="hidden" name="numeroEconomico" value={numeroEconomico} />
+      <input
+        name="capacidadTanqueLitros"
+        type="number"
+        step="0.1"
+        min={1}
+        defaultValue={capacidadTanqueLitros ?? ""}
+        autoFocus
+        className="rounded-md px-2"
+        style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: 28, width: 90, fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)" }}
+      />
+      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>L</span>
+      <button type="submit" disabled={pending} className="flex items-center justify-center rounded-md disabled:opacity-60" style={{ width: 22, height: 22, color: "var(--color-status-cerrado)" }} aria-label="Guardar">
+        <Check size={15} />
+      </button>
+      <button type="button" onClick={() => setEditando(false)} className="flex items-center justify-center rounded-md" style={{ width: 22, height: 22, color: "var(--sidebar-text)" }} aria-label="Cancelar">
+        <X size={15} />
+      </button>
+      {error && <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{error}</span>}
+    </form>
+  );
+}
+
+export function FichaUnidad({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEditarCapacidad: boolean }) {
   const [tab, setTab] = useState<TabId>("general");
 
   const seguroVigente = unidad.seguros?.[0];
@@ -146,7 +205,7 @@ export function FichaUnidad({ unidad }: { unidad: Unidad }) {
         </div>
 
         <div className="pt-5">
-          {tab === "general" && <TabGeneral unidad={unidad} />}
+          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} />}
@@ -196,7 +255,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function TabGeneral({ unidad }: { unidad: Unidad }) {
+function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEditarCapacidad: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl p-5" style={panelStyle}>
@@ -212,6 +271,16 @@ function TabGeneral({ unidad }: { unidad: Unidad }) {
           <Field label="Tipo de combustible" value={unidad.tipoCombustible} />
           <Field label="Rendimiento promedio" value={`${unidad.rendimientoPromedio ?? "—"} km/L`} />
           <Field label="Km oficial" value={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km`} />
+          <Field
+            label="Capacidad máxima de tanque"
+            value={
+              <CapacidadTanqueEditor
+                numeroEconomico={unidad.numeroEconomico}
+                capacidadTanqueLitros={unidad.capacidadTanqueLitros != null ? Number(unidad.capacidadTanqueLitros) : null}
+                puedeEditar={puedeEditarCapacidad}
+              />
+            }
+          />
         </div>
       </div>
 
@@ -285,7 +354,7 @@ function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
 function TabCombustible({ registros }: { registros: Unidad[] }) {
   if (!registros.length) return <EmptyState>Sin cargas de combustible registradas.</EmptyState>;
   return (
-    <Table headers={["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento"]}>
+    <Table headers={["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento", ""]}>
       {registros.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
@@ -294,6 +363,9 @@ function TabCombustible({ registros }: { registros: Unidad[] }) {
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual}</td>
           <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
           <td className="px-4 py-3" style={td}>{r.rendimientoCalculado ? `${r.rendimientoCalculado} km/L` : "—"}</td>
+          <td className="px-4 py-3">
+            {r.alertaSobrellenado && <Badge label="Excede capacidad" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />}
+          </td>
         </tr>
       ))}
     </Table>

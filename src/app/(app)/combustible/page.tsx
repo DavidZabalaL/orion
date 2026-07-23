@@ -3,6 +3,7 @@ import { CreditCard, Fuel, Gauge, DollarSign } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table, EmptyState } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 
@@ -55,7 +56,7 @@ export default async function CombustiblePage() {
           {transacciones.length === 0 ? (
             <EmptyState>Sin transacciones registradas.</EmptyState>
           ) : (
-            <Table headers={["Fecha", "Unidad", "Litros", "Costo", "Km", "Rendimiento"]} minWidth={640}>
+            <Table headers={["Fecha", "Unidad", "Litros", "Costo", "Km", "Rendimiento", ""]} minWidth={700}>
               {transacciones.map((t) => (
                 <tr key={t.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(t.fecha)}</td>
@@ -64,6 +65,9 @@ export default async function CombustiblePage() {
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(t.costo)}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{t.kmActual}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{t.rendimientoCalculado ? `${Number(t.rendimientoCalculado).toFixed(1)} km/L` : "—"}</td>
+                  <td className="px-4 py-3">
+                    {t.alertaSobrellenado && <Badge label="Excede capacidad" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />}
+                  </td>
                 </tr>
               ))}
             </Table>

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { actualizarPermisosRol } from "@/app/(app)/usuarios/actions";
+import { actualizarPermisosRol, actualizarPermisoEspecial } from "@/app/(app)/usuarios/actions";
+import type { PermisoEspecial } from "@/lib/permisos";
 
 type Permiso = "ninguno" | "ver" | "editar" | "aprobar";
 
@@ -21,12 +22,48 @@ const NIVELES: { value: Permiso; label: string; color: string; bg: string }[] = 
   { value: "aprobar", label: "Aprobar", color: "var(--color-status-cerrado)", bg: "var(--status-cerrado-bg)" },
 ];
 
+function TogglePermisoEspecial({ rolId, permiso, activo }: { rolId: string; permiso: PermisoEspecial; activo: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const [valor, setValor] = useState(activo);
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ background: "var(--field-bg)" }}>
+      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{permiso.label}</span>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          const nuevo = !valor;
+          setValor(nuevo);
+          startTransition(async () => {
+            const formData = new FormData();
+            formData.set("rolId", rolId);
+            formData.set("permisoId", permiso.id);
+            formData.set("activo", nuevo ? "1" : "0");
+            await actualizarPermisoEspecial(formData);
+          });
+        }}
+        className="rounded-full px-2.5 py-1 disabled:opacity-60"
+        style={{
+          fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600,
+          background: valor ? "var(--status-cerrado-bg)" : "var(--chip)",
+          color: valor ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+        }}
+      >
+        {valor ? "Activado" : "Desactivado"}
+      </button>
+    </div>
+  );
+}
+
 export function RolPermisosForm({
   rol,
   modulos,
+  permisosEspeciales = [],
 }: {
   rol: { id: string; nombre: string; permisos: Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> };
   modulos: { id: string; label: string }[];
+  permisosEspeciales?: PermisoEspecial[];
 }) {
   const esGlobal = "*" in rol.permisos;
   const [niveles, setNiveles] = useState<Record<string, Permiso>>(
@@ -91,6 +128,19 @@ export function RolPermisosForm({
           </div>
         ))}
       </div>
+
+      {permisosEspeciales.length > 0 && (
+        <div className="mt-5 pt-4" style={{ borderTop: "1px solid var(--field-border)" }}>
+          <h4 className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            Permisos especiales
+          </h4>
+          <div className="grid grid-cols-1 gap-2">
+            {permisosEspeciales.map((p) => (
+              <TogglePermisoEspecial key={p.id} rolId={rol.id} permiso={p} activo={rol.permisos[p.id]?.editar === true} />
+            ))}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

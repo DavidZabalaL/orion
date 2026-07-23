@@ -8,7 +8,7 @@ export async function crearProyecto(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const estadoRepublica = String(formData.get("estadoRepublica") ?? "").trim();
   const fechaInicio = String(formData.get("fechaInicio") ?? "");
-  const presupuestoSemanal = parseFloat(String(formData.get("presupuestoSemanal") ?? "0"));
+  const presupuestoAprobadoAnual = parseFloat(String(formData.get("presupuestoAprobadoAnual") ?? "0"));
 
   if (!nombre || !estadoRepublica || !fechaInicio) {
     throw new Error("Nombre, estado y fecha de inicio son obligatorios.");
@@ -20,8 +20,7 @@ export async function crearProyecto(formData: FormData) {
       estadoRepublica,
       fechaInicio: new Date(fechaInicio),
       estatus: "ACTIVO",
-      presupuestoSemanal,
-      semanaActualGastado: 0,
+      presupuestoAprobadoAnual,
       modulosActivos: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "L"],
       procesosActivos: ["checklist_diario", "conciliacion_diaria"],
     },
@@ -31,14 +30,36 @@ export async function crearProyecto(formData: FormData) {
   redirect(`/proyectos/${proyecto.id}`);
 }
 
-export async function redistribuirPresupuesto(formData: FormData) {
+export async function actualizarPresupuestoAprobado(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const presupuestoSemanal = parseFloat(String(formData.get("presupuestoSemanal") ?? "0"));
+  const presupuestoAprobadoAnual = parseFloat(String(formData.get("presupuestoAprobadoAnual") ?? ""));
 
-  if (!id || isNaN(presupuestoSemanal)) throw new Error("Monto inválido.");
+  if (!id || isNaN(presupuestoAprobadoAnual) || presupuestoAprobadoAnual < 0) {
+    throw new Error("Monto inválido.");
+  }
 
-  await prisma.proyecto.update({ where: { id }, data: { presupuestoSemanal } });
+  await prisma.proyecto.update({ where: { id }, data: { presupuestoAprobadoAnual } });
 
   revalidatePath(`/proyectos/${id}`);
+  revalidatePath("/proyectos");
+}
+
+export async function actualizarPresupuestoMensual(formData: FormData) {
+  const proyectoId = String(formData.get("proyectoId") ?? "");
+  const anio = parseInt(String(formData.get("anio") ?? ""), 10);
+  const mes = parseInt(String(formData.get("mes") ?? ""), 10);
+  const montoAsignado = parseFloat(String(formData.get("montoAsignado") ?? ""));
+
+  if (!proyectoId || !anio || !mes || isNaN(montoAsignado) || montoAsignado < 0) {
+    throw new Error("Datos inválidos.");
+  }
+
+  await prisma.presupuestoMensual.upsert({
+    where: { proyectoId_anio_mes: { proyectoId, anio, mes } },
+    create: { proyectoId, anio, mes, montoAsignado },
+    update: { montoAsignado },
+  });
+
+  revalidatePath(`/proyectos/${proyectoId}`);
   revalidatePath("/proyectos");
 }

@@ -9,6 +9,7 @@ export const CAMPOS_UNIDAD = [
   { key: "tipoCombustible", label: "Tipo de combustible", requerido: true },
   { key: "rendimientoPromedio", label: "Rendimiento promedio (km/L)", requerido: false },
   { key: "kmOficial", label: "Kilometraje", requerido: false },
+  { key: "capacidadTanqueLitros", label: "Capacidad máxima de tanque (litros)", requerido: false },
   { key: "proyecto", label: "Proyecto", requerido: false },
   { key: "estadoOperacion", label: "Estado de operación", requerido: true },
   { key: "estatus", label: "Estatus (Activo/Consignación/Dirección/Baja)", requerido: false },
