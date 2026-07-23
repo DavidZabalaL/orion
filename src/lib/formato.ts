@@ -17,3 +17,12 @@ export function diasPara(v: string | Date | null | undefined) {
   if (!v) return null;
   return Math.ceil((new Date(v).getTime() - Date.now()) / 86_400_000);
 }
+
+export function iniciales(nombre: string) {
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}

@@ -2,23 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { GRUPOS, MODULOS } from "@/lib/modulos";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { OrionIcon } from "@/components/brand/orion-icon";
-import logoKabat from "../../../public/Logo-Grupo-Kabat_bl.png";
+import { UserMenu } from "@/components/shell/user-menu";
 import packageJson from "../../../package.json";
 
 const CLAVE_COLAPSADO = "orion-sidebar-colapsado";
 
+type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
+
 export function Sidebar({
   mobileOpen = false,
   onClose,
+  user,
 }: {
   mobileOpen?: boolean;
   onClose?: () => void;
+  user: Usuario;
 }) {
   const pathname = usePathname();
   const [colapsado, setColapsado] = useState(false);
@@ -148,19 +151,12 @@ export function Sidebar({
           ))}
         </nav>
 
-        <div className={clsx("px-5 py-3 shrink-0 flex items-center", colapsado ? "md:justify-center md:px-0" : "justify-start")}>
-          <Image
-            src={logoKabat}
-            alt="Grupo Kabat"
-            width={84}
-            height={20}
-            className={clsx("sidebar-kabat-logo", colapsado && "md:hidden")}
-            style={{ height: "auto", width: 84, opacity: 0.45 }}
-          />
+        <div className="border-t px-3 pt-3 shrink-0" style={{ borderColor: "var(--header-border)" }}>
+          <UserMenu user={user} colapsado={colapsado} />
         </div>
 
         <div
-          className={clsx("px-5 pb-3 shrink-0", colapsado && "md:hidden")}
+          className={clsx("px-5 pt-1.5 pb-3 shrink-0", colapsado && "md:hidden")}
           style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", opacity: 0.5 }}
         >
           v{packageJson.version}
