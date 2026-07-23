@@ -149,12 +149,14 @@ export function Sidebar({
         </nav>
 
         <div className={clsx("px-5 py-3 shrink-0 flex items-center", colapsado ? "md:justify-center md:px-0" : "justify-start")}>
-          <div
-            className={clsx("rounded-md px-2.5 py-1.5 flex items-center justify-center", colapsado && "md:hidden")}
-            style={{ background: "#0b1a30" }}
-          >
-            <Image src={logoKabat} alt="Grupo Kabat" width={90} height={22} style={{ height: "auto", width: 90 }} />
-          </div>
+          <Image
+            src={logoKabat}
+            alt="Grupo Kabat"
+            width={84}
+            height={20}
+            className={clsx("sidebar-kabat-logo", colapsado && "md:hidden")}
+            style={{ height: "auto", width: 84, opacity: 0.45 }}
+          />
         </div>
 
         <div

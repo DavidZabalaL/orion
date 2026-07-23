@@ -240,3 +240,8 @@ button:disabled {
   background: #f6f7f8 !important;
   border-color: var(--color-primary) !important;
 }
+
+/* El logo de Grupo Kabat es blanco; se invierte en tema claro para que se vea sobre fondo blanco */
+:root[data-theme="light"] .sidebar-kabat-logo {
+  filter: invert(1);
+}
