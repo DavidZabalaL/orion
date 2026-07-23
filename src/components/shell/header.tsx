@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, Bell, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { UserMenu } from "@/components/shell/user-menu";
 import type { Notificacion } from "@/lib/notificaciones";
+
+type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
 
 const COLOR_SEVERIDAD: Record<Notificacion["severidad"], string> = {
   alta: "var(--priority-alta)",
@@ -97,9 +100,11 @@ function NotificacionesBell({ notificaciones }: { notificaciones: Notificacion[]
 
 export function Header({
   onMenuClick,
+  user,
   notificaciones,
 }: {
   onMenuClick?: () => void;
+  user: Usuario;
   notificaciones: Notificacion[];
 }) {
   return (
@@ -137,6 +142,7 @@ export function Header({
       <div className="flex items-center gap-4">
         <ThemeToggle />
         <NotificacionesBell notificaciones={notificaciones} />
+        <UserMenu user={user} variante="header" />
       </div>
     </header>
   );

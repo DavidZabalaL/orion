@@ -8,10 +8,19 @@ import { iniciales } from "@/lib/formato";
 
 type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
 
-export function UserMenu({ user, colapsado = false }: { user: Usuario; colapsado?: boolean }) {
+export function UserMenu({
+  user,
+  colapsado = false,
+  variante = "sidebar",
+}: {
+  user: Usuario;
+  colapsado?: boolean;
+  variante?: "sidebar" | "header";
+}) {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const nombre = user.name || user.email || "Usuario";
+  const esSidebar = variante === "sidebar";
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -26,7 +35,11 @@ export function UserMenu({ user, colapsado = false }: { user: Usuario; colapsado
       <button
         onClick={() => setAbierto((v) => !v)}
         title={nombre}
-        className={clsx("flex items-center gap-2.5 w-full rounded-md px-2 py-1.5", colapsado && "md:justify-center md:px-0")}
+        className={clsx(
+          "flex items-center gap-2.5 rounded-md",
+          esSidebar ? "w-full px-2 py-1.5" : "gap-2",
+          esSidebar && colapsado && "md:justify-center md:px-0"
+        )}
       >
         <div
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
@@ -34,7 +47,12 @@ export function UserMenu({ user, colapsado = false }: { user: Usuario; colapsado
         >
           {iniciales(nombre)}
         </div>
-        <div className={clsx("leading-tight text-left min-w-0", colapsado && "md:hidden")}>
+        <div
+          className={clsx(
+            "leading-tight text-left min-w-0",
+            esSidebar ? colapsado && "md:hidden" : "hidden sm:block"
+          )}
+        >
           <div className="truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             {nombre}
           </div>
@@ -46,7 +64,10 @@ export function UserMenu({ user, colapsado = false }: { user: Usuario; colapsado
 
       {abierto && (
         <div
-          className="absolute left-0 bottom-full mb-2 w-56 rounded-md py-1 z-50"
+          className={clsx(
+            "absolute w-56 rounded-md py-1 z-50",
+            esSidebar ? "left-0 bottom-full mb-2" : "right-0 top-full mt-2"
+          )}
           style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-lg)", border: "1px solid var(--field-border)" }}
         >
           <div className="px-3 py-2 border-b" style={{ borderColor: "var(--field-border)" }}>

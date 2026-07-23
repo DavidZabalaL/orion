@@ -21,7 +21,7 @@ export function AppShell({
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} user={session.user} />
       <div className="flex flex-1 flex-col min-w-0">
-        <Header onMenuClick={() => setMobileOpen(true)} notificaciones={notificaciones} />
+        <Header onMenuClick={() => setMobileOpen(true)} user={session.user} notificaciones={notificaciones} />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
