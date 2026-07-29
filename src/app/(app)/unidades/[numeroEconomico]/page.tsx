@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { puedeEditarCapacidadTanque } from "@/lib/permisos";
+import { puedeEditarCapacidadTanque, requerirPermisoModulo } from "@/lib/permisos";
 import { FichaUnidad } from "@/components/unidades/ficha-unidad";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export default async function FichaUnidadPage({
 }: {
   params: Promise<{ numeroEconomico: string }>;
 }) {
+  await requerirPermisoModulo("A");
   const { numeroEconomico } = await params;
 
   const [unidad, puedeEditarCapacidad, proyectos] = await Promise.all([

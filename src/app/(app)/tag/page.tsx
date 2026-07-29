@@ -7,10 +7,13 @@ import { Ticket, DollarSign, CheckCircle2, Inbox, Upload } from "lucide-react";
 import { TagForm } from "@/components/tag/tag-form";
 import { TagAcordeon, type GrupoTag } from "@/components/tag/tag-acordeon";
 import { TagPendienteRow } from "@/components/tag/tag-pendiente-row";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function TagPage() {
+  await requerirPermisoModulo("E");
+
   const [unidades, transacciones, pendientes, agregados] = await Promise.all([
     prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
     prisma.tag.findMany({ where: { numeroEconomico: { not: null } }, orderBy: { fecha: "desc" } }),

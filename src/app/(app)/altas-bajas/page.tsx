@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ const ACCION_LABEL: Record<string, { label: string; color: string; bg: string }>
 };
 
 export default async function AltasBajasPage() {
+  await requerirPermisoModulo("B");
+
   const movimientos = await prisma.bitacoraCambio.findMany({
     where: { entidad: "Unidad" },
     include: { usuario: { select: { nombre: true } } },

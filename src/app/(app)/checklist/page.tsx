@@ -4,6 +4,7 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ function inicioDeHoy() {
 }
 
 export default async function ChecklistPage() {
+  await requerirPermisoModulo("A.1");
+
   const [unidades, checklistsHoy, sinCapturaHoy] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: "ACTIVO" },

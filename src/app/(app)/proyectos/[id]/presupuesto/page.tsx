@@ -6,7 +6,7 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
-import { puedeCargarPresupuesto } from "@/lib/permisos";
+import { puedeCargarPresupuesto, requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ export default async function PresupuestoPorPartidaPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ anio?: string }>;
 }) {
+  await requerirPermisoModulo("H");
   const { id } = await params;
   const { anio: anioParam } = await searchParams;
   const anio = parseInt(anioParam ?? "", 10) || new Date().getFullYear();

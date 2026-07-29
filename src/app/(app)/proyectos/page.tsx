@@ -6,10 +6,13 @@ import { EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney } from "@/lib/formato";
 import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProyectosPage() {
+  await requerirPermisoModulo("H");
+
   const anioActual = new Date().getFullYear();
   const proyectos = await prisma.proyecto.findMany({
     include: { unidades: { select: { numeroEconomico: true } } },

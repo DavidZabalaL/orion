@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { actualizarUnidad } from "../../actions";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export default async function EditarUnidadPage({
 }: {
   params: Promise<{ numeroEconomico: string }>;
 }) {
+  await requerirPermisoModulo("A", "editar");
   const { numeroEconomico } = await params;
 
   const [unidad, proyectos, operadores] = await Promise.all([

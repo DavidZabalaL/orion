@@ -5,6 +5,7 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TIPO_DOCUMENTO_LABEL } from "@/lib/estatus-operador";
 import { fmtFecha, diasPara } from "@/lib/formato";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ function en(dias: number) {
 }
 
 export default async function PendientesDocumentalesPage() {
+  await requerirPermisoModulo("L");
+
   const en60Dias = en(60);
 
   const documentos = await prisma.documentoOperador.findMany({

@@ -3,10 +3,13 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { MODULOS } from "@/lib/modulos";
 import { ProyectoModulosForm } from "@/components/usuarios/proyecto-modulos-form";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConfiguracionProyectosPage() {
+  await requerirPermisoModulo("K");
+
   const proyectos = await prisma.proyecto.findMany({ orderBy: { nombre: "asc" } });
 
   return (

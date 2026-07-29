@@ -18,10 +18,12 @@ export function Sidebar({
   mobileOpen = false,
   onClose,
   user,
+  modulosVisibles,
 }: {
   mobileOpen?: boolean;
   onClose?: () => void;
   user: Usuario;
+  modulosVisibles: string[];
 }) {
   const pathname = usePathname();
   const [colapsado, setColapsado] = useState(false);
@@ -96,7 +98,10 @@ export function Sidebar({
         </div>
 
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
-          {GRUPOS.map((grupo) => (
+          {GRUPOS.map((grupo) => {
+            const modulosDelGrupo = MODULOS.filter((m) => m.grupo === grupo && modulosVisibles.includes(m.id));
+            if (modulosDelGrupo.length === 0) return null;
+            return (
             <div key={grupo} className="mb-3">
               <div
                 className={clsx("px-3 pb-1 pt-2 uppercase truncate", colapsado && "md:hidden")}
@@ -105,7 +110,7 @@ export function Sidebar({
                 {grupo}
               </div>
               <div className="space-y-0.5">
-                {MODULOS.filter((m) => m.grupo === grupo).map((m) => {
+                {modulosDelGrupo.map((m) => {
                   const active = pathname === m.href || pathname.startsWith(m.href + "/");
                   const Icon = m.icon;
                   return (
@@ -148,7 +153,8 @@ export function Sidebar({
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="border-t px-3 pt-3 shrink-0" style={{ borderColor: "var(--header-border)" }}>

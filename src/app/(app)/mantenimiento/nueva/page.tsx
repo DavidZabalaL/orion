@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { crearGasto } from "../actions";
 import { CamposCategoriaGasto } from "@/components/mantenimiento/campos-categoria-gasto";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default async function NuevaOrdenPage() {
+  await requerirPermisoModulo("C", "editar");
+
   const [unidades, proyectos] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" } },

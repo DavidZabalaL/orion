@@ -7,10 +7,13 @@ import { Table } from "@/components/ui/table";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE, TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { RenovarSeguroForm } from "@/components/seguros/renovar-seguro-form";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function FichaPolizaPage({ params }: { params: Promise<{ id: string }> }) {
+  await requerirPermisoModulo("F");
+
   const { id } = await params;
 
   const seguro = await prisma.seguro.findUnique({

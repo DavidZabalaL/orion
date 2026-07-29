@@ -3,8 +3,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function crearOperador(formData: FormData) {
+  await exigirPermisoModulo("L", "editar");
+
   const nombre = String(formData.get("nombre") ?? "").trim();
   const curp = String(formData.get("curp") ?? "").trim().toUpperCase();
   const rfc = String(formData.get("rfc") ?? "").trim().toUpperCase() || null;

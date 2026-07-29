@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { SeguroForm } from "@/components/seguros/seguro-form";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function NuevaPolizaPage() {
+  await requerirPermisoModulo("F", "editar");
+
   const unidades = await prisma.unidad.findMany({
     where: { estatus: { not: "BAJA" } },
     select: { numeroEconomico: true },

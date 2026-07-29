@@ -2,12 +2,13 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { puedeCargarPresupuesto } from "@/lib/permisos";
+import { puedeCargarPresupuesto, requerirPermisoModulo } from "@/lib/permisos";
 import { ImportadorPresupuesto } from "@/components/importador/importador-presupuesto";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportarPresupuestoPage({ params }: { params: Promise<{ id: string }> }) {
+  await requerirPermisoModulo("H", "editar");
   const { id } = await params;
 
   const [proyecto, autorizado] = await Promise.all([

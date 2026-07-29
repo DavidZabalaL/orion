@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { InvitarUsuarioForm } from "@/components/usuarios/invitar-usuario-form";
 import { UsuarioRow } from "@/components/usuarios/usuario-row";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,8 @@ function SeccionCard({ href, icon: Icon, titulo, descripcion, actual }: (typeof 
 }
 
 export default async function UsuariosPage() {
+  await requerirPermisoModulo("K");
+
   const [usuarios, roles, proyectos] = await Promise.all([
     prisma.usuario.findMany({
       include: { rol: { select: { id: true, nombre: true } }, proyectos: { include: { proyecto: { select: { id: true, nombre: true } } } } },

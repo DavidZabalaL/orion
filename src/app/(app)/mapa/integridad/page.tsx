@@ -5,10 +5,13 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function IntegridadGpsPage() {
+  await requerirPermisoModulo("G.1");
+
   const [anomalos, huecos, totalPuntos] = await Promise.all([
     prisma.posicionGPS.findMany({
       where: { esAnomalo: true },

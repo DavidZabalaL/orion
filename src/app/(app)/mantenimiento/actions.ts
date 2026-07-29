@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function crearGasto(formData: FormData) {
+  await exigirPermisoModulo("C", "editar");
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "").trim() || null;
   const proyectoReportanteId = String(formData.get("proyectoReportanteId") ?? "").trim() || null;
   const categoria = String(formData.get("categoria") ?? "");
@@ -52,6 +55,8 @@ export async function crearGasto(formData: FormData) {
 }
 
 export async function marcarRealizado(formData: FormData) {
+  await exigirPermisoModulo("C", "aprobar");
+
   const id = String(formData.get("id") ?? "");
   const gasto = await prisma.gastoVehicular.update({ where: { id }, data: { estatus: "REALIZADO" } });
   revalidatePath("/mantenimiento");

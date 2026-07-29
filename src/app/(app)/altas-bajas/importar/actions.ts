@@ -9,10 +9,12 @@ import {
   normalizarEstatus,
   normalizarPropietario,
 } from "@/lib/import-unidades";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
 
 export async function parsearExcel(formData: FormData) {
+  await exigirPermisoModulo("B", "editar");
   return parsearWorkbook(formData);
 }
 
@@ -20,6 +22,8 @@ export async function importarUnidades(
   filas: FilaMapeada[],
   proyectoIdPorDefecto: string | null
 ): Promise<ResultadoImportacion> {
+  await exigirPermisoModulo("B", "editar");
+
   const resultado: ResultadoImportacion = { creadas: [], actualizadas: [], omitidas: [], advertencias: [] };
 
   const proyectos = await prisma.proyecto.findMany({ select: { id: true, nombre: true } });

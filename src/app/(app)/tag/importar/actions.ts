@@ -3,10 +3,12 @@
 import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
 import { parsearFechaFlexible } from "@/lib/import-tag";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
 export async function parsearExcelTag(formData: FormData) {
+  await exigirPermisoModulo("E", "editar");
   return parsearWorkbook(formData);
 }
 
@@ -14,6 +16,8 @@ export async function importarTags(
   filas: FilaMapeada[],
   proveedorTag: string
 ): Promise<ResultadoImportacion> {
+  await exigirPermisoModulo("E", "editar");
+
   const resultado: ResultadoImportacion = { creadas: [], actualizadas: [], omitidas: [], advertencias: [] };
 
   if (!["IAVE", "PASE", "TELEVIA"].includes(proveedorTag)) {

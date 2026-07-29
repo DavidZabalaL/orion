@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { crearUnidad } from "./actions";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,8 @@ function Bloque({ titulo, children }: { titulo: string; children: React.ReactNod
 }
 
 export default async function AltaUnidadPage() {
+  await requerirPermisoModulo("B", "editar");
+
   const [proyectos, operadores] = await Promise.all([
     prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true, estadoRepublica: true } }),
     prisma.operador.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),

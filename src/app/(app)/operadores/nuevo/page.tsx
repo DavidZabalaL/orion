@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { crearOperador } from "./actions";
 import { TIPO_SANGRE_LABEL } from "@/lib/estatus-operador";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default async function AltaOperadorPage() {
+  await requerirPermisoModulo("L", "editar");
+
   const proyectos = await prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } });
 
   return (

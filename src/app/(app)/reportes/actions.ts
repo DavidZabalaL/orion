@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function crearReporteProgramado(formData: FormData) {
+  await exigirPermisoModulo("J", "editar");
+
   const nombre = String(formData.get("nombre") ?? "").trim();
   const tipo = String(formData.get("tipo") ?? "");
   const campos = formData.getAll("campos").map(String);
@@ -39,6 +42,8 @@ export async function crearReporteProgramado(formData: FormData) {
 }
 
 export async function alternarReporte(formData: FormData) {
+  await exigirPermisoModulo("J", "editar");
+
   const id = String(formData.get("id") ?? "");
   const activo = String(formData.get("activo") ?? "true") === "true";
   await prisma.reporteProgramado.update({ where: { id }, data: { activo: !activo } });

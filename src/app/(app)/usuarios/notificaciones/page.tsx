@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { NotificacionesForm } from "@/components/usuarios/notificaciones-form";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function NotificacionesPage() {
+  await requerirPermisoModulo("K");
+
   let config = await prisma.configuracionNotificaciones.findFirst();
   if (!config) {
     config = await prisma.configuracionNotificaciones.create({

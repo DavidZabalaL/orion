@@ -3,12 +3,15 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
 }
 
 export async function crearUnidad(formData: FormData) {
+  await exigirPermisoModulo("B", "editar");
+
   const numeroEconomico = normalizarEconomico(String(formData.get("numeroEconomico") ?? ""));
   const placas = String(formData.get("placas") ?? "").trim().toUpperCase().replace(/\s+/g, "");
   const numeroSerie = String(formData.get("numeroSerie") ?? "").trim().toUpperCase();

@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ImportadorExcel } from "@/components/importador/importador-excel";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportarPage() {
+  await requerirPermisoModulo("B", "editar");
+
   const proyectos = await prisma.proyecto.findMany({
     where: { estatus: "ACTIVO" },
     select: { id: true, nombre: true },

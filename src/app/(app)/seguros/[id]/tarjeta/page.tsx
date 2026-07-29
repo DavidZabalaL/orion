@@ -3,10 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { TarjetaPrintButton } from "@/components/seguros/tarjeta-print-button";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function TarjetaSeguroPage({ params }: { params: Promise<{ id: string }> }) {
+  await requerirPermisoModulo("F");
+
   const { id } = await params;
 
   const seguro = await prisma.seguro.findUnique({

@@ -2,12 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
 import { Car, CheckCircle2, Ban, ArrowLeftRight } from "lucide-react";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIAS_MANTENIMIENTO = ["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_CORRECTIVO"] as const;
 
 export default async function UnidadesPage() {
+  await requerirPermisoModulo("A");
+
   const [unidades, ultimosMantenimientos, proximosMantenimientos] = await Promise.all([
     prisma.unidad.findMany({
       include: {

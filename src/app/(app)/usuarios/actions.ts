@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { enviarInvitacion } from "@/lib/email";
+import { exigirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
 
 export type ResultadoInvitarUsuario = { id: string; correoEnviado: boolean; errorCorreo?: string };
 
 export async function invitarUsuario(formData: FormData): Promise<ResultadoInvitarUsuario> {
+  await exigirPermisoModulo("K", "editar");
+
   const nombre = String(formData.get("nombre") ?? "").trim();
   const correo = String(formData.get("correo") ?? "").trim().toLowerCase();
   const rolId = String(formData.get("rolId") ?? "");
@@ -37,6 +40,8 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
 }
 
 export async function alternarEstatusUsuario(formData: FormData) {
+  await exigirPermisoModulo("K", "editar");
+
   const id = String(formData.get("id") ?? "");
   const estatusActual = String(formData.get("estatus") ?? "");
   const nuevoEstatus = estatusActual === "DESACTIVADO" ? "ACTIVO" : "DESACTIVADO";
@@ -45,6 +50,8 @@ export async function alternarEstatusUsuario(formData: FormData) {
 }
 
 export async function actualizarUsuario(formData: FormData) {
+  await exigirPermisoModulo("K", "editar");
+
   const id = String(formData.get("id") ?? "");
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rolId = String(formData.get("rolId") ?? "");
@@ -72,6 +79,8 @@ export async function actualizarUsuario(formData: FormData) {
 export type ResultadoEliminarUsuario = { ok: boolean; error?: string };
 
 export async function eliminarUsuario(formData: FormData): Promise<ResultadoEliminarUsuario> {
+  if (!(await tienePermisoModulo("K", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
   const id = String(formData.get("id") ?? "");
   if (!id) return { ok: false, error: "Usuario inválido." };
 
@@ -94,6 +103,8 @@ export async function eliminarUsuario(formData: FormData): Promise<ResultadoElim
 }
 
 export async function actualizarPermisosRol(formData: FormData) {
+  await exigirPermisoModulo("K", "editar");
+
   const rolId = String(formData.get("rolId") ?? "");
   const modulos = String(formData.get("modulos") ?? "").split(",");
 
@@ -114,6 +125,8 @@ export async function actualizarPermisosRol(formData: FormData) {
 }
 
 export async function actualizarPermisoEspecial(formData: FormData) {
+  await exigirPermisoModulo("K", "editar");
+
   const rolId = String(formData.get("rolId") ?? "");
   const permisoId = String(formData.get("permisoId") ?? "");
   const activo = formData.get("activo") === "1";
@@ -129,6 +142,8 @@ export async function actualizarPermisoEspecial(formData: FormData) {
 }
 
 export async function actualizarModulosProyecto(formData: FormData) {
+  await exigirPermisoModulo("K", "editar");
+
   const proyectoId = String(formData.get("proyectoId") ?? "");
   const modulosActivos = formData.getAll("modulosActivos").map(String);
   await prisma.proyecto.update({ where: { id: proyectoId }, data: { modulosActivos } });

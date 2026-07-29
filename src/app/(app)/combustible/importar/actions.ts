@@ -3,14 +3,18 @@
 import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
 import { parsearFechaFlexible } from "@/lib/import-tag";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
 export async function parsearExcelCombustible(formData: FormData) {
+  await exigirPermisoModulo("D", "editar");
   return parsearWorkbook(formData);
 }
 
 export async function importarCombustible(filas: FilaMapeada[]): Promise<ResultadoImportacion> {
+  await exigirPermisoModulo("D", "editar");
+
   const resultado: ResultadoImportacion = { creadas: [], actualizadas: [], omitidas: [], advertencias: [] };
 
   const unidades = await prisma.unidad.findMany({ select: { numeroEconomico: true, capacidadTanqueLitros: true, rendimientoPromedio: true } });

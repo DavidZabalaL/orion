@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FichaOperador } from "@/components/operadores/ficha-operador";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function FichaOperadorPage({ params }: { params: Promise<{ id: string }> }) {
+  await requerirPermisoModulo("L");
+
   const { id } = await params;
 
   const operador = await prisma.operador.findUnique({

@@ -6,10 +6,13 @@ import { EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE } from "@/lib/estatus";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function SegurosPage() {
+  await requerirPermisoModulo("F");
+
   const [polizas, unidadesSinPoliza] = await Promise.all([
     prisma.seguro.findMany({
       include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } } },

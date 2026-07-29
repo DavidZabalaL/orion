@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ImportadorTag } from "@/components/importador/importador-tag";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
-export default function ImportarTagPage() {
+export default async function ImportarTagPage() {
+  await requerirPermisoModulo("E", "editar");
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-5xl">
       <div>

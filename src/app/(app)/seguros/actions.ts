@@ -3,10 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
 export async function crearSeguro(formData: FormData) {
+  await exigirPermisoModulo("F", "editar");
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const aseguradora = String(formData.get("aseguradora") ?? "").trim();
   const numeroPoliza = String(formData.get("numeroPoliza") ?? "").trim();
@@ -56,6 +59,8 @@ export async function crearSeguro(formData: FormData) {
 }
 
 export async function renovarSeguro(formData: FormData) {
+  await exigirPermisoModulo("F", "editar");
+
   const id = String(formData.get("id") ?? "");
   const fechaVencimiento = String(formData.get("fechaVencimiento") ?? "");
   const costo = formData.get("costo") ? parseFloat(String(formData.get("costo"))) : undefined;

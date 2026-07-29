@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ImportadorCombustible } from "@/components/importador/importador-combustible";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
-export default function ImportarCombustiblePage() {
+export default async function ImportarCombustiblePage() {
+  await requerirPermisoModulo("D", "editar");
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-5xl">
       <div>

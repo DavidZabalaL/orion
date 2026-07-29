@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { crearProyecto } from "../actions";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -25,7 +26,9 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-export default function NuevoProyectoPage() {
+export default async function NuevoProyectoPage() {
+  await requerirPermisoModulo("H", "editar");
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-xl">
       <div>

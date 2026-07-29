@@ -6,10 +6,13 @@ import { EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 import { PosicionForm } from "@/components/mapa/posicion-form";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function MapaPage() {
+  await requerirPermisoModulo("G");
+
   const unidadesActivas = await prisma.unidad.findMany({
     where: { estatus: "ACTIVO" },
     select: {

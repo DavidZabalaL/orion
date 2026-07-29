@@ -2,10 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { OperadoresTable, type OperadorRow } from "@/components/operadores/operadores-table";
 import { IdCard, CheckCircle2, AlertTriangle, Ban } from "lucide-react";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function OperadoresPage() {
+  await requerirPermisoModulo("L");
+
   const operadores = await prisma.operador.findMany({
     include: {
       proyecto: { select: { nombre: true } },

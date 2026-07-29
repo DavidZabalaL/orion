@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function crearChecklist(formData: FormData) {
+  await exigirPermisoModulo("A.1", "editar");
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const odometro = parseInt(String(formData.get("odometro") ?? ""), 10);
 

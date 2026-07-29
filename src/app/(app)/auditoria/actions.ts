@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function resolverAuditoria(formData: FormData) {
+  await exigirPermisoModulo("I", "aprobar");
+
   const id = String(formData.get("id") ?? "");
   const resolucion = String(formData.get("resolucion") ?? "").trim();
 

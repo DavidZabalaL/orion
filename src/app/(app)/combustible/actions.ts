@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
 
 export async function crearCombustible(formData: FormData): Promise<ResultadoCrearCombustible> {
+  if (!(await tienePermisoModulo("D", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const fecha = String(formData.get("fecha") ?? "");
   const litros = parseFloat(String(formData.get("litros") ?? "0"));
@@ -65,6 +68,8 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
 }
 
 export async function crearMapeoTarjeta(formData: FormData) {
+  await exigirPermisoModulo("D", "editar");
+
   const numeroTarjeta = String(formData.get("numeroTarjeta") ?? "").trim();
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const proveedor = String(formData.get("proveedor") ?? "").trim();

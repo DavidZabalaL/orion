@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { puedeEditarCapacidadTanque } from "@/lib/permisos";
+import { puedeEditarCapacidadTanque, tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
 import { auth } from "@/auth";
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
@@ -27,6 +27,8 @@ export async function actualizarCapacidadTanque(formData: FormData): Promise<Res
 export type ResultadoSimple = { ok: boolean; error?: string };
 
 export async function reasignarProyecto(formData: FormData): Promise<ResultadoSimple> {
+  if (!(await tienePermisoModulo("A", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const proyectoId = String(formData.get("proyectoId") ?? "") || null;
   if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
@@ -54,6 +56,8 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
 }
 
 export async function actualizarUnidad(formData: FormData) {
+  await exigirPermisoModulo("A", "editar");
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   if (!numeroEconomico) throw new Error("Falta el número económico.");
 

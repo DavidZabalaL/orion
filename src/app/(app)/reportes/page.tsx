@@ -5,6 +5,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoAnual, obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ function en(dias: number) {
 }
 
 export default async function ReportesPage() {
+  await requerirPermisoModulo("J");
+
   const anioActual = new Date().getFullYear();
   const [
     unidadesPorEstatus,

@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { evaluarAnomalia } from "@/lib/gps";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function registrarPosicion(formData: FormData) {
+  await exigirPermisoModulo("G", "editar");
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const lat = parseFloat(String(formData.get("lat") ?? ""));
   const lng = parseFloat(String(formData.get("lng") ?? ""));

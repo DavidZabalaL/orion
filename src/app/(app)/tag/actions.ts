@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function crearTag(formData: FormData) {
+  await exigirPermisoModulo("E", "editar");
+
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "") || null;
   const fecha = String(formData.get("fecha") ?? "");
   const monto = parseFloat(String(formData.get("monto") ?? "0"));
@@ -22,12 +25,16 @@ export async function crearTag(formData: FormData) {
 }
 
 export async function conciliarTag(formData: FormData) {
+  await exigirPermisoModulo("E", "aprobar");
+
   const id = String(formData.get("id") ?? "");
   await prisma.tag.update({ where: { id }, data: { conciliado: true } });
   revalidatePath("/tag");
 }
 
 export async function asignarEconomicoTag(formData: FormData) {
+  await exigirPermisoModulo("E", "editar");
+
   const id = String(formData.get("id") ?? "");
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   if (!numeroEconomico) throw new Error("Selecciona una unidad.");

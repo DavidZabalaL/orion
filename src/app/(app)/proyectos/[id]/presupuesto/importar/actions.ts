@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { puedeCargarPresupuesto } from "@/lib/permisos";
+import { puedeCargarPresupuesto, exigirPermisoModulo } from "@/lib/permisos";
 import { parsearExcelPresupuesto, resolverCategoria, resolverProyecto, type FilaPresupuestoExcel } from "@/lib/import-presupuesto";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 
@@ -20,6 +20,7 @@ export type PrevisualizacionPresupuesto = {
 };
 
 export async function previsualizarCargaPresupuesto(formData: FormData): Promise<PrevisualizacionPresupuesto> {
+  await exigirPermisoModulo("H", "editar");
   if (!(await puedeCargarPresupuesto())) {
     throw new Error("No tienes permiso para cargar presupuesto.");
   }
@@ -70,6 +71,7 @@ export async function confirmarCargaPresupuesto(
   categoriaPorTexto: Record<string, string>,
   archivoNombre: string
 ): Promise<ResultadoImportacionPresupuesto> {
+  await exigirPermisoModulo("H", "editar");
   if (!(await puedeCargarPresupuesto())) {
     throw new Error("No tienes permiso para cargar presupuesto.");
   }

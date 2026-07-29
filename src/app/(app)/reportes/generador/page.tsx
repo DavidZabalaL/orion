@@ -4,10 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { EmptyState } from "@/components/ui/table";
 import { ReporteBuilder } from "@/components/reportes/reporte-builder";
 import { ReporteRow, type Reporte } from "@/components/reportes/reporte-row";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeneradorReportesPage() {
+  await requerirPermisoModulo("J");
+
   const reportes = await prisma.reporteProgramado.findMany({
     orderBy: { createdAt: "desc" },
     include: { creadoPor: { select: { nombre: true } } },

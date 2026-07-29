@@ -3,8 +3,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
+  await exigirPermisoModulo("B", "editar");
+
   const motivoBaja = String(formData.get("motivoBaja") ?? "");
   const fechaEfectiva = String(formData.get("fechaEfectiva") ?? "");
   const comentario = String(formData.get("comentario") ?? "").trim() || null;

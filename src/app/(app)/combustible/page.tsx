@@ -6,10 +6,13 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function CombustiblePage() {
+  await requerirPermisoModulo("D");
+
   const [unidades, transacciones, agregados] = await Promise.all([
     prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
     prisma.combustible.findMany({ orderBy: { fecha: "desc" }, take: 25 }),

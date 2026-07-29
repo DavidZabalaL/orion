@@ -2,12 +2,14 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { MODULOS } from "@/lib/modulos";
-import { PERMISOS_ESPECIALES } from "@/lib/permisos";
+import { PERMISOS_ESPECIALES, requerirPermisoModulo } from "@/lib/permisos";
 import { RolPermisosForm } from "@/components/usuarios/rol-permisos-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConfiguracionRolesPage() {
+  await requerirPermisoModulo("K");
+
   const roles = await prisma.rol.findMany({ orderBy: { nombre: "asc" } });
 
   return (

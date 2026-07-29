@@ -10,16 +10,18 @@ export function AppShell({
   children,
   session,
   notificaciones,
+  modulosVisibles,
 }: {
   children: React.ReactNode;
   session: Session;
   notificaciones: Notificacion[];
+  modulosVisibles: string[];
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg)" }}>
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} user={session.user} />
+      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} user={session.user} modulosVisibles={modulosVisibles} />
       <div className="flex flex-1 flex-col min-w-0">
         <Header onMenuClick={() => setMobileOpen(true)} user={session.user} notificaciones={notificaciones} />
         <main className="flex-1 overflow-y-auto">{children}</main>

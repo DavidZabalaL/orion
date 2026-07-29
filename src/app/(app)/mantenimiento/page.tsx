@@ -7,10 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL, ESTATUS_GASTO_LABEL, ESTATUS_GASTO_STYLE } from "@/lib/categorias-gasto";
 import { MarcarRealizadoButton } from "@/components/mantenimiento/marcar-realizado-button";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 export default async function MantenimientoPage() {
+  await requerirPermisoModulo("C");
+
   const [pendientes, historial, porCategoria] = await Promise.all([
     prisma.gastoVehicular.findMany({
       where: { estatus: "PROGRAMADO" },

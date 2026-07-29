@@ -3,8 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { exigirPermisoModulo } from "@/lib/permisos";
 
 export async function crearProyecto(formData: FormData) {
+  await exigirPermisoModulo("H", "editar");
+
   const nombre = String(formData.get("nombre") ?? "").trim();
   const estadoRepublica = String(formData.get("estadoRepublica") ?? "").trim();
   const fechaInicio = String(formData.get("fechaInicio") ?? "");
@@ -31,6 +34,8 @@ export async function crearProyecto(formData: FormData) {
 }
 
 export async function actualizarPresupuestoAprobado(formData: FormData) {
+  await exigirPermisoModulo("H", "aprobar");
+
   const id = String(formData.get("id") ?? "");
   const presupuestoAprobadoAnual = parseFloat(String(formData.get("presupuestoAprobadoAnual") ?? ""));
 
@@ -45,6 +50,8 @@ export async function actualizarPresupuestoAprobado(formData: FormData) {
 }
 
 export async function actualizarPresupuestoMensual(formData: FormData) {
+  await exigirPermisoModulo("H", "editar");
+
   const proyectoId = String(formData.get("proyectoId") ?? "");
   const anio = parseInt(String(formData.get("anio") ?? ""), 10);
   const mes = parseInt(String(formData.get("mes") ?? ""), 10);

@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/table";
 import { AuditoriaRow } from "@/components/auditoria/auditoria-row";
 import { ClipboardList, AlertOctagon, CheckCircle2, Scale } from "lucide-react";
 import { fmtMoney } from "@/lib/formato";
+import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ function inicioDeHoy() {
 }
 
 export default async function AuditoriaPage() {
+  await requerirPermisoModulo("I");
+
   const [auditorias, unidadesActivas, checklistsHoy, combustibleHoy, tagsHoy] = await Promise.all([
     prisma.auditoria.findMany({
       orderBy: { fechaRevision: "desc" },
