@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function crearOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -24,6 +25,11 @@ export async function crearOperador(formData: FormData) {
 
   if (!nombre || !curp) {
     throw new Error("Nombre y CURP son obligatorios.");
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("L");
+  if (permitidos !== null && proyectoId && !permitidos.includes(proyectoId)) {
+    throw new Error("No tienes permiso para asignar ese proyecto.");
   }
 
   const placeholderDoc = await prisma.documento.create({

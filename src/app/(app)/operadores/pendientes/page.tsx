@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { TIPO_DOCUMENTO_LABEL } from "@/lib/estatus-operador";
 import { fmtFecha, diasPara } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,17 @@ function en(dias: number) {
 
 export default async function PendientesDocumentalesPage() {
   await requerirPermisoModulo("L");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("L");
 
   const en60Dias = en(60);
 
   const documentos = await prisma.documentoOperador.findMany({
     where: {
       fechaVencimiento: { lte: en60Dias },
-      operador: { estatus: "ACTIVO" },
+      operador: {
+        estatus: "ACTIVO",
+        ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}),
+      },
     },
     include: { operador: { select: { id: true, nombre: true, proyecto: { select: { nombre: true } } } } },
     orderBy: { fechaVencimiento: "asc" },

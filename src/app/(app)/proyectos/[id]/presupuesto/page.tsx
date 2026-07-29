@@ -7,6 +7,7 @@ import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
 import { puedeCargarPresupuesto, requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ export default async function PresupuestoPorPartidaPage({
   const { id } = await params;
   const { anio: anioParam } = await searchParams;
   const anio = parseInt(anioParam ?? "", 10) || new Date().getFullYear();
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("H");
+  if (proyectosPermitidos !== null && !proyectosPermitidos.includes(id)) notFound();
 
   const proyecto = await prisma.proyecto.findUnique({ where: { id }, select: { id: true, nombre: true } });
   if (!proyecto) notFound();

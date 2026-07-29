@@ -4,25 +4,29 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { AnomaliasLista, HuecosLista } from "@/components/mapa/integridad-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function IntegridadGpsPage() {
   await requerirPermisoModulo("G.1");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("G.1");
+  const filtroUnidad = proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {};
 
   const [anomalos, huecos, totalPuntos] = await Promise.all([
     prisma.posicionGPS.findMany({
-      where: { esAnomalo: true },
+      where: { esAnomalo: true, ...filtroUnidad },
       orderBy: { timestamp: "desc" },
       take: 30,
       include: { unidad: { select: { numeroEconomico: true } } },
     }),
     prisma.huecoSenalGPS.findMany({
+      where: filtroUnidad,
       orderBy: { timestampInicio: "desc" },
       take: 30,
       include: { unidad: { select: { numeroEconomico: true } } },
     }),
-    prisma.posicionGPS.count(),
+    prisma.posicionGPS.count({ where: filtroUnidad }),
   ]);
 
   return (

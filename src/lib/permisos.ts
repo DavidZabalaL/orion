@@ -21,6 +21,12 @@ async function obtenerPermisosDelRol(): Promise<PermisosJson | null> {
   return (rol?.permisos as PermisosJson | undefined) ?? null;
 }
 
+/** true si el rol actual tiene acceso global ("*"), como el Administrador — sin restricción de proyecto. */
+export async function esRolGlobal(): Promise<boolean> {
+  const permisos = await obtenerPermisosDelRol();
+  return !!permisos && "*" in permisos;
+}
+
 export async function tienePermisoEspecial(permisoId: string): Promise<boolean> {
   const permisos = await obtenerPermisosDelRol();
   if (!permisos) return false;

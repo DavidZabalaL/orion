@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function crearGasto(formData: FormData) {
   await exigirPermisoModulo("C", "editar");
@@ -33,6 +34,16 @@ export async function crearGasto(formData: FormData) {
     throw new Error("Selecciona el proyecto.");
   }
 
+  const permitidos = await proyectosPermitidosParaModulo("C");
+  if (permitidos !== null) {
+    if (aplicaAUnidad) {
+      const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: numeroEconomico! }, select: { proyectoId: true } });
+      if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+    } else if (!permitidos.includes(proyectoReportanteId!)) {
+      throw new Error("No tienes permiso para realizar esta acción.");
+    }
+  }
+
   await prisma.gastoVehicular.create({
     data: {
       numeroEconomico: aplicaAUnidad ? numeroEconomico : null,
@@ -58,6 +69,17 @@ export async function marcarRealizado(formData: FormData) {
   await exigirPermisoModulo("C", "aprobar");
 
   const id = String(formData.get("id") ?? "");
+
+  const permitidos = await proyectosPermitidosParaModulo("C");
+  if (permitidos !== null) {
+    const actual = await prisma.gastoVehicular.findUnique({
+      where: { id },
+      select: { proyectoReportanteId: true, unidad: { select: { proyectoId: true } } },
+    });
+    const proyectoId = actual?.unidad?.proyectoId ?? actual?.proyectoReportanteId ?? null;
+    if (!proyectoId || !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+  }
+
   const gasto = await prisma.gastoVehicular.update({ where: { id }, data: { estatus: "REALIZADO" } });
   revalidatePath("/mantenimiento");
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { crearGasto } from "../actions";
 import { CamposCategoriaGasto } from "@/components/mantenimiento/campos-categoria-gasto";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 export const dynamic = "force-dynamic";
@@ -33,15 +34,16 @@ const labelStyle: React.CSSProperties = {
 
 export default async function NuevaOrdenPage() {
   await requerirPermisoModulo("C", "editar");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("C");
 
   const [unidades, proyectos] = await Promise.all([
     prisma.unidad.findMany({
-      where: { estatus: { not: "BAJA" } },
+      where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
       select: { numeroEconomico: true },
       orderBy: { numeroEconomico: "asc" },
     }),
     prisma.proyecto.findMany({
-      where: { estatus: "ACTIVO" },
+      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
     }),

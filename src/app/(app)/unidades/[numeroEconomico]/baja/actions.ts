@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
   await exigirPermisoModulo("B", "editar");
@@ -18,6 +19,11 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
 
   const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico } });
   if (!unidad) throw new Error("Unidad no encontrada.");
+
+  const permitidos = await proyectosPermitidosParaModulo("B");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    throw new Error("No tienes permiso para realizar esta acción.");
+  }
 
   const ultimoGasto = await prisma.gastoVehicular.findFirst({
     where: { numeroEconomico },

@@ -8,20 +8,23 @@ import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE, TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { RenovarSeguroForm } from "@/components/seguros/renovar-seguro-form";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function FichaPolizaPage({ params }: { params: Promise<{ id: string }> }) {
   await requerirPermisoModulo("F");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
 
   const { id } = await params;
 
   const seguro = await prisma.seguro.findUnique({
     where: { id },
-    include: { coberturas: true, unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, placas: true } } },
+    include: { coberturas: true, unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, placas: true, proyectoId: true } } },
   });
 
   if (!seguro) notFound();
+  if (proyectosPermitidos !== null && (!seguro.unidad.proyectoId || !proyectosPermitidos.includes(seguro.unidad.proyectoId))) notFound();
 
   const dias = diasPara(seguro.fechaVencimiento);
 

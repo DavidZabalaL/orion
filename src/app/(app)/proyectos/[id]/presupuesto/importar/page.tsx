@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { puedeCargarPresupuesto, requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { ImportadorPresupuesto } from "@/components/importador/importador-presupuesto";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function ImportarPresupuestoPage({ params }: { params: Promise<{ id: string }> }) {
   await requerirPermisoModulo("H", "editar");
   const { id } = await params;
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("H");
+  if (proyectosPermitidos !== null && !proyectosPermitidos.includes(id)) notFound();
 
   const [proyecto, autorizado] = await Promise.all([
     prisma.proyecto.findUnique({ where: { id }, select: { id: true, nombre: true } }),

@@ -5,6 +5,7 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,17 @@ export default async function HistorialRecorridoPage({
   searchParams: Promise<{ unidad?: string; desde?: string; hasta?: string }>;
 }) {
   await requerirPermisoModulo("G");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("G");
   const sp = await searchParams;
   const unidades = await prisma.unidad.findMany({
-    where: { estatus: { not: "BAJA" } },
+    where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
     select: { numeroEconomico: true },
     orderBy: { numeroEconomico: "asc" },
   });
 
-  const unidadSeleccionada = sp.unidad || unidades[0]?.numeroEconomico;
+  const economicosPermitidos = new Set(unidades.map((u) => u.numeroEconomico));
+  const unidadSeleccionadaBruta = sp.unidad || unidades[0]?.numeroEconomico;
+  const unidadSeleccionada = unidadSeleccionadaBruta && economicosPermitidos.has(unidadSeleccionadaBruta) ? unidadSeleccionadaBruta : undefined;
   const desde = sp.desde ? new Date(sp.desde) : haceDias(7);
   const hasta = sp.hasta ? new Date(sp.hasta) : haceDias(0);
 

@@ -6,6 +6,7 @@ import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoAnual, obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,9 @@ function en(dias: number) {
 
 export default async function ReportesPage() {
   await requerirPermisoModulo("J");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("J");
+  const filtroProyecto = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
+  const filtroUnidadRelacion = proyectosPermitidos !== null ? { unidad: filtroProyecto } : {};
 
   const anioActual = new Date().getFullYear();
   const [
@@ -25,12 +29,12 @@ export default async function ReportesPage() {
     documentosPorVencer,
     proyectos,
   ] = await Promise.all([
-    prisma.unidad.groupBy({ by: ["estatus"], _count: { _all: true } }),
-    prisma.gastoVehicular.groupBy({ by: ["categoria"], _sum: { costo: true }, orderBy: { _sum: { costo: "desc" } }, take: 6 }),
-    prisma.gastoVehicular.count({ where: { estatus: "PROGRAMADO", fecha: { lte: en(15) } } }),
-    prisma.seguro.count({ where: { fechaVencimiento: { lte: en(30) }, estatus: { in: ["VIGENTE", "POR_VENCER"] } } }),
-    prisma.documentoOperador.count({ where: { fechaVencimiento: { lte: en(60) }, operador: { estatus: "ACTIVO" } } }),
-    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true, presupuestoAprobadoAnual: true } }),
+    prisma.unidad.groupBy({ by: ["estatus"], where: filtroProyecto, _count: { _all: true } }),
+    prisma.gastoVehicular.groupBy({ by: ["categoria"], where: filtroUnidadRelacion, _sum: { costo: true }, orderBy: { _sum: { costo: "desc" } }, take: 6 }),
+    prisma.gastoVehicular.count({ where: { estatus: "PROGRAMADO", fecha: { lte: en(15) }, ...filtroUnidadRelacion } }),
+    prisma.seguro.count({ where: { fechaVencimiento: { lte: en(30) }, estatus: { in: ["VIGENTE", "POR_VENCER"] }, ...filtroUnidadRelacion } }),
+    prisma.documentoOperador.count({ where: { fechaVencimiento: { lte: en(60) }, operador: { estatus: "ACTIVO", ...filtroProyecto } } }),
+    prisma.proyecto.findMany({ where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) }, select: { id: true, nombre: true, presupuestoAprobadoAnual: true } }),
   ]);
 
   const resumenesPresupuesto = await Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual)));

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
@@ -34,6 +35,14 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
   if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
 
   const anterior = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+  if (!anterior) return { ok: false, error: "La unidad no existe." };
+
+  const permitidos = await proyectosPermitidosParaModulo("A");
+  if (permitidos !== null) {
+    if (!anterior.proyectoId || !permitidos.includes(anterior.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+    if (proyectoId && !permitidos.includes(proyectoId)) return { ok: false, error: "No tienes permiso para asignar ese proyecto." };
+  }
+
   await prisma.unidad.update({ where: { numeroEconomico }, data: { proyectoId } });
 
   const session = await auth();
@@ -83,6 +92,13 @@ export async function actualizarUnidad(formData: FormData) {
   if (dupPlacas) throw new Error(`Las placas ${placas} ya están registradas en otra unidad.`);
 
   const anterior = await prisma.unidad.findUnique({ where: { numeroEconomico } });
+  if (!anterior) throw new Error("La unidad no existe.");
+
+  const permitidos = await proyectosPermitidosParaModulo("A");
+  if (permitidos !== null) {
+    if (!anterior.proyectoId || !permitidos.includes(anterior.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+    if (proyectoId && !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para asignar ese proyecto.");
+  }
 
   await prisma.unidad.update({
     where: { numeroEconomico },

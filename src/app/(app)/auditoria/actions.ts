@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function resolverAuditoria(formData: FormData) {
   await exigirPermisoModulo("I", "aprobar");
@@ -12,6 +13,12 @@ export async function resolverAuditoria(formData: FormData) {
   const resolucion = String(formData.get("resolucion") ?? "").trim();
 
   if (!id || !resolucion) throw new Error("La resolución es obligatoria.");
+
+  const permitidos = await proyectosPermitidosParaModulo("I");
+  if (permitidos !== null) {
+    const actual = await prisma.auditoria.findUnique({ where: { id }, select: { unidad: { select: { proyectoId: true } } } });
+    if (!actual?.unidad.proyectoId || !permitidos.includes(actual.unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+  }
 
   const auditoria = await prisma.auditoria.update({
     where: { id },

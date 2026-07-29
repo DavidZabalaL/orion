@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
 
@@ -22,9 +23,14 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
 
   const unidad = await prisma.unidad.findUnique({
     where: { numeroEconomico },
-    select: { capacidadTanqueLitros: true, rendimientoPromedio: true },
+    select: { capacidadTanqueLitros: true, rendimientoPromedio: true, proyectoId: true },
   });
   if (!unidad) return { ok: false, error: "La unidad no existe." };
+
+  const permitidos = await proyectosPermitidosParaModulo("D");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
   if (!unidad.capacidadTanqueLitros) {
     return { ok: false, error: "Esta unidad no tiene capacidad de tanque registrada. Captúrala en su ficha antes de registrar cargas." };
   }
@@ -77,6 +83,12 @@ export async function crearMapeoTarjeta(formData: FormData) {
 
   if (!numeroTarjeta || !numeroEconomico || !proveedor || !vigenciaDesde) {
     throw new Error("Todos los campos son obligatorios.");
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("D");
+  if (permitidos !== null) {
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
   await prisma.mapeoTarjetaEconomico.create({

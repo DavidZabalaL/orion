@@ -3,6 +3,7 @@ import { ChecklistForm } from "@/components/checklist/checklist-form";
 import { ChecklistLista } from "@/components/checklist/checklist-lista";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -14,20 +15,22 @@ function inicioDeHoy() {
 
 export default async function ChecklistPage() {
   await requerirPermisoModulo("A.1");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("A.1");
+  const filtroProyecto = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
 
   const [unidades, checklistsHoy, sinCapturaHoy] = await Promise.all([
     prisma.unidad.findMany({
-      where: { estatus: "ACTIVO" },
+      where: { estatus: "ACTIVO", ...filtroProyecto },
       select: { numeroEconomico: true, marca: true, unidadModelo: true },
       orderBy: { numeroEconomico: "asc" },
     }),
     prisma.checklist.findMany({
-      where: { fecha: { gte: inicioDeHoy() } },
+      where: { fecha: { gte: inicioDeHoy() }, ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}) },
       include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } } },
       orderBy: { fecha: "desc" },
     }),
     prisma.unidad.findMany({
-      where: { estatus: "ACTIVO", checklists: { none: { fecha: { gte: inicioDeHoy() } } } },
+      where: { estatus: "ACTIVO", checklists: { none: { fecha: { gte: inicioDeHoy() } } }, ...filtroProyecto },
       select: { numeroEconomico: true },
     }),
   ]);

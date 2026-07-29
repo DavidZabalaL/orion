@@ -6,6 +6,7 @@ import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +18,12 @@ export default async function ReportePresupuestoPage({
   searchParams: Promise<{ anio?: string; proyecto?: string }>;
 }) {
   await requerirPermisoModulo("J");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("J");
   const { anio: anioParam, proyecto: proyectoParam } = await searchParams;
   const anio = parseInt(anioParam ?? "", 10) || new Date().getFullYear();
 
   const proyectos = await prisma.proyecto.findMany({
-    where: { estatus: "ACTIVO" },
+    where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
     select: { id: true, nombre: true },
     orderBy: { nombre: "asc" },
   });

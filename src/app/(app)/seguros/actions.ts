@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
@@ -20,6 +21,12 @@ export async function crearSeguro(formData: FormData) {
 
   if (!numeroEconomico || !aseguradora || !numeroPoliza || !fechaInicio || !fechaVencimiento) {
     throw new Error("Faltan campos obligatorios.");
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("F");
+  if (permitidos !== null) {
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
   let coberturas: CoberturaInput[] = [];
@@ -66,6 +73,12 @@ export async function renovarSeguro(formData: FormData) {
   const costo = formData.get("costo") ? parseFloat(String(formData.get("costo"))) : undefined;
 
   if (!fechaVencimiento) throw new Error("La nueva fecha de vencimiento es obligatoria.");
+
+  const permitidos = await proyectosPermitidosParaModulo("F");
+  if (permitidos !== null) {
+    const actual = await prisma.seguro.findUnique({ where: { id }, select: { unidad: { select: { proyectoId: true } } } });
+    if (!actual?.unidad.proyectoId || !permitidos.includes(actual.unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+  }
 
   const seguro = await prisma.seguro.update({
     where: { id },

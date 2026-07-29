@@ -2,11 +2,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FichaOperador } from "@/components/operadores/ficha-operador";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function FichaOperadorPage({ params }: { params: Promise<{ id: string }> }) {
   await requerirPermisoModulo("L");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("L");
 
   const { id } = await params;
 
@@ -24,6 +26,7 @@ export default async function FichaOperadorPage({ params }: { params: Promise<{ 
   });
 
   if (!operador) notFound();
+  if (proyectosPermitidos !== null && (!operador.proyectoId || !proyectosPermitidos.includes(operador.proyectoId))) notFound();
 
   const serializado = JSON.parse(JSON.stringify(operador));
 

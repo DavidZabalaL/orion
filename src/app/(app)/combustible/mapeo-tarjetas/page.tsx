@@ -5,6 +5,7 @@ import { Table, EmptyState } from "@/components/ui/table";
 import { fmtFecha } from "@/lib/formato";
 import { crearMapeoTarjeta } from "../actions";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +34,18 @@ const labelStyle: React.CSSProperties = {
 
 export default async function MapeoTarjetasPage() {
   await requerirPermisoModulo("D", "editar");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("D");
 
   const [mapeos, unidades] = await Promise.all([
-    prisma.mapeoTarjetaEconomico.findMany({ orderBy: { vigenciaDesde: "desc" } }),
-    prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
+    prisma.mapeoTarjetaEconomico.findMany({
+      where: proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : undefined,
+      orderBy: { vigenciaDesde: "desc" },
+    }),
+    prisma.unidad.findMany({
+      where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
+      select: { numeroEconomico: true },
+      orderBy: { numeroEconomico: "asc" },
+    }),
   ]);
 
   return (

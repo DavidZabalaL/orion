@@ -10,6 +10,7 @@ import {
   normalizarPropietario,
 } from "@/lib/import-unidades";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
 
@@ -26,6 +27,7 @@ export async function importarUnidades(
 
   const resultado: ResultadoImportacion = { creadas: [], actualizadas: [], omitidas: [], advertencias: [] };
 
+  const permitidos = await proyectosPermitidosParaModulo("B");
   const proyectos = await prisma.proyecto.findMany({ select: { id: true, nombre: true } });
   const operadores = await prisma.operador.findMany({ select: { id: true, nombre: true } });
   const proyectoPorNombre = new Map(proyectos.map((p) => [p.nombre.trim().toUpperCase(), p.id]));
@@ -74,6 +76,11 @@ export async function importarUnidades(
       else resultado.advertencias.push({ fila: numFila, mensaje: `Proyecto "${nombreProyecto}" no existe; la unidad quedará sin proyecto asignado.` });
     }
 
+    if (permitidos !== null && proyectoId && !permitidos.includes(proyectoId)) {
+      resultado.omitidas.push({ fila: numFila, motivo: `No tienes permiso para asignar el proyecto "${nombreProyecto || "por defecto"}".` });
+      continue;
+    }
+
     let resguardanteId: string | null = null;
     const nombreResguardante = String(fila.resguardante ?? "").trim();
     if (nombreResguardante) {
@@ -104,6 +111,10 @@ export async function importarUnidades(
 
     try {
       const existente = await prisma.unidad.findUnique({ where: { numeroEconomico } });
+      if (existente && permitidos !== null && (!existente.proyectoId || !permitidos.includes(existente.proyectoId))) {
+        resultado.omitidas.push({ fila: numFila, motivo: `No tienes permiso para modificar la unidad "${numeroEconomico}".` });
+        continue;
+      }
       if (existente) {
         await prisma.unidad.update({ where: { numeroEconomico }, data });
         resultado.actualizadas.push(numeroEconomico);

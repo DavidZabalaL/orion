@@ -5,15 +5,18 @@ import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
 import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { ProyectosLista } from "@/components/proyectos/proyectos-lista";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProyectosPage() {
   await requerirPermisoModulo("H");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("H");
 
   const anioActual = new Date().getFullYear();
   const proyectos = await prisma.proyecto.findMany({
+    where: proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : undefined,
     include: { unidades: { select: { numeroEconomico: true } } },
     orderBy: { nombre: "asc" },
   });

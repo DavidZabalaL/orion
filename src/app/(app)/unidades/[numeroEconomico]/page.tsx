@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { FichaUnidad } from "@/components/unidades/ficha-unidad";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function FichaUnidadPage({
 }) {
   await requerirPermisoModulo("A");
   const { numeroEconomico } = await params;
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
 
   const [unidad, puedeEditarCapacidad, proyectos] = await Promise.all([
     prisma.unidad.findUnique({
@@ -32,10 +34,14 @@ export default async function FichaUnidadPage({
       },
     }),
     puedeEditarCapacidadTanque(),
-    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } }),
+    prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+      select: { id: true, nombre: true },
+    }),
   ]);
 
   if (!unidad) notFound();
+  if (proyectosPermitidos !== null && (!unidad.proyectoId || !proyectosPermitidos.includes(unidad.proyectoId))) notFound();
 
   // Decimal y Date exponen toJSON(); JSON.stringify los serializa automáticamente
   // a string / ISO-string, dejando el resultado listo para un Client Component.

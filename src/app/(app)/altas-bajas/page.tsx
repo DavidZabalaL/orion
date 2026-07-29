@@ -3,14 +3,22 @@ import { Plus, FileClock, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { MovimientosLista } from "@/components/unidades/movimientos-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function AltasBajasPage() {
   await requerirPermisoModulo("B");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("B");
+
+  let economicosPermitidos: string[] | undefined;
+  if (proyectosPermitidos !== null) {
+    const unidades = await prisma.unidad.findMany({ where: { proyectoId: { in: proyectosPermitidos } }, select: { numeroEconomico: true } });
+    economicosPermitidos = unidades.map((u) => u.numeroEconomico);
+  }
 
   const movimientos = await prisma.bitacoraCambio.findMany({
-    where: { entidad: "Unidad" },
+    where: { entidad: "Unidad", ...(economicosPermitidos ? { entidadId: { in: economicosPermitidos } } : {}) },
     include: { usuario: { select: { nombre: true } } },
     orderBy: { timestamp: "desc" },
     take: 30,

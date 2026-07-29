@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { actualizarUnidad } from "../../actions";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 export const dynamic = "force-dynamic";
@@ -50,14 +51,19 @@ export default async function EditarUnidadPage({
 }) {
   await requerirPermisoModulo("A", "editar");
   const { numeroEconomico } = await params;
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
 
   const [unidad, proyectos, operadores] = await Promise.all([
     prisma.unidad.findUnique({ where: { numeroEconomico } }),
-    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } }),
+    prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+      select: { id: true, nombre: true },
+    }),
     prisma.operador.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);
 
   if (!unidad) notFound();
+  if (proyectosPermitidos !== null && (!unidad.proyectoId || !proyectosPermitidos.includes(unidad.proyectoId))) notFound();
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-4xl">

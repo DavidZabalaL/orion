@@ -28,23 +28,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
-      // Solo se consulta la base de datos en el sign-in inicial; en llamadas
-      // posteriores el token ya trae usuarioId/rol embebidos.
+      // En el sign-in inicial (o si el token aún no trae usuarioId) se resuelve
+      // el correo a un Usuario. El nombre/rol NO se guardan aquí: se resuelven
+      // frescos en el callback de session en cada request, para que un cambio
+      // de rol o una reasignación se reflejen sin pedir reingresar sesión.
       if (user?.email) {
-        const usuario = await prisma.usuario.findUnique({ where: { correo: user.email.toLowerCase() }, include: { rol: true } });
-        if (usuario) {
-          token.usuarioId = usuario.id;
-          token.rolNombre = usuario.rol.nombre;
-          token.nombre = usuario.nombre;
-        }
+        const usuario = await prisma.usuario.findUnique({ where: { correo: user.email.toLowerCase() } });
+        if (usuario) token.usuarioId = usuario.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = (token.usuarioId as string) ?? "";
-        session.user.name = (token.nombre as string) ?? session.user.name;
-        session.user.rol = (token.rolNombre as string) ?? null;
+        const usuarioId = (token.usuarioId as string) ?? "";
+        session.user.id = usuarioId;
+        session.user.rol = null;
+
+        if (usuarioId) {
+          const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { rol: true } });
+          if (usuario && usuario.estatus !== "DESACTIVADO") {
+            session.user.name = usuario.nombre;
+            session.user.rol = usuario.rol.nombre;
+          }
+        }
       }
       return session;
     },

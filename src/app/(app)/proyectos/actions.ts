@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function crearProyecto(formData: FormData) {
   await exigirPermisoModulo("H", "editar");
@@ -43,6 +44,9 @@ export async function actualizarPresupuestoAprobado(formData: FormData) {
     throw new Error("Monto inválido.");
   }
 
+  const permitidos = await proyectosPermitidosParaModulo("H");
+  if (permitidos !== null && !permitidos.includes(id)) throw new Error("No tienes permiso para realizar esta acción.");
+
   await prisma.proyecto.update({ where: { id }, data: { presupuestoAprobadoAnual } });
 
   revalidatePath(`/proyectos/${id}`);
@@ -60,6 +64,9 @@ export async function actualizarPresupuestoMensual(formData: FormData) {
   if (!proyectoId || !anio || !mes || isNaN(montoAsignado) || montoAsignado < 0) {
     throw new Error("Datos inválidos.");
   }
+
+  const permitidos = await proyectosPermitidosParaModulo("H");
+  if (permitidos !== null && !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
 
   await prisma.presupuestoMensual.upsert({
     where: { proyectoId_anio_mes: { proyectoId, anio, mes } },

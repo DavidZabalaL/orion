@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function crearChecklist(formData: FormData) {
   await exigirPermisoModulo("A.1", "editar");
@@ -14,6 +15,12 @@ export async function crearChecklist(formData: FormData) {
 
   if (!numeroEconomico || !odometro) {
     throw new Error("Unidad y odómetro son obligatorios.");
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("A.1");
+  if (permitidos !== null) {
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
   const puntosInspeccion: Record<string, string> = {};

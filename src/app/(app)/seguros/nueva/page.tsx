@@ -3,14 +3,16 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { SeguroForm } from "@/components/seguros/seguro-form";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function NuevaPolizaPage() {
   await requerirPermisoModulo("F", "editar");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
 
   const unidades = await prisma.unidad.findMany({
-    where: { estatus: { not: "BAJA" } },
+    where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
     select: { numeroEconomico: true },
     orderBy: { numeroEconomico: "asc" },
   });

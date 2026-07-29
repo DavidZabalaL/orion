@@ -3,6 +3,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
 import { Car, CheckCircle2, Ban, ArrowLeftRight } from "lucide-react";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,11 @@ const CATEGORIAS_MANTENIMIENTO = ["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_COR
 
 export default async function UnidadesPage() {
   await requerirPermisoModulo("A");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
 
   const [unidades, ultimosMantenimientos, proximosMantenimientos] = await Promise.all([
     prisma.unidad.findMany({
+      where: proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : undefined,
       include: {
         proyecto: { select: { nombre: true, estadoRepublica: true } },
         resguardante: { select: { nombre: true } },

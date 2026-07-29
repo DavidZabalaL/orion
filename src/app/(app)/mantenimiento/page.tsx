@@ -6,25 +6,33 @@ import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { PendientesLista, HistorialLista } from "@/components/mantenimiento/mantenimiento-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function MantenimientoPage() {
   await requerirPermisoModulo("C");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("C");
+  const filtroProyecto =
+    proyectosPermitidos !== null
+      ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
+      : {};
 
   const [pendientes, historial, porCategoria] = await Promise.all([
     prisma.gastoVehicular.findMany({
-      where: { estatus: "PROGRAMADO" },
+      where: { estatus: "PROGRAMADO", ...filtroProyecto },
       include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
       orderBy: { fecha: "asc" },
     }),
     prisma.gastoVehicular.findMany({
+      where: filtroProyecto,
       orderBy: { fecha: "desc" },
       take: 30,
       include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
     }),
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
+      where: filtroProyecto,
       _sum: { costo: true },
       _count: { _all: true },
       orderBy: { _sum: { costo: "desc" } },

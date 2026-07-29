@@ -5,14 +5,16 @@ import { StatCard } from "@/components/ui/stat-card";
 import { PosicionForm } from "@/components/mapa/posicion-form";
 import { PosicionesLista } from "@/components/mapa/posiciones-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function MapaPage() {
   await requerirPermisoModulo("G");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("G");
 
   const unidadesActivas = await prisma.unidad.findMany({
-    where: { estatus: "ACTIVO" },
+    where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
     select: {
       numeroEconomico: true,
       proyecto: { select: { nombre: true } },

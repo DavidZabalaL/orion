@@ -4,19 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { PolizasLista } from "@/components/seguros/polizas-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function SegurosPage() {
   await requerirPermisoModulo("F");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
+  const filtroUnidad = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
 
   const [polizas, unidadesSinPoliza] = await Promise.all([
     prisma.seguro.findMany({
+      where: proyectosPermitidos !== null ? { unidad: filtroUnidad } : undefined,
       include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } } },
       orderBy: { fechaVencimiento: "asc" },
     }),
     prisma.unidad.findMany({
-      where: { estatus: { not: "BAJA" }, seguros: { none: {} } },
+      where: { estatus: { not: "BAJA" }, seguros: { none: {} }, ...filtroUnidad },
       select: { numeroEconomico: true },
     }),
   ]);

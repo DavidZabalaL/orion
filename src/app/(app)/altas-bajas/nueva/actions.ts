@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -33,6 +34,11 @@ export async function crearUnidad(formData: FormData) {
   }
   if (!capacidadTanqueLitros || capacidadTanqueLitros <= 0) {
     throw new Error("La capacidad máxima de tanque es obligatoria y debe ser mayor a 0.");
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("B");
+  if (permitidos !== null && !permitidos.includes(proyectoId)) {
+    throw new Error("No tienes permiso para asignar ese proyecto.");
   }
 
   const [dupEconomico, dupPlacas, dupSerie] = await Promise.all([

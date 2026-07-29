@@ -7,20 +7,31 @@ import { fmtMoney } from "@/lib/formato";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { CombustibleAcordeon, type GrupoCombustible } from "@/components/combustible/combustible-acordeon";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function CombustiblePage() {
   await requerirPermisoModulo("D");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("D");
+  const filtroProyecto =
+    proyectosPermitidos !== null
+      ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
+      : {};
 
   const [unidades, transacciones, agregados] = await Promise.all([
-    prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
-    prisma.combustible.findMany({ orderBy: { fecha: "desc" } }),
-    prisma.combustible.aggregate({ _sum: { litros: true, costo: true }, _avg: { rendimientoCalculado: true } }),
+    prisma.unidad.findMany({
+      where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
+      select: { numeroEconomico: true },
+      orderBy: { numeroEconomico: "asc" },
+    }),
+    prisma.combustible.findMany({ where: filtroProyecto, orderBy: { fecha: "desc" } }),
+    prisma.combustible.aggregate({ where: filtroProyecto, _sum: { litros: true, costo: true }, _avg: { rendimientoCalculado: true } }),
   ]);
 
   const rendimientoPorUnidad = await prisma.combustible.groupBy({
     by: ["numeroEconomico"],
+    where: filtroProyecto,
     _avg: { rendimientoCalculado: true },
     _sum: { litros: true, costo: true },
     orderBy: { numeroEconomico: "asc" },

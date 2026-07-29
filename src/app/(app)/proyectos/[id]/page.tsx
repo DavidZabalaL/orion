@@ -10,6 +10,7 @@ import { PresupuestoAnual } from "@/components/proyectos/presupuesto-anual";
 import { PresupuestoPartidaMes } from "@/components/proyectos/presupuesto-partida-mes";
 import { obtenerResumenPresupuestoAnual, obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,9 @@ export default async function FichaProyectoPage({
   const { mes: mesParam } = await searchParams;
   const mesActual = new Date().getMonth() + 1;
   const mes = parseInt(mesParam ?? "", 10) || mesActual;
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("H");
+  if (proyectosPermitidos !== null && !proyectosPermitidos.includes(id)) notFound();
 
   const proyecto = await prisma.proyecto.findUnique({
     where: { id },

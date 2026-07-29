@@ -3,14 +3,16 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ImportadorExcel } from "@/components/importador/importador-excel";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportarPage() {
   await requerirPermisoModulo("B", "editar");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("B");
 
   const proyectos = await prisma.proyecto.findMany({
-    where: { estatus: "ACTIVO" },
+    where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
     select: { id: true, nombre: true },
     orderBy: { nombre: "asc" },
   });

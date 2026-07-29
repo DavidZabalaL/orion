@@ -3,13 +3,16 @@ import { StatCard } from "@/components/ui/stat-card";
 import { OperadoresTable, type OperadorRow } from "@/components/operadores/operadores-table";
 import { IdCard, CheckCircle2, AlertTriangle, Ban } from "lucide-react";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function OperadoresPage() {
   await requerirPermisoModulo("L");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("L");
 
   const operadores = await prisma.operador.findMany({
+    where: proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : undefined,
     include: {
       proyecto: { select: { nombre: true } },
       unidadesResguardadas: { select: { numeroEconomico: true } },

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { crearOperador } from "./actions";
 import { TIPO_SANGRE_LABEL } from "@/lib/estatus-operador";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +34,12 @@ const labelStyle: React.CSSProperties = {
 
 export default async function AltaOperadorPage() {
   await requerirPermisoModulo("L", "editar");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("L");
 
-  const proyectos = await prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } });
+  const proyectos = await prisma.proyecto.findMany({
+    where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+    select: { id: true, nombre: true },
+  });
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-3xl">

@@ -5,6 +5,7 @@ import { ChecklistDiarioLista } from "@/components/auditoria/checklist-diario-li
 import { ClipboardList, AlertOctagon, CheckCircle2, Scale } from "lucide-react";
 import { fmtMoney } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -16,17 +17,21 @@ function inicioDeHoy() {
 
 export default async function AuditoriaPage() {
   await requerirPermisoModulo("I");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("I");
+  const filtroProyecto = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
+  const filtroUnidadRelacion = proyectosPermitidos !== null ? { unidad: filtroProyecto } : {};
 
   const [auditorias, unidadesActivas, checklistsHoy, combustibleHoy, tagsHoy] = await Promise.all([
     prisma.auditoria.findMany({
+      where: filtroUnidadRelacion,
       orderBy: { fechaRevision: "desc" },
       take: 40,
       include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } } },
     }),
-    prisma.unidad.findMany({ where: { estatus: "ACTIVO" }, select: { numeroEconomico: true } }),
-    prisma.checklist.findMany({ where: { fecha: { gte: inicioDeHoy() } }, select: { numeroEconomico: true } }),
-    prisma.combustible.findMany({ where: { fecha: { gte: inicioDeHoy() } }, select: { numeroEconomico: true } }),
-    prisma.tag.findMany({ where: { fecha: { gte: inicioDeHoy() } }, select: { numeroEconomico: true } }),
+    prisma.unidad.findMany({ where: { estatus: "ACTIVO", ...filtroProyecto }, select: { numeroEconomico: true } }),
+    prisma.checklist.findMany({ where: { fecha: { gte: inicioDeHoy() }, ...filtroUnidadRelacion }, select: { numeroEconomico: true } }),
+    prisma.combustible.findMany({ where: { fecha: { gte: inicioDeHoy() }, ...filtroUnidadRelacion }, select: { numeroEconomico: true } }),
+    prisma.tag.findMany({ where: { fecha: { gte: inicioDeHoy() }, ...filtroUnidadRelacion }, select: { numeroEconomico: true } }),
   ]);
 
   const serializado = JSON.parse(JSON.stringify(auditorias));

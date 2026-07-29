@@ -8,20 +8,37 @@ import { TagForm } from "@/components/tag/tag-form";
 import { TagAcordeon, type GrupoTag } from "@/components/tag/tag-acordeon";
 import { TagPendienteRow } from "@/components/tag/tag-pendiente-row";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function TagPage() {
   await requerirPermisoModulo("E");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("E");
+  const filtroProyecto =
+    proyectosPermitidos !== null
+      ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
+      : {};
+  // Los realmente "pendientes de asignar" (sin unidad ni proyecto reportante) no
+  // tienen con qué comparar el alcance del usuario; quedan visibles para
+  // cualquiera con acceso al módulo (limitación documentada).
+  const filtroPendientes =
+    proyectosPermitidos !== null
+      ? { numeroEconomico: null, OR: [{ proyectoReportanteId: null }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
+      : { numeroEconomico: null };
 
   const [unidades, transacciones, pendientes, agregados] = await Promise.all([
-    prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
-    prisma.tag.findMany({ where: { numeroEconomico: { not: null } }, orderBy: { fecha: "desc" } }),
-    prisma.tag.findMany({ where: { numeroEconomico: null }, orderBy: { fecha: "desc" } }),
-    prisma.tag.aggregate({ _sum: { monto: true }, _count: { _all: true } }),
+    prisma.unidad.findMany({
+      where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
+      select: { numeroEconomico: true },
+      orderBy: { numeroEconomico: "asc" },
+    }),
+    prisma.tag.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
+    prisma.tag.findMany({ where: filtroPendientes, orderBy: { fecha: "desc" } }),
+    prisma.tag.aggregate({ where: filtroProyecto, _sum: { monto: true }, _count: { _all: true } }),
   ]);
 
-  const conciliadas = await prisma.tag.count({ where: { conciliado: true } });
+  const conciliadas = await prisma.tag.count({ where: { conciliado: true, ...filtroProyecto } });
 
   // Se agrupa por número económico para no perder la información en una sola
   // lista plana: cada unidad se ve resumida y se despliega bajo demanda.
