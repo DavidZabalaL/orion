@@ -14,7 +14,7 @@ export default async function MapaPage() {
     where: { estatus: "ACTIVO" },
     select: {
       numeroEconomico: true,
-      estadoOperacion: true,
+      proyecto: { select: { nombre: true } },
       posicionesGps: { orderBy: { timestamp: "desc" }, take: 1 },
     },
     orderBy: { numeroEconomico: "asc" },
@@ -65,7 +65,7 @@ export default async function MapaPage() {
             <table className="w-full min-w-[720px] border-collapse">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {["Unidad", "Estado", "Última actualización", "Lat", "Lng", "Velocidad", "Estatus GPS"].map((h) => (
+                  {["Unidad", "Proyecto", "Última actualización", "Lat", "Lng", "Velocidad", "Estatus GPS"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                   ))}
                 </tr>
@@ -80,7 +80,7 @@ export default async function MapaPage() {
                           {u.numeroEconomico}
                         </Link>
                       </td>
-                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.estadoOperacion}</td>
+                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.proyecto?.nombre ?? "—"}</td>
                       <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p ? fmtFechaHora(p.timestamp) : "—"}</td>
                       <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p ? Number(p.lat).toFixed(4) : "—"}</td>
                       <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p ? Number(p.lng).toFixed(4) : "—"}</td>

@@ -3,8 +3,9 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Upload, CheckCircle2, TriangleAlert, ArrowRight } from "lucide-react";
-import { parsearExcel, importarUnidades, type HojaParseada, type ResultadoImportacion } from "@/app/(app)/altas-bajas/importar/actions";
-import { CAMPOS_UNIDAD, type CampoUnidadKey } from "@/lib/import-unidades";
+import { parsearExcelCombustible, importarCombustible } from "@/app/(app)/combustible/importar/actions";
+import type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
+import { CAMPOS_COMBUSTIBLE, type CampoCombustibleKey } from "@/lib/import-combustible";
 import { FileInput } from "@/components/ui/file-input";
 
 const fieldStyle: React.CSSProperties = {
@@ -22,17 +23,16 @@ const panelStyle: React.CSSProperties = { background: "var(--panel-bg)", boxShad
 
 type Paso = "subir" | "mapear" | "confirmar" | "resultado";
 
-export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre: string }[] }) {
+export function ImportadorCombustible() {
   const [paso, setPaso] = useState<Paso>("subir");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [hojas, setHojas] = useState<HojaParseada[]>([]);
   const [hojaIdx, setHojaIdx] = useState(0);
-  const [mapeo, setMapeo] = useState<Record<CampoUnidadKey, number | null>>(
-    Object.fromEntries(CAMPOS_UNIDAD.map((c) => [c.key, null])) as Record<CampoUnidadKey, number | null>
+  const [mapeo, setMapeo] = useState<Record<CampoCombustibleKey, number | null>>(
+    Object.fromEntries(CAMPOS_COMBUSTIBLE.map((c) => [c.key, null])) as Record<CampoCombustibleKey, number | null>
   );
-  const [proyectoDefecto, setProyectoDefecto] = useState("");
   const [resultado, setResultado] = useState<ResultadoImportacion | null>(null);
 
   const hoja = hojas[hojaIdx];
@@ -43,7 +43,7 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
       .filter((f) => f.some((v) => v && v.trim()))
       .map((f) => {
         const obj: Record<string, string> = {};
-        for (const campo of CAMPOS_UNIDAD) {
+        for (const campo of CAMPOS_COMBUSTIBLE) {
           const idx = mapeo[campo.key];
           obj[campo.key] = idx !== null && idx !== undefined ? (f[idx] ?? "") : "";
         }
@@ -51,20 +51,19 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
       });
   }, [hoja, mapeo]);
 
-  const camposFaltantes = CAMPOS_UNIDAD.filter((c) => c.requerido && mapeo[c.key] === null);
+  const camposFaltantes = CAMPOS_COMBUSTIBLE.filter((c) => c.requerido && mapeo[c.key] === null);
 
   function handleSubir(formData: FormData) {
     setError(null);
     startTransition(async () => {
       try {
-        const { hojas } = await parsearExcel(formData);
+        const { hojas } = await parsearExcelCombustible(formData);
         setHojas(hojas);
         setHojaIdx(0);
 
-        // Auto-mapeo por coincidencia de nombre de columna
         const headers = hojas[0].headers.map((h) => h.trim().toUpperCase());
-        const auto: Record<CampoUnidadKey, number | null> = Object.fromEntries(CAMPOS_UNIDAD.map((c) => [c.key, null])) as never;
-        for (const campo of CAMPOS_UNIDAD) {
+        const auto: Record<CampoCombustibleKey, number | null> = Object.fromEntries(CAMPOS_COMBUSTIBLE.map((c) => [c.key, null])) as never;
+        for (const campo of CAMPOS_COMBUSTIBLE) {
           const idx = headers.findIndex((h) => h.includes(campo.label.split(" ")[0].toUpperCase()) || h.replace(/[^A-Z]/g, "") === campo.key.toUpperCase());
           if (idx >= 0) auto[campo.key] = idx;
         }
@@ -78,7 +77,7 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
 
   function handleImportar() {
     startTransition(async () => {
-      const res = await importarUnidades(filasMapeadas, proyectoDefecto || null);
+      const res = await importarCombustible(filasMapeadas);
       setResultado(res);
       setPaso("resultado");
     });
@@ -86,16 +85,15 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Paso 1: subir */}
       {paso === "subir" && (
         <form action={handleSubir} className="rounded-xl p-8 flex flex-col items-center gap-4" style={panelStyle}>
           <Upload size={32} color="var(--color-primary)" />
           <div className="text-center">
             <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-              Sube tu archivo de Excel o CSV
+              Sube el reporte de combustible (.xlsx o .csv)
             </div>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-              Puede ser el libro completo con las 34 hojas (.xlsx/.xls) o un .csv — solo procesamos la hoja que elijas en el siguiente paso.
+              Reporte de Efectivale o cualquier otro proveedor — mapea las columnas en el siguiente paso.
             </p>
           </div>
           <FileInput name="archivo" accept=".xlsx,.xls,.csv" required helpText="Ningún archivo seleccionado" />
@@ -110,7 +108,6 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
         </form>
       )}
 
-      {/* Paso 2: mapear */}
       {paso === "mapear" && hoja && (
         <div className="flex flex-col gap-5">
           <div className="rounded-xl p-5 flex flex-wrap items-end gap-4" style={panelStyle}>
@@ -119,15 +116,6 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
               <select value={hojaIdx} onChange={(e) => setHojaIdx(Number(e.target.value))} style={fieldStyle}>
                 {hojas.map((h, i) => (
                   <option key={h.nombre} value={i}>{h.nombre} ({h.filas.length} filas)</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block mb-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Proyecto por defecto</label>
-              <select value={proyectoDefecto} onChange={(e) => setProyectoDefecto(e.target.value)} style={fieldStyle}>
-                <option value="">Sin proyecto por defecto</option>
-                {proyectos.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
               </select>
             </div>
@@ -141,7 +129,7 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
               Mapeo de columnas
             </h3>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {CAMPOS_UNIDAD.map((campo) => (
+              {CAMPOS_COMBUSTIBLE.map((campo) => (
                 <div key={campo.key} className="flex items-center gap-3">
                   <div className="flex-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
                     {campo.label} {campo.requerido && <span style={{ color: "var(--color-status-escena)" }}>*</span>}
@@ -169,10 +157,10 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
           )}
 
           <div className="overflow-x-auto rounded-xl" style={panelStyle}>
-            <table className="w-full min-w-[720px] border-collapse">
+            <table className="w-full min-w-[640px] border-collapse">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {CAMPOS_UNIDAD.filter((c) => mapeo[c.key] !== null).map((c) => (
+                  {CAMPOS_COMBUSTIBLE.filter((c) => mapeo[c.key] !== null).map((c) => (
                     <th key={c.key} className="text-left px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)" }}>{c.label}</th>
                   ))}
                 </tr>
@@ -180,7 +168,7 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
               <tbody>
                 {filasMapeadas.slice(0, 5).map((fila, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                    {CAMPOS_UNIDAD.filter((c) => mapeo[c.key] !== null).map((c) => (
+                    {CAMPOS_COMBUSTIBLE.filter((c) => mapeo[c.key] !== null).map((c) => (
                       <td key={c.key} className="px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{fila[c.key] || "—"}</td>
                     ))}
                   </tr>
@@ -208,15 +196,12 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
         </div>
       )}
 
-      {/* Paso 3: confirmar */}
       {paso === "confirmar" && (
         <div className="flex flex-col gap-5">
           <div className="rounded-xl p-5" style={panelStyle}>
             <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--field-text)" }}>
-              Estás por importar <strong>{filasMapeadas.length}</strong> filas de la hoja <strong>{hoja?.nombre}</strong>.
-              Las unidades cuyo número económico ya exista se <strong>actualizarán</strong>; el resto se crearán nuevas.
-              Los tipos de vehículo, combustible o estatus que no se reconozcan quedarán marcados como advertencia y se
-              importarán con un valor por defecto para revisión manual posterior.
+              Estás por importar <strong>{filasMapeadas.length}</strong> transacciones de combustible desde la hoja <strong>{hoja?.nombre}</strong>.
+              Las filas con número económico no reconocido o duplicadas (misma unidad, fecha, litros y costo) se omiten automáticamente.
             </div>
           </div>
           <div className="flex gap-3">
@@ -235,13 +220,11 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
         </div>
       )}
 
-      {/* Paso 4: resultado */}
       {paso === "resultado" && resultado && (
         <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <ResumenCard label="Creadas" value={resultado.creadas.length} color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
-            <ResumenCard label="Actualizadas" value={resultado.actualizadas.length} color="var(--color-status-asignado)" bg="var(--status-asignado-bg)" />
-            <ResumenCard label="Omitidas" value={resultado.omitidas.length} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <ResumenCard label="Importadas" value={resultado.creadas.length} color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
+            <ResumenCard label="Omitidas / duplicadas" value={resultado.omitidas.length} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
             <ResumenCard label="Advertencias" value={resultado.advertencias.length} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
           </div>
 
@@ -258,7 +241,7 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
 
           {resultado.advertencias.length > 0 && (
             <div className="rounded-xl p-5" style={panelStyle}>
-              <h4 className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-status-revision)" }}>Advertencias (se importaron con valor por defecto)</h4>
+              <h4 className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-status-revision)" }}>Advertencias</h4>
               <ul className="flex flex-col gap-1">
                 {resultado.advertencias.map((a, i) => (
                   <li key={i} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>Fila {a.fila}: {a.mensaje}</li>
@@ -268,7 +251,7 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
           )}
 
           <div className="flex items-center gap-2" style={{ color: "var(--color-status-cerrado)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
-            <CheckCircle2 size={16} /> Importación completada. Revisa el <Link href="/unidades" style={{ color: "var(--color-primary)" }}>Inventario de Unidades</Link>.
+            <CheckCircle2 size={16} /> Importación completada. Revisa <Link href="/combustible" style={{ color: "var(--color-primary)" }}>Combustible</Link>.
           </div>
         </div>
       )}

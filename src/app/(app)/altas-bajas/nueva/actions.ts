@@ -20,13 +20,12 @@ export async function crearUnidad(formData: FormData) {
   const rendimientoPromedio = formData.get("rendimientoPromedio") ? parseFloat(String(formData.get("rendimientoPromedio"))) : null;
   const capacidadTanqueLitros = parseFloat(String(formData.get("capacidadTanqueLitros") ?? ""));
   const proyectoId = String(formData.get("proyectoId") ?? "");
-  const estadoOperacion = String(formData.get("estadoOperacion") ?? "").trim();
   const resguardanteId = String(formData.get("resguardanteId") ?? "") || null;
   const propietario = String(formData.get("propietario") ?? "");
   const origenPlaca = String(formData.get("origenPlaca") ?? "").trim();
   const tagIave = String(formData.get("tagIave") ?? "").trim() || null;
 
-  if (!numeroEconomico || !placas || numeroSerie.length !== 17 || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !proyectoId || !estadoOperacion || !propietario || !origenPlaca) {
+  if (!numeroEconomico || !placas || numeroSerie.length !== 17 || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !proyectoId || !propietario || !origenPlaca) {
     throw new Error("Faltan campos obligatorios o el número de serie no tiene 17 caracteres.");
   }
   if (!capacidadTanqueLitros || capacidadTanqueLitros <= 0) {
@@ -55,7 +54,6 @@ export async function crearUnidad(formData: FormData) {
       rendimientoPromedio,
       capacidadTanqueLitros,
       proyectoId,
-      estadoOperacion,
       estatus: "ACTIVO",
       disponibilidad: true,
       resguardanteId,

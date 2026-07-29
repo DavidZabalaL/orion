@@ -11,7 +11,6 @@ export const CAMPOS_UNIDAD = [
   { key: "kmOficial", label: "Kilometraje", requerido: false },
   { key: "capacidadTanqueLitros", label: "Capacidad máxima de tanque (litros)", requerido: false },
   { key: "proyecto", label: "Proyecto", requerido: false },
-  { key: "estadoOperacion", label: "Estado de operación", requerido: true },
   { key: "estatus", label: "Estatus (Activo/Consignación/Dirección/Baja)", requerido: false },
   { key: "resguardante", label: "Resguardante (nombre del operador)", requerido: false },
   { key: "propietario", label: "Propietario (SYM/5 Star/Kabat)", requerido: false },

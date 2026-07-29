@@ -320,7 +320,6 @@ model Unidad {
 
   proyectoId           String?
   proyecto             Proyecto?         @relation(fields: [proyectoId], references: [id])
-  estadoOperacion      String
 
   estatus              EstatusUnidad     @default(ACTIVO)
   disponibilidad       Boolean           @default(true)

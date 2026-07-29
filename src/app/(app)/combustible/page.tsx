@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CreditCard, Fuel, Gauge, DollarSign } from "lucide-react";
+import { CreditCard, Fuel, Gauge, DollarSign, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table, EmptyState } from "@/components/ui/table";
@@ -34,9 +34,14 @@ export default async function CombustiblePage() {
             Consumo, rendimiento y anomalías — importador agnóstico de proveedor.
           </p>
         </div>
-        <Link href="/combustible/mapeo-tarjetas" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-          <CreditCard size={16} /> Mapeo tarjeta → económico
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/combustible/mapeo-tarjetas" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <CreditCard size={16} /> Mapeo tarjeta → económico
+          </Link>
+          <Link href="/combustible/importar" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <Upload size={16} /> Importar transacciones
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

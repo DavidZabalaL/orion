@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
 import { Ticket, DollarSign, CheckCircle2, Inbox, Upload } from "lucide-react";
 import { TagForm } from "@/components/tag/tag-form";
-import { TagRow } from "@/components/tag/tag-row";
+import { TagAcordeon, type GrupoTag } from "@/components/tag/tag-acordeon";
 import { TagPendienteRow } from "@/components/tag/tag-pendiente-row";
 
 export const dynamic = "force-dynamic";
@@ -13,12 +13,29 @@ export const dynamic = "force-dynamic";
 export default async function TagPage() {
   const [unidades, transacciones, pendientes, agregados] = await Promise.all([
     prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
-    prisma.tag.findMany({ where: { numeroEconomico: { not: null } }, orderBy: { fecha: "desc" }, take: 25 }),
+    prisma.tag.findMany({ where: { numeroEconomico: { not: null } }, orderBy: { fecha: "desc" } }),
     prisma.tag.findMany({ where: { numeroEconomico: null }, orderBy: { fecha: "desc" } }),
     prisma.tag.aggregate({ _sum: { monto: true }, _count: { _all: true } }),
   ]);
 
   const conciliadas = await prisma.tag.count({ where: { conciliado: true } });
+
+  // Se agrupa por número económico para no perder la información en una sola
+  // lista plana: cada unidad se ve resumida y se despliega bajo demanda.
+  const gruposPorEconomico = new Map<string, GrupoTag>();
+  for (const t of transacciones) {
+    const numeroEconomico = t.numeroEconomico as string;
+    let grupo = gruposPorEconomico.get(numeroEconomico);
+    if (!grupo) {
+      grupo = { numeroEconomico, totalMonto: 0, totalTransacciones: 0, pendientesConciliar: 0, ultimaFecha: t.fecha.toISOString(), transacciones: [] };
+      gruposPorEconomico.set(numeroEconomico, grupo);
+    }
+    grupo.totalMonto += Number(t.monto);
+    grupo.totalTransacciones += 1;
+    if (!t.conciliado) grupo.pendientesConciliar += 1;
+    grupo.transacciones.push(JSON.parse(JSON.stringify(t)));
+  }
+  const grupos = Array.from(gruposPorEconomico.values()).sort((a, b) => a.numeroEconomico.localeCompare(b.numeroEconomico));
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -71,27 +88,12 @@ export default async function TagPage() {
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Conciliación TAG
+          Conciliación TAG por unidad
         </h3>
-        {transacciones.length === 0 ? (
+        {grupos.length === 0 ? (
           <EmptyState>Sin transacciones asignadas.</EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {["Fecha", "Unidad", "Caseta", "Monto", "Proveedor", "Conciliado", ""].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {transacciones.map((t) => (
-                  <TagRow key={t.id} tag={JSON.parse(JSON.stringify(t))} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TagAcordeon grupos={grupos} />
         )}
       </div>
     </div>

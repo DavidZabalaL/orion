@@ -5,14 +5,31 @@ import { Car, CheckCircle2, Ban, ArrowLeftRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+const CATEGORIAS_MANTENIMIENTO = ["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_CORRECTIVO"] as const;
+
 export default async function UnidadesPage() {
-  const unidades = await prisma.unidad.findMany({
-    include: {
-      proyecto: { select: { nombre: true, estadoRepublica: true } },
-      resguardante: { select: { nombre: true } },
-    },
-    orderBy: { numeroEconomico: "asc" },
-  });
+  const [unidades, ultimosMantenimientos, proximosMantenimientos] = await Promise.all([
+    prisma.unidad.findMany({
+      include: {
+        proyecto: { select: { nombre: true, estadoRepublica: true } },
+        resguardante: { select: { nombre: true } },
+      },
+      orderBy: { numeroEconomico: "asc" },
+    }),
+    prisma.gastoVehicular.groupBy({
+      by: ["numeroEconomico"],
+      where: { categoria: { in: [...CATEGORIAS_MANTENIMIENTO] }, estatus: { in: ["REALIZADO", "PAGADO"] } },
+      _max: { fecha: true },
+    }),
+    prisma.gastoVehicular.groupBy({
+      by: ["numeroEconomico"],
+      where: { categoria: { in: [...CATEGORIAS_MANTENIMIENTO] }, estatus: "PROGRAMADO" },
+      _min: { fecha: true },
+    }),
+  ]);
+
+  const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
+  const proximoPorEconomico = new Map(proximosMantenimientos.map((m) => [m.numeroEconomico, m._min.fecha]));
 
   const rows: UnidadRow[] = unidades.map((u) => ({
     numeroEconomico: u.numeroEconomico,
@@ -21,11 +38,12 @@ export default async function UnidadesPage() {
     marca: u.marca,
     unidadModelo: u.unidadModelo,
     proyecto: u.proyecto?.nombre ?? null,
-    estadoOperacion: u.estadoOperacion,
     estatus: u.estatus,
     disponibilidad: u.disponibilidad,
     diasSinOperar: u.diasSinOperar,
     resguardante: u.resguardante?.nombre ?? null,
+    ultimoMantenimiento: ultimoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
+    proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
   }));
 
   const total = rows.length;
@@ -35,7 +53,6 @@ export default async function UnidadesPage() {
   const bajas = rows.filter((r) => r.estatus === "BAJA").length;
 
   const proyectosOptions = Array.from(new Set(rows.map((r) => r.proyecto).filter(Boolean))) as string[];
-  const estadosOptions = Array.from(new Set(rows.map((r) => r.estadoOperacion).filter(Boolean))) as string[];
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -56,7 +73,7 @@ export default async function UnidadesPage() {
         <StatCard label="Bajas" value={bajas} icon={Ban} accent="var(--color-status-escena)" />
       </div>
 
-      <UnidadesTable rows={rows} proyectos={proyectosOptions} estados={estadosOptions} />
+      <UnidadesTable rows={rows} proyectos={proyectosOptions} />
     </div>
   );
 }

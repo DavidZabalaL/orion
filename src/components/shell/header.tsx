@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, Bell, Menu } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { UserMenu } from "@/components/shell/user-menu";
+import { GlobalSearch } from "@/components/shell/global-search";
 import type { Notificacion } from "@/lib/notificaciones";
 
 type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
@@ -126,17 +127,7 @@ export function Header({
           <Menu size={20} />
         </button>
 
-        <div
-          className="flex items-center gap-2 rounded-md px-3 flex-1 max-w-md"
-          style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", height: "var(--h-md)" }}
-        >
-          <Search size={16} color="var(--sidebar-text)" />
-          <input
-            placeholder="Buscar por número económico, placa u operador…"
-            className="bg-transparent outline-none flex-1 min-w-0"
-            style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}
-          />
-        </div>
+        <GlobalSearch />
       </div>
 
       <div className="flex items-center gap-4">

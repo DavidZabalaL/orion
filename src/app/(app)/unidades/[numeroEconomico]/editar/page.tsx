@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { crearUnidad } from "./actions";
+import { actualizarUnidad } from "../../actions";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 
 export const dynamic = "force-dynamic";
@@ -40,59 +41,65 @@ function Bloque({ titulo, children }: { titulo: string; children: React.ReactNod
   );
 }
 
-export default async function AltaUnidadPage() {
-  const [proyectos, operadores] = await Promise.all([
-    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true, estadoRepublica: true } }),
+export default async function EditarUnidadPage({
+  params,
+}: {
+  params: Promise<{ numeroEconomico: string }>;
+}) {
+  const { numeroEconomico } = await params;
+
+  const [unidad, proyectos, operadores] = await Promise.all([
+    prisma.unidad.findUnique({ where: { numeroEconomico } }),
+    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } }),
     prisma.operador.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);
+
+  if (!unidad) notFound();
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-4xl">
       <div>
-        <Link href="/altas-bajas" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-          <ChevronLeft size={15} /> Volver
+        <Link href={`/unidades/${numeroEconomico}`} className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          <ChevronLeft size={15} /> Volver a la ficha
         </Link>
         <h1 className="mt-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-          Alta de Unidad
+          Editar unidad <span style={{ fontFamily: "var(--font-mono)" }}>{numeroEconomico}</span>
         </h1>
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Formulario guiado con validación en línea de unicidad de número económico, placas y VIN.
+          El número económico y el número de serie (VIN) no se pueden modificar aquí — son la identidad permanente de la unidad.
         </p>
       </div>
 
-      <form action={crearUnidad} className="flex flex-col gap-6">
+      <form action={actualizarUnidad} className="flex flex-col gap-6">
+        <input type="hidden" name="numeroEconomico" value={numeroEconomico} />
+
         <Bloque titulo="Identificación">
           <div>
-            <label style={labelStyle}>Número económico *</label>
-            <input name="numeroEconomico" required placeholder="KAB-120" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+            <label style={labelStyle}>Placas *</label>
+            <input name="placas" required defaultValue={unidad.placas} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
-            <label style={labelStyle}>Placas *</label>
-            <input name="placas" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
-          </div>
-          <div className="md:col-span-2">
-            <label style={labelStyle}>Número de serie (VIN) — 17 caracteres *</label>
-            <input name="numeroSerie" required minLength={17} maxLength={17} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+            <label style={labelStyle}>Número de serie (VIN)</label>
+            <input value={unidad.numeroSerie} disabled style={{ ...fieldStyle, fontFamily: "var(--font-mono)", opacity: 0.6 }} />
           </div>
         </Bloque>
 
         <Bloque titulo="Vehículo">
           <div>
             <label style={labelStyle}>Marca *</label>
-            <input name="marca" required style={fieldStyle} />
+            <input name="marca" required defaultValue={unidad.marca} style={fieldStyle} />
           </div>
           <div>
             <label style={labelStyle}>Unidad / modelo comercial *</label>
-            <input name="unidadModelo" required style={fieldStyle} />
+            <input name="unidadModelo" required defaultValue={unidad.unidadModelo} style={fieldStyle} />
           </div>
           <div>
             <label style={labelStyle}>Año *</label>
-            <input name="anio" type="number" required min={1990} max={2100} style={fieldStyle} />
+            <input name="anio" type="number" required min={1990} max={2100} defaultValue={unidad.anio} style={fieldStyle} />
           </div>
           <div>
             <label style={labelStyle}>Tipo *</label>
-            <select name="tipoVehiculo" required style={fieldStyle}>
-              <option value="">Seleccionar…</option>
+            <select name="tipoVehiculo" required defaultValue={unidad.tipoVehiculo} style={fieldStyle}>
               {Object.entries(TIPO_VEHICULO_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
@@ -100,8 +107,7 @@ export default async function AltaUnidadPage() {
           </div>
           <div>
             <label style={labelStyle}>Tipo de combustible *</label>
-            <select name="tipoCombustible" required style={fieldStyle}>
-              <option value="">Seleccionar…</option>
+            <select name="tipoCombustible" required defaultValue={unidad.tipoCombustible} style={fieldStyle}>
               <option value="GASOLINA">Gasolina</option>
               <option value="DIESEL">Diésel</option>
               <option value="ELECTRICO">Eléctrico</option>
@@ -110,27 +116,27 @@ export default async function AltaUnidadPage() {
           </div>
           <div>
             <label style={labelStyle}>Rendimiento promedio km/L</label>
-            <input name="rendimientoPromedio" type="number" step="0.1" style={fieldStyle} />
+            <input name="rendimientoPromedio" type="number" step="0.1" defaultValue={unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : ""} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Capacidad máxima de tanque (litros) *</label>
-            <input name="capacidadTanqueLitros" type="number" step="0.1" min={1} required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+            <label style={labelStyle}>Capacidad máxima de tanque (litros)</label>
+            <input name="capacidadTanqueLitros" type="number" step="0.1" min={1} defaultValue={unidad.capacidadTanqueLitros ? Number(unidad.capacidadTanqueLitros) : ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
         </Bloque>
 
         <Bloque titulo="Asignación">
           <div>
-            <label style={labelStyle}>Proyecto *</label>
-            <select name="proyectoId" required style={fieldStyle} id="proyectoSelect">
-              <option value="">Seleccionar…</option>
+            <label style={labelStyle}>Proyecto</label>
+            <select name="proyectoId" defaultValue={unidad.proyectoId ?? ""} style={fieldStyle}>
+              <option value="">Sin proyecto</option>
               {proyectos.map((p) => (
-                <option key={p.id} value={p.id} data-estado={p.estadoRepublica}>{p.nombre}</option>
+                <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
             </select>
           </div>
-          <div className="md:col-span-2">
+          <div>
             <label style={labelStyle}>Responsable de resguardo</label>
-            <select name="resguardanteId" style={fieldStyle}>
+            <select name="resguardanteId" defaultValue={unidad.resguardanteId ?? ""} style={fieldStyle}>
               <option value="">Sin asignar</option>
               {operadores.map((o) => (
                 <option key={o.id} value={o.id}>{o.nombre}</option>
@@ -142,16 +148,15 @@ export default async function AltaUnidadPage() {
         <Bloque titulo="Documentación">
           <div>
             <label style={labelStyle}>Tag IAVE (número)</label>
-            <input name="tagIave" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+            <input name="tagIave" defaultValue={unidad.tagIave ?? ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
             <label style={labelStyle}>Origen de placa *</label>
-            <input name="origenPlaca" required style={fieldStyle} placeholder="Ej. Tamaulipas" />
+            <input name="origenPlaca" required defaultValue={unidad.origenPlaca} style={fieldStyle} />
           </div>
           <div>
             <label style={labelStyle}>Propietario *</label>
-            <select name="propietario" required style={fieldStyle}>
-              <option value="">Seleccionar…</option>
+            <select name="propietario" required defaultValue={unidad.propietario} style={fieldStyle}>
               <option value="SYM">SYM</option>
               <option value="FIVE_STAR_SYSTEM">5 STAR SYSTEM</option>
               <option value="KABAT">KABAT</option>
@@ -160,18 +165,11 @@ export default async function AltaUnidadPage() {
           </div>
         </Bloque>
 
-        <div
-          className="rounded-md px-4 py-3"
-          style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
-        >
-          El seguro se puede capturar después desde el Módulo F. Mientras no se registre, aparecerá un aviso en el listado de la unidad.
-        </div>
-
         <div className="flex items-center gap-3">
           <button type="submit" className="rounded-md px-5 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-            Guardar unidad
+            Guardar cambios
           </button>
-          <Link href="/altas-bajas" className="rounded-md px-5 h-10 flex items-center" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--sidebar-text)" }}>
+          <Link href={`/unidades/${numeroEconomico}`} className="rounded-md px-5 h-10 flex items-center" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--sidebar-text)" }}>
             Cancelar
           </Link>
         </div>

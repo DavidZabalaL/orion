@@ -12,7 +12,7 @@ export default async function FichaUnidadPage({
 }) {
   const { numeroEconomico } = await params;
 
-  const [unidad, puedeEditarCapacidad] = await Promise.all([
+  const [unidad, puedeEditarCapacidad, proyectos] = await Promise.all([
     prisma.unidad.findUnique({
       where: { numeroEconomico },
       include: {
@@ -31,6 +31,7 @@ export default async function FichaUnidadPage({
       },
     }),
     puedeEditarCapacidadTanque(),
+    prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } }),
   ]);
 
   if (!unidad) notFound();
@@ -39,5 +40,5 @@ export default async function FichaUnidadPage({
   // a string / ISO-string, dejando el resultado listo para un Client Component.
   const serializado = JSON.parse(JSON.stringify(unidad));
 
-  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} />;
+  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} proyectos={proyectos} />;
 }

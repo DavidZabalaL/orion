@@ -9,6 +9,7 @@ import {
   ESTATUS_UNIDAD_STYLE,
   TIPO_VEHICULO_LABEL,
 } from "@/lib/estatus";
+import { fmtFecha } from "@/lib/formato";
 
 export type UnidadRow = {
   numeroEconomico: string;
@@ -17,12 +18,41 @@ export type UnidadRow = {
   marca: string;
   unidadModelo: string;
   proyecto: string | null;
-  estadoOperacion: string;
   estatus: string;
   disponibilidad: boolean;
   diasSinOperar: number;
   resguardante: string | null;
+  ultimoMantenimiento: string | null;
+  proximoMantenimiento: string | null;
 };
+
+function exportarCsv(rows: UnidadRow[]) {
+  const headers = ["N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Días sin operar", "Resguardante", "Último mantenimiento", "Próximo mantenimiento"];
+  const filas = rows.map((r) => [
+    r.numeroEconomico,
+    r.placas,
+    TIPO_VEHICULO_LABEL[r.tipoVehiculo] ?? r.tipoVehiculo,
+    r.marca,
+    r.unidadModelo,
+    r.proyecto ?? "",
+    ESTATUS_UNIDAD_LABEL[r.estatus] ?? r.estatus,
+    r.disponibilidad ? "Sí" : "No",
+    String(r.diasSinOperar),
+    r.resguardante ?? "",
+    fmtFecha(r.ultimoMantenimiento),
+    fmtFecha(r.proximoMantenimiento),
+  ]);
+  const csv = [headers, ...filas]
+    .map((fila) => fila.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\r\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `inventario-unidades-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const selectStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -36,29 +66,25 @@ const selectStyle: React.CSSProperties = {
 export function UnidadesTable({
   rows,
   proyectos,
-  estados,
 }: {
   rows: UnidadRow[];
   proyectos: string[];
-  estados: string[];
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [proyectoFiltro, setProyectoFiltro] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [estatusFiltro, setEstatusFiltro] = useState("");
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
     return rows.filter((r) => {
-      if (q && !r.numeroEconomico.includes(q) && !r.placas.includes(q) && !(r.resguardante ?? "").toUpperCase().includes(q)) return false;
+      if (q && !r.numeroEconomico.toUpperCase().includes(q) && !r.placas.toUpperCase().includes(q) && !(r.resguardante ?? "").toUpperCase().includes(q)) return false;
       if (proyectoFiltro && r.proyecto !== proyectoFiltro) return false;
-      if (estadoFiltro && r.estadoOperacion !== estadoFiltro) return false;
       if (tipoFiltro && r.tipoVehiculo !== tipoFiltro) return false;
       if (estatusFiltro && r.estatus !== estatusFiltro) return false;
       return true;
     });
-  }, [rows, busqueda, proyectoFiltro, estadoFiltro, tipoFiltro, estatusFiltro]);
+  }, [rows, busqueda, proyectoFiltro, tipoFiltro, estatusFiltro]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -84,13 +110,6 @@ export function UnidadesTable({
             ))}
           </select>
 
-          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} className="rounded-md px-3" style={selectStyle}>
-            <option value="">Todos los estados</option>
-            {estados.map((e) => (
-              <option key={e} value={e}>{e}</option>
-            ))}
-          </select>
-
           <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} className="rounded-md px-3" style={selectStyle}>
             <option value="">Todos los tipos</option>
             {Object.entries(TIPO_VEHICULO_LABEL).map(([k, v]) => (
@@ -108,6 +127,7 @@ export function UnidadesTable({
 
         <div className="flex items-center gap-2 shrink-0">
           <button
+            onClick={() => exportarCsv(filtradas)}
             className="flex items-center gap-2 rounded-md px-3"
             style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}
           >
@@ -129,10 +149,10 @@ export function UnidadesTable({
         className="overflow-x-auto rounded-xl"
         style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
       >
-        <table className="w-full min-w-[900px] border-collapse">
+        <table className="w-full min-w-[1140px] border-collapse">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-              {["N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar", "Resguardante", ""].map((h) => (
+              {["N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar", "Resguardante", "Último manto.", "Próx. manto.", ""].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 whitespace-nowrap"
@@ -190,6 +210,12 @@ export function UnidadesTable({
                 <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>
                   {r.resguardante ?? "—"}
                 </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+                  {r.ultimoMantenimiento ? fmtFecha(r.ultimoMantenimiento) : "—"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: r.proximoMantenimiento ? "var(--field-text)" : "var(--sidebar-text)" }}>
+                  {r.proximoMantenimiento ? fmtFecha(r.proximoMantenimiento) : "Sin programar"}
+                </td>
                 <td className="px-4 py-3">
                   <Link href={`/unidades/${r.numeroEconomico}`}>
                     <ChevronRight size={16} color="var(--sidebar-text)" />
@@ -199,7 +225,7 @@ export function UnidadesTable({
             ))}
             {filtradas.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
+                <td colSpan={12} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
                   No se encontraron unidades con los filtros aplicados.
                 </td>
               </tr>

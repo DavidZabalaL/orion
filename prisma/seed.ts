@@ -218,7 +218,6 @@ async function main() {
         kmOficial: 15000 + i * 3200,
         capacidadTanqueLitros: 60 + (i % 4) * 20,
         proyectoId: esBaja ? null : proyecto.id,
-        estadoOperacion: proyecto.estadoRepublica,
         estatus,
         disponibilidad: !esBaja && estatus === "ACTIVO",
         diasSinOperar: estatus === "ACTIVO" ? i % 3 : 5 + i,

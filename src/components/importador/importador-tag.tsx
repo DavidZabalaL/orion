@@ -6,6 +6,7 @@ import { Upload, CheckCircle2, TriangleAlert, ArrowRight } from "lucide-react";
 import { parsearExcelTag, importarTags } from "@/app/(app)/tag/importar/actions";
 import type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
 import { CAMPOS_TAG, type CampoTagKey } from "@/lib/import-tag";
+import { FileInput } from "@/components/ui/file-input";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -90,13 +91,13 @@ export function ImportadorTag() {
           <Upload size={32} color="var(--color-primary)" />
           <div className="text-center">
             <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-              Sube el estado de cuenta (.xlsx)
+              Sube el estado de cuenta (.xlsx o .csv)
             </div>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
               Un archivo por proveedor (IAVE, PASE o Televía).
             </p>
           </div>
-          <input type="file" name="archivo" accept=".xlsx,.xls" required style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }} />
+          <FileInput name="archivo" accept=".xlsx,.xls,.csv" required helpText="Ningún archivo seleccionado" />
           {error && (
             <div className="flex items-center gap-2" style={{ color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               <TriangleAlert size={15} /> {error}

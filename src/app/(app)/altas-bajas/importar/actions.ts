@@ -39,9 +39,8 @@ export async function importarUnidades(
     const marca = String(fila.marca ?? "").trim();
     const unidadModelo = String(fila.unidadModelo ?? "").trim();
     const anio = parseInt(String(fila.anio ?? ""), 10);
-    const estadoOperacion = String(fila.estadoOperacion ?? "").trim();
 
-    if (!numeroEconomico || !placas || numeroSerie.length !== 17 || !marca || !unidadModelo || !anio || !estadoOperacion) {
+    if (!numeroEconomico || !placas || numeroSerie.length !== 17 || !marca || !unidadModelo || !anio) {
       resultado.omitidas.push({ fila: numFila, motivo: "Faltan campos obligatorios o el VIN no tiene 17 caracteres." });
       continue;
     }
@@ -91,12 +90,11 @@ export async function importarUnidades(
       kmOficial: fila.kmOficial ? parseInt(fila.kmOficial, 10) : 0,
       capacidadTanqueLitros: fila.capacidadTanqueLitros ? parseFloat(fila.capacidadTanqueLitros) : null,
       proyectoId,
-      estadoOperacion,
       estatus: estatus.valor as never,
       disponibilidad: estatus.valor === "ACTIVO",
       resguardanteId,
       propietario: propietario.valor as never,
-      origenPlaca: String(fila.origenPlaca ?? "").trim() || estadoOperacion,
+      origenPlaca: String(fila.origenPlaca ?? "").trim(),
       tagIave: String(fila.tagIave ?? "").trim() || null,
     };
 

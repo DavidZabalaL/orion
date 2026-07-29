@@ -25,7 +25,7 @@ import {
   TIPO_VEHICULO_LABEL,
 } from "@/lib/estatus";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
-import { actualizarCapacidadTanque } from "@/app/(app)/unidades/actions";
+import { actualizarCapacidadTanque, reasignarProyecto } from "@/app/(app)/unidades/actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -102,7 +102,75 @@ function CapacidadTanqueEditor({ numeroEconomico, capacidadTanqueLitros, puedeEd
   );
 }
 
-export function FichaUnidad({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEditarCapacidad: boolean }) {
+function ReasignarProyectoButton({
+  numeroEconomico,
+  proyectoActualId,
+  proyectos,
+}: {
+  numeroEconomico: string;
+  proyectoActualId: string | null;
+  proyectos: { id: string; nombre: string }[];
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  if (!abierto) {
+    return (
+      <button
+        onClick={() => setAbierto(true)}
+        className="flex items-center gap-2 rounded-md px-3 h-9"
+        style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+      >
+        <ArrowLeftRight size={15} /> Reasignar proyecto
+      </button>
+    );
+  }
+
+  return (
+    <form
+      className="flex items-center gap-2"
+      action={(formData) => {
+        setError(null);
+        startTransition(async () => {
+          const res = await reasignarProyecto(formData);
+          if (res.ok) setAbierto(false);
+          else setError(res.error ?? "No se pudo reasignar.");
+        });
+      }}
+    >
+      <input type="hidden" name="numeroEconomico" value={numeroEconomico} />
+      <select
+        name="proyectoId"
+        defaultValue={proyectoActualId ?? ""}
+        className="rounded-md px-2"
+        style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+      >
+        <option value="">Sin proyecto</option>
+        {proyectos.map((p) => (
+          <option key={p.id} value={p.id}>{p.nombre}</option>
+        ))}
+      </select>
+      <button type="submit" disabled={pending} className="flex items-center justify-center rounded-md disabled:opacity-60" style={{ width: "var(--h-md)", height: "var(--h-md)", color: "var(--color-status-cerrado)" }} aria-label="Guardar">
+        <Check size={16} />
+      </button>
+      <button type="button" onClick={() => setAbierto(false)} className="flex items-center justify-center rounded-md" style={{ width: "var(--h-md)", height: "var(--h-md)", color: "var(--sidebar-text)" }} aria-label="Cancelar">
+        <X size={16} />
+      </button>
+      {error && <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{error}</span>}
+    </form>
+  );
+}
+
+export function FichaUnidad({
+  unidad,
+  puedeEditarCapacidad,
+  proyectos,
+}: {
+  unidad: Unidad;
+  puedeEditarCapacidad: boolean;
+  proyectos: { id: string; nombre: string }[];
+}) {
   const [tab, setTab] = useState<TabId>("general");
 
   const seguroVigente = unidad.seguros?.[0];
@@ -147,15 +215,21 @@ export function FichaUnidad({ unidad, puedeEditarCapacidad }: { unidad: Unidad; 
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <button className="flex items-center gap-2 rounded-md px-3 h-9" style={{ ...panelStyle, color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 rounded-md px-3 h-9"
+              style={{ ...panelStyle, color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
               <Printer size={15} /> Imprimir
             </button>
-            <button className="flex items-center gap-2 rounded-md px-3 h-9" style={{ ...panelStyle, color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-              <ArrowLeftRight size={15} /> Reasignar proyecto
-            </button>
-            <button className="flex items-center gap-2 rounded-md px-3 h-9" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <ReasignarProyectoButton numeroEconomico={unidad.numeroEconomico} proyectoActualId={unidad.proyectoId ?? null} proyectos={proyectos} />
+            <Link
+              href={`/unidades/${unidad.numeroEconomico}/editar`}
+              className="flex items-center gap-2 rounded-md px-3 h-9"
+              style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
               <Pencil size={15} /> Editar
-            </button>
+            </Link>
             {unidad.estatus !== "BAJA" && (
               <Link
                 href={`/unidades/${unidad.numeroEconomico}/baja`}
@@ -290,7 +364,6 @@ function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEdi
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Proyecto" value={unidad.proyecto?.nombre ?? "—"} />
-          <Field label="Estado de operación" value={unidad.estadoOperacion} />
           <Field
             label="Estatus"
             value={<Badge label={ESTATUS_UNIDAD_LABEL[unidad.estatus]} color={ESTATUS_UNIDAD_STYLE[unidad.estatus]?.color} bg={ESTATUS_UNIDAD_STYLE[unidad.estatus]?.bg} />}
