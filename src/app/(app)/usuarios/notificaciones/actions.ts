@@ -35,6 +35,8 @@ export async function actualizarConfiguracionNotificaciones(formData: FormData) 
     alertaDocumentoOperadorDiasPrevios: parseDias(formData.get("alertaDocumentoOperadorDiasPrevios")),
     alertaDocumentoOperadorActiva: formData.get("alertaDocumentoOperadorActiva") === "on",
 
+    alertaRecargaPresupuestoActiva: formData.get("alertaRecargaPresupuestoActiva") === "on",
+
     destinatariosCorreo: String(formData.get("destinatariosCorreo") ?? "")
       .split(",")
       .map((d) => d.trim())

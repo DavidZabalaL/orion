@@ -56,22 +56,23 @@ export function ImportadorCombustible() {
   function handleSubir(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      try {
-        const { hojas } = await parsearExcelCombustible(formData);
-        setHojas(hojas);
-        setHojaIdx(0);
-
-        const headers = hojas[0].headers.map((h) => h.trim().toUpperCase());
-        const auto: Record<CampoCombustibleKey, number | null> = Object.fromEntries(CAMPOS_COMBUSTIBLE.map((c) => [c.key, null])) as never;
-        for (const campo of CAMPOS_COMBUSTIBLE) {
-          const idx = headers.findIndex((h) => h.includes(campo.label.split(" ")[0].toUpperCase()) || h.replace(/[^A-Z]/g, "") === campo.key.toUpperCase());
-          if (idx >= 0) auto[campo.key] = idx;
-        }
-        setMapeo(auto);
-        setPaso("mapear");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo leer el archivo.");
+      const res = await parsearExcelCombustible(formData);
+      if (!res.ok) {
+        setError(res.error);
+        return;
       }
+      const { hojas } = res;
+      setHojas(hojas);
+      setHojaIdx(0);
+
+      const headers = hojas[0].headers.map((h) => h.trim().toUpperCase());
+      const auto: Record<CampoCombustibleKey, number | null> = Object.fromEntries(CAMPOS_COMBUSTIBLE.map((c) => [c.key, null])) as never;
+      for (const campo of CAMPOS_COMBUSTIBLE) {
+        const idx = headers.findIndex((h) => h.includes(campo.label.split(" ")[0].toUpperCase()) || h.replace(/[^A-Z]/g, "") === campo.key.toUpperCase());
+        if (idx >= 0) auto[campo.key] = idx;
+      }
+      setMapeo(auto);
+      setPaso("mapear");
     });
   }
 

@@ -106,6 +106,13 @@ enum CategoriaGasto {
   MULTAS
   RENTA_VEHICULOS
   CASETAS
+  GASOLINA
+  VIATICOS_OPERACION
+}
+
+enum OrigenPresupuesto {
+  IMPORTADO_EXCEL
+  MANUAL
 }
 
 enum EstatusGasto {
@@ -237,6 +244,7 @@ model Usuario {
   auditorias        Auditoria[]
   reportesProgramados  ReporteProgramado[]
   configuracionesNotificaciones ConfiguracionNotificaciones[]
+  presupuestosPartidaCargados PresupuestoPartida[]
 }
 
 model UsuarioProyecto {
@@ -284,6 +292,8 @@ model Proyecto {
   combustible           Combustible[]
   geocercas             Geocerca[]
   presupuestosMensuales PresupuestoMensual[]
+  presupuestosPartida   PresupuestoPartida[]
+  gastosReportados      GastoVehicular[]
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 }
@@ -300,6 +310,27 @@ model PresupuestoMensual {
   updatedAt     DateTime @updatedAt
 
   @@unique([proyectoId, anio, mes])
+  @@index([proyectoId, anio])
+}
+
+model PresupuestoPartida {
+  id                   String            @id @default(cuid())
+  proyectoId           String
+  proyecto             Proyecto          @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  categoria            CategoriaGasto
+  anio                 Int
+  mes                  Int
+  montoPresupuestado   Decimal           @default(0) @db.Decimal(12, 2)
+  origen               OrigenPresupuesto @default(MANUAL)
+  archivoOrigenNombre  String?
+  version              Int               @default(1)
+  cargadoPorId         String
+  cargadoPor           Usuario           @relation(fields: [cargadoPorId], references: [id])
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@unique([proyectoId, categoria, anio, mes])
   @@index([proyectoId, anio])
 }
 
@@ -462,8 +493,10 @@ model Checklist {
 
 model GastoVehicular {
   id                 String          @id @default(cuid())
-  numeroEconomico    String
-  unidad             Unidad          @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  numeroEconomico    String?
+  unidad             Unidad?         @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  proyectoReportanteId String?
+  proyectoReportante Proyecto?       @relation(fields: [proyectoReportanteId], references: [id])
   categoria          CategoriaGasto
   descripcion        String?
   fecha              DateTime
@@ -491,6 +524,7 @@ model GastoVehicular {
 
   @@index([numeroEconomico])
   @@index([categoria])
+  @@index([proyectoReportanteId])
 }
 
 // ───────────────────────── MÓDULO D — COMBUSTIBLE ─────────────────────────
@@ -737,6 +771,9 @@ model ConfiguracionNotificaciones {
   // Módulo L — documentación de operadores
   alertaDocumentoOperadorDiasPrevios Int[]   @default([60, 30, 7])
   alertaDocumentoOperadorActiva      Boolean @default(true)
+
+  // Presupuesto por partida — recarga
+  alertaRecargaPresupuestoActiva Boolean @default(true)
 
   destinatariosCorreo Json
 

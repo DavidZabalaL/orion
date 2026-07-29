@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { crearGasto } from "../actions";
-import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
+import { CamposCategoriaGasto } from "@/components/mantenimiento/campos-categoria-gasto";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +30,18 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default async function NuevaOrdenPage() {
-  const unidades = await prisma.unidad.findMany({
-    where: { estatus: { not: "BAJA" } },
-    select: { numeroEconomico: true },
-    orderBy: { numeroEconomico: "asc" },
-  });
+  const [unidades, proyectos] = await Promise.all([
+    prisma.unidad.findMany({
+      where: { estatus: { not: "BAJA" } },
+      select: { numeroEconomico: true },
+      orderBy: { numeroEconomico: "asc" },
+    }),
+    prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO" },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-2xl">
@@ -49,22 +56,7 @@ export default async function NuevaOrdenPage() {
 
       <form action={crearGasto} className="flex flex-col gap-5 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label style={labelStyle}>Número económico *</label>
-            <select name="numeroEconomico" required style={fieldStyle}>
-              {unidades.map((u) => (
-                <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Categoría *</label>
-            <select name="categoria" required style={fieldStyle}>
-              {Object.entries(CATEGORIA_GASTO_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-          </div>
+          <CamposCategoriaGasto unidades={unidades} proyectos={proyectos} fieldStyle={fieldStyle} labelStyle={labelStyle} />
           <div className="md:col-span-2">
             <label style={labelStyle}>Descripción</label>
             <input name="descripcion" style={fieldStyle} />

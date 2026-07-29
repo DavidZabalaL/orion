@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
 
 export async function crearGasto(formData: FormData) {
-  const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "").trim() || null;
+  const proyectoReportanteId = String(formData.get("proyectoReportanteId") ?? "").trim() || null;
   const categoria = String(formData.get("categoria") ?? "");
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const fecha = String(formData.get("fecha") ?? "");
@@ -16,13 +18,22 @@ export async function crearGasto(formData: FormData) {
   const odc = String(formData.get("odc") ?? "").trim() || null;
   const estatus = String(formData.get("estatus") ?? "PROGRAMADO");
 
-  if (!numeroEconomico || !categoria || !fecha || !costo) {
-    throw new Error("Unidad, categoría, fecha y costo son obligatorios.");
+  if (!categoria || !fecha || !costo) {
+    throw new Error("Categoría, fecha y costo son obligatorios.");
+  }
+
+  const aplicaAUnidad = CATEGORIA_APLICA_A_UNIDAD[categoria] ?? true;
+  if (aplicaAUnidad && !numeroEconomico) {
+    throw new Error("Selecciona la unidad.");
+  }
+  if (!aplicaAUnidad && !proyectoReportanteId) {
+    throw new Error("Selecciona el proyecto.");
   }
 
   await prisma.gastoVehicular.create({
     data: {
-      numeroEconomico,
+      numeroEconomico: aplicaAUnidad ? numeroEconomico : null,
+      proyectoReportanteId: aplicaAUnidad ? null : proyectoReportanteId,
       categoria: categoria as never,
       descripcion,
       fecha: new Date(fecha),
@@ -36,7 +47,7 @@ export async function crearGasto(formData: FormData) {
   });
 
   revalidatePath("/mantenimiento");
-  revalidatePath(`/unidades/${numeroEconomico}`);
+  if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   redirect("/mantenimiento");
 }
 
@@ -44,5 +55,5 @@ export async function marcarRealizado(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const gasto = await prisma.gastoVehicular.update({ where: { id }, data: { estatus: "REALIZADO" } });
   revalidatePath("/mantenimiento");
-  revalidatePath(`/unidades/${gasto.numeroEconomico}`);
+  if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
 }

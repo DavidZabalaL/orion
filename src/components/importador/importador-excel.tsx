@@ -56,23 +56,24 @@ export function ImportadorExcel({ proyectos }: { proyectos: { id: string; nombre
   function handleSubir(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      try {
-        const { hojas } = await parsearExcel(formData);
-        setHojas(hojas);
-        setHojaIdx(0);
-
-        // Auto-mapeo por coincidencia de nombre de columna
-        const headers = hojas[0].headers.map((h) => h.trim().toUpperCase());
-        const auto: Record<CampoUnidadKey, number | null> = Object.fromEntries(CAMPOS_UNIDAD.map((c) => [c.key, null])) as never;
-        for (const campo of CAMPOS_UNIDAD) {
-          const idx = headers.findIndex((h) => h.includes(campo.label.split(" ")[0].toUpperCase()) || h.replace(/[^A-Z]/g, "") === campo.key.toUpperCase());
-          if (idx >= 0) auto[campo.key] = idx;
-        }
-        setMapeo(auto);
-        setPaso("mapear");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo leer el archivo.");
+      const res = await parsearExcel(formData);
+      if (!res.ok) {
+        setError(res.error);
+        return;
       }
+      const { hojas } = res;
+      setHojas(hojas);
+      setHojaIdx(0);
+
+      // Auto-mapeo por coincidencia de nombre de columna
+      const headers = hojas[0].headers.map((h) => h.trim().toUpperCase());
+      const auto: Record<CampoUnidadKey, number | null> = Object.fromEntries(CAMPOS_UNIDAD.map((c) => [c.key, null])) as never;
+      for (const campo of CAMPOS_UNIDAD) {
+        const idx = headers.findIndex((h) => h.includes(campo.label.split(" ")[0].toUpperCase()) || h.replace(/[^A-Z]/g, "") === campo.key.toUpperCase());
+        if (idx >= 0) auto[campo.key] = idx;
+      }
+      setMapeo(auto);
+      setPaso("mapear");
     });
   }
 

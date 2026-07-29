@@ -55,9 +55,14 @@ export default async function FichaProyectoPage({ params }: { params: Promise<{ 
       </div>
 
       <div>
-        <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Presupuesto anual y asignación mensual
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            Presupuesto anual y asignación mensual
+          </h3>
+          <Link href={`/proyectos/${proyecto.id}/presupuesto`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+            Ver desglose por partida →
+          </Link>
+        </div>
         <PresupuestoAnual proyectoId={proyecto.id} resumen={resumenPresupuesto} />
       </div>
 

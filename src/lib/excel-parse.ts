@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 
 export type HojaParseada = {
   nombre: string;
@@ -68,38 +68,50 @@ function parsearCsv(texto: string, nombre: string): HojaParseada {
   return { nombre, headers, filas: resto.slice(0, 2000) };
 }
 
-export async function parsearWorkbook(formData: FormData, campoArchivo = "archivo"): Promise<{ hojas: HojaParseada[] }> {
-  const archivo = formData.get(campoArchivo);
-  if (!(archivo instanceof File)) throw new Error("Sube un archivo .xlsx, .xls o .csv válido.");
-
-  if (esCsv(archivo)) {
-    const texto = await archivo.text();
-    return { hojas: [parsearCsv(texto, archivo.name.replace(/\.csv$/i, "") || "CSV")] };
-  }
-
-  const buffer = await archivo.arrayBuffer();
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer as never);
-
+// Se usa SheetJS (xlsx) en vez de exceljs porque exceljs solo lee el formato
+// OOXML moderno (.xlsx); muchos reportes de proveedores (p.ej. Efectivale)
+// vienen en el formato binario antiguo (.xls, BIFF/OLE2), que SheetJS sí soporta.
+function parsearExcelConSheetJS(buffer: ArrayBuffer): HojaParseada[] {
+  const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
   const hojas: HojaParseada[] = [];
 
-  workbook.eachSheet((sheet) => {
-    const filas: string[][] = [];
-    sheet.eachRow((row) => {
-      const valores: string[] = [];
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        const v = cell.value;
-        valores.push(v === null || v === undefined ? "" : String(typeof v === "object" && "text" in (v as object) ? (v as { text: string }).text : v));
-      });
-      filas.push(valores);
-    });
+  for (const nombre of workbook.SheetNames) {
+    const sheet = workbook.Sheets[nombre];
+    const filasCrudas = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" }) as unknown[][];
+    const filas = filasCrudas
+      .map((fila) => fila.map((v) => (v === null || v === undefined ? "" : String(v))))
+      .filter((fila) => fila.some((v) => v.trim()));
 
-    if (filas.length === 0) return;
+    if (filas.length === 0) continue;
     const [headers, ...resto] = filas;
-    hojas.push({ nombre: sheet.name, headers, filas: resto.slice(0, 500) });
-  });
+    hojas.push({ nombre, headers, filas: resto.slice(0, 500) });
+  }
 
-  if (hojas.length === 0) throw new Error("No se encontraron hojas con datos en el archivo.");
+  return hojas;
+}
 
-  return { hojas };
+// Server Actions ocultan el mensaje real de cualquier error que se lance (throw)
+// en producción — Next.js lo reemplaza por un texto genérico por seguridad.
+// Por eso este parseo NO lanza excepciones para casos esperables (archivo vacío,
+// dañado, protegido, etc.): devuelve { ok:false, error } para que el mensaje
+// real le llegue al usuario en el formulario.
+export type ResultadoParseo = { ok: true; hojas: HojaParseada[] } | { ok: false; error: string };
+
+export async function parsearWorkbook(formData: FormData, campoArchivo = "archivo"): Promise<ResultadoParseo> {
+  const archivo = formData.get(campoArchivo);
+  if (!(archivo instanceof File)) return { ok: false, error: "Sube un archivo .xlsx, .xls o .csv válido." };
+
+  try {
+    const hojas = esCsv(archivo)
+      ? [parsearCsv(await archivo.text(), archivo.name.replace(/\.csv$/i, "") || "CSV")]
+      : parsearExcelConSheetJS(await archivo.arrayBuffer());
+
+    if (hojas.length === 0) return { ok: false, error: "No se encontraron hojas con datos en el archivo." };
+    return { ok: true, hojas };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error && e.message ? e.message : "No se pudo leer el archivo. Verifica que sea un .xlsx, .xls o .csv válido y no esté dañado o protegido con contraseña.",
+    };
+  }
 }

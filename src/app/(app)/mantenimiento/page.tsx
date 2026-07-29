@@ -14,13 +14,13 @@ export default async function MantenimientoPage() {
   const [pendientes, historial, porCategoria] = await Promise.all([
     prisma.gastoVehicular.findMany({
       where: { estatus: "PROGRAMADO" },
-      include: { unidad: { select: { numeroEconomico: true } } },
+      include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
       orderBy: { fecha: "asc" },
     }),
     prisma.gastoVehicular.findMany({
       orderBy: { fecha: "desc" },
       take: 30,
-      include: { unidad: { select: { numeroEconomico: true } } },
+      include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
     }),
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
@@ -41,7 +41,7 @@ export default async function MantenimientoPage() {
             Mantenimiento y Gastos Vehiculares
           </h1>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-            12 categorías de gasto + campos administrativos SC / ODC / SAP.
+            13 categorías de gasto + campos administrativos SC / ODC / SAP.
           </p>
         </div>
         <Link href="/mantenimiento/nueva" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
@@ -70,9 +70,13 @@ export default async function MantenimientoPage() {
                   {fmtFecha(g.fecha)}
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/unidades/${g.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                    {g.numeroEconomico}
-                  </Link>
+                  {g.numeroEconomico ? (
+                    <Link href={`/unidades/${g.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+                      {g.numeroEconomico}
+                    </Link>
+                  ) : (
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>{g.proyectoReportante?.nombre ?? "—"}</span>
+                  )}
                 </td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{g.descripcion ?? "—"}</td>
@@ -96,7 +100,7 @@ export default async function MantenimientoPage() {
               {historial.map((g) => (
                 <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(g.fecha)}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{g.numeroEconomico}</td>
+                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{g.numeroEconomico ?? g.proyectoReportante?.nombre ?? "—"}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
                   <td className="px-4 py-3">

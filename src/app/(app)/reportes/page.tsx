@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
-import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
+import { obtenerResumenPresupuestoAnual, obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,16 @@ export default async function ReportesPage() {
   ]);
 
   const resumenesPresupuesto = await Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual)));
+  const resumenesPorPartida = await Promise.all(proyectos.map((p) => obtenerResumenPresupuestoPorPartida(p.id, anioActual)));
+
+  const topSobregastos = resumenesPorPartida
+    .flatMap((resumen, i) =>
+      resumen.partidas
+        .filter((p) => p.diferenciaAnual < 0)
+        .map((p) => ({ proyecto: proyectos[i].nombre, categoria: p.categoria, diferencia: p.diferenciaAnual }))
+    )
+    .sort((a, b) => a.diferencia - b.diferencia)
+    .slice(0, 3);
 
   const totalUnidades = unidadesPorEstatus.reduce((acc, u) => acc + u._count._all, 0);
   const disponibles = unidadesPorEstatus.find((u) => u.estatus === "ACTIVO")?._count._all ?? 0;
@@ -98,9 +108,14 @@ export default async function ReportesPage() {
         </div>
 
         <div>
-          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Presupuesto {anioActual} por proyecto
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+              Presupuesto {anioActual} por proyecto
+            </h3>
+            <Link href="/reportes/presupuesto" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+              Ver desglose por partida →
+            </Link>
+          </div>
           <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <div className="flex items-center justify-between mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
               <span>Total</span>
@@ -124,6 +139,26 @@ export default async function ReportesPage() {
           </div>
         </div>
       </div>
+
+      {topSobregastos.length > 0 && (
+        <div>
+          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            Partidas con mayor sobregasto
+          </h3>
+          <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+            {topSobregastos.map((s, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+                  {CATEGORIA_GASTO_LABEL[s.categoria]} — {s.proyecto}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-status-escena)" }}>
+                  {fmtMoney(s.diferencia)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

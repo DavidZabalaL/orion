@@ -20,6 +20,7 @@ type Config = {
   alertaChecklistHoraLimite: string;
   alertaDocumentoOperadorDiasPrevios: number[];
   alertaDocumentoOperadorActiva: boolean;
+  alertaRecargaPresupuestoActiva: boolean;
   destinatariosCorreo: string[];
 };
 
@@ -140,6 +141,10 @@ export function NotificacionesForm({ config }: { config: Config }) {
           <label style={labelStyle}>Días de anticipación (separados por coma)</label>
           <input name="alertaDocumentoOperadorDiasPrevios" defaultValue={config.alertaDocumentoOperadorDiasPrevios.join(", ")} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
+      </Bloque>
+
+      <Bloque titulo="Presupuesto por partida">
+        <Toggle name="alertaRecargaPresupuestoActiva" defaultChecked={config.alertaRecargaPresupuestoActiva} label="Mostrar indicador cuando se recarga el presupuesto de un proyecto" />
       </Bloque>
 
       <Bloque titulo="Destinatarios">

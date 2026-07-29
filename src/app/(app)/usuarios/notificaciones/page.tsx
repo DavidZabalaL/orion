@@ -44,6 +44,7 @@ export default async function NotificacionesPage() {
           alertaChecklistHoraLimite: config.alertaChecklistHoraLimite,
           alertaDocumentoOperadorDiasPrevios: config.alertaDocumentoOperadorDiasPrevios,
           alertaDocumentoOperadorActiva: config.alertaDocumentoOperadorActiva,
+          alertaRecargaPresupuestoActiva: config.alertaRecargaPresupuestoActiva,
           destinatariosCorreo: config.destinatariosCorreo as string[],
         }}
       />

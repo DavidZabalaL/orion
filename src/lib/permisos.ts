@@ -5,6 +5,7 @@ export type PermisoEspecial = { id: string; label: string };
 
 export const PERMISOS_ESPECIALES: PermisoEspecial[] = [
   { id: "capacidadTanque", label: "Editar capacidad de tanque (Inventario de Unidades)" },
+  { id: "cargarPresupuesto", label: "Cargar / reemplazar presupuesto por partida (Proyectos)" },
 ];
 
 type PermisosJson = Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }>;
@@ -23,4 +24,8 @@ export async function tienePermisoEspecial(permisoId: string): Promise<boolean> 
 
 export async function puedeEditarCapacidadTanque(): Promise<boolean> {
   return tienePermisoEspecial("capacidadTanque");
+}
+
+export async function puedeCargarPresupuesto(): Promise<boolean> {
+  return tienePermisoEspecial("cargarPresupuesto");
 }
