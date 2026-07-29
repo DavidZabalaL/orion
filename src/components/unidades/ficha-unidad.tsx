@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -26,6 +26,7 @@ import {
 } from "@/lib/estatus";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { actualizarCapacidadTanque, reasignarProyecto } from "@/app/(app)/unidades/actions";
+import { BuscadorTexto } from "@/components/ui/buscador-texto";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -407,10 +408,19 @@ function Table({ headers, children }: { headers: string[]; children: React.React
 const td: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" };
 
 function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
+  const [busqueda, setBusqueda] = useState("");
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return gastos;
+    return gastos.filter((g) => g.categoria.toUpperCase().includes(q) || fmtFecha(g.fecha).toUpperCase().includes(q));
+  }, [gastos, busqueda]);
+
   if (!gastos.length) return <EmptyState>Sin gastos vehiculares registrados.</EmptyState>;
   return (
-    <Table headers={["Fecha", "Categoría", "Descripción", "Costo", "Km", "Estatus"]}>
-      {gastos.map((g) => (
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar categoría o fecha…" />
+      <Table headers={["Fecha", "Categoría", "Descripción", "Costo", "Km", "Estatus"]}>
+      {filtrados.map((g) => (
         <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(g.fecha)}</td>
           <td className="px-4 py-3" style={td}>{g.categoria.replaceAll("_", " ")}</td>
@@ -420,15 +430,25 @@ function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
           <td className="px-4 py-3" style={td}>{g.estatus}</td>
         </tr>
       ))}
-    </Table>
+      </Table>
+    </div>
   );
 }
 
 function TabCombustible({ registros }: { registros: Unidad[] }) {
+  const [busqueda, setBusqueda] = useState("");
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return registros;
+    return registros.filter((r) => (r.estacion ?? "").toUpperCase().includes(q) || fmtFecha(r.fecha).toUpperCase().includes(q));
+  }, [registros, busqueda]);
+
   if (!registros.length) return <EmptyState>Sin cargas de combustible registradas.</EmptyState>;
   return (
-    <Table headers={["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento", ""]}>
-      {registros.map((r) => (
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar estación o fecha…" />
+      <Table headers={["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento", ""]}>
+      {filtrados.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.litros} L</td>
@@ -441,15 +461,29 @@ function TabCombustible({ registros }: { registros: Unidad[] }) {
           </td>
         </tr>
       ))}
-    </Table>
+      </Table>
+    </div>
   );
 }
 
 function TabTag({ registros }: { registros: Unidad[] }) {
+  const [busqueda, setBusqueda] = useState("");
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return registros;
+    return registros.filter((r) =>
+      (r.caseta ?? "").toUpperCase().includes(q) ||
+      r.proveedorTag.toUpperCase().includes(q) ||
+      fmtFecha(r.fecha).toUpperCase().includes(q)
+    );
+  }, [registros, busqueda]);
+
   if (!registros.length) return <EmptyState>Sin transacciones de TAG registradas.</EmptyState>;
   return (
-    <Table headers={["Fecha", "Caseta", "Monto", "Proveedor", "Conciliado"]}>
-      {registros.map((r) => (
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar caseta, proveedor o fecha…" />
+      <Table headers={["Fecha", "Caseta", "Monto", "Proveedor", "Conciliado"]}>
+      {filtrados.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
           <td className="px-4 py-3" style={td}>{r.caseta ?? "—"}</td>
@@ -460,7 +494,8 @@ function TabTag({ registros }: { registros: Unidad[] }) {
           </td>
         </tr>
       ))}
-    </Table>
+      </Table>
+    </div>
   );
 }
 
@@ -507,6 +542,13 @@ function TabSeguro({ seguros }: { seguros: Unidad[] }) {
 }
 
 function TabGps({ posiciones }: { posiciones: Unidad[] }) {
+  const [busqueda, setBusqueda] = useState("");
+  const filtradas = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return posiciones;
+    return posiciones.filter((p) => new Date(p.timestamp).toLocaleString("es-MX").toUpperCase().includes(q));
+  }, [posiciones, busqueda]);
+
   if (!posiciones.length)
     return (
       <EmptyState>
@@ -514,8 +556,10 @@ function TabGps({ posiciones }: { posiciones: Unidad[] }) {
       </EmptyState>
     );
   return (
-    <Table headers={["Fecha / hora", "Lat", "Lng", "Velocidad", "Km validado", "Anómalo"]}>
-      {posiciones.map((p) => (
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar fecha…" />
+      <Table headers={["Fecha / hora", "Lat", "Lng", "Velocidad", "Km validado", "Anómalo"]}>
+      {filtradas.map((p) => (
         <tr key={p.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{new Date(p.timestamp).toLocaleString("es-MX")}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.lat}</td>
@@ -531,15 +575,25 @@ function TabGps({ posiciones }: { posiciones: Unidad[] }) {
           </td>
         </tr>
       ))}
-    </Table>
+      </Table>
+    </div>
   );
 }
 
 function TabChecklist({ checklists }: { checklists: Unidad[] }) {
+  const [busqueda, setBusqueda] = useState("");
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return checklists;
+    return checklists.filter((c) => fmtFecha(c.fecha).toUpperCase().includes(q));
+  }, [checklists, busqueda]);
+
   if (!checklists.length) return <EmptyState>Sin checklists capturados aún.</EmptyState>;
   return (
-    <Table headers={["Fecha", "Odómetro", "Puntos de inspección"]}>
-      {checklists.map((c) => (
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar fecha…" />
+      <Table headers={["Fecha", "Odómetro", "Puntos de inspección"]}>
+      {filtrados.map((c) => (
         <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(c.fecha)}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{c.odometro} km</td>
@@ -557,7 +611,8 @@ function TabChecklist({ checklists }: { checklists: Unidad[] }) {
           </td>
         </tr>
       ))}
-    </Table>
+      </Table>
+    </div>
   );
 }
 

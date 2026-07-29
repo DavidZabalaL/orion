@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/table";
-import { AuditoriaRow } from "@/components/auditoria/auditoria-row";
+import { AuditoriaLista } from "@/components/auditoria/auditoria-lista";
+import { ChecklistDiarioLista } from "@/components/auditoria/checklist-diario-lista";
 import { ClipboardList, AlertOctagon, CheckCircle2, Scale } from "lucide-react";
 import { fmtMoney } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
@@ -37,7 +37,7 @@ export default async function AuditoriaPage() {
 
   const checklistSet = new Set(checklistsHoy.map((c) => c.numeroEconomico));
   const combustibleSet = new Set(combustibleHoy.map((c) => c.numeroEconomico));
-  const tagSet = new Set(tagsHoy.map((c) => c.numeroEconomico));
+  const tagSet = new Set(tagsHoy.map((c) => c.numeroEconomico).filter((n): n is string => n !== null));
   const sinCapturaCompleta = unidadesActivas.filter((u) => !checklistSet.has(u.numeroEconomico));
 
   return (
@@ -62,66 +62,20 @@ export default async function AuditoriaPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Panel de Conciliación Diaria
         </h3>
-        {serializado.length === 0 ? (
-          <EmptyState>Sin registros de auditoría todavía.</EmptyState>
-        ) : (
-          <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-            <table className="w-full min-w-[860px] border-collapse">
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {["Fecha", "Unidad", "Categoría", "PTTO", "REAL", "CV", "Diferencia", "Estatus", ""].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {serializado.map((a: {
-                  id: string; fechaRevision: string; unidad: { numeroEconomico: string };
-                  categoriaGasto: string; montoPptto: string; montoReal: string; montoCv: string;
-                  diferencia: string; estatus: string; tipoDiscrepancia: string | null; resolucion: string | null;
-                }) => (
-                  <AuditoriaRow key={a.id} auditoria={a} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <AuditoriaLista auditorias={serializado} />
       </div>
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Checklist de Actualización Diaria por unidad activa
         </h3>
-        <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-          <table className="w-full min-w-[560px] border-collapse">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["Unidad", "Checklist", "Combustible", "TAG"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {unidadesActivas.map((u) => (
-                <tr key={u.numeroEconomico} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{u.numeroEconomico}</td>
-                  <td className="px-4 py-3">{checklistSet.has(u.numeroEconomico) ? <Dot ok /> : <Dot />}</td>
-                  <td className="px-4 py-3">{combustibleSet.has(u.numeroEconomico) ? <Dot ok /> : <Dot />}</td>
-                  <td className="px-4 py-3">{tagSet.has(u.numeroEconomico) ? <Dot ok /> : <Dot />}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ChecklistDiarioLista
+          unidades={unidadesActivas}
+          checklistSet={Array.from(checklistSet)}
+          combustibleSet={Array.from(combustibleSet)}
+          tagSet={Array.from(tagSet)}
+        />
       </div>
     </div>
   );
-}
-
-function Dot({ ok = false }: { ok?: boolean }) {
-  return <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: ok ? "var(--resource-disponible)" : "var(--priority-alta)" }} />;
 }

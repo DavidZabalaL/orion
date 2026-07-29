@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import { invitarUsuario } from "@/app/(app)/usuarios/actions";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -66,15 +67,15 @@ export function InvitarUsuarioForm({
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
-            <label style={labelStyle}>Nombre *</label>
+            <CampoAyuda style={labelStyle} texto="Nombre completo del nuevo usuario.">Nombre *</CampoAyuda>
             <input name="nombre" required style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Correo *</label>
+            <CampoAyuda style={labelStyle} texto="Correo con el que iniciará sesión (debe ser su cuenta de Microsoft).">Correo *</CampoAyuda>
             <input name="correo" type="email" required style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Rol *</label>
+            <CampoAyuda style={labelStyle} texto="Define qué módulos y permisos tendrá este usuario.">Rol *</CampoAyuda>
             <select name="rolId" required style={fieldStyle}>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>{r.nombre}</option>

@@ -3,7 +3,7 @@ export const CAMPOS_COMBUSTIBLE = [
   { key: "fecha", label: "Fecha", requerido: true },
   { key: "litros", label: "Litros", requerido: true },
   { key: "costo", label: "Costo", requerido: true },
-  { key: "kmActual", label: "Km actual", requerido: true },
+  { key: "kmActual", label: "Kilometraje", requerido: true },
   { key: "estacion", label: "Estación", requerido: false },
 ] as const;
 

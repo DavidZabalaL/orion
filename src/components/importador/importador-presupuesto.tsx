@@ -11,6 +11,7 @@ import {
 } from "@/app/(app)/proyectos/[id]/presupuesto/importar/actions";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { FileInput } from "@/components/ui/file-input";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -97,9 +98,12 @@ export function ImportadorPresupuesto({ proyectoIdActual, volverHref }: { proyec
             </p>
           </div>
           <div>
-            <label className="block mb-1.5 text-center" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
-              Año del presupuesto
-            </label>
+            <CampoAyuda
+              style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}
+              texto="Ejercicio fiscal al que corresponde el archivo que estás subiendo."
+            >
+              <span className="block mb-1.5 text-center">Año del presupuesto</span>
+            </CampoAyuda>
             <input name="anio" type="number" required defaultValue={new Date().getFullYear()} style={fieldStyle} />
           </div>
           <FileInput name="archivo" accept=".xlsx,.xls" required helpText="Ningún archivo seleccionado" />

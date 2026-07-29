@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { RefreshCw, CheckCircle2 } from "lucide-react";
 import { renovarSeguro } from "@/app/(app)/seguros/actions";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -46,15 +47,21 @@ export function RenovarSeguroForm({ id }: { id: string }) {
     >
       <input type="hidden" name="id" value={id} />
       <div>
-        <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+        <CampoAyuda
+          style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", display: "block", marginBottom: 6 }}
+          texto="Nueva fecha en la que vencerá la póliza tras la renovación."
+        >
           Nueva fecha de vencimiento *
-        </label>
+        </CampoAyuda>
         <input name="fechaVencimiento" type="date" required style={fieldStyle} />
       </div>
       <div>
-        <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+        <CampoAyuda
+          style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", display: "block", marginBottom: 6 }}
+          texto="Nueva prima, solo si cambió respecto al periodo anterior."
+        >
           Nuevo costo
-        </label>
+        </CampoAyuda>
         <input name="costo" type="number" step="0.01" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
       </div>
       <button type="submit" disabled={pending} className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>

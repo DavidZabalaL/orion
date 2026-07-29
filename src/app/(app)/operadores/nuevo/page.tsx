@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { crearOperador } from "./actions";
 import { TIPO_SANGRE_LABEL } from "@/lib/estatus-operador";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 export const dynamic = "force-dynamic";
 
@@ -56,23 +57,23 @@ export default async function AltaOperadorPage() {
           </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label style={labelStyle}>Nombre completo *</label>
+              <CampoAyuda style={labelStyle} texto="Nombre completo del operador, tal como aparece en su identificación.">Nombre completo *</CampoAyuda>
               <input name="nombre" required style={fieldStyle} />
             </div>
             <div>
-              <label style={labelStyle}>CURP *</label>
+              <CampoAyuda style={labelStyle} texto="Clave Única de Registro de Población del operador.">CURP *</CampoAyuda>
               <input name="curp" required maxLength={18} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
             </div>
             <div>
-              <label style={labelStyle}>RFC</label>
+              <CampoAyuda style={labelStyle} texto="Registro Federal de Contribuyentes del operador, si se tiene.">RFC</CampoAyuda>
               <input name="rfc" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
             </div>
             <div>
-              <label style={labelStyle}>NSS</label>
+              <CampoAyuda style={labelStyle} texto="Número de Seguridad Social del operador.">NSS</CampoAyuda>
               <input name="nss" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
             </div>
             <div>
-              <label style={labelStyle}>Tipo de sangre</label>
+              <CampoAyuda style={labelStyle} texto="Tipo de sangre, útil en caso de emergencia.">Tipo de sangre</CampoAyuda>
               <select name="tipoSangre" style={fieldStyle}>
                 <option value="">Seleccionar…</option>
                 {Object.entries(TIPO_SANGRE_LABEL).map(([k, v]) => (
@@ -81,15 +82,15 @@ export default async function AltaOperadorPage() {
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Teléfono</label>
+              <CampoAyuda style={labelStyle} texto="Número telefónico de contacto del operador.">Teléfono</CampoAyuda>
               <input name="telefono" style={fieldStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Contacto de emergencia</label>
+              <CampoAyuda style={labelStyle} texto="Persona y teléfono a contactar en caso de emergencia.">Contacto de emergencia</CampoAyuda>
               <input name="contactoEmergencia" style={fieldStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Proyecto</label>
+              <CampoAyuda style={labelStyle} texto="Proyecto al que queda asignado el operador, si ya se conoce.">Proyecto</CampoAyuda>
               <select name="proyectoId" style={fieldStyle}>
                 <option value="">Sin asignar</option>
                 {proyectos.map((p) => (
@@ -106,7 +107,7 @@ export default async function AltaOperadorPage() {
           </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label style={labelStyle}>Tipo de licencia</label>
+              <CampoAyuda style={labelStyle} texto="Categoría de la licencia de conducir.">Tipo de licencia</CampoAyuda>
               <select name="tipoLicencia" style={fieldStyle}>
                 <option value="">Seleccionar…</option>
                 {["A", "B", "C", "D", "E"].map((t) => (
@@ -115,15 +116,15 @@ export default async function AltaOperadorPage() {
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Número de licencia</label>
+              <CampoAyuda style={labelStyle} texto="Folio de la licencia de conducir.">Número de licencia</CampoAyuda>
               <input name="numeroLicencia" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
             </div>
             <div>
-              <label style={labelStyle}>Estado emisor</label>
+              <CampoAyuda style={labelStyle} texto="Estado de la república que expidió la licencia.">Estado emisor</CampoAyuda>
               <input name="estadoEmisor" style={fieldStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Fecha de vencimiento</label>
+              <CampoAyuda style={labelStyle} texto="Fecha en que vence la licencia de conducir.">Fecha de vencimiento</CampoAyuda>
               <input name="fechaVencimientoLicencia" type="date" style={fieldStyle} />
             </div>
           </div>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { crearUnidad } from "./actions";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 export const dynamic = "force-dynamic";
 
@@ -66,34 +67,34 @@ export default async function AltaUnidadPage() {
       <form action={crearUnidad} className="flex flex-col gap-6">
         <Bloque titulo="Identificación">
           <div>
-            <label style={labelStyle}>Número económico *</label>
+            <CampoAyuda style={labelStyle} texto="Clave interna con la que identifican la unidad en la flota.">Número económico *</CampoAyuda>
             <input name="numeroEconomico" required placeholder="KAB-120" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
-            <label style={labelStyle}>Placas *</label>
+            <CampoAyuda style={labelStyle} texto="Placa vehicular vigente, tal como aparece en la tarjeta de circulación.">Placas *</CampoAyuda>
             <input name="placas" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div className="md:col-span-2">
-            <label style={labelStyle}>Número de serie (VIN) — 17 caracteres *</label>
+            <CampoAyuda style={labelStyle} texto="Número de identificación vehicular, 17 caracteres grabados en el chasis.">Número de serie (VIN) — 17 caracteres *</CampoAyuda>
             <input name="numeroSerie" required minLength={17} maxLength={17} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
         </Bloque>
 
         <Bloque titulo="Vehículo">
           <div>
-            <label style={labelStyle}>Marca *</label>
+            <CampoAyuda style={labelStyle} texto="Fabricante del vehículo (ej. Nissan, Ford).">Marca *</CampoAyuda>
             <input name="marca" required style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Unidad / modelo comercial *</label>
+            <CampoAyuda style={labelStyle} texto="Modelo comercial del vehículo (ej. NP300, Estaquitas).">Unidad / modelo comercial *</CampoAyuda>
             <input name="unidadModelo" required style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Año *</label>
+            <CampoAyuda style={labelStyle} texto="Año de fabricación del vehículo.">Año *</CampoAyuda>
             <input name="anio" type="number" required min={1990} max={2100} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Tipo *</label>
+            <CampoAyuda style={labelStyle} texto="Clase de vehículo según su carrocería.">Tipo *</CampoAyuda>
             <select name="tipoVehiculo" required style={fieldStyle}>
               <option value="">Seleccionar…</option>
               {Object.entries(TIPO_VEHICULO_LABEL).map(([k, v]) => (
@@ -102,7 +103,7 @@ export default async function AltaUnidadPage() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Tipo de combustible *</label>
+            <CampoAyuda style={labelStyle} texto="Combustible que usa el vehículo.">Tipo de combustible *</CampoAyuda>
             <select name="tipoCombustible" required style={fieldStyle}>
               <option value="">Seleccionar…</option>
               <option value="GASOLINA">Gasolina</option>
@@ -112,18 +113,18 @@ export default async function AltaUnidadPage() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Rendimiento promedio km/L</label>
+            <CampoAyuda style={labelStyle} texto="Kilómetros por litro esperados; se usa para calcular anomalías de consumo.">Rendimiento promedio km/L</CampoAyuda>
             <input name="rendimientoPromedio" type="number" step="0.1" style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Capacidad máxima de tanque (litros) *</label>
+            <CampoAyuda style={labelStyle} texto="Litros que soporta el tanque; se usa para alertar sobrellenados.">Capacidad máxima de tanque (litros) *</CampoAyuda>
             <input name="capacidadTanqueLitros" type="number" step="0.1" min={1} required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
         </Bloque>
 
         <Bloque titulo="Asignación">
           <div>
-            <label style={labelStyle}>Proyecto *</label>
+            <CampoAyuda style={labelStyle} texto="Proyecto de Grupo Kabat al que queda asignada la unidad.">Proyecto *</CampoAyuda>
             <select name="proyectoId" required style={fieldStyle} id="proyectoSelect">
               <option value="">Seleccionar…</option>
               {proyectos.map((p) => (
@@ -132,7 +133,7 @@ export default async function AltaUnidadPage() {
             </select>
           </div>
           <div className="md:col-span-2">
-            <label style={labelStyle}>Responsable de resguardo</label>
+            <CampoAyuda style={labelStyle} texto="Operador que queda a cargo de resguardar la unidad, si ya se conoce.">Responsable de resguardo</CampoAyuda>
             <select name="resguardanteId" style={fieldStyle}>
               <option value="">Sin asignar</option>
               {operadores.map((o) => (
@@ -144,15 +145,15 @@ export default async function AltaUnidadPage() {
 
         <Bloque titulo="Documentación">
           <div>
-            <label style={labelStyle}>Tag IAVE (número)</label>
+            <CampoAyuda style={labelStyle} texto="Número de la etiqueta electrónica IAVE, si la unidad ya tiene una asignada.">Tag IAVE (número)</CampoAyuda>
             <input name="tagIave" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
-            <label style={labelStyle}>Origen de placa *</label>
+            <CampoAyuda style={labelStyle} texto="Estado de la república donde se emitió la placa.">Origen de placa *</CampoAyuda>
             <input name="origenPlaca" required style={fieldStyle} placeholder="Ej. Tamaulipas" />
           </div>
           <div>
-            <label style={labelStyle}>Propietario *</label>
+            <CampoAyuda style={labelStyle} texto="Empresa del grupo dueña legal del vehículo.">Propietario *</CampoAyuda>
             <select name="propietario" required style={fieldStyle}>
               <option value="">Seleccionar…</option>
               <option value="SYM">SYM</option>

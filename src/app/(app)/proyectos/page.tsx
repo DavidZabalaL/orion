@@ -2,11 +2,10 @@ import Link from "next/link";
 import { Plus, FolderKanban, Car, DollarSign, Wallet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { fmtMoney } from "@/lib/formato";
 import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { ProyectosLista } from "@/components/proyectos/proyectos-lista";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,7 @@ export default async function ProyectosPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-            Proyectos y multi-estado
+            Proyectos
           </h1>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
             Estructura de proyectos por estado de la república y presupuesto anual.
@@ -49,41 +48,23 @@ export default async function ProyectosPage() {
         <StatCard label={`Gastado en ${anioActual}`} value={fmtMoney(gastadoTotal)} icon={DollarSign} accent="var(--color-status-revision)" />
       </div>
 
-      {proyectos.length === 0 ? (
-        <EmptyState>Sin proyectos registrados.</EmptyState>
-      ) : (
-        <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["Proyecto", "Estado", "Unidades", `Presupuesto ${anioActual}`, "Gastado", "Estatus"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {proyectos.map((p) => {
-                const resumen = resumenPorProyecto.get(p.id)!;
-                const pct = resumen.presupuestoAprobadoAnual > 0 ? (resumen.gastoAnual / resumen.presupuestoAprobadoAnual) * 100 : 0;
-                return (
-                  <tr key={p.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                    <td className="px-4 py-3">
-                      <Link href={`/proyectos/${p.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{p.nombre}</Link>
-                    </td>
-                    <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p.estadoRepublica}</td>
-                    <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p.unidades.length}</td>
-                    <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(p.presupuestoAprobadoAnual)}</td>
-                    <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: pct > 90 ? "var(--color-status-escena)" : "var(--field-text)" }}>{fmtMoney(resumen.gastoAnual)} ({pct.toFixed(0)}%)</td>
-                    <td className="px-4 py-3">
-                      <Badge label={p.estatus === "ACTIVO" ? "Activo" : "Cerrado"} color={p.estatus === "ACTIVO" ? "var(--color-status-cerrado)" : "var(--sidebar-text)"} bg={p.estatus === "ACTIVO" ? "var(--status-cerrado-bg)" : "var(--chip)"} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ProyectosLista
+        anio={anioActual}
+        proyectos={proyectos.map((p) => {
+          const resumen = resumenPorProyecto.get(p.id)!;
+          const pct = resumen.presupuestoAprobadoAnual > 0 ? (resumen.gastoAnual / resumen.presupuestoAprobadoAnual) * 100 : 0;
+          return {
+            id: p.id,
+            nombre: p.nombre,
+            estadoRepublica: p.estadoRepublica,
+            numUnidades: p.unidades.length,
+            presupuestoAprobadoAnual: Number(p.presupuestoAprobadoAnual),
+            gastoAnual: resumen.gastoAnual,
+            pct,
+            estatus: p.estatus,
+          };
+        })}
+      />
     </div>
   );
 }

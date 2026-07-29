@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { crearProyecto } from "../actions";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -42,19 +43,19 @@ export default async function NuevoProyectoPage() {
 
       <form action={crearProyecto} className="flex flex-col gap-4 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
         <div>
-          <label style={labelStyle}>Nombre del proyecto *</label>
+          <CampoAyuda style={labelStyle} texto="Nombre con el que se identifica el proyecto en la plataforma.">Nombre del proyecto *</CampoAyuda>
           <input name="nombre" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Estado de la república *</label>
+          <CampoAyuda style={labelStyle} texto="Estado de la república donde opera principalmente el proyecto.">Estado de la república *</CampoAyuda>
           <input name="estadoRepublica" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Fecha de inicio *</label>
+          <CampoAyuda style={labelStyle} texto="Fecha en la que arranca operaciones el proyecto.">Fecha de inicio *</CampoAyuda>
           <input name="fechaInicio" type="date" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Presupuesto aprobado anual (MXN)</label>
+          <CampoAyuda style={labelStyle} texto="Techo de presupuesto autorizado para todo el año.">Presupuesto aprobado anual (MXN)</CampoAyuda>
           <input name="presupuestoAprobadoAnual" type="number" step="0.01" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div className="flex items-center gap-3">

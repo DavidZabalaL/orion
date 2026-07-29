@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { actualizarUnidad } from "../../actions";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ export default async function EditarUnidadPage({
 
         <Bloque titulo="Identificación">
           <div>
-            <label style={labelStyle}>Placas *</label>
+            <CampoAyuda style={labelStyle} texto="Placa vehicular vigente, tal como aparece en la tarjeta de circulación.">Placas *</CampoAyuda>
             <input name="placas" required defaultValue={unidad.placas} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
@@ -88,19 +89,19 @@ export default async function EditarUnidadPage({
 
         <Bloque titulo="Vehículo">
           <div>
-            <label style={labelStyle}>Marca *</label>
+            <CampoAyuda style={labelStyle} texto="Fabricante del vehículo (ej. Nissan, Ford).">Marca *</CampoAyuda>
             <input name="marca" required defaultValue={unidad.marca} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Unidad / modelo comercial *</label>
+            <CampoAyuda style={labelStyle} texto="Modelo comercial del vehículo (ej. NP300, Estaquitas).">Unidad / modelo comercial *</CampoAyuda>
             <input name="unidadModelo" required defaultValue={unidad.unidadModelo} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Año *</label>
+            <CampoAyuda style={labelStyle} texto="Año de fabricación del vehículo.">Año *</CampoAyuda>
             <input name="anio" type="number" required min={1990} max={2100} defaultValue={unidad.anio} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Tipo *</label>
+            <CampoAyuda style={labelStyle} texto="Clase de vehículo según su carrocería.">Tipo *</CampoAyuda>
             <select name="tipoVehiculo" required defaultValue={unidad.tipoVehiculo} style={fieldStyle}>
               {Object.entries(TIPO_VEHICULO_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
@@ -108,7 +109,7 @@ export default async function EditarUnidadPage({
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Tipo de combustible *</label>
+            <CampoAyuda style={labelStyle} texto="Combustible que usa el vehículo.">Tipo de combustible *</CampoAyuda>
             <select name="tipoCombustible" required defaultValue={unidad.tipoCombustible} style={fieldStyle}>
               <option value="GASOLINA">Gasolina</option>
               <option value="DIESEL">Diésel</option>
@@ -117,18 +118,18 @@ export default async function EditarUnidadPage({
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Rendimiento promedio km/L</label>
+            <CampoAyuda style={labelStyle} texto="Kilómetros por litro esperados; se usa para calcular anomalías de consumo.">Rendimiento promedio km/L</CampoAyuda>
             <input name="rendimientoPromedio" type="number" step="0.1" defaultValue={unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : ""} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Capacidad máxima de tanque (litros)</label>
+            <CampoAyuda style={labelStyle} texto="Litros que soporta el tanque; se usa para alertar sobrellenados.">Capacidad máxima de tanque (litros)</CampoAyuda>
             <input name="capacidadTanqueLitros" type="number" step="0.1" min={1} defaultValue={unidad.capacidadTanqueLitros ? Number(unidad.capacidadTanqueLitros) : ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
         </Bloque>
 
         <Bloque titulo="Asignación">
           <div>
-            <label style={labelStyle}>Proyecto</label>
+            <CampoAyuda style={labelStyle} texto="Proyecto de Grupo Kabat al que queda asignada la unidad.">Proyecto</CampoAyuda>
             <select name="proyectoId" defaultValue={unidad.proyectoId ?? ""} style={fieldStyle}>
               <option value="">Sin proyecto</option>
               {proyectos.map((p) => (
@@ -137,7 +138,7 @@ export default async function EditarUnidadPage({
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Responsable de resguardo</label>
+            <CampoAyuda style={labelStyle} texto="Operador que queda a cargo de resguardar la unidad, si ya se conoce.">Responsable de resguardo</CampoAyuda>
             <select name="resguardanteId" defaultValue={unidad.resguardanteId ?? ""} style={fieldStyle}>
               <option value="">Sin asignar</option>
               {operadores.map((o) => (
@@ -149,15 +150,15 @@ export default async function EditarUnidadPage({
 
         <Bloque titulo="Documentación">
           <div>
-            <label style={labelStyle}>Tag IAVE (número)</label>
+            <CampoAyuda style={labelStyle} texto="Número de la etiqueta electrónica IAVE, si la unidad ya tiene una asignada.">Tag IAVE (número)</CampoAyuda>
             <input name="tagIave" defaultValue={unidad.tagIave ?? ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
-            <label style={labelStyle}>Origen de placa *</label>
+            <CampoAyuda style={labelStyle} texto="Estado de la república donde se emitió la placa.">Origen de placa *</CampoAyuda>
             <input name="origenPlaca" required defaultValue={unidad.origenPlaca} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Propietario *</label>
+            <CampoAyuda style={labelStyle} texto="Empresa del grupo dueña legal del vehículo.">Propietario *</CampoAyuda>
             <select name="propietario" required defaultValue={unidad.propietario} style={fieldStyle}>
               <option value="SYM">SYM</option>
               <option value="FIVE_STAR_SYSTEM">5 STAR SYSTEM</option>

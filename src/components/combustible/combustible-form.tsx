@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { crearCombustible } from "@/app/(app)/combustible/actions";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -74,7 +75,7 @@ export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: str
         }}
       >
         <div>
-          <label style={labelStyle}>Unidad *</label>
+          <CampoAyuda style={labelStyle} texto="Unidad que recibió la carga de combustible.">Unidad *</CampoAyuda>
           <select name="numeroEconomico" required style={fieldStyle}>
             {unidades.map((u) => (
               <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
@@ -82,23 +83,23 @@ export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: str
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Fecha *</label>
+          <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó la carga.">Fecha *</CampoAyuda>
           <input name="fecha" type="date" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Litros *</label>
+          <CampoAyuda style={labelStyle} texto="Cantidad de combustible cargado, en litros.">Litros *</CampoAyuda>
           <input name="litros" type="number" step="0.1" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div>
-          <label style={labelStyle}>Costo *</label>
+          <CampoAyuda style={labelStyle} texto="Monto total pagado por la carga.">Costo *</CampoAyuda>
           <input name="costo" type="number" step="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div>
-          <label style={labelStyle}>Km actual *</label>
+          <CampoAyuda style={labelStyle} texto="Kilometraje de la unidad al momento de la carga.">Kilometraje *</CampoAyuda>
           <input name="kmActual" type="number" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div className="col-span-2 md:col-span-4">
-          <label style={labelStyle}>Estación</label>
+          <CampoAyuda style={labelStyle} texto="Gasolinera o estación donde se cargó combustible.">Estación</CampoAyuda>
           <input name="estacion" style={fieldStyle} />
         </div>
         <button

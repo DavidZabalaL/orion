@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Camera, CheckCircle2 } from "lucide-react";
 import { crearChecklist } from "@/app/(app)/checklist/actions";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 // PUNTOS_INSPECCION moved to @/lib/checklist (server action files may only export async functions)
 
 const fieldStyle: React.CSSProperties = {
@@ -55,7 +56,7 @@ export function ChecklistForm({
       }}
     >
       <div>
-        <label style={labelStyle}>Número económico *</label>
+        <CampoAyuda style={labelStyle} texto="Unidad a la que corresponde esta inspección diaria.">Número económico *</CampoAyuda>
         <select name="numeroEconomico" required style={fieldStyle}>
           {unidades.map((u) => (
             <option key={u.numeroEconomico} value={u.numeroEconomico}>
@@ -66,7 +67,7 @@ export function ChecklistForm({
       </div>
 
       <div>
-        <label style={labelStyle}>Lectura de odómetro (km) *</label>
+        <CampoAyuda style={labelStyle} texto="Kilometraje que marca el odómetro al momento de la inspección.">Lectura de odómetro (km) *</CampoAyuda>
         <input name="odometro" type="number" required min={0} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
       </div>
 

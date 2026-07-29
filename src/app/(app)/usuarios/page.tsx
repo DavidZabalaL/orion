@@ -3,7 +3,7 @@ import { Users, Shield, FolderCog, BellRing, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { InvitarUsuarioForm } from "@/components/usuarios/invitar-usuario-form";
-import { UsuarioRow } from "@/components/usuarios/usuario-row";
+import { UsuariosLista } from "@/components/usuarios/usuarios-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -77,25 +77,20 @@ export default async function UsuariosPage() {
 
       <InvitarUsuarioForm roles={roles} proyectos={proyectos} />
 
-      <div className="flex flex-col gap-3">
-        {usuarios.map((u) => (
-          <UsuarioRow
-            key={u.id}
-            usuario={{
-              id: u.id,
-              nombre: u.nombre,
-              correo: u.correo,
-              rolId: u.rol.id,
-              rol: u.rol.nombre,
-              proyectoIds: u.proyectos.map((p) => p.proyecto.id),
-              proyectos: u.proyectos.map((p) => p.proyecto.nombre),
-              estatus: u.estatus,
-            }}
-            roles={roles}
-            proyectosDisponibles={proyectos}
-          />
-        ))}
-      </div>
+      <UsuariosLista
+        usuarios={usuarios.map((u) => ({
+          id: u.id,
+          nombre: u.nombre,
+          correo: u.correo,
+          rolId: u.rol.id,
+          rol: u.rol.nombre,
+          proyectoIds: u.proyectos.map((p) => p.proyecto.id),
+          proyectos: u.proyectos.map((p) => p.proyecto.nombre),
+          estatus: u.estatus,
+        }))}
+        roles={roles}
+        proyectosDisponibles={proyectos}
+      />
     </div>
   );
 }

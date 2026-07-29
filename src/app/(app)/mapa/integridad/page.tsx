@@ -2,9 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ShieldAlert, Radio, Waves, TriangleAlert } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { Table, EmptyState } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { fmtFechaHora } from "@/lib/formato";
+import { AnomaliasLista, HuecosLista } from "@/components/mapa/integridad-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -67,42 +65,32 @@ export default async function IntegridadGpsPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Puntos anómalos recientes
         </h3>
-        {anomalos.length === 0 ? (
-          <EmptyState>Sin puntos anómalos detectados.</EmptyState>
-        ) : (
-          <Table headers={["Fecha / hora", "Unidad", "Motivo", "Lat", "Lng"]} minWidth={640}>
-            {anomalos.map((p) => (
-              <tr key={p.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFechaHora(p.timestamp)}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{p.unidad.numeroEconomico}</td>
-                <td className="px-4 py-3"><Badge label={p.motivoAnomalia ?? "—"} color="var(--color-status-escena)" bg="var(--status-escena-bg)" /></td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{Number(p.lat).toFixed(4)}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{Number(p.lng).toFixed(4)}</td>
-              </tr>
-            ))}
-          </Table>
-        )}
+        <AnomaliasLista
+          anomalos={anomalos.map((p) => ({
+            id: p.id,
+            timestamp: p.timestamp.toISOString(),
+            numeroEconomico: p.unidad.numeroEconomico,
+            motivoAnomalia: p.motivoAnomalia,
+            lat: Number(p.lat),
+            lng: Number(p.lng),
+          }))}
+        />
       </div>
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Huecos de señal registrados
         </h3>
-        {huecos.length === 0 ? (
-          <EmptyState>Sin huecos de señal registrados.</EmptyState>
-        ) : (
-          <Table headers={["Unidad", "Inicio", "Fin", "Duración", "Patrón recurrente"]} minWidth={640}>
-            {huecos.map((h) => (
-              <tr key={h.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{h.unidad.numeroEconomico}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFechaHora(h.timestampInicio)}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{h.timestampFin ? fmtFechaHora(h.timestampFin) : "En curso"}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{h.duracionMinutos ? `${h.duracionMinutos} min` : "—"}</td>
-                <td className="px-4 py-3">{h.patronRecurrente ? <Badge label="Sí" color="var(--color-status-revision)" bg="var(--status-revision-bg)" /> : "—"}</td>
-              </tr>
-            ))}
-          </Table>
-        )}
+        <HuecosLista
+          huecos={huecos.map((h) => ({
+            id: h.id,
+            numeroEconomico: h.unidad.numeroEconomico,
+            timestampInicio: h.timestampInicio.toISOString(),
+            timestampFin: h.timestampFin ? h.timestampFin.toISOString() : null,
+            duracionMinutos: h.duracionMinutos,
+            patronRecurrente: h.patronRecurrente,
+          }))}
+        />
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ export const MODULOS: Modulo[] = [
   { id: "F", label: "Seguros + Coberturas", href: "/seguros", icon: ShieldCheck, descripcion: "Vigencias, vencimientos y coberturas", grupo: "Operación y gasto" },
   { id: "G", label: "Geolocalización", href: "/mapa", icon: MapPin, descripcion: "Posición, historial y geocercas (IntelliHub)", grupo: "Geo" },
   { id: "G.1", label: "Integridad de datos GPS", href: "/mapa/integridad", icon: Satellite, descripcion: "Filtro de lecturas imposibles y validación de km", grupo: "Geo" },
-  { id: "H", label: "Proyectos y multi-estado", href: "/proyectos", icon: FolderKanban, descripcion: "Estructura de proyectos y presupuesto semanal", grupo: "Gestión" },
+  { id: "H", label: "Proyectos", href: "/proyectos", icon: FolderKanban, descripcion: "Estructura de proyectos y presupuesto semanal", grupo: "Gestión" },
   { id: "I", label: "Auditoría diaria y calidad", href: "/auditoria", icon: ClipboardList, descripcion: "Conciliación PTTO / REAL / CV", grupo: "Gestión" },
   { id: "J", label: "Reportes", href: "/reportes", icon: BarChart3, descripcion: "Dashboard ejecutivo y generador configurable", grupo: "Gestión" },
   { id: "L", label: "Gestión de Operadores", href: "/operadores", icon: IdCard, descripcion: "Expediente digital y alertas de vencimiento", grupo: "Gestión" },

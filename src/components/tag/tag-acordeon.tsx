@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { TagRow } from "@/components/tag/tag-row";
 
@@ -28,10 +29,19 @@ export type GrupoTag = {
 
 export function TagAcordeon({ grupos }: { grupos: GrupoTag[] }) {
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return grupos;
+    return grupos.filter((g) => g.numeroEconomico.toUpperCase().includes(q));
+  }, [grupos, busqueda]);
 
   return (
-    <div className="flex flex-col gap-2">
-      {grupos.map((g) => {
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar número económico…" />
+      <div className="flex flex-col gap-2">
+      {filtrados.map((g) => {
         const abierto = abiertoId === g.numeroEconomico;
         return (
           <div key={g.numeroEconomico} className="rounded-xl overflow-hidden" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -89,6 +99,7 @@ export function TagAcordeon({ grupos }: { grupos: GrupoTag[] }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

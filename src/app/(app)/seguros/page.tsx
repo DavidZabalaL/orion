@@ -2,10 +2,7 @@ import Link from "next/link";
 import { Plus, ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { fmtMoney, fmtFecha } from "@/lib/formato";
-import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE } from "@/lib/estatus";
+import { PolizasLista } from "@/components/seguros/polizas-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -57,38 +54,7 @@ export default async function SegurosPage() {
         </div>
       )}
 
-      {polizas.length === 0 ? (
-        <EmptyState>Sin pólizas registradas todavía.</EmptyState>
-      ) : (
-        <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-          <table className="w-full min-w-[760px] border-collapse">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["N° económico", "Aseguradora", "Póliza", "Vigencia", "Costo", "Estatus", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {polizas.map((p) => (
-                <tr key={p.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{p.numeroEconomico}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p.aseguradora}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p.numeroPoliza}</td>
-                  <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(p.fechaInicio)} — {fmtFecha(p.fechaVencimiento)}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(p.costo)}</td>
-                  <td className="px-4 py-3">
-                    <Badge label={ESTATUS_SEGURO_LABEL[p.estatus]} color={ESTATUS_SEGURO_STYLE[p.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[p.estatus]?.bg} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link href={`/seguros/${p.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>Ver ficha</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <PolizasLista polizas={JSON.parse(JSON.stringify(polizas))} />
     </div>
   );
 }

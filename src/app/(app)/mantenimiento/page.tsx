@@ -2,11 +2,9 @@ import Link from "next/link";
 import { Plus, Wrench, Clock, DollarSign, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { Table, EmptyState } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { fmtMoney, fmtFecha } from "@/lib/formato";
-import { CATEGORIA_GASTO_LABEL, ESTATUS_GASTO_LABEL, ESTATUS_GASTO_STYLE } from "@/lib/categorias-gasto";
-import { MarcarRealizadoButton } from "@/components/mantenimiento/marcar-realizado-button";
+import { fmtMoney } from "@/lib/formato";
+import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
+import { PendientesLista, HistorialLista } from "@/components/mantenimiento/mantenimiento-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -63,32 +61,7 @@ export default async function MantenimientoPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Calendario / Pendientes
         </h3>
-        {pendientes.length === 0 ? (
-          <EmptyState>Sin órdenes programadas.</EmptyState>
-        ) : (
-          <Table headers={["Fecha", "Unidad", "Categoría", "Descripción", "Costo", ""]} minWidth={760}>
-            {pendientes.map((g) => (
-              <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: g.fecha < new Date() ? "var(--color-status-escena)" : "var(--field-text)" }}>
-                  {fmtFecha(g.fecha)}
-                </td>
-                <td className="px-4 py-3">
-                  {g.numeroEconomico ? (
-                    <Link href={`/unidades/${g.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                      {g.numeroEconomico}
-                    </Link>
-                  ) : (
-                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>{g.proyectoReportante?.nombre ?? "—"}</span>
-                  )}
-                </td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{g.descripcion ?? "—"}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
-                <td className="px-4 py-3"><MarcarRealizadoButton id={g.id} /></td>
-              </tr>
-            ))}
-          </Table>
-        )}
+        <PendientesLista pendientes={JSON.parse(JSON.stringify(pendientes))} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -96,23 +69,7 @@ export default async function MantenimientoPage() {
           <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             Historial reciente
           </h3>
-          {historial.length === 0 ? (
-            <EmptyState>Sin gastos registrados.</EmptyState>
-          ) : (
-            <Table headers={["Fecha", "Unidad", "Categoría", "Costo", "Estatus"]} minWidth={640}>
-              {historial.map((g) => (
-                <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(g.fecha)}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{g.numeroEconomico ?? g.proyectoReportante?.nombre ?? "—"}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
-                  <td className="px-4 py-3">
-                    <Badge label={ESTATUS_GASTO_LABEL[g.estatus]} color={ESTATUS_GASTO_STYLE[g.estatus]?.color} bg={ESTATUS_GASTO_STYLE[g.estatus]?.bg} />
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          )}
+          <HistorialLista historial={JSON.parse(JSON.stringify(historial))} />
         </div>
 
         <div>

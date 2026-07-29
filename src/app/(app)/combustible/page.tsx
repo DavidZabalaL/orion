@@ -2,10 +2,10 @@ import Link from "next/link";
 import { CreditCard, Fuel, Gauge, DollarSign, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { Table, EmptyState } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { fmtMoney, fmtFecha } from "@/lib/formato";
+import { EmptyState } from "@/components/ui/table";
+import { fmtMoney } from "@/lib/formato";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
+import { CombustibleAcordeon, type GrupoCombustible } from "@/components/combustible/combustible-acordeon";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export default async function CombustiblePage() {
 
   const [unidades, transacciones, agregados] = await Promise.all([
     prisma.unidad.findMany({ where: { estatus: { not: "BAJA" } }, select: { numeroEconomico: true }, orderBy: { numeroEconomico: "asc" } }),
-    prisma.combustible.findMany({ orderBy: { fecha: "desc" }, take: 25 }),
+    prisma.combustible.findMany({ orderBy: { fecha: "desc" } }),
     prisma.combustible.aggregate({ _sum: { litros: true, costo: true }, _avg: { rendimientoCalculado: true } }),
   ]);
 
@@ -25,6 +25,29 @@ export default async function CombustiblePage() {
     _sum: { litros: true, costo: true },
     orderBy: { numeroEconomico: "asc" },
   });
+
+  // Se agrupa por número económico, igual que ya hace TAG, para no perder
+  // información en una sola lista plana: cada unidad se ve resumida y se
+  // despliega bajo demanda.
+  const gruposPorEconomico = new Map<string, GrupoCombustible>();
+  for (const t of transacciones) {
+    let grupo = gruposPorEconomico.get(t.numeroEconomico);
+    if (!grupo) {
+      grupo = { numeroEconomico: t.numeroEconomico, totalLitros: 0, totalCosto: 0, rendimientoPromedio: null, ultimaFecha: t.fecha.toISOString(), alertasPendientes: 0, transacciones: [] };
+      gruposPorEconomico.set(t.numeroEconomico, grupo);
+    }
+    grupo.totalLitros += Number(t.litros);
+    grupo.totalCosto += Number(t.costo);
+    if (t.alertaSobrellenado) grupo.alertasPendientes += 1;
+    grupo.transacciones.push(JSON.parse(JSON.stringify(t)));
+  }
+  for (const grupo of gruposPorEconomico.values()) {
+    const conRendimiento = grupo.transacciones.filter((t) => t.rendimientoCalculado);
+    grupo.rendimientoPromedio = conRendimiento.length
+      ? conRendimiento.reduce((acc, t) => acc + Number(t.rendimientoCalculado), 0) / conRendimiento.length
+      : null;
+  }
+  const grupos = Array.from(gruposPorEconomico.values()).sort((a, b) => a.numeroEconomico.localeCompare(b.numeroEconomico));
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -59,26 +82,12 @@ export default async function CombustiblePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Transacciones recientes
+            Transacciones por unidad
           </h3>
-          {transacciones.length === 0 ? (
+          {grupos.length === 0 ? (
             <EmptyState>Sin transacciones registradas.</EmptyState>
           ) : (
-            <Table headers={["Fecha", "Unidad", "Litros", "Costo", "Km", "Rendimiento", ""]} minWidth={700}>
-              {transacciones.map((t) => (
-                <tr key={t.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(t.fecha)}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{t.numeroEconomico}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{Number(t.litros).toFixed(1)} L</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(t.costo)}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{t.kmActual}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{t.rendimientoCalculado ? `${Number(t.rendimientoCalculado).toFixed(1)} km/L` : "—"}</td>
-                  <td className="px-4 py-3">
-                    {t.alertaSobrellenado && <Badge label="Excede capacidad" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />}
-                  </td>
-                </tr>
-              ))}
-            </Table>
+            <CombustibleAcordeon grupos={grupos} />
           )}
         </div>
 

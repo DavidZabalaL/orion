@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { crearTag } from "@/app/(app)/tag/actions";
 import { CheckCircle2 } from "lucide-react";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -50,7 +51,7 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
         }}
       >
         <div>
-          <label style={labelStyle}>Unidad (opcional)</label>
+          <CampoAyuda style={labelStyle} texto="Unidad relacionada, si ya se conoce.">Unidad (opcional)</CampoAyuda>
           <select name="numeroEconomico" style={fieldStyle}>
             <option value="">Sin asignar</option>
             {unidades.map((u) => (
@@ -59,19 +60,19 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Fecha *</label>
+          <CampoAyuda style={labelStyle} texto="Fecha en la que ocurrió el cruce por caseta.">Fecha *</CampoAyuda>
           <input name="fecha" type="date" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Monto *</label>
+          <CampoAyuda style={labelStyle} texto="Monto cobrado por el cruce.">Monto *</CampoAyuda>
           <input name="monto" type="number" step="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div>
-          <label style={labelStyle}>Caseta</label>
+          <CampoAyuda style={labelStyle} texto="Nombre de la caseta donde se hizo el cruce.">Caseta</CampoAyuda>
           <input name="caseta" style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Proveedor *</label>
+          <CampoAyuda style={labelStyle} texto="Empresa que emitió el tag electrónico.">Proveedor *</CampoAyuda>
           <select name="proveedorTag" required style={fieldStyle}>
             <option value="IAVE">IAVE</option>
             <option value="PASE">PASE</option>

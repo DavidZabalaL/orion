@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { crearSeguro } from "@/app/(app)/seguros/actions";
 import { TIPO_COBERTURA_LABEL } from "@/lib/estatus";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -46,7 +47,7 @@ export function SeguroForm({ unidades }: { unidades: { numeroEconomico: string }
         </h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label style={labelStyle}>Número económico *</label>
+            <CampoAyuda style={labelStyle} texto="Unidad cubierta por esta póliza.">Número económico *</CampoAyuda>
             <select name="numeroEconomico" required style={fieldStyle}>
               {unidades.map((u) => (
                 <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
@@ -54,23 +55,23 @@ export function SeguroForm({ unidades }: { unidades: { numeroEconomico: string }
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Aseguradora *</label>
+            <CampoAyuda style={labelStyle} texto="Compañía que emite la póliza.">Aseguradora *</CampoAyuda>
             <input name="aseguradora" required style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Número de póliza *</label>
+            <CampoAyuda style={labelStyle} texto="Folio de la póliza asignado por la aseguradora.">Número de póliza *</CampoAyuda>
             <input name="numeroPoliza" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
-            <label style={labelStyle}>Costo *</label>
+            <CampoAyuda style={labelStyle} texto="Prima total pagada por la póliza.">Costo *</CampoAyuda>
             <input name="costo" type="number" step="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
-            <label style={labelStyle}>Fecha de inicio *</label>
+            <CampoAyuda style={labelStyle} texto="Fecha en que empieza a tener vigencia la póliza.">Fecha de inicio *</CampoAyuda>
             <input name="fechaInicio" type="date" required style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Fecha de vencimiento *</label>
+            <CampoAyuda style={labelStyle} texto="Fecha en que vence la vigencia de la póliza.">Fecha de vencimiento *</CampoAyuda>
             <input name="fechaVencimiento" type="date" required style={fieldStyle} />
           </div>
         </div>

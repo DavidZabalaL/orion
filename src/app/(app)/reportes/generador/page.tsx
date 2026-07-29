@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { EmptyState } from "@/components/ui/table";
 import { ReporteBuilder } from "@/components/reportes/reporte-builder";
-import { ReporteRow, type Reporte } from "@/components/reportes/reporte-row";
+import { ReportesLista } from "@/components/reportes/reportes-lista";
+import type { Reporte } from "@/components/reportes/reporte-row";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -36,15 +36,7 @@ export default async function GeneradorReportesPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Reportes programados
         </h3>
-        {reportes.length === 0 ? (
-          <EmptyState>Sin reportes programados todavía.</EmptyState>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {(JSON.parse(JSON.stringify(reportes)) as Reporte[]).map((r) => (
-              <ReporteRow key={r.id} reporte={r} />
-            ))}
-          </div>
-        )}
+        <ReportesLista reportes={JSON.parse(JSON.stringify(reportes)) as Reporte[]} />
       </div>
     </div>
   );

@@ -2,10 +2,8 @@ import Link from "next/link";
 import { MapPin, Satellite, History, Radio } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { fmtFechaHora } from "@/lib/formato";
 import { PosicionForm } from "@/components/mapa/posicion-form";
+import { PosicionesLista } from "@/components/mapa/posiciones-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -61,49 +59,21 @@ export default async function MapaPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Última posición conocida
         </h3>
-        {unidadesActivas.length === 0 ? (
-          <EmptyState>Sin unidades activas.</EmptyState>
-        ) : (
-          <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {["Unidad", "Proyecto", "Última actualización", "Lat", "Lng", "Velocidad", "Estatus GPS"].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {unidadesActivas.map((u) => {
-                  const p = u.posicionesGps[0];
-                  return (
-                    <tr key={u.numeroEconomico} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                      <td className="px-4 py-3">
-                        <Link href={`/unidades/${u.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                          {u.numeroEconomico}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.proyecto?.nombre ?? "—"}</td>
-                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p ? fmtFechaHora(p.timestamp) : "—"}</td>
-                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p ? Number(p.lat).toFixed(4) : "—"}</td>
-                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p ? Number(p.lng).toFixed(4) : "—"}</td>
-                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p?.velocidad ? `${p.velocidad} km/h` : "—"}</td>
-                      <td className="px-4 py-3">
-                        {!p ? (
-                          <Badge label="Sin datos" color="var(--sidebar-text)" bg="var(--chip)" />
-                        ) : p.esAnomalo ? (
-                          <Badge label={p.motivoAnomalia ?? "Anómalo"} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
-                        ) : (
-                          <Badge label="Válido" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <PosicionesLista
+          posiciones={unidadesActivas.map((u) => {
+            const p = u.posicionesGps[0];
+            return {
+              numeroEconomico: u.numeroEconomico,
+              proyecto: u.proyecto?.nombre ?? null,
+              timestamp: p ? p.timestamp.toISOString() : null,
+              lat: p ? Number(p.lat) : null,
+              lng: p ? Number(p.lng) : null,
+              velocidad: p?.velocidad != null ? Number(p.velocidad) : null,
+              esAnomalo: p?.esAnomalo ?? null,
+              motivoAnomalia: p?.motivoAnomalia ?? null,
+            };
+          })}
+        />
       </div>
     </div>
   );

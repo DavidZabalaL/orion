@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { registrarPosicion } from "@/app/(app)/mapa/actions";
 import { CheckCircle2 } from "lucide-react";
+import { CampoAyuda } from "@/components/ui/campo-ayuda";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -50,7 +51,7 @@ export function PosicionForm({ unidades }: { unidades: { numeroEconomico: string
         }}
       >
         <div>
-          <label style={labelStyle}>Unidad *</label>
+          <CampoAyuda style={labelStyle} texto="Unidad cuya posición se está reportando.">Unidad *</CampoAyuda>
           <select name="numeroEconomico" required style={fieldStyle}>
             {unidades.map((u) => (
               <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
@@ -58,23 +59,23 @@ export function PosicionForm({ unidades }: { unidades: { numeroEconomico: string
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Fecha/hora *</label>
+          <CampoAyuda style={labelStyle} texto="Momento exacto en que se capturó la posición.">Fecha/hora *</CampoAyuda>
           <input name="timestamp" type="datetime-local" required style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Latitud *</label>
+          <CampoAyuda style={labelStyle} texto="Coordenada de latitud del punto reportado.">Latitud *</CampoAyuda>
           <input name="lat" type="number" step="0.0001" required placeholder="25.5428" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div>
-          <label style={labelStyle}>Longitud *</label>
+          <CampoAyuda style={labelStyle} texto="Coordenada de longitud del punto reportado.">Longitud *</CampoAyuda>
           <input name="lng" type="number" step="0.0001" required placeholder="-99.2166" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div>
-          <label style={labelStyle}>Velocidad (km/h)</label>
+          <CampoAyuda style={labelStyle} texto="Velocidad registrada en el momento del reporte.">Velocidad (km/h)</CampoAyuda>
           <input name="velocidad" type="number" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div>
-          <label style={labelStyle}>Km reportado</label>
+          <CampoAyuda style={labelStyle} texto="Kilometraje que reportó el dispositivo GPS.">Km reportado</CampoAyuda>
           <input name="kmReportado" type="number" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <button
