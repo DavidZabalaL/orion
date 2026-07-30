@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { TipoGrafica } from "@/lib/bi/metadata";
 
 export type BiDato = { dimension: string; valor: number };
@@ -19,38 +19,78 @@ function fmtNumero(n: number) {
   return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(n);
 }
 
+const TAMANO_INICIAL = { width: 640, height: 320 };
+
+/** Mide en píxeles reales el contenedor (vía ResizeObserver) para que el SVG se redibuje a ese tamaño exacto — así el contenido escala con toda la caja, no solo con el ancho. */
+function useTamanoContenedor(ref: React.RefObject<HTMLDivElement | null>) {
+  const [tamano, setTamano] = useState(TAMANO_INICIAL);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setTamano({ width: Math.round(width), height: Math.round(height) });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return tamano;
+}
+
 export function BiChart({ datos, tipoGrafica, ejeYLabel }: { datos: BiDato[]; tipoGrafica: TipoGrafica; ejeYLabel: string }) {
   const [hover, setHover] = useState<number | null>(null);
   const uid = useId();
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  const { width, height } = useTamanoContenedor(contenedorRef);
 
-  if (datos.length === 0) {
-    return (
-      <div className="flex items-center justify-center rounded-lg p-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
-        Sin datos para esta combinación.
-      </div>
-    );
-  }
-
-  const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
-
-  if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} />;
-  if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} />;
-  return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} />;
+  return (
+    <div ref={contenedorRef} className="h-full min-h-[280px] w-full">
+      {datos.length === 0 ? (
+        <div className="flex h-full items-center justify-center rounded-lg p-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+          Sin datos para esta combinación.
+        </div>
+      ) : (
+        <BiChartInterno datos={datos} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} width={width} height={Math.max(height, 180)} hover={hover} setHover={setHover} uid={uid} />
+      )}
+    </div>
+  );
 }
 
-const W = 640;
-const H = 320;
+function BiChartInterno(props: {
+  datos: BiDato[];
+  tipoGrafica: TipoGrafica;
+  ejeYLabel: string;
+  width: number;
+  height: number;
+  hover: number | null;
+  setHover: (i: number | null) => void;
+  uid: string;
+}) {
+  const { datos, tipoGrafica, ejeYLabel, width, height, hover, setHover, uid } = props;
+  const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
+
+  if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+}
+
 const PAD = { top: 16, right: 16, bottom: 40, left: 48 };
 
-function ejes(datos: BiDato[]) {
+function ejes(w: number, h: number, datos: BiDato[]) {
   const max = Math.max(...datos.map((d) => d.valor), 0);
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top - PAD.bottom;
+  const innerW = w - PAD.left - PAD.right;
+  const innerH = h - PAD.top - PAD.bottom;
   return { max: max === 0 ? 1 : max, innerW, innerH };
 }
 
-function BiBarras({ datos, dark, hover, setHover, ejeYLabel }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string }) {
-  const { max, innerW, innerH } = ejes(datos);
+function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+  const W = Math.max(width, datos.length * 60);
+  const H = height;
+  const { max, innerW, innerH } = ejes(W, H, datos);
   const gap = 8;
   const bw = (innerW - gap * (datos.length - 1)) / datos.length;
   const mostrarEtiquetas = datos.length <= 12;
@@ -58,8 +98,8 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel }: { datos: BiDato[]
   const grid = dark ? "#2c2c2a" : "#e1e0d9";
 
   return (
-    <div className="relative w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: Math.max(W, datos.length * 60) }}>
+    <div className="relative h-full w-full overflow-x-auto">
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {[0, 0.25, 0.5, 0.75, 1].map((t) => (
           <line key={t} x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH * (1 - t)} y2={PAD.top + innerH * (1 - t)} stroke={grid} strokeWidth={1} />
         ))}
@@ -92,8 +132,10 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel }: { datos: BiDato[]
   );
 }
 
-function BiLineas({ datos, dark, hover, setHover, ejeYLabel }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string }) {
-  const { max, innerW, innerH } = ejes(datos);
+function BiLineas({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+  const W = Math.max(width, datos.length * 50);
+  const H = height;
+  const { max, innerW, innerH } = ejes(W, H, datos);
   const stepX = datos.length > 1 ? innerW / (datos.length - 1) : 0;
   const puntos = datos.map((d, i) => ({ x: PAD.left + i * stepX, y: PAD.top + innerH - (d.valor / max) * innerH }));
   const path = puntos.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
@@ -102,8 +144,8 @@ function BiLineas({ datos, dark, hover, setHover, ejeYLabel }: { datos: BiDato[]
   const grid = dark ? "#2c2c2a" : "#e1e0d9";
 
   return (
-    <div className="relative w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: Math.max(W, datos.length * 50) }}>
+    <div className="relative h-full w-full overflow-x-auto">
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {[0, 0.25, 0.5, 0.75, 1].map((t) => (
           <line key={t} x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH * (1 - t)} y2={PAD.top + innerH * (1 - t)} stroke={grid} strokeWidth={1} />
         ))}
@@ -128,11 +170,14 @@ function BiLineas({ datos, dark, hover, setHover, ejeYLabel }: { datos: BiDato[]
   );
 }
 
-function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; uid: string; ejeYLabel: string }) {
+function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; uid: string; ejeYLabel: string; width: number; height: number }) {
   const total = datos.reduce((acc, d) => acc + d.valor, 0) || 1;
-  const r = 110;
-  const cx = 140;
-  const cy = 160;
+  const apilado = width < 420;
+  const pieW = apilado ? width : Math.max(180, Math.min(width * 0.5, height));
+  const pieH = height;
+  const cx = pieW / 2;
+  const cy = pieH / 2;
+  const r = Math.max(40, Math.min(pieW, pieH) / 2 - 20);
   const surface = dark ? "#1a1a19" : "#fcfcfb";
 
   const prefijos = datos.reduce<{ acc: number; list: number[] }>(
@@ -152,8 +197,8 @@ function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel }: { datos: BiDato
   });
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center">
-      <svg viewBox="0 0 280 320" style={{ width: 280, height: 320, flexShrink: 0 }}>
+    <div className={`flex h-full gap-4 ${apilado ? "flex-col" : "flex-row items-center"}`}>
+      <svg width={pieW} height={pieH} viewBox={`0 0 ${pieW} ${pieH}`} style={{ flexShrink: 0 }}>
         {arcos.map((a, i) => (
           <path
             key={uid + i}
@@ -167,7 +212,7 @@ function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel }: { datos: BiDato
           />
         ))}
       </svg>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-1 flex-col gap-1.5 overflow-auto">
         {datos.map((d, i) => (
           <div key={d.dimension} className="flex items-center gap-2" style={{ opacity: hover === null || hover === i ? 1 : 0.5, fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: colorFor(i, dark), flexShrink: 0 }} />
