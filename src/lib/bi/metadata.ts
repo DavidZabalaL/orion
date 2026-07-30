@@ -8,7 +8,7 @@
 // además elige una agregación (conteo / suma / promedio) — suma y promedio
 // solo aplican a campos numéricos.
 
-export type TipoCampo = "texto" | "fecha_mes" | "fecha_dia" | "numero";
+export type TipoCampo = "texto" | "fecha_mes" | "fecha_dia" | "numero" | "geografico";
 export type TipoAgregacion = "conteo" | "suma" | "promedio";
 export type TipoGrafica =
   | "barras"
@@ -21,7 +21,8 @@ export type TipoGrafica =
   | "dispersion"
   | "calendario"
   | "caja"
-  | "piramide";
+  | "piramide"
+  | "mapa";
 
 export const TIPO_GRAFICA_LABEL: Record<TipoGrafica, string> = {
   barras: "Barras",
@@ -35,6 +36,7 @@ export const TIPO_GRAFICA_LABEL: Record<TipoGrafica, string> = {
   calendario: "Calendario",
   caja: "Caja (box plot)",
   piramide: "Comparación de dos grupos",
+  mapa: "Mapa (coroplético)",
 };
 
 type RequisitoCampo = TipoCampo[] | "cualquiera" | "ninguno";
@@ -52,6 +54,7 @@ export const REQUISITOS_TIPO_GRAFICA: Record<TipoGrafica, { ejeX: RequisitoCampo
   calendario: { ejeX: ["fecha_dia"], ejeY: "cualquiera" },
   caja: { ejeX: "cualquiera", ejeY: ["numero"] },
   piramide: { ejeX: "cualquiera", ejeY: "cualquiera", requiereSplit: true },
+  mapa: { ejeX: ["geografico"], ejeY: "cualquiera" },
 };
 
 export function campoValidoParaEje(campo: CampoMeta, requisito: RequisitoCampo): boolean {
@@ -88,7 +91,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "unidadModelo", label: "Unidad / modelo comercial", tipo: "texto", expr: `u."unidadModelo"` },
       { id: "anio", label: "Año", tipo: "texto", expr: `u."anio"::text` },
       { id: "propietario", label: "Propietario", tipo: "texto", expr: `u."propietario"` },
-      { id: "origenPlaca", label: "Origen de placa (estado)", tipo: "texto", expr: `u."origenPlaca"` },
+      { id: "origenPlaca", label: "Origen de placa (estado)", tipo: "geografico", expr: `u."origenPlaca"` },
       { id: "resguardante", label: "Resguardante", tipo: "texto", expr: `COALESCE(r."nombre", 'Sin resguardante')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mesAlta", label: "Mes de alta", tipo: "fecha_mes", expr: `u."fechaAlta"` },
@@ -190,7 +193,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Proyectos",
     from: `"Proyecto" p`,
     campos: [
-      { id: "estadoRepublica", label: "Estado de la república", tipo: "texto", expr: `p."estadoRepublica"` },
+      { id: "estadoRepublica", label: "Estado de la república", tipo: "geografico", expr: `p."estadoRepublica"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `p."estatus"` },
       { id: "mesInicio", label: "Mes de inicio", tipo: "fecha_mes", expr: `p."fechaInicio"` },
       { id: "diaInicio", label: "Día de inicio", tipo: "fecha_dia", expr: `p."fechaInicio"` },
@@ -258,6 +261,7 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Cargas de combustible por día", dataset: "combustible", ejeX: "dia", ejeY: "litros", agregacion: "suma", tipoGrafica: "calendario" },
   { label: "Distribución de costo por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "conteo", tipoGrafica: "caja" },
   { label: "Peajes: conciliados vs. pendientes por proyecto", dataset: "peajes", ejeX: "proyecto", ejeY: "monto", agregacion: "suma", tipoGrafica: "piramide", ejeSplit: "conciliado" },
+  { label: "Unidades por estado (origen de placa)", dataset: "unidades", ejeX: "origenPlaca", ejeY: "origenPlaca", agregacion: "conteo", tipoGrafica: "mapa" },
 ];
 
 /** Posición/tamaño en la cuadrícula de arrastre (react-grid-layout), en unidades de columna/fila. */

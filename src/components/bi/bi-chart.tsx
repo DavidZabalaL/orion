@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
+import { resolverEstado } from "@/lib/bi/estados-mexico";
 
 export type BiDato = { dimension: string; valor: number };
 export type BiCaja = { dimension: string; min: number; q1: number; mediana: number; q3: number; max: number };
@@ -134,6 +135,7 @@ function BiChartInterno(props: {
   if (tipoGrafica === "calendario") return <BiCalendario datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "caja") return <BiCajaChart cajas={cajas} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "piramide") return <BiPiramide pares={pares} splitLabels={splitLabels} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  if (tipoGrafica === "mapa") return <BiMapa datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
 }
 
@@ -613,6 +615,121 @@ function BiPiramide({ pares, splitLabels, dark, hover, setHover, ejeYLabel, widt
           <div style={{ color: colorIzq }}>{splitLabels[0]}: {fmtNumero(pares[hover].izquierda)}</div>
           <div style={{ color: colorDer }}>{splitLabels[1]}: {fmtNumero(pares[hover].derecha)}</div>
           <div style={{ color: "var(--sidebar-text)", opacity: 0.7 }}>{ejeYLabel}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type GeometriaMapa = { type: "Polygon"; coordinates: number[][][] } | { type: "MultiPolygon"; coordinates: number[][][][] };
+type FeatureMapa = { type: "Feature"; properties: { estado: string }; geometry: GeometriaMapa };
+type GeoMapa = { type: "FeatureCollection"; features: FeatureMapa[] };
+
+/** Mapa coroplético de estados de México: agrupa el texto libre de "dimension" al nombre de estado del GeoJSON (con alias) y colorea por magnitud. */
+function BiMapa({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+  const [geo, setGeo] = useState<GeoMapa | null>(null);
+
+  useEffect(() => {
+    let activo = true;
+    import("@/lib/bi/mexico-estados.json").then((mod) => {
+      const cargado = (mod as { default?: GeoMapa }).default ?? (mod as unknown as GeoMapa);
+      if (activo) setGeo(cargado);
+    });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const valorPorEstado = new Map<string, number>();
+  const noReconocidos: string[] = [];
+  for (const d of datos) {
+    const estado = resolverEstado(d.dimension);
+    if (estado) valorPorEstado.set(estado, (valorPorEstado.get(estado) ?? 0) + d.valor);
+    else noReconocidos.push(d.dimension);
+  }
+
+  if (!geo) {
+    return (
+      <div className="flex h-full items-center justify-center" style={{ color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+        Cargando mapa…
+      </div>
+    );
+  }
+
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const f of geo.features) {
+    const anillos = f.geometry.type === "Polygon" ? f.geometry.coordinates : f.geometry.coordinates.flat();
+    for (const anillo of anillos) {
+      for (const [lon, lat] of anillo) {
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+    }
+  }
+  const corrX = Math.cos(((minLat + maxLat) / 2) * (Math.PI / 180));
+  const anchoGeo = (maxLon - minLon) * corrX;
+  const altoGeo = maxLat - minLat;
+  const pad = 10;
+  const escala = Math.min((width - pad * 2) / anchoGeo, (height - pad * 2) / altoGeo);
+  const offX = (width - anchoGeo * escala) / 2;
+  const offY = (height - altoGeo * escala) / 2;
+
+  function proyectar([lon, lat]: number[]): [number, number] {
+    return [offX + (lon - minLon) * corrX * escala, offY + (maxLat - lat) * escala];
+  }
+
+  function trazo(geom: GeometriaMapa): string {
+    const poligonos = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+    return poligonos
+      .map((poligono) =>
+        poligono
+          .map((anillo) => anillo.map(proyectar).map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ") + " Z")
+          .join(" ")
+      )
+      .join(" ");
+  }
+
+  const max = Math.max(...Array.from(valorPorEstado.values()), 0) || 1;
+  const rampa = dark ? SECUENCIAL_DARK : SECUENCIAL_LIGHT;
+  const sinDato = dark ? "#2c2c2a" : "#e1e0d9";
+  const contorno = dark ? "#0d0d0d" : "#fcfcfb";
+  const ink = dark ? "#c3c2b7" : "#52514e";
+  const estadoHover = hover !== null ? geo.features[hover]?.properties.estado : undefined;
+
+  return (
+    <div className="relative h-full w-full">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        {geo.features.map((f, i) => {
+          const valor = valorPorEstado.get(f.properties.estado);
+          const intensidad = valor === undefined ? -1 : Math.min(rampa.length - 1, Math.round((valor / max) * (rampa.length - 1)));
+          return (
+            <path
+              key={f.properties.estado}
+              d={trazo(f.geometry)}
+              fill={intensidad === -1 ? sinDato : rampa[intensidad]}
+              stroke={contorno}
+              strokeWidth={0.75}
+              opacity={hover === null || hover === i ? 1 : 0.55}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            />
+          );
+        })}
+      </svg>
+      {estadoHover && (
+        <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: 8, top: 8, background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
+          <div style={{ fontWeight: 600 }}>{estadoHover}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {valorPorEstado.has(estadoHover) ? fmtNumero(valorPorEstado.get(estadoHover)!) : "Sin datos"}</div>
+        </div>
+      )}
+      {noReconocidos.length > 0 && (
+        <div className="absolute bottom-1 left-1 right-1 truncate rounded-md px-2 py-1 text-xs" style={{ background: "var(--panel-bg)", color: ink, fontFamily: "var(--font-ui)", opacity: 0.85 }} title={noReconocidos.join(", ")}>
+          Sin ubicar en el mapa: {noReconocidos.join(", ")}
         </div>
       )}
     </div>

@@ -19,7 +19,7 @@ import {
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
-const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contador", "puntos", "divergente", "histograma", "dispersion", "calendario", "caja", "piramide"];
+const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contador", "puntos", "divergente", "histograma", "dispersion", "calendario", "caja", "piramide", "mapa"];
 const ORDENES_VALIDOS: TipoOrden[] = ["dimension", "valor_desc", "valor_asc"];
 
 function validarLayout(layout: unknown): LayoutWidget | null {

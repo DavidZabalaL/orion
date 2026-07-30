@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, LineChart, PieChart, Hash, Circle, SplitSquareHorizontal, BarChart2, ScatterChart, CalendarDays, Boxes, Users } from "lucide-react";
+import { BarChart3, LineChart, PieChart, Hash, Circle, SplitSquareHorizontal, BarChart2, ScatterChart, CalendarDays, Boxes, Users, MapPinned } from "lucide-react";
 import {
   BI_DATASETS,
   obtenerDataset,
@@ -50,6 +50,7 @@ const TIPOS_GRAFICA: { value: TipoGrafica; icon: typeof BarChart3 }[] = [
   { value: "calendario", icon: CalendarDays },
   { value: "caja", icon: Boxes },
   { value: "piramide", icon: Users },
+  { value: "mapa", icon: MapPinned },
 ];
 
 const ORDEN_LABEL: Record<TipoOrden, string> = {
@@ -63,6 +64,7 @@ const TIPO_CAMPO_LABEL: Record<string, string> = {
   numero: "numérico",
   fecha_mes: "mes",
   fecha_dia: "día",
+  geografico: "estado",
 };
 
 function sufijoRequisito(requisito: string[] | "cualquiera" | "ninguno"): string {
