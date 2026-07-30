@@ -4,27 +4,38 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
-import { obtenerDataset, obtenerDimension, obtenerMetrica, type WidgetDashboardBI, type TamanoWidget } from "@/lib/bi/metadata";
+import { obtenerDataset, obtenerCampo, agregacionesDisponibles, type WidgetDashboardBI, type TipoAgregacion, type LayoutWidget } from "@/lib/bi/metadata";
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
-const TAMANOS_VALIDOS: TamanoWidget[] = ["sm", "md", "lg"];
+function validarLayout(layout: unknown): LayoutWidget | null {
+  if (!layout || typeof layout !== "object") return null;
+  const { x, y, w, h } = layout as Record<string, unknown>;
+  if (![x, y, w, h].every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0)) return null;
+  return { x: x as number, y: y as number, w: w as number, h: h as number };
+}
 
 function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   if (!Array.isArray(widgets)) return null;
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, tipoGrafica, tamano } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
     if (tipoGrafica !== "barras" && tipoGrafica !== "lineas" && tipoGrafica !== "pie") return null;
-    if (typeof tamano !== "string" || !TAMANOS_VALIDOS.includes(tamano as TamanoWidget)) return null;
+    if (agregacion !== "conteo" && agregacion !== "suma" && agregacion !== "promedio") return null;
 
     const ds = obtenerDataset(dataset);
-    if (!ds || !obtenerDimension(ds, ejeX) || !obtenerMetrica(ds, ejeY)) return null;
+    const campoX = ds && obtenerCampo(ds, ejeX);
+    const campoY = ds && obtenerCampo(ds, ejeY);
+    if (!ds || !campoX || !campoY) return null;
+    if (!agregacionesDisponibles(campoY).includes(agregacion as TipoAgregacion)) return null;
 
-    limpios.push({ id, label: label.slice(0, 120), dataset, ejeX, ejeY, tipoGrafica, tamano: tamano as TamanoWidget });
+    const layoutValido = validarLayout(layout);
+    if (!layoutValido) return null;
+
+    limpios.push({ id, label: label.slice(0, 120), dataset, ejeX, ejeY, agregacion: agregacion as TipoAgregacion, tipoGrafica, layout: layoutValido });
   }
   return limpios;
 }

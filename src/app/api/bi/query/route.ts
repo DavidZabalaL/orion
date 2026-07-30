@@ -2,21 +2,28 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo } from "@/lib/permisos";
-import { obtenerDataset, obtenerDimension, obtenerMetrica } from "@/lib/bi/metadata";
+import { obtenerDataset, obtenerCampo, agregacionesDisponibles, AGREGACION_LABEL, type TipoAgregacion, type CampoMeta } from "@/lib/bi/metadata";
 
-type Filtro = { dimensionId: string; valor: string };
+type Filtro = { campoId: string; valor: string };
 
 type BiQueryBody = {
   dataset: string;
   ejeX: string;
   ejeY: string;
+  agregacion: TipoAgregacion;
   filtros?: Filtro[];
 };
 
-function metricaExpr(metrica: NonNullable<ReturnType<typeof obtenerMetrica>>): Prisma.Sql {
-  if (metrica.tipo === "conteo") return Prisma.sql`COUNT(*)`;
-  const columna = Prisma.raw(metrica.columna!);
-  if (metrica.tipo === "suma") return Prisma.sql`SUM(${columna})`;
+function campoExpr(campo: CampoMeta): Prisma.Sql {
+  return campo.tipo === "fecha_mes"
+    ? Prisma.sql`TO_CHAR(${Prisma.raw(campo.expr)}, 'YYYY-MM')`
+    : Prisma.sql`${Prisma.raw(campo.expr)}`;
+}
+
+function metricaExpr(agregacion: TipoAgregacion, campoY: CampoMeta): Prisma.Sql {
+  if (agregacion === "conteo") return Prisma.sql`COUNT(*)`;
+  const columna = Prisma.raw(campoY.expr);
+  if (agregacion === "suma") return Prisma.sql`SUM(${columna})`;
   return Prisma.sql`AVG(${columna})`;
 }
 
@@ -37,38 +44,39 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Dataset desconocido." }, { status: 400 });
   }
 
-  const dimension = obtenerDimension(dataset, body.ejeX);
-  if (!dimension) {
-    return NextResponse.json({ error: "Dimensión (eje X) desconocida para este dataset." }, { status: 400 });
+  const campoX = obtenerCampo(dataset, body.ejeX);
+  if (!campoX) {
+    return NextResponse.json({ error: "Eje X desconocido para este dataset." }, { status: 400 });
   }
 
-  const metrica = obtenerMetrica(dataset, body.ejeY);
-  if (!metrica) {
-    return NextResponse.json({ error: "Métrica (eje Y) desconocida para este dataset." }, { status: 400 });
+  const agregacion = body.agregacion;
+  if (agregacion !== "conteo" && agregacion !== "suma" && agregacion !== "promedio") {
+    return NextResponse.json({ error: "Agregación inválida." }, { status: 400 });
   }
 
-  // La columna de agrupación se resuelve siempre contra la expresión SQL
-  // fija del registro de metadatos — nunca contra texto libre del cliente.
-  const dimensionExpr =
-    dimension.tipo === "fecha_mes"
-      ? Prisma.sql`TO_CHAR(${Prisma.raw(dimension.expr)}, 'YYYY-MM')`
-      : Prisma.sql`${Prisma.raw(dimension.expr)}`;
+  const campoY = obtenerCampo(dataset, body.ejeY);
+  if (!campoY) {
+    return NextResponse.json({ error: "Eje Y desconocido para este dataset." }, { status: 400 });
+  }
+  if (!agregacionesDisponibles(campoY).includes(agregacion)) {
+    return NextResponse.json({ error: "Esa agregación no aplica al campo elegido en el eje Y." }, { status: 400 });
+  }
+
+  // Las columnas de agrupación y agregación se resuelven siempre contra la
+  // expresión SQL fija del registro de metadatos — nunca contra texto libre del cliente.
+  const dimensionExpr = campoExpr(campoX);
 
   const condiciones: Prisma.Sql[] = [];
   for (const filtro of body.filtros ?? []) {
-    const dimFiltro = obtenerDimension(dataset, filtro.dimensionId);
-    if (!dimFiltro || typeof filtro.valor !== "string" || filtro.valor.trim() === "") continue;
-    const expr =
-      dimFiltro.tipo === "fecha_mes"
-        ? Prisma.sql`TO_CHAR(${Prisma.raw(dimFiltro.expr)}, 'YYYY-MM')`
-        : Prisma.sql`${Prisma.raw(dimFiltro.expr)}`;
-    condiciones.push(Prisma.sql`${expr} = ${filtro.valor}`);
+    const campoFiltro = obtenerCampo(dataset, filtro.campoId);
+    if (!campoFiltro || typeof filtro.valor !== "string" || filtro.valor.trim() === "") continue;
+    condiciones.push(Prisma.sql`${campoExpr(campoFiltro)} = ${filtro.valor}`);
   }
 
   const whereClause = condiciones.length > 0 ? Prisma.sql`WHERE ${Prisma.join(condiciones, " AND ")}` : Prisma.empty;
 
   const query = Prisma.sql`
-    SELECT ${dimensionExpr} AS dimension, ${metricaExpr(metrica)} AS metrica
+    SELECT ${dimensionExpr} AS dimension, ${metricaExpr(agregacion, campoY)} AS metrica
     FROM ${Prisma.raw(dataset.from)}
     ${whereClause}
     GROUP BY ${dimensionExpr}
@@ -81,10 +89,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       .filter((f) => f.dimension !== null)
       .map((f) => ({ dimension: String(f.dimension), valor: Number(f.metrica ?? 0) }));
 
+    const ejeYLabel = agregacion === "conteo" ? "N° de registros" : `${campoY.label} (${AGREGACION_LABEL[agregacion]})`;
+
     return NextResponse.json({
       dataset: dataset.id,
-      ejeX: { id: dimension.id, label: dimension.label },
-      ejeY: { id: metrica.id, label: metrica.label },
+      ejeX: { id: campoX.id, label: campoX.label },
+      ejeY: { label: ejeYLabel },
       datos,
     });
   } catch (error) {

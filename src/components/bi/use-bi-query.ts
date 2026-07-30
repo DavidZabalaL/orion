@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { BiDato } from "@/components/bi/bi-chart";
+import type { TipoAgregacion } from "@/lib/bi/metadata";
 
 export type BiQueryResultado = {
   datos: BiDato[];
@@ -11,8 +12,8 @@ export type BiQueryResultado = {
 };
 
 /** Ejecuta /api/bi/query y deriva el estado de carga de la comparación de "key" en vez de setState síncrono en el efecto. */
-export function useBiQuery(dataset: string, ejeX: string, ejeY: string): BiQueryResultado {
-  const params = useMemo(() => ({ dataset, ejeX, ejeY }), [dataset, ejeX, ejeY]);
+export function useBiQuery(dataset: string, ejeX: string, ejeY: string, agregacion: TipoAgregacion): BiQueryResultado {
+  const params = useMemo(() => ({ dataset, ejeX, ejeY, agregacion }), [dataset, ejeX, ejeY, agregacion]);
   const key = useMemo(() => JSON.stringify(params), [params]);
 
   const [datos, setDatos] = useState<BiDato[]>([]);

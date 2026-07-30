@@ -1,9 +1,13 @@
 "use client";
 
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
 import { Pencil, Plus, Printer, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
-import { WIDGETS_BI_DEFAULT, TAMANO_COLSPAN, type WidgetDashboardBI, type TamanoWidget } from "@/lib/bi/metadata";
+import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI } from "@/lib/bi/metadata";
 import { BiCard } from "@/components/bi/bi-card";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
@@ -11,6 +15,8 @@ import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashb
 export type VistaDashboard = { id: string; nombre: string; widgets: WidgetDashboardBI[] };
 
 const TEMPORAL = "__temporal__";
+const BREAKPOINTS = { lg: 1024, md: 640, sm: 0 };
+const COLS = { lg: 12, md: 6, sm: 1 };
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -23,9 +29,14 @@ const fieldStyle: React.CSSProperties = {
   padding: "0 12px",
 };
 
+function nuevoIdWidget(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `w-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashboard[]; puedeEditar: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { width, containerRef, mounted } = useContainerWidth();
 
   const primeraVista = vistas[0] ?? null;
   const [vistaActivaId, setVistaActivaId] = useState<string>(primeraVista?.id ?? TEMPORAL);
@@ -34,6 +45,7 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
   const [editMode, setEditMode] = useState(false);
   const [mostrarAgregar, setMostrarAgregar] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+  const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>("lg");
 
   function cambiarVista(id: string) {
     setVistaActivaId(id);
@@ -83,18 +95,33 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
     });
   }
 
-  function cambiarTamano(id: string, tamano: TamanoWidget) {
-    setWidgets((ws) => ws.map((w) => (w.id === id ? { ...w, tamano } : w)));
-  }
-
   function eliminarWidget(id: string) {
     setWidgets((ws) => ws.filter((w) => w.id !== id));
   }
 
-  function agregarWidget(nuevo: Omit<WidgetDashboardBI, "id">) {
-    setWidgets((ws) => [...ws, { ...nuevo, id: crypto.randomUUID() }]);
+  function agregarWidget(nuevo: Omit<WidgetDashboardBI, "id" | "layout">) {
+    setWidgets((ws) => [
+      ...ws,
+      { ...nuevo, id: nuevoIdWidget(), layout: { x: 0, y: Number.MAX_SAFE_INTEGER, w: 4, h: 9 } },
+    ]);
     setMostrarAgregar(false);
   }
+
+  function handleLayoutChange(actual: Layout, todos: ResponsiveLayouts) {
+    if (!editMode) return;
+    const referencia = todos.lg ?? actual;
+    setWidgets((ws) =>
+      ws.map((w) => {
+        const item = referencia.find((l) => l.i === w.id);
+        return item ? { ...w, layout: { x: item.x, y: item.y, w: item.w, h: item.h } } : w;
+      })
+    );
+  }
+
+  const interactivo = editMode && breakpoint !== "sm";
+  const layouts: ResponsiveLayouts = {
+    lg: widgets.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h, minW: 2, minH: 4 })),
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -144,7 +171,7 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
               >
                 <Save size={13} /> {vistaActivaId === TEMPORAL ? "Guardar" : "Guardar cambios"}
               </button>
-              {vistaActivaId === TEMPORAL ? null : (
+              {vistaActivaId !== TEMPORAL && (
                 <button
                   onClick={() => handleGuardar(true)}
                   disabled={pending}
@@ -207,26 +234,47 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
         </div>
       )}
 
+      {editMode && (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }} data-no-print>
+          Arrastra un widget desde su título para moverlo, o desde la esquina inferior derecha para cambiar su tamaño.
+        </p>
+      )}
+
       <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
         {nombreVista}
       </h2>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {widgets.map((w) => (
-          <div key={w.id} className={TAMANO_COLSPAN[w.tamano]}>
-            <BiCard
-              label={w.label}
-              dataset={w.dataset}
-              ejeX={w.ejeX}
-              ejeY={w.ejeY}
-              tipoGrafica={w.tipoGrafica}
-              tamano={w.tamano}
-              editMode={editMode}
-              onCambiarTamano={(t) => cambiarTamano(w.id, t)}
-              onEliminar={() => eliminarWidget(w.id)}
-            />
-          </div>
-        ))}
+      <div ref={containerRef}>
+        {mounted && (
+          <Responsive
+            layouts={layouts}
+            breakpoints={BREAKPOINTS}
+            cols={COLS}
+            width={width}
+            rowHeight={32}
+            margin={[16, 16]}
+            containerPadding={[0, 0]}
+            dragConfig={{ enabled: interactivo, handle: ".bi-drag-handle" }}
+            resizeConfig={{ enabled: interactivo }}
+            onBreakpointChange={(bp) => setBreakpoint(bp as keyof typeof BREAKPOINTS)}
+            onLayoutChange={handleLayoutChange}
+          >
+            {widgets.map((w) => (
+              <div key={w.id}>
+                <BiCard
+                  label={w.label}
+                  dataset={w.dataset}
+                  ejeX={w.ejeX}
+                  ejeY={w.ejeY}
+                  agregacion={w.agregacion}
+                  tipoGrafica={w.tipoGrafica}
+                  editMode={editMode}
+                  onEliminar={() => eliminarWidget(w.id)}
+                />
+              </div>
+            ))}
+          </Responsive>
+        )}
       </div>
     </div>
   );
