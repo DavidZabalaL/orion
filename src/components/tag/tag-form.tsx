@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { crearTag } from "@/app/(app)/tag/actions";
 import { CheckCircle2 } from "lucide-react";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -52,12 +53,7 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
       >
         <div>
           <CampoAyuda style={labelStyle} texto="Unidad relacionada, si ya se conoce.">Unidad (opcional)</CampoAyuda>
-          <select name="numeroEconomico" style={fieldStyle}>
-            <option value="">Sin asignar</option>
-            {unidades.map((u) => (
-              <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-            ))}
-          </select>
+          <ComboboxUnidad name="numeroEconomico" unidades={unidades} placeholder="Sin asignar — buscar unidad…" style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que ocurrió el cruce por caseta.">Fecha *</CampoAyuda>

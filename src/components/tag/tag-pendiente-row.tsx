@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { asignarEconomicoTag } from "@/app/(app)/tag/actions";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
 type Tag = {
   id: string;
@@ -31,17 +32,13 @@ export function TagPendienteRow({ tag: t, unidades }: { tag: Tag; unidades: { nu
           }}
         >
           <input type="hidden" name="id" value={t.id} />
-          <select
+          <ComboboxUnidad
             name="numeroEconomico"
+            unidades={unidades}
             required
-            className="rounded-md px-2"
-            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-sm)", fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)" }}
-          >
-            <option value="">Seleccionar…</option>
-            {unidades.map((u) => (
-              <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-            ))}
-          </select>
+            placeholder="Seleccionar…"
+            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-sm)", fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", borderRadius: "var(--radius-md)", padding: "0 8px", width: 160 }}
+          />
           <button type="submit" disabled={pending} className="rounded-md px-2.5 py-1 disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}>
             {pending ? "…" : "Asignar"}
           </button>

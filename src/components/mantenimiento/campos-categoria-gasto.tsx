@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CATEGORIA_APLICA_A_UNIDAD, CATEGORIA_GASTO_LABEL_MANTENIMIENTO } from "@/lib/categorias-gasto";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
 type Props = {
   unidades: { numeroEconomico: string }[];
@@ -28,11 +29,7 @@ export function CamposCategoriaGasto({ unidades, proyectos, fieldStyle, labelSty
       {aplicaAUnidad ? (
         <div>
           <CampoAyuda style={labelStyle} texto="Unidad a la que corresponde este gasto.">Número económico *</CampoAyuda>
-          <select name="numeroEconomico" required style={fieldStyle}>
-            {unidades.map((u) => (
-              <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-            ))}
-          </select>
+          <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
         </div>
       ) : (
         <div>

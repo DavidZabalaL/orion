@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Shield, FolderCog, BellRing, ChevronRight } from "lucide-react";
+import { Users, Shield, FolderCog, BellRing, ChevronRight, LayoutGrid } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { InvitarUsuarioForm } from "@/components/usuarios/invitar-usuario-form";
@@ -13,6 +13,7 @@ const SECCIONES = [
   { href: "/usuarios/roles", icon: Shield, titulo: "Roles y permisos", descripcion: "Ver / Editar / Aprobar por módulo" },
   { href: "/usuarios/proyectos", icon: FolderCog, titulo: "Módulos por proyecto", descripcion: "Activar o desactivar módulos" },
   { href: "/usuarios/notificaciones", icon: BellRing, titulo: "Notificaciones", descripcion: "Umbrales de alertas por módulo" },
+  { href: "/usuarios/widgets", icon: LayoutGrid, titulo: "Widgets del resumen", descripcion: "Qué recuadros se muestran arriba de cada listado" },
 ];
 
 function SeccionCard({ href, icon: Icon, titulo, descripcion, actual }: (typeof SECCIONES)[number]) {
@@ -41,13 +42,14 @@ function SeccionCard({ href, icon: Icon, titulo, descripcion, actual }: (typeof 
 export default async function UsuariosPage() {
   await requerirPermisoModulo("K");
 
-  const [usuarios, roles, proyectos] = await Promise.all([
+  const [usuarios, roles, proyectos, operadores] = await Promise.all([
     prisma.usuario.findMany({
       include: { rol: { select: { id: true, nombre: true } }, proyectos: { include: { proyecto: { select: { id: true, nombre: true } } } } },
       orderBy: { nombre: "asc" },
     }),
     prisma.rol.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
     prisma.proyecto.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true } }),
+    prisma.operador.findMany({ where: { estatus: "ACTIVO" }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);
 
   const activos = usuarios.filter((u) => u.estatus === "ACTIVO").length;
@@ -75,7 +77,7 @@ export default async function UsuariosPage() {
         <StatCard label="Roles configurados" value={roles.length} icon={Shield} accent="var(--color-status-asignado)" />
       </div>
 
-      <InvitarUsuarioForm roles={roles} proyectos={proyectos} />
+      <InvitarUsuarioForm roles={roles} proyectos={proyectos} operadores={operadores} />
 
       <UsuariosLista
         usuarios={usuarios.map((u) => ({

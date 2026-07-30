@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { crearCombustible } from "@/app/(app)/combustible/actions";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -76,11 +77,7 @@ export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: str
       >
         <div>
           <CampoAyuda style={labelStyle} texto="Unidad que recibió la carga de combustible.">Unidad *</CampoAyuda>
-          <select name="numeroEconomico" required style={fieldStyle}>
-            {unidades.map((u) => (
-              <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-            ))}
-          </select>
+          <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó la carga.">Fecha *</CampoAyuda>

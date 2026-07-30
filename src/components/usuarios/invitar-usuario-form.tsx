@@ -36,9 +36,11 @@ type Estado =
 export function InvitarUsuarioForm({
   roles,
   proyectos,
+  operadores,
 }: {
   roles: { id: string; nombre: string }[];
   proyectos: { id: string; nombre: string }[];
+  operadores: { id: string; nombre: string }[];
 }) {
   const [pending, startTransition] = useTransition();
   const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
@@ -82,6 +84,15 @@ export function InvitarUsuarioForm({
               ))}
             </select>
           </div>
+        </div>
+        <div>
+          <CampoAyuda style={labelStyle} texto="Solo aplica al rol Operador: liga la cuenta con su ficha de operador para que solo vea su unidad asignada.">Operador vinculado (rol Operador)</CampoAyuda>
+          <select name="operadorId" style={fieldStyle}>
+            <option value="">Sin vincular</option>
+            {operadores.map((o) => (
+              <option key={o.id} value={o.id}>{o.nombre}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label style={labelStyle}>Proyectos asignados</label>

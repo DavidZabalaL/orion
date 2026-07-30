@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, requerirPermisoModulo } from "@/lib/permisos";
-import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { FichaUnidad } from "@/components/unidades/ficha-unidad";
+import { obtenerAlertaPreventivaUnidad } from "@/lib/mantenimiento-preventivo";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function FichaUnidadPage({
   const { numeroEconomico } = await params;
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
 
-  const [unidad, puedeEditarCapacidad, proyectos] = await Promise.all([
+  const [unidad, puedeEditarCapacidad, proyectos, alertaPreventiva] = await Promise.all([
     prisma.unidad.findUnique({
       where: { numeroEconomico },
       include: {
@@ -31,6 +32,7 @@ export default async function FichaUnidadPage({
         tags: { orderBy: { fecha: "desc" }, take: 20 },
         seguros: { include: { coberturas: true }, orderBy: { fechaVencimiento: "desc" } },
         posicionesGps: { orderBy: { timestamp: "desc" }, take: 20 },
+        placasHistorial: { orderBy: { fechaDesde: "desc" } },
       },
     }),
     puedeEditarCapacidadTanque(),
@@ -38,14 +40,18 @@ export default async function FichaUnidadPage({
       where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
       select: { id: true, nombre: true },
     }),
+    obtenerAlertaPreventivaUnidad(numeroEconomico),
   ]);
 
   if (!unidad) notFound();
   if (proyectosPermitidos !== null && (!unidad.proyectoId || !proyectosPermitidos.includes(unidad.proyectoId))) notFound();
 
+  const restriccionOperador = await unidadRestringidaParaOperador();
+  if (restriccionOperador.esOperador && restriccionOperador.numeroEconomico !== numeroEconomico) notFound();
+
   // Decimal y Date exponen toJSON(); JSON.stringify los serializa automáticamente
   // a string / ISO-string, dejando el resultado listo para un Client Component.
   const serializado = JSON.parse(JSON.stringify(unidad));
 
-  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} proyectos={proyectos} />;
+  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} proyectos={proyectos} alertaPreventiva={alertaPreventiva} />;
 }

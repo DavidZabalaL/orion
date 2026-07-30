@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { crearSeguro } from "@/app/(app)/seguros/actions";
 import { TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -31,7 +32,7 @@ const labelStyle: React.CSSProperties = {
 
 type Cobertura = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
-export function SeguroForm({ unidades }: { unidades: { numeroEconomico: string }[] }) {
+export function SeguroForm({ unidades, numeroEconomicoDefault }: { unidades: { numeroEconomico: string }[]; numeroEconomicoDefault?: string }) {
   const [coberturas, setCoberturas] = useState<Cobertura[]>([
     { tipoCobertura: "RC_TERCEROS", sumaAsegurada: "3000000", deducible: "0" },
     { tipoCobertura: "DANOS_MATERIALES", sumaAsegurada: "350000", deducible: "5000" },
@@ -48,11 +49,7 @@ export function SeguroForm({ unidades }: { unidades: { numeroEconomico: string }
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <CampoAyuda style={labelStyle} texto="Unidad cubierta por esta póliza.">Número económico *</CampoAyuda>
-            <select name="numeroEconomico" required style={fieldStyle}>
-              {unidades.map((u) => (
-                <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-              ))}
-            </select>
+            <ComboboxUnidad name="numeroEconomico" unidades={unidades} defaultValue={numeroEconomicoDefault} required style={fieldStyle} />
           </div>
           <div>
             <CampoAyuda style={labelStyle} texto="Compañía que emite la póliza.">Aseguradora *</CampoAyuda>

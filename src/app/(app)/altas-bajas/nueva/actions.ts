@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { crearDocumento } from "@/lib/subir-archivo";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -50,6 +51,18 @@ export async function crearUnidad(formData: FormData) {
   if (dupPlacas) throw new Error(`Las placas ${placas} ya están registradas.`);
   if (dupSerie) throw new Error(`El número de serie ${numeroSerie} ya está registrado.`);
 
+  const tarjetaCirculacionArchivo = formData.get("tarjetaCirculacion");
+  const tarjetaCombustibleArchivo = formData.get("tarjetaCombustible");
+
+  const [tarjetaCirculacion, tarjetaCombustible] = await Promise.all([
+    tarjetaCirculacionArchivo instanceof File && tarjetaCirculacionArchivo.size > 0
+      ? crearDocumento(tarjetaCirculacionArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_circulacion" })
+      : null,
+    tarjetaCombustibleArchivo instanceof File && tarjetaCombustibleArchivo.size > 0
+      ? crearDocumento(tarjetaCombustibleArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_combustible" })
+      : null,
+  ]);
+
   await prisma.unidad.create({
     data: {
       numeroEconomico,
@@ -69,6 +82,9 @@ export async function crearUnidad(formData: FormData) {
       propietario: propietario as never,
       origenPlaca,
       tagIave,
+      tarjetaCirculacionId: tarjetaCirculacion?.id,
+      tarjetaCombustibleId: tarjetaCombustible?.id,
+      placasHistorial: { create: { placa: placas } },
     },
   });
 

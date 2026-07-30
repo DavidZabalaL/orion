@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ChecklistForm } from "@/components/checklist/checklist-form";
 import { ChecklistLista } from "@/components/checklist/checklist-lista";
@@ -21,7 +23,7 @@ export default async function ChecklistPage() {
   const [unidades, checklistsHoy, sinCapturaHoy] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: "ACTIVO", ...filtroProyecto },
-      select: { numeroEconomico: true, marca: true, unidadModelo: true },
+      select: { numeroEconomico: true, marca: true, unidadModelo: true, tipoVehiculo: true },
       orderBy: { numeroEconomico: "asc" },
     }),
     prisma.checklist.findMany({
@@ -39,13 +41,18 @@ export default async function ChecklistPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-3xl">
-      <div>
-        <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-          Checklist diario
-        </h1>
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Inspección diaria con lectura de odómetro obligatoria — reemplaza el formulario de Fast Field.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+            Checklist diario
+          </h1>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
+            Inspección diaria con lectura de odómetro obligatoria — reemplaza el formulario de Fast Field.
+          </p>
+        </div>
+        <Link href="/checklist/historial" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+          <CalendarDays size={16} /> Historial por fecha / exportar
+        </Link>
       </div>
 
       {sinCapturaHoy.length > 0 && (

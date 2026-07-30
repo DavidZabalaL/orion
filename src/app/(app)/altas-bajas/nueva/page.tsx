@@ -69,7 +69,7 @@ export default async function AltaUnidadPage() {
         </p>
       </div>
 
-      <form action={crearUnidad} className="flex flex-col gap-6">
+      <form action={crearUnidad} encType="multipart/form-data" className="flex flex-col gap-6">
         <Bloque titulo="Identificación">
           <div>
             <CampoAyuda style={labelStyle} texto="Clave interna con la que identifican la unidad en la flota.">Número económico *</CampoAyuda>
@@ -166,6 +166,17 @@ export default async function AltaUnidadPage() {
               <option value="KABAT">KABAT</option>
               <option value="OTRO">Otro</option>
             </select>
+          </div>
+        </Bloque>
+
+        <Bloque titulo="Tarjetas (PDF)">
+          <div>
+            <CampoAyuda style={labelStyle} texto="Archivo PDF de la tarjeta de circulación de la unidad, si ya se tiene.">Tarjeta de circulación (PDF)</CampoAyuda>
+            <input name="tarjetaCirculacion" type="file" accept="application/pdf" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
+          </div>
+          <div>
+            <CampoAyuda style={labelStyle} texto="Archivo PDF de la tarjeta de combustible asignada a la unidad, si ya se tiene.">Tarjeta de combustible (PDF)</CampoAyuda>
+            <input name="tarjetaCombustible" type="file" accept="application/pdf" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
           </div>
         </Bloque>
 

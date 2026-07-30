@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { crearDocumento } from "@/lib/subir-archivo";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
@@ -80,12 +81,49 @@ export async function renovarSeguro(formData: FormData) {
     if (!actual?.unidad.proyectoId || !permitidos.includes(actual.unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
+  const diasParaVencer = (new Date(fechaVencimiento).getTime() - Date.now()) / 86_400_000;
+  const estatus = diasParaVencer < 0 ? "VENCIDO" : diasParaVencer <= 30 ? "POR_VENCER" : "VIGENTE";
+
   const seguro = await prisma.seguro.update({
     where: { id },
-    data: { fechaVencimiento: new Date(fechaVencimiento), costo, estatus: "RENOVADO" },
+    data: { fechaVencimiento: new Date(fechaVencimiento), costo, estatus },
   });
 
   revalidatePath(`/seguros/${id}`);
   revalidatePath("/seguros");
+  revalidatePath(`/unidades/${seguro.numeroEconomico}`);
+}
+
+export async function subirDocumentoSeguro(formData: FormData) {
+  await exigirPermisoModulo("F", "editar");
+
+  const id = String(formData.get("id") ?? "");
+  const archivo = formData.get("archivo");
+
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    throw new Error("Selecciona un archivo PDF de la póliza.");
+  }
+  if (archivo.type !== "application/pdf") {
+    throw new Error("El archivo debe ser un PDF.");
+  }
+
+  const seguro = await prisma.seguro.findUnique({ where: { id }, select: { unidad: { select: { proyectoId: true } }, numeroEconomico: true } });
+  if (!seguro) throw new Error("Póliza no encontrada.");
+
+  const permitidos = await proyectosPermitidosParaModulo("F");
+  if (permitidos !== null && (!seguro.unidad.proyectoId || !permitidos.includes(seguro.unidad.proyectoId))) {
+    throw new Error("No tienes permiso para realizar esta acción.");
+  }
+
+  const documento = await crearDocumento(archivo, {
+    carpeta: "polizas",
+    entidadRelacionada: "Seguro",
+    entidadId: id,
+    tipo: "poliza",
+  });
+
+  await prisma.seguro.update({ where: { id }, data: { documentoId: documento.id } });
+
+  revalidatePath(`/seguros/${id}`);
   revalidatePath(`/unidades/${seguro.numeroEconomico}`);
 }

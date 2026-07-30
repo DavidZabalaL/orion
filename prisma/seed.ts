@@ -56,6 +56,30 @@ async function main() {
       },
     },
   });
+  await prisma.rol.upsert({
+    where: { nombre: "Operador" },
+    update: {},
+    create: {
+      nombre: "Operador",
+      permisos: { A: ver, "A.1": editar },
+    },
+  });
+
+  // ── Configuración de mantenimiento preventivo (5,000km todos; grúas también 500hrs) ──
+  await Promise.all(
+    (["AUTO", "CAMIONETA", "MOTO", "OTRO"] as const).map((tipoVehiculo) =>
+      prisma.configuracionMantenimientoPreventivo.upsert({
+        where: { tipoVehiculo },
+        update: {},
+        create: { tipoVehiculo, intervaloKm: 5000, intervaloHoras: null },
+      })
+    )
+  );
+  await prisma.configuracionMantenimientoPreventivo.upsert({
+    where: { tipoVehiculo: "GRUA" },
+    update: {},
+    create: { tipoVehiculo: "GRUA", intervaloKm: 5000, intervaloHoras: 500 },
+  });
 
   // ── Usuarios ──
   const [uAdmin, uCV, uCoord, uDireccion] = await Promise.all([

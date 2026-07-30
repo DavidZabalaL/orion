@@ -119,6 +119,14 @@ export async function actualizarUnidad(formData: FormData) {
     },
   });
 
+  if (anterior.placas !== placas) {
+    await prisma.placa.updateMany({
+      where: { numeroEconomico, fechaHasta: null },
+      data: { fechaHasta: new Date() },
+    });
+    await prisma.placa.create({ data: { numeroEconomico, placa: placas, motivo: "Actualización de placas" } });
+  }
+
   const session = await auth();
   if (session?.user?.id) {
     await prisma.bitacoraCambio.create({

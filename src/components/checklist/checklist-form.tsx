@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Camera, CheckCircle2 } from "lucide-react";
 import { crearChecklist } from "@/app/(app)/checklist/actions";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 // PUNTOS_INSPECCION moved to @/lib/checklist (server action files may only export async functions)
 
 const fieldStyle: React.CSSProperties = {
@@ -33,15 +34,17 @@ export function ChecklistForm({
   unidades,
   puntos,
 }: {
-  unidades: { numeroEconomico: string; marca: string; unidadModelo: string }[];
+  unidades: { numeroEconomico: string; marca: string; unidadModelo: string; tipoVehiculo: string }[];
   puntos: readonly { key: string; label: string }[];
 }) {
   const [estados, setEstados] = useState<Record<string, "ok" | "revisar">>(
     Object.fromEntries(puntos.map((p) => [p.key, "ok"]))
   );
-  const [foto, setFoto] = useState(false);
+  const [numeroEconomico, setNumeroEconomico] = useState(unidades[0]?.numeroEconomico ?? "");
+  const [fotoNombre, setFotoNombre] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
   const [pending, startTransition] = useTransition();
+  const esGrua = unidades.find((u) => u.numeroEconomico === numeroEconomico)?.tipoVehiculo === "GRUA";
 
   return (
     <form
@@ -51,25 +54,34 @@ export function ChecklistForm({
         startTransition(async () => {
           await crearChecklist(formData);
           setEnviado(true);
+          setFotoNombre(null);
           setTimeout(() => setEnviado(false), 3000);
         });
       }}
     >
       <div>
         <CampoAyuda style={labelStyle} texto="Unidad a la que corresponde esta inspección diaria.">Número económico *</CampoAyuda>
-        <select name="numeroEconomico" required style={fieldStyle}>
-          {unidades.map((u) => (
-            <option key={u.numeroEconomico} value={u.numeroEconomico}>
-              {u.numeroEconomico} — {u.marca} {u.unidadModelo}
-            </option>
-          ))}
-        </select>
+        <ComboboxUnidad
+          name="numeroEconomico"
+          unidades={unidades.map((u) => ({ numeroEconomico: u.numeroEconomico, etiqueta: `${u.numeroEconomico} — ${u.marca} ${u.unidadModelo}` }))}
+          defaultValue={numeroEconomico}
+          required
+          onSeleccionar={setNumeroEconomico}
+          style={fieldStyle}
+        />
       </div>
 
       <div>
         <CampoAyuda style={labelStyle} texto="Kilometraje que marca el odómetro al momento de la inspección.">Lectura de odómetro (km) *</CampoAyuda>
         <input name="odometro" type="number" required min={0} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
       </div>
+
+      {esGrua && (
+        <div>
+          <CampoAyuda style={labelStyle} texto="Horas de funcionamiento acumuladas del equipo de la grúa.">Horómetro (horas) *</CampoAyuda>
+          <input name="horometro" type="number" required min={0} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+        </div>
+      )}
 
       <div>
         <label style={labelStyle} className="mb-3">Puntos de inspección</label>
@@ -109,14 +121,20 @@ export function ChecklistForm({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setFoto((f) => !f)}
-        className="flex items-center justify-center gap-2 rounded-md px-3 py-3"
-        style={{ background: foto ? "var(--status-cerrado-bg)" : "var(--field-bg)", color: foto ? "var(--color-status-cerrado)" : "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+      <label
+        className="flex items-center justify-center gap-2 rounded-md px-3 py-3 cursor-pointer"
+        style={{ background: fotoNombre ? "var(--status-cerrado-bg)" : "var(--field-bg)", color: fotoNombre ? "var(--color-status-cerrado)" : "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
       >
-        <Camera size={16} /> {foto ? "Foto adjuntada" : "Adjuntar evidencia fotográfica"}
-      </button>
+        <Camera size={16} /> {fotoNombre ? `Foto adjuntada: ${fotoNombre}` : "Adjuntar evidencia fotográfica (o abrir cámara)"}
+        <input
+          name="evidencia"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => setFotoNombre(e.target.files?.[0]?.name ?? null)}
+        />
+      </label>
 
       <button
         type="submit"

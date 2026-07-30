@@ -14,6 +14,7 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
   const nombre = String(formData.get("nombre") ?? "").trim();
   const correo = String(formData.get("correo") ?? "").trim().toLowerCase();
   const rolId = String(formData.get("rolId") ?? "");
+  const operadorId = String(formData.get("operadorId") ?? "") || null;
   const proyectoIds = formData.getAll("proyectoIds").map(String);
 
   if (!nombre || !correo || !rolId) {
@@ -26,6 +27,7 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
         nombre,
         correo,
         rolId,
+        operadorId,
         estatus: "INVITADO",
         proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
       },

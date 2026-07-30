@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL, ESTATUS_GASTO_LABEL, ESTATUS_GASTO_STYLE } from "@/lib/categorias-gasto";
 import { MarcarRealizadoButton } from "@/components/mantenimiento/marcar-realizado-button";
+import { actualizarGasto } from "@/app/(app)/mantenimiento/actions";
 
 export type GastoRow = {
   id: string;
@@ -18,6 +20,18 @@ export type GastoRow = {
   descripcion: string | null;
   costo: string;
   estatus: string;
+  proveedor: string | null;
+  servicio: string | null;
+  empresa: string | null;
+  sc: string | null;
+  odc: string | null;
+  entradaSap: string | null;
+  fechaRequisicion: string | null;
+  fechaOdc: string | null;
+  fechaFactura: string | null;
+  fechaCxp: string | null;
+  fechaPago: string | null;
+  kmAlMomento: number | null;
 };
 
 function coincide(g: GastoRow, q: string) {
@@ -28,8 +42,173 @@ function coincide(g: GastoRow, q: string) {
   );
 }
 
+const fieldStyle: React.CSSProperties = {
+  background: "var(--field-bg)",
+  border: "1px solid var(--field-border)",
+  color: "var(--field-text)",
+  fontFamily: "var(--font-ui)",
+  fontSize: "var(--text-sm)",
+  height: 36,
+  width: "100%",
+  borderRadius: "var(--radius-md)",
+  padding: "0 10px",
+};
+
+const labelStyle: React.CSSProperties = {
+  fontFamily: "var(--font-ui)",
+  fontSize: "var(--text-xs)",
+  fontWeight: 600,
+  color: "var(--sidebar-text)",
+  textTransform: "uppercase",
+  display: "block",
+  marginBottom: 4,
+};
+
+function soloFecha(v: string | null) {
+  return v ? v.slice(0, 10) : "";
+}
+
+function VerOrdenButton({ abierto, onClick }: { abierto: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 rounded-md px-2.5 py-1"
+      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+    >
+      {abierto ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Ver orden
+    </button>
+  );
+}
+
+function OrdenDetalle({ g }: { g: GastoRow }) {
+  const [editando, setEditando] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  if (!editando) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Detalle label="Proveedor" value={g.proveedor} />
+          <Detalle label="Servicio" value={g.servicio} />
+          <Detalle label="Empresa" value={g.empresa} />
+          <Detalle label="Km al momento" value={g.kmAlMomento?.toString() ?? null} />
+          <Detalle label="SC" value={g.sc} />
+          <Detalle label="ODC" value={g.odc} />
+          <Detalle label="Entrada SAP" value={g.entradaSap} />
+          <Detalle label="Fecha requisición" value={g.fechaRequisicion ? fmtFecha(g.fechaRequisicion) : null} />
+          <Detalle label="Fecha ODC" value={g.fechaOdc ? fmtFecha(g.fechaOdc) : null} />
+          <Detalle label="Fecha factura" value={g.fechaFactura ? fmtFecha(g.fechaFactura) : null} />
+          <Detalle label="Fecha CXP" value={g.fechaCxp ? fmtFecha(g.fechaCxp) : null} />
+          <Detalle label="Fecha de pago" value={g.fechaPago ? fmtFecha(g.fechaPago) : null} />
+        </div>
+        <button
+          onClick={() => setEditando(true)}
+          className="rounded-md px-3 h-9 w-fit"
+          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+        >
+          Editar orden
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className="flex flex-col gap-3"
+      action={(formData) => {
+        startTransition(async () => {
+          await actualizarGasto(formData);
+          setEditando(false);
+        });
+      }}
+    >
+      <input type="hidden" name="id" value={g.id} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div>
+          <label style={labelStyle}>Descripción</label>
+          <input name="descripcion" defaultValue={g.descripcion ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Costo *</label>
+          <input name="costo" type="number" step="0.01" required defaultValue={g.costo} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+        </div>
+        <div>
+          <label style={labelStyle}>Estatus *</label>
+          <select name="estatus" required defaultValue={g.estatus} style={fieldStyle}>
+            {Object.entries(ESTATUS_GASTO_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Proveedor</label>
+          <input name="proveedor" defaultValue={g.proveedor ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Servicio</label>
+          <input name="servicio" defaultValue={g.servicio ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Empresa</label>
+          <input name="empresa" defaultValue={g.empresa ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>SC</label>
+          <input name="sc" defaultValue={g.sc ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>ODC</label>
+          <input name="odc" defaultValue={g.odc ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Entrada SAP</label>
+          <input name="entradaSap" defaultValue={g.entradaSap ?? ""} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Fecha requisición</label>
+          <input name="fechaRequisicion" type="date" defaultValue={soloFecha(g.fechaRequisicion)} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Fecha ODC</label>
+          <input name="fechaOdc" type="date" defaultValue={soloFecha(g.fechaOdc)} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Fecha factura</label>
+          <input name="fechaFactura" type="date" defaultValue={soloFecha(g.fechaFactura)} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Fecha CXP</label>
+          <input name="fechaCxp" type="date" defaultValue={soloFecha(g.fechaCxp)} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Fecha de pago</label>
+          <input name="fechaPago" type="date" defaultValue={soloFecha(g.fechaPago)} style={fieldStyle} />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={pending} className="rounded-md px-3 h-9 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+          {pending ? "Guardando…" : "Guardar cambios"}
+        </button>
+        <button type="button" onClick={() => setEditando(false)} className="rounded-md px-3 h-9" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Detalle({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <div style={labelStyle}>{label}</div>
+      <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{value ?? "—"}</div>
+    </div>
+  );
+}
+
 export function PendientesLista({ pendientes }: { pendientes: GastoRow[] }) {
   const [busqueda, setBusqueda] = useState("");
+  const [expandido, setExpandido] = useState<string | null>(null);
   const ahora = useMemo(() => new Date(), []);
 
   const filtrados = useMemo(() => {
@@ -46,24 +225,38 @@ export function PendientesLista({ pendientes }: { pendientes: GastoRow[] }) {
       ) : (
         <Table headers={["Fecha", "Unidad", "Categoría", "Descripción", "Costo", ""]} minWidth={760}>
           {filtrados.map((g) => (
-            <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: new Date(g.fecha) < ahora ? "var(--color-status-escena)" : "var(--field-text)" }}>
-                {fmtFecha(g.fecha)}
-              </td>
-              <td className="px-4 py-3">
-                {g.numeroEconomico ? (
-                  <Link href={`/unidades/${g.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                    {g.numeroEconomico}
-                  </Link>
-                ) : (
-                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>{g.proyectoReportante?.nombre ?? "—"}</span>
-                )}
-              </td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{g.descripcion ?? "—"}</td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
-              <td className="px-4 py-3"><MarcarRealizadoButton id={g.id} /></td>
-            </tr>
+            <Fragment key={g.id}>
+              <tr style={{ borderBottom: expandido === g.id ? "none" : "1px solid var(--field-border)" }}>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: new Date(g.fecha) < ahora ? "var(--color-status-escena)" : "var(--field-text)" }}>
+                  {fmtFecha(g.fecha)}
+                </td>
+                <td className="px-4 py-3">
+                  {g.numeroEconomico ? (
+                    <Link href={`/unidades/${g.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+                      {g.numeroEconomico}
+                    </Link>
+                  ) : (
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>{g.proyectoReportante?.nombre ?? "—"}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{g.descripcion ?? "—"}</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <VerOrdenButton abierto={expandido === g.id} onClick={() => setExpandido((e) => (e === g.id ? null : g.id))} />
+                    <MarcarRealizadoButton id={g.id} />
+                  </div>
+                </td>
+              </tr>
+              {expandido === g.id && (
+                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
+                  <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
+                    <OrdenDetalle g={g} />
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </Table>
       )}
@@ -73,6 +266,7 @@ export function PendientesLista({ pendientes }: { pendientes: GastoRow[] }) {
 
 export function HistorialLista({ historial }: { historial: GastoRow[] }) {
   const [busqueda, setBusqueda] = useState("");
+  const [expandido, setExpandido] = useState<string | null>(null);
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
@@ -86,17 +280,29 @@ export function HistorialLista({ historial }: { historial: GastoRow[] }) {
       {filtrados.length === 0 ? (
         <EmptyState>Sin gastos que coincidan.</EmptyState>
       ) : (
-        <Table headers={["Fecha", "Unidad", "Categoría", "Costo", "Estatus"]} minWidth={640}>
+        <Table headers={["Fecha", "Unidad", "Categoría", "Costo", "Estatus", ""]} minWidth={720}>
           {filtrados.map((g) => (
-            <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(g.fecha)}</td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{g.numeroEconomico ?? g.proyectoReportante?.nombre ?? "—"}</td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
-              <td className="px-4 py-3">
-                <Badge label={ESTATUS_GASTO_LABEL[g.estatus]} color={ESTATUS_GASTO_STYLE[g.estatus]?.color} bg={ESTATUS_GASTO_STYLE[g.estatus]?.bg} />
-              </td>
-            </tr>
+            <Fragment key={g.id}>
+              <tr style={{ borderBottom: expandido === g.id ? "none" : "1px solid var(--field-border)" }}>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFecha(g.fecha)}</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{g.numeroEconomico ?? g.proyectoReportante?.nombre ?? "—"}</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{CATEGORIA_GASTO_LABEL[g.categoria]}</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(g.costo)}</td>
+                <td className="px-4 py-3">
+                  <Badge label={ESTATUS_GASTO_LABEL[g.estatus]} color={ESTATUS_GASTO_STYLE[g.estatus]?.color} bg={ESTATUS_GASTO_STYLE[g.estatus]?.bg} />
+                </td>
+                <td className="px-4 py-3">
+                  <VerOrdenButton abierto={expandido === g.id} onClick={() => setExpandido((e) => (e === g.id ? null : g.id))} />
+                </td>
+              </tr>
+              {expandido === g.id && (
+                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
+                  <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
+                    <OrdenDetalle g={g} />
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </Table>
       )}

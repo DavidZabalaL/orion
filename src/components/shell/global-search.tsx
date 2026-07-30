@@ -16,10 +16,7 @@ export function GlobalSearch() {
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setResultados(VACIO);
-      return;
-    }
+    if (query.trim().length < 2) return;
     const timeout = setTimeout(() => {
       startTransition(async () => {
         const res = await buscarGlobal(query);
@@ -29,6 +26,8 @@ export function GlobalSearch() {
     return () => clearTimeout(timeout);
   }, [query]);
 
+  const resultadosVisibles = query.trim().length < 2 ? VACIO : resultados;
+
   useEffect(() => {
     function alClickFuera(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false);
@@ -37,7 +36,7 @@ export function GlobalSearch() {
     return () => document.removeEventListener("mousedown", alClickFuera);
   }, []);
 
-  const hayResultados = resultados.unidades.length > 0 || resultados.operadores.length > 0;
+  const hayResultados = resultadosVisibles.unidades.length > 0 || resultadosVisibles.operadores.length > 0;
 
   function irA(href: string) {
     setAbierto(false);
@@ -48,8 +47,8 @@ export function GlobalSearch() {
 
   function alEnviar(e: React.FormEvent) {
     e.preventDefault();
-    if (resultados.unidades[0]) irA(`/unidades/${resultados.unidades[0].numeroEconomico}`);
-    else if (resultados.operadores[0]) irA(`/operadores/${resultados.operadores[0].id}`);
+    if (resultadosVisibles.unidades[0]) irA(`/unidades/${resultadosVisibles.unidades[0].numeroEconomico}`);
+    else if (resultadosVisibles.operadores[0]) irA(`/operadores/${resultadosVisibles.operadores[0].id}`);
   }
 
   return (
@@ -85,12 +84,12 @@ export function GlobalSearch() {
             </div>
           ) : (
             <div className="max-h-96 overflow-y-auto">
-              {resultados.unidades.length > 0 && (
+              {resultadosVisibles.unidades.length > 0 && (
                 <div>
                   <div className="px-4 pt-3 pb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                     Unidades
                   </div>
-                  {resultados.unidades.map((u) => (
+                  {resultadosVisibles.unidades.map((u) => (
                     <button
                       key={u.numeroEconomico}
                       onClick={() => irA(`/unidades/${u.numeroEconomico}`)}
@@ -111,12 +110,12 @@ export function GlobalSearch() {
                 </div>
               )}
 
-              {resultados.operadores.length > 0 && (
+              {resultadosVisibles.operadores.length > 0 && (
                 <div>
                   <div className="px-4 pt-3 pb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                     Operadores
                   </div>
-                  {resultados.operadores.map((o) => (
+                  {resultadosVisibles.operadores.map((o) => (
                     <button
                       key={o.id}
                       onClick={() => irA(`/operadores/${o.id}`)}

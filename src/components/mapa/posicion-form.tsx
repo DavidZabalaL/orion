@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { registrarPosicion } from "@/app/(app)/mapa/actions";
 import { CheckCircle2 } from "lucide-react";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -52,11 +53,7 @@ export function PosicionForm({ unidades }: { unidades: { numeroEconomico: string
       >
         <div>
           <CampoAyuda style={labelStyle} texto="Unidad cuya posición se está reportando.">Unidad *</CampoAyuda>
-          <select name="numeroEconomico" required style={fieldStyle}>
-            {unidades.map((u) => (
-              <option key={u.numeroEconomico} value={u.numeroEconomico}>{u.numeroEconomico}</option>
-            ))}
-          </select>
+          <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Momento exacto en que se capturó la posición.">Fecha/hora *</CampoAyuda>

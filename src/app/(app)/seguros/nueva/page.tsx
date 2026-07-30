@@ -7,9 +7,14 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuevaPolizaPage() {
+export default async function NuevaPolizaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ numeroEconomico?: string }>;
+}) {
   await requerirPermisoModulo("F", "editar");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
+  const { numeroEconomico } = await searchParams;
 
   const unidades = await prisma.unidad.findMany({
     where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
@@ -28,7 +33,7 @@ export default async function NuevaPolizaPage() {
         </h1>
       </div>
 
-      <SeguroForm unidades={unidades} />
+      <SeguroForm unidades={unidades} numeroEconomicoDefault={numeroEconomico} />
     </div>
   );
 }

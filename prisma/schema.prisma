@@ -219,32 +219,34 @@ enum FrecuenciaReporte {
 // ───────────────────────── MÓDULO K — USUARIOS Y ROLES ─────────────────────────
 
 model Rol {
-  id        String   @id @default(cuid())
-  nombre    String   @unique
+  id        String    @id @default(cuid())
+  nombre    String    @unique
   permisos  Json // módulo × acción × proyecto
   usuarios  Usuario[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Usuario {
-  id                String            @id @default(cuid())
-  nombre            String
-  correo            String            @unique
-  rolId             String
-  rol               Rol               @relation(fields: [rolId], references: [id])
-  estatus           EstatusUsuario    @default(INVITADO)
-  proyectos         UsuarioProyecto[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id         String            @id @default(cuid())
+  nombre     String
+  correo     String            @unique
+  rolId      String
+  rol        Rol               @relation(fields: [rolId], references: [id])
+  estatus    EstatusUsuario    @default(INVITADO)
+  proyectos  UsuarioProyecto[]
+  operadorId String?           @unique
+  operador   Operador?         @relation(fields: [operadorId], references: [id])
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
-  bitacora          BitacoraCambio[]
-  checklists        Checklist[]
-  documentosVerificados DocumentoOperador[]
-  auditorias        Auditoria[]
-  reportesProgramados  ReporteProgramado[]
+  bitacora                      BitacoraCambio[]
+  checklists                    Checklist[]
+  documentosVerificados         DocumentoOperador[]
+  auditorias                    Auditoria[]
+  reportesProgramados           ReporteProgramado[]
   configuracionesNotificaciones ConfiguracionNotificaciones[]
-  presupuestosPartidaCargados PresupuestoPartida[]
+  presupuestosPartidaCargados   PresupuestoPartida[]
 }
 
 model UsuarioProyecto {
@@ -257,33 +259,35 @@ model UsuarioProyecto {
 }
 
 model Documento {
-  id                String   @id @default(cuid())
+  id                 String   @id @default(cuid())
   entidadRelacionada String
-  entidadId         String
-  url               String
-  tipo              String
-  fechaCarga        DateTime @default(now())
+  entidadId          String
+  url                String
+  tipo               String
+  fechaCarga         DateTime @default(now())
 
-  operadoresFoto    Operador[]            @relation("OperadorFoto")
-  documentosOperador DocumentoOperador[]
-  gastos            GastoVehicular[]
-  checklists        Checklist[]
-  seguros           Seguro[]
+  operadoresFoto           Operador[]          @relation("OperadorFoto")
+  documentosOperador       DocumentoOperador[]
+  gastos                   GastoVehicular[]
+  checklists               Checklist[]
+  seguros                  Seguro[]
+  unidadTarjetaCombustible Unidad?             @relation("TarjetaCombustible")
+  unidadTarjetaCirculacion Unidad?             @relation("TarjetaCirculacion")
 }
 
 // ───────────────────────── MÓDULO H — PROYECTOS ─────────────────────────
 
 model Proyecto {
-  id                    String            @id @default(cuid())
-  nombre                String
-  estadoRepublica       String
-  coordinadorId         String?
-  fechaInicio           DateTime
-  fechaFin              DateTime?
-  estatus               EstatusProyecto   @default(ACTIVO)
-  presupuestoAprobadoAnual Decimal        @default(0) @db.Decimal(12, 2)
-  modulosActivos        Json
-  procesosActivos       Json
+  id                       String          @id @default(cuid())
+  nombre                   String
+  estadoRepublica          String
+  coordinadorId            String?
+  fechaInicio              DateTime
+  fechaFin                 DateTime?
+  estatus                  EstatusProyecto @default(ACTIVO)
+  presupuestoAprobadoAnual Decimal         @default(0) @db.Decimal(12, 2)
+  modulosActivos           Json
+  procesosActivos          Json
 
   unidades              Unidad[]
   operadores            Operador[]
@@ -294,8 +298,8 @@ model Proyecto {
   presupuestosMensuales PresupuestoMensual[]
   presupuestosPartida   PresupuestoPartida[]
   gastosReportados      GastoVehicular[]
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 }
 
 model PresupuestoMensual {
@@ -306,29 +310,29 @@ model PresupuestoMensual {
   mes           Int
   montoAsignado Decimal  @default(0) @db.Decimal(12, 2)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([proyectoId, anio, mes])
   @@index([proyectoId, anio])
 }
 
 model PresupuestoPartida {
-  id                   String            @id @default(cuid())
-  proyectoId           String
-  proyecto             Proyecto          @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
-  categoria            CategoriaGasto
-  anio                 Int
-  mes                  Int
-  montoPresupuestado   Decimal           @default(0) @db.Decimal(12, 2)
-  origen               OrigenPresupuesto @default(MANUAL)
-  archivoOrigenNombre  String?
-  version              Int               @default(1)
-  cargadoPorId         String
-  cargadoPor           Usuario           @relation(fields: [cargadoPorId], references: [id])
+  id                  String            @id @default(cuid())
+  proyectoId          String
+  proyecto            Proyecto          @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  categoria           CategoriaGasto
+  anio                Int
+  mes                 Int
+  montoPresupuestado  Decimal           @default(0) @db.Decimal(12, 2)
+  origen              OrigenPresupuesto @default(MANUAL)
+  archivoOrigenNombre String?
+  version             Int               @default(1)
+  cargadoPorId        String
+  cargadoPor          Usuario           @relation(fields: [cargadoPorId], references: [id])
 
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([proyectoId, categoria, anio, mes])
   @@index([proyectoId, anio])
@@ -337,134 +341,154 @@ model PresupuestoPartida {
 // ───────────────────────── MÓDULO A/B — UNIDAD ─────────────────────────
 
 model Unidad {
-  numeroEconomico      String            @id
-  placas               String            @unique
-  numeroSerie          String            @unique
-  marca                String
-  unidadModelo         String
-  anio                 Int
-  tipoVehiculo         TipoVehiculo
-  tipoCombustible      TipoCombustible
-  rendimientoPromedio  Decimal?          @db.Decimal(6, 2)
-  kmOficial            Int               @default(0)
-  capacidadTanqueLitros Decimal?         @db.Decimal(6, 2)
+  numeroEconomico       String          @id
+  placas                String          @unique
+  numeroSerie           String          @unique
+  marca                 String
+  unidadModelo          String
+  anio                  Int
+  tipoVehiculo          TipoVehiculo
+  tipoCombustible       TipoCombustible
+  rendimientoPromedio   Decimal?        @db.Decimal(6, 2)
+  kmOficial             Int             @default(0)
+  capacidadTanqueLitros Decimal?        @db.Decimal(6, 2)
 
-  proyectoId           String?
-  proyecto             Proyecto?         @relation(fields: [proyectoId], references: [id])
+  proyectoId String?
+  proyecto   Proyecto? @relation(fields: [proyectoId], references: [id])
 
-  estatus              EstatusUnidad     @default(ACTIVO)
-  disponibilidad       Boolean           @default(true)
-  diasSinOperar        Int               @default(0)
+  estatus        EstatusUnidad @default(ACTIVO)
+  disponibilidad Boolean       @default(true)
+  diasSinOperar  Int           @default(0)
 
-  resguardanteId       String?
-  resguardante         Operador?         @relation("ResguardanteActual", fields: [resguardanteId], references: [id])
+  resguardanteId String?
+  resguardante   Operador? @relation("ResguardanteActual", fields: [resguardanteId], references: [id])
 
-  propietario          PropietarioUnidad
-  origenPlaca          String
-  tagIave              String?
+  propietario PropietarioUnidad
+  origenPlaca String
+  tagIave     String?
 
-  fechaAlta            DateTime          @default(now())
-  fechaBaja            DateTime?
-  motivoBaja           MotivoBaja?
-  comentarioBaja       String?
+  tarjetaCombustibleId String?    @unique
+  tarjetaCombustible   Documento? @relation("TarjetaCombustible", fields: [tarjetaCombustibleId], references: [id])
+  tarjetaCirculacionId String?    @unique
+  tarjetaCirculacion   Documento? @relation("TarjetaCirculacion", fields: [tarjetaCirculacionId], references: [id])
 
-  asignaciones         AsignacionOperador[]
-  resguardos           Resguardo[]
-  checklists           Checklist[]
-  gastos               GastoVehicular[]
-  combustible          Combustible[]
-  tags                 Tag[]
-  seguros              Seguro[]
-  posicionesGps        PosicionGPS[]
-  huecosGps            HuecoSenalGPS[]
-  mapeoTarjetas        MapeoTarjetaEconomico[]
-  auditorias           Auditoria[]
+  fechaAlta      DateTime    @default(now())
+  fechaBaja      DateTime?
+  motivoBaja     MotivoBaja?
+  comentarioBaja String?
 
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  asignaciones    AsignacionOperador[]
+  resguardos      Resguardo[]
+  checklists      Checklist[]
+  gastos          GastoVehicular[]
+  combustible     Combustible[]
+  tags            Tag[]
+  seguros         Seguro[]
+  posicionesGps   PosicionGPS[]
+  huecosGps       HuecoSenalGPS[]
+  mapeoTarjetas   MapeoTarjetaEconomico[]
+  auditorias      Auditoria[]
+  placasHistorial Placa[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([proyectoId])
   @@index([estatus])
 }
 
+model Placa {
+  id              String    @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  placa           String
+  fechaDesde      DateTime  @default(now())
+  fechaHasta      DateTime?
+  motivo          String?
+  createdAt       DateTime  @default(now())
+
+  @@index([numeroEconomico])
+}
+
 // ───────────────────────── MÓDULO L — OPERADORES ─────────────────────────
 
 model Operador {
-  id                  String              @id @default(cuid())
-  nombre              String
-  curp                String              @unique
-  rfc                 String?
-  nss                 String?
-  tipoSangre          TipoSangre?
-  telefono            String?
-  contactoEmergencia  String?
-  fotoId              String?
-  foto                Documento?          @relation("OperadorFoto", fields: [fotoId], references: [id])
+  id                 String      @id @default(cuid())
+  nombre             String
+  curp               String      @unique
+  rfc                String?
+  nss                String?
+  tipoSangre         TipoSangre?
+  telefono           String?
+  contactoEmergencia String?
+  fotoId             String?
+  foto               Documento?  @relation("OperadorFoto", fields: [fotoId], references: [id])
 
-  proyectoId          String?
-  proyecto            Proyecto?           @relation(fields: [proyectoId], references: [id])
+  proyectoId String?
+  proyecto   Proyecto? @relation(fields: [proyectoId], references: [id])
 
-  estatus             EstatusOperador     @default(ACTIVO)
-  estatusDocumental   EstatusDocumental   @default(INCOMPLETO)
+  estatus           EstatusOperador   @default(ACTIVO)
+  estatusDocumental EstatusDocumental @default(INCOMPLETO)
 
-  documentos          DocumentoOperador[]
-  asignaciones        AsignacionOperador[]
-  resguardos          Resguardo[]
-  unidadesResguardadas Unidad[]           @relation("ResguardanteActual")
+  documentos           DocumentoOperador[]
+  asignaciones         AsignacionOperador[]
+  resguardos           Resguardo[]
+  unidadesResguardadas Unidad[]             @relation("ResguardanteActual")
+  usuario              Usuario?
 
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([proyectoId])
 }
 
 model DocumentoOperador {
-  id                 String                @id @default(cuid())
-  operadorId         String
-  operador           Operador              @relation(fields: [operadorId], references: [id], onDelete: Cascade)
-  tipoDocumento      TipoDocumentoOperador
-  numero             String?
-  tipoLicencia       TipoLicencia?
-  estadoEmisor       String?
-  fechaEmision       DateTime
-  fechaVencimiento   DateTime?
-  archivoId          String
-  archivo            Documento             @relation(fields: [archivoId], references: [id])
-  verificado         Boolean               @default(false)
-  fechaVerificacion  DateTime?
-  verificadoPorId    String?
-  verificadoPor      Usuario?              @relation(fields: [verificadoPorId], references: [id])
+  id                String                @id @default(cuid())
+  operadorId        String
+  operador          Operador              @relation(fields: [operadorId], references: [id], onDelete: Cascade)
+  tipoDocumento     TipoDocumentoOperador
+  numero            String?
+  tipoLicencia      TipoLicencia?
+  estadoEmisor      String?
+  fechaEmision      DateTime
+  fechaVencimiento  DateTime?
+  archivoId         String
+  archivo           Documento             @relation(fields: [archivoId], references: [id])
+  verificado        Boolean               @default(false)
+  fechaVerificacion DateTime?
+  verificadoPorId   String?
+  verificadoPor     Usuario?              @relation(fields: [verificadoPorId], references: [id])
 
-  createdAt          DateTime              @default(now())
-  updatedAt           DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([operadorId])
   @@index([fechaVencimiento])
 }
 
 model AsignacionOperador {
-  id               String    @id @default(cuid())
-  operadorId       String
-  operador         Operador  @relation(fields: [operadorId], references: [id])
-  numeroEconomico  String
-  unidad           Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fechaDesde       DateTime
-  fechaHasta       DateTime?
-  motivoCambio     String?
+  id              String    @id @default(cuid())
+  operadorId      String
+  operador        Operador  @relation(fields: [operadorId], references: [id])
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  fechaDesde      DateTime
+  fechaHasta      DateTime?
+  motivoCambio    String?
 
   @@index([numeroEconomico])
   @@index([operadorId])
 }
 
 model Resguardo {
-  id               String    @id @default(cuid())
-  numeroEconomico  String
-  unidad           Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  operadorId       String
-  operador         Operador  @relation(fields: [operadorId], references: [id])
-  fechaDesde       DateTime
-  fechaHasta       DateTime?
-  motivoCambio     String?
+  id              String    @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  operadorId      String
+  operador        Operador  @relation(fields: [operadorId], references: [id])
+  fechaDesde      DateTime
+  fechaHasta      DateTime?
+  motivoCambio    String?
 
   @@index([numeroEconomico])
   @@index([operadorId])
@@ -473,18 +497,19 @@ model Resguardo {
 // ───────────────────────── MÓDULO A.1 — CHECKLIST ─────────────────────────
 
 model Checklist {
-  id                String    @id @default(cuid())
-  numeroEconomico   String
-  unidad            Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fecha             DateTime
-  odometro          Int
-  puntosInspeccion  Json
-  evidenciaId       String?
-  evidencia         Documento? @relation(fields: [evidenciaId], references: [id])
-  capturadoPorId    String
-  capturadoPor      Usuario   @relation(fields: [capturadoPorId], references: [id])
+  id               String     @id @default(cuid())
+  numeroEconomico  String
+  unidad           Unidad     @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  fecha            DateTime
+  odometro         Int
+  horometro        Int?
+  puntosInspeccion Json
+  evidenciaId      String?
+  evidencia        Documento? @relation(fields: [evidenciaId], references: [id])
+  capturadoPorId   String
+  capturadoPor     Usuario    @relation(fields: [capturadoPorId], references: [id])
 
-  createdAt         DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([numeroEconomico, fecha])
 }
@@ -492,35 +517,35 @@ model Checklist {
 // ───────────────────────── MÓDULO C — GASTOS VEHICULARES ─────────────────────────
 
 model GastoVehicular {
-  id                 String          @id @default(cuid())
-  numeroEconomico    String?
-  unidad             Unidad?         @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  id                   String         @id @default(cuid())
+  numeroEconomico      String?
+  unidad               Unidad?        @relation(fields: [numeroEconomico], references: [numeroEconomico])
   proyectoReportanteId String?
-  proyectoReportante Proyecto?       @relation(fields: [proyectoReportanteId], references: [id])
-  categoria          CategoriaGasto
-  descripcion        String?
-  fecha              DateTime
-  costo              Decimal         @db.Decimal(12, 2)
-  kmAlMomento        Int?
-  proveedor          String?
-  servicio           String?
-  empresa            String?
+  proyectoReportante   Proyecto?      @relation(fields: [proyectoReportanteId], references: [id])
+  categoria            CategoriaGasto
+  descripcion          String?
+  fecha                DateTime
+  costo                Decimal        @db.Decimal(12, 2)
+  kmAlMomento          Int?
+  proveedor            String?
+  servicio             String?
+  empresa              String?
 
-  sc                 String?
-  odc                String?
-  entradaSap         String?
-  fechaRequisicion   DateTime?
-  fechaOdc           DateTime?
-  fechaFactura       DateTime?
-  fechaCxp           DateTime?
-  fechaPago          DateTime?
+  sc               String?
+  odc              String?
+  entradaSap       String?
+  fechaRequisicion DateTime?
+  fechaOdc         DateTime?
+  fechaFactura     DateTime?
+  fechaCxp         DateTime?
+  fechaPago        DateTime?
 
-  evidenciaId        String?
-  evidencia          Documento?      @relation(fields: [evidenciaId], references: [id])
-  estatus            EstatusGasto    @default(PROGRAMADO)
+  evidenciaId String?
+  evidencia   Documento?   @relation(fields: [evidenciaId], references: [id])
+  estatus     EstatusGasto @default(PROGRAMADO)
 
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([numeroEconomico])
   @@index([categoria])
@@ -530,47 +555,47 @@ model GastoVehicular {
 // ───────────────────────── MÓDULO D — COMBUSTIBLE ─────────────────────────
 
 model ConfiguracionProveedorCombustible {
-  id             String        @id @default(cuid())
-  nombre         String        @unique
-  mapeoColumnas  Json
-  formatoFecha   String
-  combustible    Combustible[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  nombre        String        @unique
+  mapeoColumnas Json
+  formatoFecha  String
+  combustible   Combustible[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Combustible {
-  id                      String                              @id @default(cuid())
-  numeroEconomico         String
-  unidad                  Unidad                              @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fecha                   DateTime
-  litros                  Decimal                             @db.Decimal(10, 2)
-  costo                   Decimal                             @db.Decimal(12, 2)
-  kmActual                Int
-  estacion                String?
-  rfcEstacion             String?
-  proyectoReportanteId    String?
-  proyectoReportante      Proyecto?                           @relation(fields: [proyectoReportanteId], references: [id])
-  fuente                  FuenteCombustible                   @default(MANUAL)
-  proveedorConfigId       String?
-  proveedorConfig         ConfiguracionProveedorCombustible?  @relation(fields: [proveedorConfigId], references: [id])
-  rendimientoCalculado    Decimal?                            @db.Decimal(6, 2)
-  nivelEstimadoDespues    Decimal?                            @db.Decimal(6, 2)
-  alertaSobrellenado      Boolean                             @default(false)
+  id                   String                             @id @default(cuid())
+  numeroEconomico      String
+  unidad               Unidad                             @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  fecha                DateTime
+  litros               Decimal                            @db.Decimal(10, 2)
+  costo                Decimal                            @db.Decimal(12, 2)
+  kmActual             Int
+  estacion             String?
+  rfcEstacion          String?
+  proyectoReportanteId String?
+  proyectoReportante   Proyecto?                          @relation(fields: [proyectoReportanteId], references: [id])
+  fuente               FuenteCombustible                  @default(MANUAL)
+  proveedorConfigId    String?
+  proveedorConfig      ConfiguracionProveedorCombustible? @relation(fields: [proveedorConfigId], references: [id])
+  rendimientoCalculado Decimal?                           @db.Decimal(6, 2)
+  nivelEstimadoDespues Decimal?                           @db.Decimal(6, 2)
+  alertaSobrellenado   Boolean                            @default(false)
 
-  createdAt               DateTime                            @default(now())
+  createdAt DateTime @default(now())
 
   @@index([numeroEconomico, fecha])
 }
 
 model MapeoTarjetaEconomico {
-  numeroTarjeta    String    @id
-  placaAsociada    String?
-  numeroEconomico  String
-  unidad           Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  proveedor        String
-  vigenciaDesde    DateTime
-  vigenciaHasta    DateTime?
+  numeroTarjeta   String    @id
+  placaAsociada   String?
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  proveedor       String
+  vigenciaDesde   DateTime
+  vigenciaHasta   DateTime?
 
   @@index([numeroEconomico])
 }
@@ -578,19 +603,19 @@ model MapeoTarjetaEconomico {
 // ───────────────────────── MÓDULO E — TAG / PEAJES ─────────────────────────
 
 model Tag {
-  id                    String        @id @default(cuid())
-  numeroEconomico       String?
-  unidad                Unidad?       @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fecha                 DateTime
-  monto                 Decimal       @db.Decimal(10, 2)
-  caseta                String?
-  proveedorTag          ProveedorTag
-  tarjetaIdmx           String?
-  proyectoReportanteId  String?
-  proyectoReportante    Proyecto?     @relation(fields: [proyectoReportanteId], references: [id])
-  conciliado            Boolean       @default(false)
+  id                   String       @id @default(cuid())
+  numeroEconomico      String?
+  unidad               Unidad?      @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  fecha                DateTime
+  monto                Decimal      @db.Decimal(10, 2)
+  caseta               String?
+  proveedorTag         ProveedorTag
+  tarjetaIdmx          String?
+  proyectoReportanteId String?
+  proyectoReportante   Proyecto?    @relation(fields: [proyectoReportanteId], references: [id])
+  conciliado           Boolean      @default(false)
 
-  createdAt             DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([numeroEconomico, fecha])
 }
@@ -598,34 +623,34 @@ model Tag {
 // ───────────────────────── MÓDULO F — SEGUROS ─────────────────────────
 
 model Seguro {
-  id               String            @id @default(cuid())
+  id               String        @id @default(cuid())
   numeroEconomico  String
-  unidad           Unidad            @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  unidad           Unidad        @relation(fields: [numeroEconomico], references: [numeroEconomico])
   aseguradora      String
   numeroPoliza     String
   fechaInicio      DateTime
   fechaVencimiento DateTime
-  costo            Decimal           @db.Decimal(12, 2)
+  costo            Decimal       @db.Decimal(12, 2)
   documentoId      String?
-  documento        Documento?        @relation(fields: [documentoId], references: [id])
-  estatus          EstatusSeguro     @default(VIGENTE)
+  documento        Documento?    @relation(fields: [documentoId], references: [id])
+  estatus          EstatusSeguro @default(VIGENTE)
 
-  coberturas       CoberturaSeguro[]
+  coberturas CoberturaSeguro[]
 
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([numeroEconomico])
   @@index([fechaVencimiento])
 }
 
 model CoberturaSeguro {
-  id                   String        @id @default(cuid())
-  seguroId             String
-  seguro               Seguro        @relation(fields: [seguroId], references: [id], onDelete: Cascade)
-  tipoCobertura        TipoCobertura
-  sumaAsegurada        Decimal       @db.Decimal(12, 2)
-  deducible            Decimal       @db.Decimal(12, 2)
+  id                    String        @id @default(cuid())
+  seguroId              String
+  seguro                Seguro        @relation(fields: [seguroId], references: [id], onDelete: Cascade)
+  tipoCobertura         TipoCobertura
+  sumaAsegurada         Decimal       @db.Decimal(12, 2)
+  deducible             Decimal       @db.Decimal(12, 2)
   condicionesEspeciales String?
 
   @@index([seguroId])
@@ -634,72 +659,72 @@ model CoberturaSeguro {
 // ───────────────────────── MÓDULO G / G.1 — GEOLOCALIZACIÓN ─────────────────────────
 
 model PosicionGPS {
-  id               String              @id @default(cuid())
-  numeroEconomico  String
-  unidad           Unidad              @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  lat              Decimal             @db.Decimal(9, 6)
-  lng              Decimal             @db.Decimal(9, 6)
-  velocidad        Decimal?            @db.Decimal(6, 2)
-  timestamp        DateTime
-  fuente           FuenteGPS
-  kmReportado      Int?
-  kmValidado       Int?
-  esAnomalo        Boolean             @default(false)
-  motivoAnomalia   MotivoAnomaliaGPS?
+  id              String             @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad             @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  lat             Decimal            @db.Decimal(9, 6)
+  lng             Decimal            @db.Decimal(9, 6)
+  velocidad       Decimal?           @db.Decimal(6, 2)
+  timestamp       DateTime
+  fuente          FuenteGPS
+  kmReportado     Int?
+  kmValidado      Int?
+  esAnomalo       Boolean            @default(false)
+  motivoAnomalia  MotivoAnomaliaGPS?
 
   @@index([numeroEconomico, timestamp])
 }
 
 model HuecoSenalGPS {
-  id                    String    @id @default(cuid())
-  numeroEconomico       String
-  unidad                Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  ultimaPosicionLat     Decimal   @db.Decimal(9, 6)
-  ultimaPosicionLng     Decimal   @db.Decimal(9, 6)
-  timestampInicio       DateTime
-  timestampFin          DateTime?
-  duracionMinutos       Int?
-  primeraPosicionLat    Decimal?  @db.Decimal(9, 6)
-  primeraPosicionLng    Decimal?  @db.Decimal(9, 6)
-  distanciaSaltoKm      Decimal?  @db.Decimal(8, 2)
-  patronRecurrente      Boolean   @default(false)
+  id                 String    @id @default(cuid())
+  numeroEconomico    String
+  unidad             Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  ultimaPosicionLat  Decimal   @db.Decimal(9, 6)
+  ultimaPosicionLng  Decimal   @db.Decimal(9, 6)
+  timestampInicio    DateTime
+  timestampFin       DateTime?
+  duracionMinutos    Int?
+  primeraPosicionLat Decimal?  @db.Decimal(9, 6)
+  primeraPosicionLng Decimal?  @db.Decimal(9, 6)
+  distanciaSaltoKm   Decimal?  @db.Decimal(8, 2)
+  patronRecurrente   Boolean   @default(false)
 
   @@index([numeroEconomico])
 }
 
 model Geocerca {
-  id           String        @id @default(cuid())
-  nombre       String
-  tipo         TipoGeocerca
-  poligono     Json
-  proyectoId   String?
-  proyecto     Proyecto?     @relation(fields: [proyectoId], references: [id])
-  horaLimite   String?
-  activa       Boolean       @default(true)
+  id         String       @id @default(cuid())
+  nombre     String
+  tipo       TipoGeocerca
+  poligono   Json
+  proyectoId String?
+  proyecto   Proyecto?    @relation(fields: [proyectoId], references: [id])
+  horaLimite String?
+  activa     Boolean      @default(true)
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ───────────────────────── MÓDULO I — AUDITORÍA ─────────────────────────
 
 model Auditoria {
-  id                 String              @id @default(cuid())
-  numeroEconomico    String
-  unidad             Unidad              @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fechaRevision      DateTime
-  revisorId          String
-  revisor            Usuario             @relation(fields: [revisorId], references: [id])
-  categoriaGasto     CategoriaAuditoria
-  montoPptto         Decimal             @db.Decimal(12, 2)
-  montoReal          Decimal             @db.Decimal(12, 2)
-  montoCv            Decimal             @db.Decimal(12, 2)
-  diferencia         Decimal             @db.Decimal(12, 2)
-  tipoDiscrepancia   TipoDiscrepancia?
-  resolucion         String?
-  estatus            EstatusAuditoria    @default(ABIERTA)
+  id               String             @id @default(cuid())
+  numeroEconomico  String
+  unidad           Unidad             @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  fechaRevision    DateTime
+  revisorId        String
+  revisor          Usuario            @relation(fields: [revisorId], references: [id])
+  categoriaGasto   CategoriaAuditoria
+  montoPptto       Decimal            @db.Decimal(12, 2)
+  montoReal        Decimal            @db.Decimal(12, 2)
+  montoCv          Decimal            @db.Decimal(12, 2)
+  diferencia       Decimal            @db.Decimal(12, 2)
+  tipoDiscrepancia TipoDiscrepancia?
+  resolucion       String?
+  estatus          EstatusAuditoria   @default(ABIERTA)
 
-  createdAt          DateTime            @default(now())
+  createdAt DateTime @default(now())
 
   @@index([numeroEconomico, fechaRevision])
 }
@@ -707,12 +732,12 @@ model Auditoria {
 // ───────────────────────── BITÁCORA ─────────────────────────
 
 model BitacoraCambio {
-  id                String          @id @default(cuid())
+  id                String         @id @default(cuid())
   entidad           String
   entidadId         String
   usuarioId         String
-  usuario           Usuario         @relation(fields: [usuarioId], references: [id])
-  timestamp         DateTime        @default(now())
+  usuario           Usuario        @relation(fields: [usuarioId], references: [id])
+  timestamp         DateTime       @default(now())
   accion            AccionBitacora
   valoresAnteriores Json?
   valoresNuevos     Json?
@@ -735,8 +760,8 @@ model ReporteProgramado {
   creadoPorId   String
   creadoPor     Usuario           @relation(fields: [creadoPorId], references: [id])
 
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ───────────────────────── CONFIGURACIÓN DE ALERTAS / NOTIFICACIONES ─────────────────────────
@@ -780,4 +805,23 @@ model ConfiguracionNotificaciones {
   actualizadoPorId String?
   actualizadoPor   Usuario? @relation(fields: [actualizadoPorId], references: [id])
   updatedAt        DateTime @updatedAt
+}
+
+// ───────────────────────── MANTENIMIENTO PREVENTIVO ─────────────────────────
+
+model ConfiguracionMantenimientoPreventivo {
+  id             String       @id @default(cuid())
+  tipoVehiculo   TipoVehiculo @unique
+  intervaloKm    Int
+  intervaloHoras Int?
+  updatedAt      DateTime     @updatedAt
+}
+
+// ───────────────────────── WIDGETS CONFIGURABLES ─────────────────────────
+
+model ConfiguracionWidgets {
+  id        String   @id @default(cuid())
+  moduloId  String   @unique
+  widgets   Json
+  updatedAt DateTime @updatedAt
 }

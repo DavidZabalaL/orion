@@ -167,10 +167,12 @@ export function FichaUnidad({
   unidad,
   puedeEditarCapacidad,
   proyectos,
+  alertaPreventiva,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
   proyectos: { id: string; nombre: string }[];
+  alertaPreventiva: Unidad | null;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -258,6 +260,14 @@ export function FichaUnidad({
         <Kpi icon={CalendarClock} label="Días sin operar" value={String(unidad.diasSinOperar)} sub={unidad.disponibilidad ? "Disponible" : "No disponible"} alert={unidad.diasSinOperar > 2} />
       </div>
 
+      {alertaPreventiva && (
+        <div className="rounded-md px-4 py-3" style={{ background: "var(--status-escena-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
+          Mantenimiento preventivo vencido
+          {alertaPreventiva.vencidaPorKm && ` — ${alertaPreventiva.kmDesdeUltimoMantenimiento.toLocaleString("es-MX")} km desde el último servicio (intervalo ${alertaPreventiva.intervaloKm.toLocaleString("es-MX")} km)`}
+          {alertaPreventiva.vencidaPorHoras && ` — ${alertaPreventiva.horasDesdeUltimoMantenimiento} hrs desde el último servicio (intervalo ${alertaPreventiva.intervaloHoras} hrs)`}
+        </div>
+      )}
+
       {/* Tabs */}
       <div>
         <div className="flex gap-1 overflow-x-auto border-b" style={{ borderColor: "var(--field-border)" }}>
@@ -284,7 +294,7 @@ export function FichaUnidad({
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} />}
-          {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} />}
+          {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
@@ -331,7 +341,9 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEditarCapacidad: boolean }) {
+  const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
   return (
+    <div className="flex flex-col gap-6">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl p-5" style={panelStyle}>
         <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
@@ -376,6 +388,27 @@ function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEdi
           <Field label="Fecha de alta" value={fmtFecha(unidad.fechaAlta)} />
         </div>
       </div>
+    </div>
+
+    <div className="rounded-xl p-5" style={panelStyle}>
+      <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+        Historial de placas
+      </h3>
+      {placasHistorial.length === 0 ? (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin historial registrado todavía.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {placasHistorial.map((p) => (
+            <div key={p.id} className="flex items-center justify-between rounded-md px-3 py-2" style={{ background: "var(--field-bg)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{p.placa}</span>
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+                {fmtFecha(p.fechaDesde)} — {p.fechaHasta ? fmtFecha(p.fechaHasta) : "vigente"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
     </div>
   );
 }
@@ -499,8 +532,21 @@ function TabTag({ registros }: { registros: Unidad[] }) {
   );
 }
 
-function TabSeguro({ seguros }: { seguros: Unidad[] }) {
-  if (!seguros.length) return <EmptyState>Esta unidad no tiene póliza registrada — Módulo F.</EmptyState>;
+function TabSeguro({ seguros, numeroEconomico }: { seguros: Unidad[]; numeroEconomico: string }) {
+  if (!seguros.length) {
+    return (
+      <div className="flex flex-col gap-4">
+        <EmptyState>Esta unidad no tiene póliza registrada — Módulo F.</EmptyState>
+        <Link
+          href={`/seguros/nueva?numeroEconomico=${numeroEconomico}`}
+          className="flex items-center gap-2 rounded-md px-4 h-10 w-fit"
+          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600 }}
+        >
+          <ShieldCheck size={16} /> Agregar póliza
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-5">
       {seguros.map((s) => (
@@ -514,7 +560,12 @@ function TabSeguro({ seguros }: { seguros: Unidad[] }) {
                 Vigencia {fmtFecha(s.fechaInicio)} — {fmtFecha(s.fechaVencimiento)} · {fmtMoney(s.costo)}
               </div>
             </div>
-            <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
+            <div className="flex items-center gap-3">
+              <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
+              <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                Ver / editar →
+              </Link>
+            </div>
           </div>
 
           <table className="w-full min-w-[560px] border-collapse">

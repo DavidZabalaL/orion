@@ -7,6 +7,7 @@ import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { PendientesLista, HistorialLista } from "@/components/mantenimiento/mantenimiento-lista";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { obtenerAlertasMantenimientoPreventivo } from "@/lib/mantenimiento-preventivo";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ export default async function MantenimientoPage() {
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
+
+  const alertasPreventivas = await obtenerAlertasMantenimientoPreventivo(proyectosPermitidos);
 
   const [pendientes, historial, porCategoria] = await Promise.all([
     prisma.gastoVehicular.findMany({
@@ -58,12 +61,19 @@ export default async function MantenimientoPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <StatCard label="Órdenes programadas" value={pendientes.length} icon={Clock} accent="var(--color-status-revision)" />
         <StatCard label="Vencidas / atrasadas" value={vencidos.length} icon={AlertTriangle} accent="var(--color-status-escena)" />
         <StatCard label="Gasto total registrado" value={fmtMoney(gastoTotal)} icon={DollarSign} accent="var(--color-primary)" />
         <StatCard label="Categorías con movimiento" value={porCategoria.length} icon={Wrench} accent="var(--color-status-cerrado)" />
+        <StatCard label="Mant. preventivo vencido" value={alertasPreventivas.length} icon={AlertTriangle} accent="var(--color-status-escena)" />
       </div>
+
+      {alertasPreventivas.length > 0 && (
+        <div className="rounded-md px-4 py-3" style={{ background: "var(--status-escena-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
+          Mantenimiento preventivo vencido en: {alertasPreventivas.map((a) => `${a.numeroEconomico} (${a.vencidaPorKm ? `${a.kmDesdeUltimoMantenimiento.toLocaleString("es-MX")} km` : ""}${a.vencidaPorKm && a.vencidaPorHoras ? " y " : ""}${a.vencidaPorHoras ? `${a.horasDesdeUltimoMantenimiento} hrs` : ""})`).join(", ")}
+        </div>
+      )}
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>

@@ -7,6 +7,7 @@ import { Table } from "@/components/ui/table";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE, TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { RenovarSeguroForm } from "@/components/seguros/renovar-seguro-form";
+import { SubirDocumentoSeguroForm } from "@/components/seguros/subir-documento-seguro-form";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
@@ -20,7 +21,11 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
 
   const seguro = await prisma.seguro.findUnique({
     where: { id },
-    include: { coberturas: true, unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, placas: true, proyectoId: true } } },
+    include: {
+      coberturas: true,
+      documento: { select: { url: true } },
+      unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, placas: true, proyectoId: true } },
+    },
   });
 
   if (!seguro) notFound();
@@ -82,7 +87,16 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
         </Table>
       </div>
 
-      <RenovarSeguroForm id={seguro.id} />
+      {seguro.documento && (
+        <a href={seguro.documento.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+          Ver PDF de la póliza cargado →
+        </a>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <RenovarSeguroForm id={seguro.id} />
+        <SubirDocumentoSeguroForm id={seguro.id} tieneDocumento={!!seguro.documento} />
+      </div>
     </div>
   );
 }
