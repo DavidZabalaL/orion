@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { X, GripVertical } from "lucide-react";
+import { X, Pencil, GripVertical } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import type { TipoGrafica, TipoAgregacion, TipoOrden } from "@/lib/bi/metadata";
@@ -16,6 +16,7 @@ export function BiCard({
   ejeSplit,
   orden,
   editMode = false,
+  onEditar,
   onEliminar,
 }: {
   label: string;
@@ -27,6 +28,7 @@ export function BiCard({
   ejeSplit?: string;
   orden?: TipoOrden;
   editMode?: boolean;
+  onEditar?: () => void;
   onEliminar?: () => void;
 }) {
   const params = useMemo(() => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden }), [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden]);
@@ -42,17 +44,28 @@ export function BiCard({
           </h3>
         </div>
         {editMode && (
-          <button
-            type="button"
-            onClick={onEliminar}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
-            style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)" }}
-            title="Quitar de la vista"
-            data-no-print
-          >
-            <X size={13} />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5" data-no-print>
+            <button
+              type="button"
+              onClick={onEditar}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex h-6 w-6 items-center justify-center rounded-md"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
+              title="Editar este widget"
+            >
+              <Pencil size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={onEliminar}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex h-6 w-6 items-center justify-center rounded-md"
+              style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)" }}
+              title="Quitar de la vista"
+            >
+              <X size={13} />
+            </button>
+          </div>
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">

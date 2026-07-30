@@ -45,13 +45,14 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
   const [nombreVista, setNombreVista] = useState(primeraVista?.nombre ?? "Vista sugerida");
   const [widgets, setWidgets] = useState<WidgetDashboardBI[]>(primeraVista?.widgets ?? WIDGETS_BI_DEFAULT);
   const [editMode, setEditMode] = useState(false);
-  const [mostrarAgregar, setMostrarAgregar] = useState(false);
+  const [formulario, setFormulario] = useState<"agregar" | { editarId: string } | null>(null);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>("lg");
 
   function cambiarVista(id: string) {
     setVistaActivaId(id);
     setEditMode(false);
+    setFormulario(null);
     setMensaje(null);
     if (id === TEMPORAL) {
       setNombreVista("Vista sugerida");
@@ -101,12 +102,17 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
     setWidgets((ws) => ws.filter((w) => w.id !== id));
   }
 
-  function agregarWidget(nuevo: Omit<WidgetDashboardBI, "id" | "layout">) {
-    setWidgets((ws) => [
-      ...ws,
-      { ...nuevo, id: nuevoIdWidget(), layout: { x: 0, y: Number.MAX_SAFE_INTEGER, w: 4, h: 9 } },
-    ]);
-    setMostrarAgregar(false);
+  function guardarWidgetDesdeFormulario(datos: Omit<WidgetDashboardBI, "id" | "layout">) {
+    if (formulario && formulario !== "agregar") {
+      const { editarId } = formulario;
+      setWidgets((ws) => ws.map((w) => (w.id === editarId ? { ...w, ...datos } : w)));
+    } else {
+      setWidgets((ws) => [
+        ...ws,
+        { ...datos, id: nuevoIdWidget(), layout: { x: 0, y: Number.MAX_SAFE_INTEGER, w: 4, h: 9 } },
+      ]);
+    }
+    setFormulario(null);
   }
 
   function handleLayoutChange(actual: Layout, todos: ResponsiveLayouts) {
@@ -120,6 +126,7 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
     );
   }
 
+  const widgetEditando = formulario && formulario !== "agregar" ? widgets.find((w) => w.id === formulario.editarId) : undefined;
   const interactivo = editMode && breakpoint !== "sm";
   const layouts: ResponsiveLayouts = {
     lg: widgets.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h, minW: 2, minH: 4 })),
@@ -221,6 +228,7 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
                     ejeSplit={w.ejeSplit}
                     orden={w.orden}
                     editMode={editMode}
+                    onEditar={() => setFormulario({ editarId: w.id })}
                     onEliminar={() => eliminarWidget(w.id)}
                   />
                 </div>
@@ -279,7 +287,7 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
               <button
                 onClick={() => {
                   setEditMode(false);
-                  setMostrarAgregar(false);
+                  setFormulario(null);
                   cambiarVista(vistaActivaId);
                 }}
                 className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
@@ -293,11 +301,31 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
 
             <hr style={{ border: "none", borderTop: "1px solid var(--field-border)" }} />
 
-            {mostrarAgregar ? (
-              <BiAgregarWidget compacto onAgregar={agregarWidget} onCancelar={() => setMostrarAgregar(false)} />
+            {formulario ? (
+              <BiAgregarWidget
+                compacto
+                valorInicial={
+                  widgetEditando
+                    ? {
+                        label: widgetEditando.label,
+                        combinacion: {
+                          datasetId: widgetEditando.dataset,
+                          ejeX: widgetEditando.ejeX,
+                          ejeY: widgetEditando.ejeY,
+                          agregacion: widgetEditando.agregacion,
+                          tipoGrafica: widgetEditando.tipoGrafica,
+                          ejeSplit: widgetEditando.ejeSplit,
+                          orden: widgetEditando.orden,
+                        },
+                      }
+                    : undefined
+                }
+                onGuardar={guardarWidgetDesdeFormulario}
+                onCancelar={() => setFormulario(null)}
+              />
             ) : (
               <button
-                onClick={() => setMostrarAgregar(true)}
+                onClick={() => setFormulario("agregar")}
                 className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
                 style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
               >
