@@ -32,14 +32,22 @@ export const BI_DATASETS: DatasetMeta[] = [
   {
     id: "unidades",
     label: "Inventario de unidades",
-    from: `"Unidad" u LEFT JOIN "Proyecto" p ON p.id = u."proyectoId"`,
+    from: `"Unidad" u LEFT JOIN "Proyecto" p ON p.id = u."proyectoId" LEFT JOIN "Operador" r ON r.id = u."resguardanteId"`,
     campos: [
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `u."estatus"` },
       { id: "tipoVehiculo", label: "Tipo de vehículo", tipo: "texto", expr: `u."tipoVehiculo"` },
       { id: "tipoCombustible", label: "Tipo de combustible", tipo: "texto", expr: `u."tipoCombustible"` },
       { id: "marca", label: "Marca", tipo: "texto", expr: `u."marca"` },
+      { id: "unidadModelo", label: "Unidad / modelo comercial", tipo: "texto", expr: `u."unidadModelo"` },
+      { id: "anio", label: "Año", tipo: "texto", expr: `u."anio"::text` },
+      { id: "propietario", label: "Propietario", tipo: "texto", expr: `u."propietario"` },
+      { id: "origenPlaca", label: "Origen de placa (estado)", tipo: "texto", expr: `u."origenPlaca"` },
+      { id: "resguardante", label: "Resguardante", tipo: "texto", expr: `COALESCE(r."nombre", 'Sin resguardante')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
+      { id: "mesAlta", label: "Mes de alta", tipo: "fecha_mes", expr: `u."fechaAlta"` },
       { id: "kmOficial", label: "Km oficial", tipo: "numero", expr: `u."kmOficial"` },
+      { id: "rendimientoPromedio", label: "Rendimiento promedio", tipo: "numero", expr: `u."rendimientoPromedio"` },
+      { id: "capacidadTanqueLitros", label: "Capacidad de tanque (litros)", tipo: "numero", expr: `u."capacidadTanqueLitros"` },
     ],
   },
   {
@@ -124,6 +132,17 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "montoPresupuestado", label: "Monto presupuestado", tipo: "numero", expr: `pp."montoPresupuestado"` },
     ],
   },
+  {
+    id: "proyectos",
+    label: "Proyectos",
+    from: `"Proyecto" p`,
+    campos: [
+      { id: "estadoRepublica", label: "Estado de la república", tipo: "texto", expr: `p."estadoRepublica"` },
+      { id: "estatus", label: "Estatus", tipo: "texto", expr: `p."estatus"` },
+      { id: "mesInicio", label: "Mes de inicio", tipo: "fecha_mes", expr: `p."fechaInicio"` },
+      { id: "presupuestoAprobadoAnual", label: "Presupuesto aprobado anual", tipo: "numero", expr: `p."presupuestoAprobadoAnual"` },
+    ],
+  },
 ];
 
 export function obtenerDataset(id: string): DatasetMeta | undefined {
@@ -157,6 +176,10 @@ export const BI_COMBINACIONES_SUGERIDAS: { label: string; dataset: string; ejeX:
   { label: "Documentos por vencer por tipo", dataset: "documentos_operador", ejeX: "tipoDocumento", ejeY: "tipoDocumento", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Gasto de peajes por mes", dataset: "peajes", ejeX: "mes", ejeY: "monto", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Presupuesto autorizado por categoría", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "montoPresupuestado", agregacion: "suma", tipoGrafica: "barras" },
+  { label: "Unidades por año modelo", dataset: "unidades", ejeX: "anio", ejeY: "anio", agregacion: "conteo", tipoGrafica: "barras" },
+  { label: "Rendimiento promedio por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoPromedio", agregacion: "promedio", tipoGrafica: "barras" },
+  { label: "Unidades por propietario", dataset: "unidades", ejeX: "propietario", ejeY: "propietario", agregacion: "conteo", tipoGrafica: "pie" },
+  { label: "Proyectos por estado de la república", dataset: "proyectos", ejeX: "estadoRepublica", ejeY: "estadoRepublica", agregacion: "conteo", tipoGrafica: "barras" },
 ];
 
 /** Posición/tamaño en la cuadrícula de arrastre (react-grid-layout), en unidades de columna/fila. */
