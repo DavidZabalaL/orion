@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { UserMenu } from "@/components/shell/user-menu";
 import { GlobalSearch } from "@/components/shell/global-search";
 import type { Notificacion } from "@/lib/notificaciones";
+import { marcarNotificacionLeida } from "@/lib/notificaciones-actions";
 
 type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
 
@@ -19,6 +20,7 @@ const COLOR_SEVERIDAD: Record<Notificacion["severidad"], string> = {
 function NotificacionesBell({ notificaciones }: { notificaciones: Notificacion[] }) {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (!abierto) return;
@@ -67,7 +69,12 @@ function NotificacionesBell({ notificaciones }: { notificaciones: Notificacion[]
                 <Link
                   key={n.id}
                   href={n.href}
-                  onClick={() => setAbierto(false)}
+                  onClick={() => {
+                    setAbierto(false);
+                    startTransition(() => {
+                      marcarNotificacionLeida(n.id);
+                    });
+                  }}
                   className="flex items-start gap-2.5 px-4 py-3"
                   style={{ borderBottom: "1px solid var(--field-border)" }}
                 >

@@ -25,7 +25,7 @@ const CATEGORIAS_MANTENIMIENTO = [
   "RENTA_VEHICULOS",
 ] as const;
 
-export async function obtenerNotificaciones(): Promise<Notificacion[]> {
+export async function obtenerNotificaciones(usuarioId: string): Promise<Notificacion[]> {
   const config = await prisma.configuracionNotificaciones.findFirst();
   if (!config) return [];
 
@@ -119,5 +119,14 @@ export async function obtenerNotificaciones(): Promise<Notificacion[]> {
     }
   }
 
-  return notificaciones.sort((a, b) => a.fecha.getTime() - b.fecha.getTime()).slice(0, 20);
+  const leidas = await prisma.notificacionLeida.findMany({
+    where: { usuarioId, notificacionId: { in: notificaciones.map((n) => n.id) } },
+    select: { notificacionId: true },
+  });
+  const idsLeidas = new Set(leidas.map((l) => l.notificacionId));
+
+  return notificaciones
+    .filter((n) => !idsLeidas.has(n.id))
+    .sort((a, b) => a.fecha.getTime() - b.fecha.getTime())
+    .slice(0, 20);
 }

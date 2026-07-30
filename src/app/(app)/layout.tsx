@@ -9,7 +9,7 @@ export default async function AppGroupLayout({ children }: { children: React.Rea
   if (!session?.user) redirect("/iniciar-sesion");
 
   const [notificaciones, modulosVisibles] = await Promise.all([
-    obtenerNotificaciones(),
+    obtenerNotificaciones(session.user.id),
     obtenerModulosVisibles(),
   ]);
 

@@ -247,6 +247,7 @@ model Usuario {
   reportesProgramados           ReporteProgramado[]
   configuracionesNotificaciones ConfiguracionNotificaciones[]
   presupuestosPartidaCargados   PresupuestoPartida[]
+  notificacionesLeidas          NotificacionLeida[]
 }
 
 model UsuarioProyecto {
@@ -822,4 +823,17 @@ model ConfiguracionWidgets {
   moduloId  String   @unique
   widgets   Json
   updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────── NOTIFICACIONES LEÍDAS ─────────────────────────
+
+model NotificacionLeida {
+  id             String   @id @default(cuid())
+  usuarioId      String
+  usuario        Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  notificacionId String
+  leidaEn        DateTime @default(now())
+
+  @@unique([usuarioId, notificacionId])
+  @@index([usuarioId])
 }
