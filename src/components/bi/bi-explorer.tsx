@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Table2, BarChart3, LineChart, PieChart } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset, type TipoGrafica } from "@/lib/bi/metadata";
 import { BiChart, type BiDato } from "@/components/bi/bi-chart";
+import { useBiQuery } from "@/components/bi/use-bi-query";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -42,11 +43,6 @@ export function BiExplorer() {
   const [tipoGrafica, setTipoGrafica] = useState<TipoGrafica>("barras");
   const [verTabla, setVerTabla] = useState(false);
 
-  const [datos, setDatos] = useState<BiDato[]>([]);
-  const [ejeYLabel, setEjeYLabel] = useState(dataset.metricas[0].label);
-  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   function cambiarDataset(id: string) {
     const ds = obtenerDataset(id)!;
     setDatasetId(id);
@@ -61,38 +57,7 @@ export function BiExplorer() {
     setTipoGrafica(s.tipoGrafica);
   }
 
-  const params = useMemo(() => ({ dataset: datasetId, ejeX, ejeY }), [datasetId, ejeX, ejeY]);
-  const key = useMemo(() => JSON.stringify(params), [params]);
-  const cargando = resolvedKey !== key;
-
-  useEffect(() => {
-    let cancelado = false;
-    fetch("/api/bi/query", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    })
-      .then(async (res) => {
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? "Error al consultar.");
-        return body;
-      })
-      .then((body) => {
-        if (cancelado) return;
-        setDatos(body.datos);
-        setEjeYLabel(body.ejeY.label);
-        setError(null);
-        setResolvedKey(key);
-      })
-      .catch((e) => {
-        if (cancelado) return;
-        setError(e.message);
-        setResolvedKey(key);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [params, key]);
+  const { datos, ejeYLabel, cargando, error } = useBiQuery(datasetId, ejeX, ejeY);
 
   return (
     <div className="flex flex-col gap-5">

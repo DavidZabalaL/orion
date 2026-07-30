@@ -30,7 +30,7 @@ async function main() {
       permisos: {
         A: editar, "A.1": editar, B: editar, C: editar, D: editar, E: editar,
         F: editar, G: editar, "G.1": editar, H: editar, I: editar, J: editar,
-        L: editar,
+        L: editar, M: editar,
       },
     },
   });
@@ -41,7 +41,7 @@ async function main() {
       nombre: "Coordinador de Proyecto",
       permisos: {
         A: ver, "A.1": editar, C: ver, D: editar, E: editar, F: ver,
-        G: ver, "G.1": ver, H: ver, I: ver, J: editar, L: ver,
+        G: ver, "G.1": ver, H: ver, I: ver, J: editar, L: ver, M: editar,
       },
     },
   });
@@ -52,7 +52,7 @@ async function main() {
       nombre: "Dirección",
       permisos: {
         A: ver, B: ver, C: ver, D: ver, E: ver, F: ver,
-        G: ver, "G.1": ver, H: ver, I: ver, J: ver, L: ver,
+        G: ver, "G.1": ver, H: ver, I: ver, J: ver, L: ver, M: ver,
       },
     },
   });
