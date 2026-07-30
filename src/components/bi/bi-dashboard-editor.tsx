@@ -29,6 +29,8 @@ const fieldStyle: React.CSSProperties = {
   padding: "0 12px",
 };
 
+const panelStyle: React.CSSProperties = { background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" };
+
 function nuevoIdWidget(): string {
   return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `w-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -123,161 +125,192 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
     lg: widgets.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h, minW: 2, minH: 4 })),
   };
 
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-2" data-no-print>
-        <select value={vistaActivaId} onChange={(e) => cambiarVista(e.target.value)} style={{ ...fieldStyle, minWidth: 220 }}>
-          {vistas.length === 0 && <option value={TEMPORAL}>Vista sugerida (sin guardar)</option>}
-          {vistas.map((v) => (
-            <option key={v.id} value={v.id}>{v.nombre}</option>
+  const grid = (
+    <div ref={containerRef}>
+      {mounted && (
+        <Responsive
+          layouts={layouts}
+          breakpoints={BREAKPOINTS}
+          cols={COLS}
+          width={width}
+          rowHeight={32}
+          margin={[16, 16]}
+          containerPadding={[0, 0]}
+          dragConfig={{ enabled: interactivo, handle: ".bi-drag-handle" }}
+          resizeConfig={{ enabled: interactivo }}
+          onBreakpointChange={(bp) => setBreakpoint(bp as keyof typeof BREAKPOINTS)}
+          onLayoutChange={handleLayoutChange}
+        >
+          {widgets.map((w) => (
+            <div key={w.id}>
+              <BiCard
+                label={w.label}
+                dataset={w.dataset}
+                ejeX={w.ejeX}
+                ejeY={w.ejeY}
+                agregacion={w.agregacion}
+                tipoGrafica={w.tipoGrafica}
+                ejeSplit={w.ejeSplit}
+                orden={w.orden}
+                editMode={editMode}
+                onEliminar={() => eliminarWidget(w.id)}
+              />
+            </div>
           ))}
-          {vistas.length > 0 && <option value={TEMPORAL}>+ Vista sugerida (sin guardar)</option>}
-        </select>
+        </Responsive>
+      )}
+    </div>
+  );
 
-        {editMode && (
-          <input
-            value={nombreVista}
-            onChange={(e) => setNombreVista(e.target.value)}
-            placeholder="Nombre de la vista"
-            style={{ ...fieldStyle, minWidth: 200 }}
-          />
-        )}
+  const mensajeEl = mensaje && (
+    <div
+      className="flex items-center gap-2 rounded-md px-3 py-2.5"
+      style={{ background: mensaje.tipo === "ok" ? "var(--status-cerrado-bg)" : "var(--status-escena-bg)" }}
+      data-no-print
+    >
+      {mensaje.tipo === "ok" ? <CheckCircle2 size={15} color="var(--color-status-cerrado)" /> : <TriangleAlert size={15} color="var(--color-status-escena)" />}
+      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: mensaje.tipo === "ok" ? "var(--color-status-cerrado)" : "var(--color-status-escena)" }}>
+        {mensaje.texto}
+      </span>
+    </div>
+  );
 
-        <div className="flex flex-wrap items-center gap-2 ml-auto">
-          {puedeEditar && !editMode && (
+  if (!editMode) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-center gap-2" data-no-print>
+          <select value={vistaActivaId} onChange={(e) => cambiarVista(e.target.value)} style={{ ...fieldStyle, minWidth: 220 }}>
+            {vistas.length === 0 && <option value={TEMPORAL}>Vista sugerida (sin guardar)</option>}
+            {vistas.map((v) => (
+              <option key={v.id} value={v.id}>{v.nombre}</option>
+            ))}
+            {vistas.length > 0 && <option value={TEMPORAL}>+ Vista sugerida (sin guardar)</option>}
+          </select>
+          <div className="flex flex-wrap items-center gap-2 ml-auto">
+            {puedeEditar && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-1.5 rounded-md px-3 h-9"
+                style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+              >
+                <Pencil size={13} /> Editar dashboard
+              </button>
+            )}
             <button
-              onClick={() => setEditMode(true)}
+              onClick={() => window.print()}
               className="flex items-center gap-1.5 rounded-md px-3 h-9"
               style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
             >
-              <Pencil size={13} /> Editar dashboard
+              <Printer size={13} /> Imprimir
             </button>
-          )}
-
-          {editMode && (
-            <>
-              <button
-                onClick={() => setMostrarAgregar((v) => !v)}
-                className="flex items-center gap-1.5 rounded-md px-3 h-9"
-                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-              >
-                <Plus size={13} /> Agregar combinación
-              </button>
-              <button
-                onClick={() => handleGuardar(false)}
-                disabled={pending}
-                className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
-                style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-              >
-                <Save size={13} /> {vistaActivaId === TEMPORAL ? "Guardar" : "Guardar cambios"}
-              </button>
-              {vistaActivaId !== TEMPORAL && (
-                <button
-                  onClick={() => handleGuardar(true)}
-                  disabled={pending}
-                  className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
-                  style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-                >
-                  Guardar como nueva
-                </button>
-              )}
-              {vistaActivaId !== TEMPORAL && (
-                <button
-                  onClick={handleEliminar}
-                  disabled={pending}
-                  className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
-                  style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-                >
-                  <Trash2 size={13} /> Eliminar vista
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setEditMode(false);
-                  setMostrarAgregar(false);
-                  cambiarVista(vistaActivaId);
-                }}
-                className="flex items-center gap-1.5 rounded-md px-3 h-9"
-                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
-              >
-                <X size={13} /> Salir de edición
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-md px-3 h-9"
-            style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-          >
-            <Printer size={13} /> Imprimir
-          </button>
+          </div>
         </div>
-      </div>
 
-      {mensaje && (
-        <div
-          className="flex items-center gap-2 rounded-md px-3 py-2.5"
-          style={{ background: mensaje.tipo === "ok" ? "var(--status-cerrado-bg)" : "var(--status-escena-bg)" }}
-          data-no-print
-        >
-          {mensaje.tipo === "ok" ? <CheckCircle2 size={15} color="var(--color-status-cerrado)" /> : <TriangleAlert size={15} color="var(--color-status-escena)" />}
-          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: mensaje.tipo === "ok" ? "var(--color-status-cerrado)" : "var(--color-status-escena)" }}>
-            {mensaje.texto}
+        {mensajeEl}
+
+        <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+          {nombreVista}
+        </h2>
+
+        {grid}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+      {/* Centro: preview en vivo del dashboard que se está armando */}
+      <div className="order-2 min-w-0 flex-1 lg:order-1">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+            {nombreVista}
+          </h2>
+          <span className="shrink-0 rounded-full px-2.5 py-1" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }} data-no-print>
+            Editando
           </span>
         </div>
-      )}
-
-      {mostrarAgregar && editMode && (
-        <div data-no-print>
-          <BiAgregarWidget onAgregar={agregarWidget} onCancelar={() => setMostrarAgregar(false)} />
-        </div>
-      )}
-
-      {editMode && (
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }} data-no-print>
+        <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }} data-no-print>
           Arrastra un widget desde su título para moverlo, o desde la esquina inferior derecha para cambiar su tamaño.
         </p>
-      )}
-
-      <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-        {nombreVista}
-      </h2>
-
-      <div ref={containerRef}>
-        {mounted && (
-          <Responsive
-            layouts={layouts}
-            breakpoints={BREAKPOINTS}
-            cols={COLS}
-            width={width}
-            rowHeight={32}
-            margin={[16, 16]}
-            containerPadding={[0, 0]}
-            dragConfig={{ enabled: interactivo, handle: ".bi-drag-handle" }}
-            resizeConfig={{ enabled: interactivo }}
-            onBreakpointChange={(bp) => setBreakpoint(bp as keyof typeof BREAKPOINTS)}
-            onLayoutChange={handleLayoutChange}
-          >
-            {widgets.map((w) => (
-              <div key={w.id}>
-                <BiCard
-                  label={w.label}
-                  dataset={w.dataset}
-                  ejeX={w.ejeX}
-                  ejeY={w.ejeY}
-                  agregacion={w.agregacion}
-                  tipoGrafica={w.tipoGrafica}
-                  ejeSplit={w.ejeSplit}
-                  orden={w.orden}
-                  editMode={editMode}
-                  onEliminar={() => eliminarWidget(w.id)}
-                />
-              </div>
-            ))}
-          </Responsive>
-        )}
+        {grid}
       </div>
+
+      {/* Derecha: panel para editar la vista o agregar una combinación nueva */}
+      <aside className="order-1 w-full shrink-0 lg:order-2 lg:w-96" data-no-print>
+        <div className="flex flex-col gap-4 rounded-xl p-5" style={panelStyle}>
+          <div>
+            <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em", display: "block", marginBottom: 6 }}>
+              Nombre de la vista
+            </label>
+            <input value={nombreVista} onChange={(e) => setNombreVista(e.target.value)} placeholder="Nombre de la vista" style={{ ...fieldStyle, width: "100%" }} />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => handleGuardar(false)}
+              disabled={pending}
+              className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+              style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+            >
+              <Save size={13} /> {vistaActivaId === TEMPORAL ? "Guardar" : "Guardar cambios"}
+            </button>
+            {vistaActivaId !== TEMPORAL && (
+              <button
+                onClick={() => handleGuardar(true)}
+                disabled={pending}
+                className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+              >
+                Guardar como nueva
+              </button>
+            )}
+            {vistaActivaId !== TEMPORAL && (
+              <button
+                onClick={handleEliminar}
+                disabled={pending}
+                className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+                style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+              >
+                <Trash2 size={13} /> Eliminar vista
+              </button>
+            )}
+            <button
+              onClick={() => window.print()}
+              className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+            >
+              <Printer size={13} /> Imprimir
+            </button>
+            <button
+              onClick={() => {
+                setEditMode(false);
+                setMostrarAgregar(false);
+                cambiarVista(vistaActivaId);
+              }}
+              className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
+              style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
+            >
+              <X size={13} /> Salir de edición
+            </button>
+          </div>
+
+          {mensajeEl}
+
+          <hr style={{ border: "none", borderTop: "1px solid var(--field-border)" }} />
+
+          {mostrarAgregar ? (
+            <BiAgregarWidget compacto onAgregar={agregarWidget} onCancelar={() => setMostrarAgregar(false)} />
+          ) : (
+            <button
+              onClick={() => setMostrarAgregar(true)}
+              className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+            >
+              <Plus size={13} /> Agregar combinación
+            </button>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

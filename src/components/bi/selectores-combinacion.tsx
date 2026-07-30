@@ -91,9 +91,12 @@ export type CombinacionBI = {
 export function SelectoresCombinacion({
   combinacion,
   onChange,
+  compacto = false,
 }: {
   combinacion: CombinacionBI;
   onChange: (siguiente: CombinacionBI) => void;
+  /** Fuerza una sola columna — para cuando el selector vive en un panel angosto (p. ej. la barra lateral de edición del dashboard) en vez de a lo ancho de la página. */
+  compacto?: boolean;
 }) {
   const dataset = obtenerDataset(combinacion.datasetId)!;
   const requisitos = REQUISITOS_TIPO_GRAFICA[combinacion.tipoGrafica];
@@ -123,7 +126,7 @@ export function SelectoresCombinacion({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid grid-cols-1 gap-4 ${compacto ? "" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
         <div>
           <label style={labelStyle}>Dataset</label>
           <select value={combinacion.datasetId} onChange={(e) => cambiarDataset(e.target.value)} style={fieldStyle}>
