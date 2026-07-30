@@ -23,7 +23,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
     const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
-    if (tipoGrafica !== "barras" && tipoGrafica !== "lineas" && tipoGrafica !== "pie") return null;
+    if (tipoGrafica !== "barras" && tipoGrafica !== "lineas" && tipoGrafica !== "pie" && tipoGrafica !== "contador") return null;
     if (agregacion !== "conteo" && agregacion !== "suma" && agregacion !== "promedio") return null;
 
     const ds = obtenerDataset(dataset);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { TipoGrafica } from "@/lib/bi/metadata";
+import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
 
 export type BiDato = { dimension: string; valor: number };
 
@@ -41,7 +41,7 @@ function useTamanoContenedor(ref: React.RefObject<HTMLDivElement | null>) {
   return tamano;
 }
 
-export function BiChart({ datos, tipoGrafica, ejeYLabel }: { datos: BiDato[]; tipoGrafica: TipoGrafica; ejeYLabel: string }) {
+export function BiChart({ datos, tipoGrafica, ejeYLabel, agregacion }: { datos: BiDato[]; tipoGrafica: TipoGrafica; ejeYLabel: string; agregacion?: TipoAgregacion }) {
   const [hover, setHover] = useState<number | null>(null);
   const uid = useId();
   const contenedorRef = useRef<HTMLDivElement>(null);
@@ -54,7 +54,7 @@ export function BiChart({ datos, tipoGrafica, ejeYLabel }: { datos: BiDato[]; ti
           Sin datos para esta combinación.
         </div>
       ) : (
-        <BiChartInterno datos={datos} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} width={width} height={Math.max(height, 180)} hover={hover} setHover={setHover} uid={uid} />
+        <BiChartInterno datos={datos} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} agregacion={agregacion} width={width} height={Math.max(height, 180)} hover={hover} setHover={setHover} uid={uid} />
       )}
     </div>
   );
@@ -64,18 +64,42 @@ function BiChartInterno(props: {
   datos: BiDato[];
   tipoGrafica: TipoGrafica;
   ejeYLabel: string;
+  agregacion?: TipoAgregacion;
   width: number;
   height: number;
   hover: number | null;
   setHover: (i: number | null) => void;
   uid: string;
 }) {
-  const { datos, tipoGrafica, ejeYLabel, width, height, hover, setHover, uid } = props;
+  const { datos, tipoGrafica, ejeYLabel, agregacion, width, height, hover, setHover, uid } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
+  if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} agregacion={agregacion} width={width} height={height} />;
   if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+}
+
+function BiContador({ datos, ejeYLabel, agregacion, width, height }: { datos: BiDato[]; ejeYLabel: string; agregacion?: TipoAgregacion; width: number; height: number }) {
+  const suma = datos.reduce((acc, d) => acc + d.valor, 0);
+  const total = agregacion === "promedio" ? suma / datos.length : suma;
+  const fontSize = Math.min(72, Math.max(28, Math.min(width, height) * 0.22));
+
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-center">
+      <div style={{ fontFamily: "var(--font-mono)", fontSize, fontWeight: 700, color: "var(--sidebar-text-active)", fontVariantNumeric: "tabular-nums" }}>
+        {fmtNumero(total)}
+      </div>
+      <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+        {ejeYLabel}
+      </div>
+      {datos.length > 1 && (
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", opacity: 0.7 }}>
+          {agregacion === "promedio" ? `promedio de ${datos.length} grupos` : `suma de ${datos.length} grupos`}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const PAD = { top: 16, right: 16, bottom: 40, left: 48 };

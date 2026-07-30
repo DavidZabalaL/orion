@@ -70,7 +70,7 @@ export function BiExplorer() {
           ) : verTabla ? (
             <TablaDatos datos={datos} ejeXLabel={dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX} ejeYLabel={ejeYLabel} />
           ) : (
-            <BiChart datos={datos} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} />
+            <BiChart datos={datos} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} />
           )}
         </div>
       </div>

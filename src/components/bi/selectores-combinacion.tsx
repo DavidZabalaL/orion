@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, LineChart, PieChart } from "lucide-react";
+import { BarChart3, LineChart, PieChart, Hash } from "lucide-react";
 import {
   BI_DATASETS,
   obtenerDataset,
@@ -38,6 +38,7 @@ const TIPOS_GRAFICA: { value: TipoGrafica; label: string; icon: typeof BarChart3
   { value: "barras", label: "Barras", icon: BarChart3 },
   { value: "lineas", label: "Líneas", icon: LineChart },
   { value: "pie", label: "Pie", icon: PieChart },
+  { value: "contador", label: "Contador", icon: Hash },
 ];
 
 export type CombinacionBI = {

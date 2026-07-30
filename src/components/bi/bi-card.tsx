@@ -59,7 +59,7 @@ export function BiCard({
             {error}
           </div>
         ) : (
-          <BiChart datos={datos} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} />
+          <BiChart datos={datos} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} agregacion={agregacion} />
         )}
       </div>
     </div>

@@ -10,7 +10,7 @@
 
 export type TipoCampo = "texto" | "fecha_mes" | "numero";
 export type TipoAgregacion = "conteo" | "suma" | "promedio";
-export type TipoGrafica = "barras" | "lineas" | "pie";
+export type TipoGrafica = "barras" | "lineas" | "pie" | "contador";
 
 export type CampoMeta = {
   id: string;
@@ -180,6 +180,8 @@ export const BI_COMBINACIONES_SUGERIDAS: { label: string; dataset: string; ejeX:
   { label: "Rendimiento promedio por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoPromedio", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "Unidades por propietario", dataset: "unidades", ejeX: "propietario", ejeY: "propietario", agregacion: "conteo", tipoGrafica: "pie" },
   { label: "Proyectos por estado de la república", dataset: "proyectos", ejeX: "estadoRepublica", ejeY: "estadoRepublica", agregacion: "conteo", tipoGrafica: "barras" },
+  { label: "Total de unidades", dataset: "unidades", ejeX: "estatus", ejeY: "estatus", agregacion: "conteo", tipoGrafica: "contador" },
+  { label: "Gasto total de mantenimiento", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "contador" },
 ];
 
 /** Posición/tamaño en la cuadrícula de arrastre (react-grid-layout), en unidades de columna/fila. */
