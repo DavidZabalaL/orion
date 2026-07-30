@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { exigirPermisoModulo } from "@/lib/permisos";
+import { exigirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export async function crearProyecto(formData: FormData) {
@@ -12,14 +12,9 @@ export async function crearProyecto(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const estadoRepublica = String(formData.get("estadoRepublica") ?? "").trim();
   const fechaInicio = String(formData.get("fechaInicio") ?? "");
-  const presupuestoAprobadoAnualRaw = String(formData.get("presupuestoAprobadoAnual") ?? "").trim();
-  const presupuestoAprobadoAnual = presupuestoAprobadoAnualRaw ? parseFloat(presupuestoAprobadoAnualRaw) : 0;
 
   if (!nombre || !estadoRepublica || !fechaInicio) {
     throw new Error("Nombre, estado y fecha de inicio son obligatorios.");
-  }
-  if (isNaN(presupuestoAprobadoAnual)) {
-    throw new Error("El presupuesto aprobado anual debe ser un número válido.");
   }
 
   const proyecto = await prisma.proyecto.create({
@@ -28,14 +23,74 @@ export async function crearProyecto(formData: FormData) {
       estadoRepublica,
       fechaInicio: new Date(fechaInicio),
       estatus: "ACTIVO",
-      presupuestoAprobadoAnual,
+      presupuestoAprobadoAnual: 0,
       modulosActivos: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "L"],
       procesosActivos: ["checklist_diario", "conciliacion_diaria"],
     },
   });
 
   revalidatePath("/proyectos");
-  redirect(`/proyectos/${proyecto.id}`);
+  // El presupuesto por partida se carga aparte (opcional) justo después de crear el proyecto.
+  redirect(`/proyectos/${proyecto.id}/presupuesto/importar`);
+}
+
+export type ResultadoAccionProyecto = { ok: boolean; error?: string };
+
+export async function actualizarProyecto(formData: FormData): Promise<ResultadoAccionProyecto> {
+  if (!(await esRolGlobal())) return { ok: false, error: "Solo el Administrador puede editar proyectos." };
+
+  const id = String(formData.get("id") ?? "");
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const estadoRepublica = String(formData.get("estadoRepublica") ?? "").trim();
+  const fechaInicio = String(formData.get("fechaInicio") ?? "");
+  const estatus = String(formData.get("estatus") ?? "");
+
+  if (!id || !nombre || !estadoRepublica || !fechaInicio) {
+    return { ok: false, error: "Nombre, estado y fecha de inicio son obligatorios." };
+  }
+  if (estatus !== "ACTIVO" && estatus !== "CERRADO") {
+    return { ok: false, error: "Estatus inválido." };
+  }
+
+  await prisma.proyecto.update({
+    where: { id },
+    data: { nombre, estadoRepublica, fechaInicio: new Date(fechaInicio), estatus },
+  });
+
+  revalidatePath(`/proyectos/${id}`);
+  revalidatePath("/proyectos");
+  return { ok: true };
+}
+
+export async function eliminarProyecto(formData: FormData): Promise<ResultadoAccionProyecto> {
+  if (!(await esRolGlobal())) return { ok: false, error: "Solo el Administrador puede eliminar proyectos." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Proyecto inválido." };
+
+  const [unidades, operadores, gastos, combustible, tags] = await Promise.all([
+    prisma.unidad.count({ where: { proyectoId: id } }),
+    prisma.operador.count({ where: { proyectoId: id } }),
+    prisma.gastoVehicular.count({ where: { proyectoReportanteId: id } }),
+    prisma.combustible.count({ where: { proyectoReportanteId: id } }),
+    prisma.tag.count({ where: { proyectoReportanteId: id } }),
+  ]);
+
+  if (unidades + operadores + gastos + combustible + tags > 0) {
+    return {
+      ok: false,
+      error: "Este proyecto ya tiene unidades, operadores o gasto asociado y no se puede eliminar. Ciérralo en su lugar (estatus Cerrado) desde Editar.",
+    };
+  }
+
+  try {
+    await prisma.proyecto.delete({ where: { id } });
+  } catch {
+    return { ok: false, error: "No se pudo eliminar: el proyecto todavía tiene datos asociados." };
+  }
+
+  revalidatePath("/proyectos");
+  return { ok: true };
 }
 
 export async function actualizarPresupuestoAprobado(formData: FormData) {

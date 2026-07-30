@@ -9,8 +9,9 @@ import { ESTATUS_UNIDAD_LABEL, ESTATUS_UNIDAD_STYLE } from "@/lib/estatus";
 import { PresupuestoAnual } from "@/components/proyectos/presupuesto-anual";
 import { PresupuestoPartidaMes } from "@/components/proyectos/presupuesto-partida-mes";
 import { obtenerResumenPresupuestoAnual, obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { ProyectoAcciones } from "@/components/proyectos/proyecto-acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function FichaProyectoPage({
   const numerosEconomicos = proyecto.unidades.map((u) => u.numeroEconomico);
   const anioActual = new Date().getFullYear();
 
-  const [gastos, combustible, tags, resumenPresupuestoAnual, resumenPorPartida] = await Promise.all([
+  const [gastos, combustible, tags, resumenPresupuestoAnual, resumenPorPartida, esAdmin] = await Promise.all([
     modulosActivos.has("C")
       ? prisma.gastoVehicular.aggregate({ where: { numeroEconomico: { in: numerosEconomicos } }, _sum: { costo: true } })
       : null,
@@ -56,6 +57,7 @@ export default async function FichaProyectoPage({
       : null,
     obtenerResumenPresupuestoAnual(proyecto.id, anioActual),
     obtenerResumenPresupuestoPorPartida(proyecto.id, anioActual),
+    esRolGlobal(),
   ]);
 
   const gastoAcumulado = Number(gastos?._sum.costo ?? 0) + Number(combustible?._sum.costo ?? 0) + Number(tags?._sum.monto ?? 0);
@@ -64,14 +66,27 @@ export default async function FichaProyectoPage({
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div>
-        <Link href="/proyectos" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-          <ChevronLeft size={15} /> Volver a proyectos
-        </Link>
-        <h1 className="mt-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-          {proyecto.nombre}
-        </h1>
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>{proyecto.estadoRepublica}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link href="/proyectos" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+            <ChevronLeft size={15} /> Volver a proyectos
+          </Link>
+          <h1 className="mt-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+            {proyecto.nombre}
+          </h1>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>{proyecto.estadoRepublica}</p>
+        </div>
+        {esAdmin && (
+          <ProyectoAcciones
+            proyecto={{
+              id: proyecto.id,
+              nombre: proyecto.nombre,
+              estadoRepublica: proyecto.estadoRepublica,
+              fechaInicio: proyecto.fechaInicio.toISOString().slice(0, 10),
+              estatus: proyecto.estatus,
+            }}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 rounded-xl p-5 md:grid-cols-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>

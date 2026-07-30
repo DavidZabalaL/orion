@@ -54,16 +54,15 @@ export default async function NuevoProyectoPage() {
           <CampoAyuda style={labelStyle} texto="Fecha en la que arranca operaciones el proyecto.">Fecha de inicio *</CampoAyuda>
           <input name="fechaInicio" type="date" required style={fieldStyle} />
         </div>
-        <div>
-          <CampoAyuda style={labelStyle} texto="Techo de presupuesto autorizado para todo el año.">Presupuesto aprobado anual (MXN)</CampoAyuda>
-          <input name="presupuestoAprobadoAnual" type="number" step="0.01" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
-        </div>
         <div className="flex items-center gap-3">
           <button type="submit" className="rounded-md px-5 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
             Crear proyecto
           </button>
           <Link href="/proyectos" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--sidebar-text)" }}>Cancelar</Link>
         </div>
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Al crear el proyecto podrás cargar, si quieres, el archivo de presupuesto por partida — es opcional y puedes hacerlo después.
+        </p>
       </form>
     </div>
   );
