@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { crearDocumento } from "@/lib/subir-archivo";
 
 export async function crearOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -22,6 +23,7 @@ export async function crearOperador(formData: FormData) {
   const numeroLicencia = String(formData.get("numeroLicencia") ?? "").trim() || null;
   const estadoEmisor = String(formData.get("estadoEmisor") ?? "").trim() || null;
   const fechaVencimientoLicencia = String(formData.get("fechaVencimientoLicencia") ?? "") || null;
+  const archivoLicenciaFile = formData.get("archivoLicencia");
 
   if (!nombre || !curp) {
     throw new Error("Nombre y CURP son obligatorios.");
@@ -53,9 +55,12 @@ export async function crearOperador(formData: FormData) {
   });
 
   if (tipoLicencia && numeroLicencia) {
-    const archivoLicencia = await prisma.documento.create({
-      data: { entidadRelacionada: "DocumentoOperador", entidadId: operador.id, url: "/mock/licencia.pdf", tipo: "licencia" },
-    });
+    const archivoLicencia =
+      archivoLicenciaFile instanceof File && archivoLicenciaFile.size > 0
+        ? await crearDocumento(archivoLicenciaFile, { carpeta: "licencias", entidadRelacionada: "DocumentoOperador", entidadId: operador.id, tipo: "licencia" })
+        : await prisma.documento.create({
+            data: { entidadRelacionada: "DocumentoOperador", entidadId: operador.id, url: "/mock/licencia.pdf", tipo: "licencia" },
+          });
     await prisma.documentoOperador.create({
       data: {
         operadorId: operador.id,

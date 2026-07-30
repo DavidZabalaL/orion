@@ -55,7 +55,7 @@ export default async function AltaOperadorPage() {
         </p>
       </div>
 
-      <form action={crearOperador} className="flex flex-col gap-6">
+      <form action={crearOperador} encType="multipart/form-data" className="flex flex-col gap-6">
         <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
           <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             Datos personales
@@ -131,6 +131,10 @@ export default async function AltaOperadorPage() {
             <div>
               <CampoAyuda style={labelStyle} texto="Fecha en que vence la licencia de conducir.">Fecha de vencimiento</CampoAyuda>
               <input name="fechaVencimientoLicencia" type="date" style={fieldStyle} />
+            </div>
+            <div className="md:col-span-2">
+              <CampoAyuda style={labelStyle} texto="Archivo PDF de la licencia de conducir, si ya se tiene.">Licencia de conducir (PDF)</CampoAyuda>
+              <input name="archivoLicencia" type="file" accept="application/pdf" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
             </div>
           </div>
           <p className="mt-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>

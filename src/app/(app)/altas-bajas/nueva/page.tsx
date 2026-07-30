@@ -169,14 +169,14 @@ export default async function AltaUnidadPage() {
           </div>
         </Bloque>
 
-        <Bloque titulo="Tarjetas (PDF)">
+        <Bloque titulo="Tarjetas">
           <div>
             <CampoAyuda style={labelStyle} texto="Archivo PDF de la tarjeta de circulación de la unidad, si ya se tiene.">Tarjeta de circulación (PDF)</CampoAyuda>
             <input name="tarjetaCirculacion" type="file" accept="application/pdf" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
           </div>
           <div>
-            <CampoAyuda style={labelStyle} texto="Archivo PDF de la tarjeta de combustible asignada a la unidad, si ya se tiene.">Tarjeta de combustible (PDF)</CampoAyuda>
-            <input name="tarjetaCombustible" type="file" accept="application/pdf" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
+            <CampoAyuda style={labelStyle} texto="Número de la tarjeta de combustible asignada a la unidad, si ya se tiene.">Número de tarjeta de combustible</CampoAyuda>
+            <input name="numeroTarjetaCombustible" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
         </Bloque>
 

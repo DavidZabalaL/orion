@@ -30,7 +30,11 @@ export default async function HistorialChecklistPage({
       fecha: { gte: inicio, lte: fin },
       ...(proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {}),
     },
-    include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } } },
+    include: {
+      unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
+      evidencia: { select: { url: true } },
+      capturadoPor: { select: { nombre: true } },
+    },
     orderBy: { fecha: "desc" },
   });
 

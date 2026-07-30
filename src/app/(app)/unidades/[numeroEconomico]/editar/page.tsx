@@ -160,6 +160,10 @@ export default async function EditarUnidadPage({
             <input name="tagIave" defaultValue={unidad.tagIave ?? ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
           <div>
+            <CampoAyuda style={labelStyle} texto="Número de la tarjeta de combustible asignada a la unidad.">Número de tarjeta de combustible</CampoAyuda>
+            <input name="numeroTarjetaCombustible" defaultValue={unidad.numeroTarjetaCombustible ?? ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+          </div>
+          <div>
             <CampoAyuda style={labelStyle} texto="Estado de la república donde se emitió la placa.">Origen de placa *</CampoAyuda>
             <input name="origenPlaca" required defaultValue={unidad.origenPlaca} style={fieldStyle} />
           </div>

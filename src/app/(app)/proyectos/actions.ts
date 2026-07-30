@@ -12,10 +12,14 @@ export async function crearProyecto(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const estadoRepublica = String(formData.get("estadoRepublica") ?? "").trim();
   const fechaInicio = String(formData.get("fechaInicio") ?? "");
-  const presupuestoAprobadoAnual = parseFloat(String(formData.get("presupuestoAprobadoAnual") ?? "0"));
+  const presupuestoAprobadoAnualRaw = String(formData.get("presupuestoAprobadoAnual") ?? "").trim();
+  const presupuestoAprobadoAnual = presupuestoAprobadoAnualRaw ? parseFloat(presupuestoAprobadoAnualRaw) : 0;
 
   if (!nombre || !estadoRepublica || !fechaInicio) {
     throw new Error("Nombre, estado y fecha de inicio son obligatorios.");
+  }
+  if (isNaN(presupuestoAprobadoAnual)) {
+    throw new Error("El presupuesto aprobado anual debe ser un número válido.");
   }
 
   const proyecto = await prisma.proyecto.create({

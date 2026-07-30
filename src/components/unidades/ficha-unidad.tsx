@@ -385,6 +385,7 @@ function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEdi
           <Field label="Propietario" value={unidad.propietario} />
           <Field label="Origen de placa" value={unidad.origenPlaca} />
           <Field label="Tag IAVE" value={unidad.tagIave ?? "—"} />
+          <Field label="Tarjeta de combustible" value={unidad.numeroTarjetaCombustible ?? "—"} />
           <Field label="Fecha de alta" value={fmtFecha(unidad.fechaAlta)} />
         </div>
       </div>

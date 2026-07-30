@@ -29,6 +29,7 @@ export async function crearUnidad(formData: FormData) {
   const propietario = String(formData.get("propietario") ?? "");
   const origenPlaca = String(formData.get("origenPlaca") ?? "").trim();
   const tagIave = String(formData.get("tagIave") ?? "").trim() || null;
+  const numeroTarjetaCombustible = String(formData.get("numeroTarjetaCombustible") ?? "").trim() || null;
 
   if (!numeroEconomico || !placas || numeroSerie.length !== 17 || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !proyectoId || !propietario || !origenPlaca) {
     throw new Error("Faltan campos obligatorios o el número de serie no tiene 17 caracteres.");
@@ -52,16 +53,11 @@ export async function crearUnidad(formData: FormData) {
   if (dupSerie) throw new Error(`El número de serie ${numeroSerie} ya está registrado.`);
 
   const tarjetaCirculacionArchivo = formData.get("tarjetaCirculacion");
-  const tarjetaCombustibleArchivo = formData.get("tarjetaCombustible");
 
-  const [tarjetaCirculacion, tarjetaCombustible] = await Promise.all([
+  const tarjetaCirculacion =
     tarjetaCirculacionArchivo instanceof File && tarjetaCirculacionArchivo.size > 0
-      ? crearDocumento(tarjetaCirculacionArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_circulacion" })
-      : null,
-    tarjetaCombustibleArchivo instanceof File && tarjetaCombustibleArchivo.size > 0
-      ? crearDocumento(tarjetaCombustibleArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_combustible" })
-      : null,
-  ]);
+      ? await crearDocumento(tarjetaCirculacionArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_circulacion" })
+      : null;
 
   await prisma.unidad.create({
     data: {
@@ -82,8 +78,8 @@ export async function crearUnidad(formData: FormData) {
       propietario: propietario as never,
       origenPlaca,
       tagIave,
+      numeroTarjetaCombustible,
       tarjetaCirculacionId: tarjetaCirculacion?.id,
-      tarjetaCombustibleId: tarjetaCombustible?.id,
       placasHistorial: { create: { placa: placas } },
     },
   });

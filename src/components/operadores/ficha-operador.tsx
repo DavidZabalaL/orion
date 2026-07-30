@@ -57,9 +57,9 @@ export function FichaOperador({ operador }: { operador: Operador }) {
             </div>
           </div>
 
-          <button className="flex items-center gap-2 rounded-md px-3 h-9" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+          <Link href={`/operadores/${operador.id}/editar`} className="flex items-center gap-2 rounded-md px-3 h-9" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
             <Pencil size={15} /> Editar
-          </button>
+          </Link>
         </div>
       </div>
 

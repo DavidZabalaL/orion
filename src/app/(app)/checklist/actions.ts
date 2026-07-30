@@ -6,7 +6,6 @@ import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
-import { crearDocumento } from "@/lib/subir-archivo";
 
 export async function crearChecklist(formData: FormData) {
   await exigirPermisoModulo("A.1", "editar");
@@ -15,7 +14,7 @@ export async function crearChecklist(formData: FormData) {
   const odometro = parseInt(String(formData.get("odometro") ?? ""), 10);
   const horometroRaw = String(formData.get("horometro") ?? "");
   const horometro = horometroRaw ? parseInt(horometroRaw, 10) : null;
-  const evidencia = formData.get("evidencia");
+  const evidenciaUrl = String(formData.get("evidenciaUrl") ?? "").trim() || null;
 
   if (!numeroEconomico || !odometro) {
     throw new Error("Unidad y odómetro son obligatorios.");
@@ -36,12 +35,9 @@ export async function crearChecklist(formData: FormData) {
   if (!session?.user?.id) throw new Error("Sesión no válida.");
 
   let evidenciaId: string | undefined;
-  if (evidencia instanceof File && evidencia.size > 0) {
-    const documento = await crearDocumento(evidencia, {
-      carpeta: "checklist",
-      entidadRelacionada: "Checklist",
-      entidadId: numeroEconomico,
-      tipo: "evidencia_checklist",
+  if (evidenciaUrl) {
+    const documento = await prisma.documento.create({
+      data: { entidadRelacionada: "Checklist", entidadId: numeroEconomico, url: evidenciaUrl, tipo: "evidencia_checklist" },
     });
     evidenciaId = documento.id;
   }

@@ -83,6 +83,7 @@ export async function actualizarUnidad(formData: FormData) {
   const propietario = String(formData.get("propietario") ?? "");
   const origenPlaca = String(formData.get("origenPlaca") ?? "").trim();
   const tagIave = String(formData.get("tagIave") ?? "").trim() || null;
+  const numeroTarjetaCombustible = String(formData.get("numeroTarjetaCombustible") ?? "").trim() || null;
 
   if (!placas || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !propietario || !origenPlaca) {
     throw new Error("Faltan campos obligatorios.");
@@ -116,6 +117,7 @@ export async function actualizarUnidad(formData: FormData) {
       propietario: propietario as never,
       origenPlaca,
       tagIave,
+      numeroTarjetaCombustible,
     },
   });
 
