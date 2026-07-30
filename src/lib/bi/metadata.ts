@@ -119,3 +119,31 @@ export const BI_COMBINACIONES_SUGERIDAS: { label: string; dataset: string; ejeX:
 ];
 
 export type TipoGrafica = "barras" | "lineas" | "pie";
+
+export type TamanoWidget = "sm" | "md" | "lg";
+
+export const TAMANO_COLSPAN: Record<TamanoWidget, string> = {
+  sm: "lg:col-span-1",
+  md: "lg:col-span-2",
+  lg: "lg:col-span-3",
+};
+
+export type WidgetDashboardBI = {
+  id: string;
+  label: string;
+  dataset: string;
+  ejeX: string;
+  ejeY: string;
+  tipoGrafica: TipoGrafica;
+  tamano: TamanoWidget;
+};
+
+export const WIDGETS_BI_DEFAULT: WidgetDashboardBI[] = BI_COMBINACIONES_SUGERIDAS.map((c, i) => ({
+  id: `default-${i}`,
+  label: c.label,
+  dataset: c.dataset,
+  ejeX: c.ejeX,
+  ejeY: c.ejeY,
+  tipoGrafica: c.tipoGrafica,
+  tamano: "sm",
+}));

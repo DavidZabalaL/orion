@@ -248,6 +248,7 @@ model Usuario {
   configuracionesNotificaciones ConfiguracionNotificaciones[]
   presupuestosPartidaCargados   PresupuestoPartida[]
   notificacionesLeidas          NotificacionLeida[]
+  vistasDashboardBI             VistaDashboardBI[]
 }
 
 model UsuarioProyecto {
@@ -823,6 +824,18 @@ model ConfiguracionWidgets {
   moduloId  String   @unique
   widgets   Json
   updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────── DASHBOARDS BI — VISTAS GUARDADAS ─────────────────────────
+
+model VistaDashboardBI {
+  id          String   @id @default(cuid())
+  nombre      String
+  widgets     Json
+  creadoPorId String?
+  creadoPor   Usuario? @relation(fields: [creadoPorId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // ───────────────────────── NOTIFICACIONES LEÍDAS ─────────────────────────

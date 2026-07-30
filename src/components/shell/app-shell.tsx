@@ -21,10 +21,14 @@ export function AppShell({
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg)" }}>
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} user={session.user} modulosVisibles={modulosVisibles} />
+      <div data-no-print>
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} user={session.user} modulosVisibles={modulosVisibles} />
+      </div>
       <div className="flex flex-1 flex-col min-w-0">
-        <Header onMenuClick={() => setMobileOpen(true)} user={session.user} notificaciones={notificaciones} />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <div data-no-print>
+          <Header onMenuClick={() => setMobileOpen(true)} user={session.user} notificaciones={notificaciones} />
+        </div>
+        <main className="flex-1 overflow-y-auto" data-print-area>{children}</main>
       </div>
     </div>
   );

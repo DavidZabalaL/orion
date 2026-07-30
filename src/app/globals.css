@@ -235,6 +235,20 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* ─── IMPRESIÓN ─── */
+@media print {
+  [data-no-print] {
+    display: none !important;
+  }
+  [data-print-area] {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
 /* Botón "Continuar con Microsoft" — feedback más marcado a petición explícita */
 .btn-microsoft:hover {
   background: #f6f7f8 !important;
