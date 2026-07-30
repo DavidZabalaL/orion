@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Car, Wallet, ShieldAlert, Wrench, IdCard, Settings2 } from "lucide-react";
+import { Car, Wallet, ShieldAlert, Wrench, IdCard, Settings2, LayoutDashboard } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
@@ -68,9 +68,14 @@ export default async function ReportesPage() {
             Vista consolidada de la flota, gasto y vencimientos.
           </p>
         </div>
-        <Link href="/reportes/generador" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-          <Settings2 size={16} /> Generador de reportes
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/reportes/bi" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <LayoutDashboard size={16} /> Explorador de BI
+          </Link>
+          <Link href="/reportes/generador" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <Settings2 size={16} /> Generador de reportes
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
