@@ -8,9 +8,56 @@
 // además elige una agregación (conteo / suma / promedio) — suma y promedio
 // solo aplican a campos numéricos.
 
-export type TipoCampo = "texto" | "fecha_mes" | "numero";
+export type TipoCampo = "texto" | "fecha_mes" | "fecha_dia" | "numero";
 export type TipoAgregacion = "conteo" | "suma" | "promedio";
-export type TipoGrafica = "barras" | "lineas" | "pie" | "contador";
+export type TipoGrafica =
+  | "barras"
+  | "lineas"
+  | "pie"
+  | "contador"
+  | "puntos"
+  | "divergente"
+  | "histograma"
+  | "dispersion"
+  | "calendario"
+  | "caja"
+  | "piramide";
+
+export const TIPO_GRAFICA_LABEL: Record<TipoGrafica, string> = {
+  barras: "Barras",
+  lineas: "Líneas",
+  pie: "Pie",
+  contador: "Contador",
+  puntos: "Tira de puntos",
+  divergente: "Barra divergente",
+  histograma: "Histograma",
+  dispersion: "Dispersión",
+  calendario: "Calendario",
+  caja: "Caja (box plot)",
+  piramide: "Comparación de dos grupos",
+};
+
+type RequisitoCampo = TipoCampo[] | "cualquiera" | "ninguno";
+
+/** Qué tipo de campo acepta cada eje según el tipo de gráfica — usado tanto por la UI (para filtrar opciones) como por el backend (para validar). */
+export const REQUISITOS_TIPO_GRAFICA: Record<TipoGrafica, { ejeX: RequisitoCampo; ejeY: RequisitoCampo; requiereSplit?: boolean }> = {
+  barras: { ejeX: "cualquiera", ejeY: "cualquiera" },
+  lineas: { ejeX: "cualquiera", ejeY: "cualquiera" },
+  pie: { ejeX: "cualquiera", ejeY: "cualquiera" },
+  contador: { ejeX: "cualquiera", ejeY: "cualquiera" },
+  puntos: { ejeX: "cualquiera", ejeY: "cualquiera" },
+  divergente: { ejeX: "cualquiera", ejeY: "cualquiera" },
+  histograma: { ejeX: ["numero"], ejeY: "ninguno" },
+  dispersion: { ejeX: ["numero"], ejeY: ["numero"] },
+  calendario: { ejeX: ["fecha_dia"], ejeY: "cualquiera" },
+  caja: { ejeX: "cualquiera", ejeY: ["numero"] },
+  piramide: { ejeX: "cualquiera", ejeY: "cualquiera", requiereSplit: true },
+};
+
+export function campoValidoParaEje(campo: CampoMeta, requisito: RequisitoCampo): boolean {
+  if (requisito === "cualquiera" || requisito === "ninguno") return true;
+  return requisito.includes(campo.tipo);
+}
 
 export type CampoMeta = {
   id: string;
@@ -45,6 +92,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "resguardante", label: "Resguardante", tipo: "texto", expr: `COALESCE(r."nombre", 'Sin resguardante')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mesAlta", label: "Mes de alta", tipo: "fecha_mes", expr: `u."fechaAlta"` },
+      { id: "diaAlta", label: "Día de alta", tipo: "fecha_dia", expr: `u."fechaAlta"` },
       { id: "kmOficial", label: "Km oficial", tipo: "numero", expr: `u."kmOficial"` },
       { id: "rendimientoPromedio", label: "Rendimiento promedio", tipo: "numero", expr: `u."rendimientoPromedio"` },
       { id: "capacidadTanqueLitros", label: "Capacidad de tanque (litros)", tipo: "numero", expr: `u."capacidadTanqueLitros"` },
@@ -60,6 +108,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proveedor", label: "Proveedor", tipo: "texto", expr: `COALESCE(g."proveedor", 'Sin proveedor')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `g."fecha"` },
+      { id: "dia", label: "Día", tipo: "fecha_dia", expr: `g."fecha"` },
       { id: "costo", label: "Costo", tipo: "numero", expr: `g."costo"` },
     ],
   },
@@ -70,6 +119,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     campos: [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `c."fecha"` },
+      { id: "dia", label: "Día", tipo: "fecha_dia", expr: `c."fecha"` },
       { id: "litros", label: "Litros", tipo: "numero", expr: `c."litros"` },
       { id: "costo", label: "Costo", tipo: "numero", expr: `c."costo"` },
       { id: "rendimientoCalculado", label: "Rendimiento", tipo: "numero", expr: `c."rendimientoCalculado"` },
@@ -83,6 +133,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "aseguradora", label: "Aseguradora", tipo: "texto", expr: `s."aseguradora"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `s."estatus"` },
       { id: "mesVencimiento", label: "Mes de vencimiento", tipo: "fecha_mes", expr: `s."fechaVencimiento"` },
+      { id: "diaVencimiento", label: "Día de vencimiento", tipo: "fecha_dia", expr: `s."fechaVencimiento"` },
       { id: "costo", label: "Costo", tipo: "numero", expr: `s."costo"` },
     ],
   },
@@ -107,6 +158,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "verificado", label: "Verificación", tipo: "texto", expr: `CASE WHEN do2."verificado" THEN 'Verificado' ELSE 'Pendiente' END` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mesVencimiento", label: "Mes de vencimiento", tipo: "fecha_mes", expr: `do2."fechaVencimiento"` },
+      { id: "diaVencimiento", label: "Día de vencimiento", tipo: "fecha_dia", expr: `do2."fechaVencimiento"` },
     ],
   },
   {
@@ -118,6 +170,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "conciliado", label: "Conciliación", tipo: "texto", expr: `CASE WHEN t."conciliado" THEN 'Conciliado' ELSE 'Pendiente' END` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `t."fecha"` },
+      { id: "dia", label: "Día", tipo: "fecha_dia", expr: `t."fecha"` },
       { id: "monto", label: "Monto", tipo: "numero", expr: `t."monto"` },
     ],
   },
@@ -140,6 +193,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "estadoRepublica", label: "Estado de la república", tipo: "texto", expr: `p."estadoRepublica"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `p."estatus"` },
       { id: "mesInicio", label: "Mes de inicio", tipo: "fecha_mes", expr: `p."fechaInicio"` },
+      { id: "diaInicio", label: "Día de inicio", tipo: "fecha_dia", expr: `p."fechaInicio"` },
       { id: "presupuestoAprobadoAnual", label: "Presupuesto aprobado anual", tipo: "numero", expr: `p."presupuestoAprobadoAnual"` },
     ],
   },
@@ -164,8 +218,23 @@ export const AGREGACION_LABEL: Record<TipoAgregacion, string> = {
   promedio: "Promedio",
 };
 
+export type TipoOrden = "dimension" | "valor_desc" | "valor_asc";
+
+export type CombinacionGuardable = {
+  label: string;
+  dataset: string;
+  ejeX: string;
+  ejeY: string;
+  agregacion: TipoAgregacion;
+  tipoGrafica: TipoGrafica;
+  /** Segundo campo de agrupación — solo lo usa "piramide". */
+  ejeSplit?: string;
+  /** Orden de las categorías — solo aplica a barras/puntos/divergente. */
+  orden?: TipoOrden;
+};
+
 /** Combinaciones curadas de arranque (MVP), antes de abrir el selector libre. */
-export const BI_COMBINACIONES_SUGERIDAS: { label: string; dataset: string; ejeX: string; ejeY: string; agregacion: TipoAgregacion; tipoGrafica: TipoGrafica }[] = [
+export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Unidades por estatus", dataset: "unidades", ejeX: "estatus", ejeY: "estatus", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
@@ -182,19 +251,20 @@ export const BI_COMBINACIONES_SUGERIDAS: { label: string; dataset: string; ejeX:
   { label: "Proyectos por estado de la república", dataset: "proyectos", ejeX: "estadoRepublica", ejeY: "estadoRepublica", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Total de unidades", dataset: "unidades", ejeX: "estatus", ejeY: "estatus", agregacion: "conteo", tipoGrafica: "contador" },
   { label: "Gasto total de mantenimiento", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "contador" },
+  { label: "Costo de mantenimiento por proveedor", dataset: "mantenimiento", ejeX: "proveedor", ejeY: "costo", agregacion: "suma", tipoGrafica: "puntos", orden: "valor_desc" },
+  { label: "Km oficial vs. promedio, por marca", dataset: "unidades", ejeX: "marca", ejeY: "kmOficial", agregacion: "promedio", tipoGrafica: "divergente" },
+  { label: "Distribución de rendimiento promedio", dataset: "unidades", ejeX: "rendimientoPromedio", ejeY: "rendimientoPromedio", agregacion: "conteo", tipoGrafica: "histograma" },
+  { label: "Km oficial vs. rendimiento", dataset: "unidades", ejeX: "kmOficial", ejeY: "rendimientoPromedio", agregacion: "conteo", tipoGrafica: "dispersion" },
+  { label: "Cargas de combustible por día", dataset: "combustible", ejeX: "dia", ejeY: "litros", agregacion: "suma", tipoGrafica: "calendario" },
+  { label: "Distribución de costo por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "conteo", tipoGrafica: "caja" },
+  { label: "Peajes: conciliados vs. pendientes por proyecto", dataset: "peajes", ejeX: "proyecto", ejeY: "monto", agregacion: "suma", tipoGrafica: "piramide", ejeSplit: "conciliado" },
 ];
 
 /** Posición/tamaño en la cuadrícula de arrastre (react-grid-layout), en unidades de columna/fila. */
 export type LayoutWidget = { x: number; y: number; w: number; h: number };
 
-export type WidgetDashboardBI = {
+export type WidgetDashboardBI = CombinacionGuardable & {
   id: string;
-  label: string;
-  dataset: string;
-  ejeX: string;
-  ejeY: string;
-  agregacion: TipoAgregacion;
-  tipoGrafica: TipoGrafica;
   layout: LayoutWidget;
 };
 

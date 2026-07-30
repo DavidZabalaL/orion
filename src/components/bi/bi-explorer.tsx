@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
 import { BiChart } from "@/components/bi/bi-chart";
@@ -18,12 +18,17 @@ export function BiExplorer() {
   const [verTabla, setVerTabla] = useState(false);
 
   const dataset = obtenerDataset(combinacion.datasetId)!;
+  const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
-    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica });
+    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, orden: s.orden });
   }
 
-  const { datos, ejeYLabel, cargando, error } = useBiQuery(combinacion.datasetId, combinacion.ejeX, combinacion.ejeY, combinacion.agregacion);
+  const params = useMemo(
+    () => ({ dataset: combinacion.datasetId, ejeX: combinacion.ejeX, ejeY: combinacion.ejeY, agregacion: combinacion.agregacion, tipoGrafica: combinacion.tipoGrafica, ejeSplit: combinacion.ejeSplit, orden: combinacion.orden }),
+    [combinacion]
+  );
+  const { datos, cajas, pares, splitLabels, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,17 +53,19 @@ export function BiExplorer() {
           <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             {dataset.label}
           </h3>
-          <button
-            type="button"
-            onClick={() => setVerTabla((v) => !v)}
-            className="flex items-center gap-1.5 rounded-md px-3 py-1.5"
-            style={{ background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
-          >
-            <Table2 size={13} /> {verTabla ? "Ver gráfica" : "Ver tabla"}
-          </button>
+          {soportaTabla && (
+            <button
+              type="button"
+              onClick={() => setVerTabla((v) => !v)}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+            >
+              <Table2 size={13} /> {verTabla ? "Ver gráfica" : "Ver tabla"}
+            </button>
+          )}
         </div>
 
-        <div className="mt-3">
+        <div className="mt-3" style={{ minHeight: 320 }}>
           {cargando ? (
             <div className="flex items-center justify-center p-10" style={{ color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               Cargando…
@@ -67,10 +74,10 @@ export function BiExplorer() {
             <div className="flex items-center justify-center p-10" style={{ color: "var(--color-error)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               {error}
             </div>
-          ) : verTabla ? (
+          ) : verTabla && soportaTabla ? (
             <TablaDatos datos={datos} ejeXLabel={dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX} ejeYLabel={ejeYLabel} />
           ) : (
-            <BiChart datos={datos} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} />
+            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} truncado={truncado} />
           )}
         </div>
       </div>

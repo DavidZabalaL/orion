@@ -1,9 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { X, GripVertical } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
 import { useBiQuery } from "@/components/bi/use-bi-query";
-import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
+import type { TipoGrafica, TipoAgregacion, TipoOrden } from "@/lib/bi/metadata";
 
 export function BiCard({
   label,
@@ -12,6 +13,8 @@ export function BiCard({
   ejeY,
   agregacion,
   tipoGrafica,
+  ejeSplit,
+  orden,
   editMode = false,
   onEliminar,
 }: {
@@ -21,10 +24,13 @@ export function BiCard({
   ejeY: string;
   agregacion: TipoAgregacion;
   tipoGrafica: TipoGrafica;
+  ejeSplit?: string;
+  orden?: TipoOrden;
   editMode?: boolean;
   onEliminar?: () => void;
 }) {
-  const { datos, ejeYLabel, cargando, error } = useBiQuery(dataset, ejeX, ejeY, agregacion);
+  const params = useMemo(() => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden }), [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden]);
+  const { datos, cajas, pares, splitLabels, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
 
   return (
     <div className="flex h-full flex-col rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -59,7 +65,7 @@ export function BiCard({
             {error}
           </div>
         ) : (
-          <BiChart datos={datos} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} agregacion={agregacion} />
+          <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} agregacion={agregacion} truncado={truncado} />
         )}
       </div>
     </div>

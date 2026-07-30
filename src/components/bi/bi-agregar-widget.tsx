@@ -18,7 +18,16 @@ export function BiAgregarWidget({ onAgregar, onCancelar }: { onAgregar: (widget:
     e.preventDefault();
     const dataset = obtenerDataset(combinacion.datasetId)!;
     const etiqueta = label.trim() || `${dataset.label} — ${dataset.campos.find((c) => c.id === combinacion.ejeX)?.label}`;
-    onAgregar({ label: etiqueta, dataset: combinacion.datasetId, ejeX: combinacion.ejeX, ejeY: combinacion.ejeY, agregacion: combinacion.agregacion, tipoGrafica: combinacion.tipoGrafica });
+    onAgregar({
+      label: etiqueta,
+      dataset: combinacion.datasetId,
+      ejeX: combinacion.ejeX,
+      ejeY: combinacion.ejeY,
+      agregacion: combinacion.agregacion,
+      tipoGrafica: combinacion.tipoGrafica,
+      ejeSplit: combinacion.ejeSplit,
+      orden: combinacion.orden,
+    });
   }
 
   return (

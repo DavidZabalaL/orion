@@ -4,9 +4,23 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
-import { obtenerDataset, obtenerCampo, agregacionesDisponibles, type WidgetDashboardBI, type TipoAgregacion, type LayoutWidget } from "@/lib/bi/metadata";
+import {
+  obtenerDataset,
+  obtenerCampo,
+  agregacionesDisponibles,
+  campoValidoParaEje,
+  REQUISITOS_TIPO_GRAFICA,
+  type WidgetDashboardBI,
+  type TipoAgregacion,
+  type TipoGrafica,
+  type TipoOrden,
+  type LayoutWidget,
+} from "@/lib/bi/metadata";
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
+
+const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contador", "puntos", "divergente", "histograma", "dispersion", "calendario", "caja", "piramide"];
+const ORDENES_VALIDOS: TipoOrden[] = ["dimension", "valor_desc", "valor_asc"];
 
 function validarLayout(layout: unknown): LayoutWidget | null {
   if (!layout || typeof layout !== "object") return null;
@@ -20,22 +34,51 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, orden } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
-    if (tipoGrafica !== "barras" && tipoGrafica !== "lineas" && tipoGrafica !== "pie" && tipoGrafica !== "contador") return null;
+    if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
     if (agregacion !== "conteo" && agregacion !== "suma" && agregacion !== "promedio") return null;
 
     const ds = obtenerDataset(dataset);
-    const campoX = ds && obtenerCampo(ds, ejeX);
-    const campoY = ds && obtenerCampo(ds, ejeY);
-    if (!ds || !campoX || !campoY) return null;
-    if (!agregacionesDisponibles(campoY).includes(agregacion as TipoAgregacion)) return null;
+    if (!ds) return null;
+    const requisitos = REQUISITOS_TIPO_GRAFICA[tipoGrafica as TipoGrafica];
+    const campoX = obtenerCampo(ds, ejeX);
+    if (!campoX || !campoValidoParaEje(campoX, requisitos.ejeX)) return null;
+
+    if (requisitos.ejeY !== "ninguno") {
+      const campoY = obtenerCampo(ds, ejeY);
+      if (!campoY || !campoValidoParaEje(campoY, requisitos.ejeY)) return null;
+      if (tipoGrafica !== "dispersion" && tipoGrafica !== "caja" && !agregacionesDisponibles(campoY).includes(agregacion as TipoAgregacion)) return null;
+    }
+
+    let ejeSplitLimpio: string | undefined;
+    if (requisitos.requiereSplit) {
+      if (typeof ejeSplit !== "string" || !obtenerCampo(ds, ejeSplit)) return null;
+      ejeSplitLimpio = ejeSplit;
+    }
+
+    let ordenLimpio: TipoOrden | undefined;
+    if (orden !== undefined) {
+      if (!ORDENES_VALIDOS.includes(orden as TipoOrden)) return null;
+      ordenLimpio = orden as TipoOrden;
+    }
 
     const layoutValido = validarLayout(layout);
     if (!layoutValido) return null;
 
-    limpios.push({ id, label: label.slice(0, 120), dataset, ejeX, ejeY, agregacion: agregacion as TipoAgregacion, tipoGrafica, layout: layoutValido });
+    limpios.push({
+      id,
+      label: label.slice(0, 120),
+      dataset,
+      ejeX,
+      ejeY,
+      agregacion: agregacion as TipoAgregacion,
+      tipoGrafica: tipoGrafica as TipoGrafica,
+      ejeSplit: ejeSplitLimpio,
+      orden: ordenLimpio,
+      layout: layoutValido,
+    });
   }
   return limpios;
 }

@@ -1,23 +1,37 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { BiDato } from "@/components/bi/bi-chart";
-import type { TipoAgregacion } from "@/lib/bi/metadata";
+import type { BiDato, BiCaja, BiPar } from "@/components/bi/bi-chart";
+import type { TipoAgregacion, TipoGrafica, TipoOrden } from "@/lib/bi/metadata";
+
+export type BiQueryParams = {
+  dataset: string;
+  ejeX: string;
+  ejeY: string;
+  agregacion: TipoAgregacion;
+  tipoGrafica: TipoGrafica;
+  ejeSplit?: string;
+  orden?: TipoOrden;
+};
 
 export type BiQueryResultado = {
   datos: BiDato[];
   ejeYLabel: string;
+  cajas: BiCaja[];
+  pares: BiPar[];
+  splitLabels: [string, string];
+  truncado: boolean;
   cargando: boolean;
   error: string | null;
 };
 
+const VACIO: Omit<BiQueryResultado, "cargando" | "error"> = { datos: [], ejeYLabel: "", cajas: [], pares: [], splitLabels: ["", ""], truncado: false };
+
 /** Ejecuta /api/bi/query y deriva el estado de carga de la comparación de "key" en vez de setState síncrono en el efecto. */
-export function useBiQuery(dataset: string, ejeX: string, ejeY: string, agregacion: TipoAgregacion): BiQueryResultado {
-  const params = useMemo(() => ({ dataset, ejeX, ejeY, agregacion }), [dataset, ejeX, ejeY, agregacion]);
+export function useBiQuery(params: BiQueryParams): BiQueryResultado {
   const key = useMemo(() => JSON.stringify(params), [params]);
 
-  const [datos, setDatos] = useState<BiDato[]>([]);
-  const [ejeYLabel, setEjeYLabel] = useState("");
+  const [resultado, setResultado] = useState(VACIO);
   const [resolvedKey, setResolvedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +40,7 @@ export function useBiQuery(dataset: string, ejeX: string, ejeY: string, agregaci
     fetch("/api/bi/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
+      body: key,
     })
       .then(async (res) => {
         const body = await res.json();
@@ -35,8 +49,14 @@ export function useBiQuery(dataset: string, ejeX: string, ejeY: string, agregaci
       })
       .then((body) => {
         if (cancelado) return;
-        setDatos(body.datos);
-        setEjeYLabel(body.ejeY.label);
+        setResultado({
+          datos: body.datos ?? [],
+          ejeYLabel: body.ejeY?.label ?? "",
+          cajas: body.cajas ?? [],
+          pares: body.pares ?? [],
+          splitLabels: body.splitLabels ?? ["", ""],
+          truncado: body.truncado ?? false,
+        });
         setError(null);
         setResolvedKey(key);
       })
@@ -48,8 +68,7 @@ export function useBiQuery(dataset: string, ejeX: string, ejeY: string, agregaci
     return () => {
       cancelado = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  return { datos, ejeYLabel, cargando: resolvedKey !== key, error };
+  return { ...resultado, cargando: resolvedKey !== key, error };
 }

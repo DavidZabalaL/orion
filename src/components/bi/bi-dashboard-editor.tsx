@@ -268,6 +268,8 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
                   ejeY={w.ejeY}
                   agregacion={w.agregacion}
                   tipoGrafica={w.tipoGrafica}
+                  ejeSplit={w.ejeSplit}
+                  orden={w.orden}
                   editMode={editMode}
                   onEliminar={() => eliminarWidget(w.id)}
                 />
