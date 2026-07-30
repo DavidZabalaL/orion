@@ -49,6 +49,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `g."categoria"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `g."estatus"` },
+      { id: "proveedor", label: "Proveedor", tipo: "texto", expr: `COALESCE(g."proveedor", 'Sin proveedor')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `g."fecha"` },
       { id: "costo", label: "Costo", tipo: "numero", expr: `g."costo"` },
@@ -75,6 +76,52 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `s."estatus"` },
       { id: "mesVencimiento", label: "Mes de vencimiento", tipo: "fecha_mes", expr: `s."fechaVencimiento"` },
       { id: "costo", label: "Costo", tipo: "numero", expr: `s."costo"` },
+    ],
+  },
+  {
+    id: "operadores",
+    label: "Operadores",
+    from: `"Operador" o LEFT JOIN "Proyecto" p ON p.id = o."proyectoId"`,
+    campos: [
+      { id: "estatus", label: "Estatus", tipo: "texto", expr: `o."estatus"` },
+      { id: "estatusDocumental", label: "Estatus documental", tipo: "texto", expr: `o."estatusDocumental"` },
+      { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
+      { id: "mesAlta", label: "Mes de alta", tipo: "fecha_mes", expr: `o."createdAt"` },
+    ],
+  },
+  {
+    id: "documentos_operador",
+    label: "Documentos de operadores",
+    from: `"DocumentoOperador" do2 LEFT JOIN "Operador" o ON o.id = do2."operadorId" LEFT JOIN "Proyecto" p ON p.id = o."proyectoId"`,
+    campos: [
+      { id: "tipoDocumento", label: "Tipo de documento", tipo: "texto", expr: `do2."tipoDocumento"` },
+      { id: "tipoLicencia", label: "Tipo de licencia", tipo: "texto", expr: `COALESCE(do2."tipoLicencia"::text, 'N/A')` },
+      { id: "verificado", label: "Verificación", tipo: "texto", expr: `CASE WHEN do2."verificado" THEN 'Verificado' ELSE 'Pendiente' END` },
+      { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
+      { id: "mesVencimiento", label: "Mes de vencimiento", tipo: "fecha_mes", expr: `do2."fechaVencimiento"` },
+    ],
+  },
+  {
+    id: "peajes",
+    label: "TAG / Peajes",
+    from: `"Tag" t LEFT JOIN "Proyecto" p ON p.id = t."proyectoReportanteId"`,
+    campos: [
+      { id: "proveedorTag", label: "Proveedor de TAG", tipo: "texto", expr: `t."proveedorTag"` },
+      { id: "conciliado", label: "Conciliación", tipo: "texto", expr: `CASE WHEN t."conciliado" THEN 'Conciliado' ELSE 'Pendiente' END` },
+      { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
+      { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `t."fecha"` },
+      { id: "monto", label: "Monto", tipo: "numero", expr: `t."monto"` },
+    ],
+  },
+  {
+    id: "presupuesto_partida",
+    label: "Presupuesto por partida (autorizado)",
+    from: `"PresupuestoPartida" pp LEFT JOIN "Proyecto" p ON p.id = pp."proyectoId"`,
+    campos: [
+      { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `pp."categoria"` },
+      { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
+      { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `make_date(pp."anio", pp."mes", 1)` },
+      { id: "montoPresupuestado", label: "Monto presupuestado", tipo: "numero", expr: `pp."montoPresupuestado"` },
     ],
   },
 ];
@@ -106,6 +153,10 @@ export const BI_COMBINACIONES_SUGERIDAS: { label: string; dataset: string; ejeX:
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Litros de combustible por mes", dataset: "combustible", ejeX: "mes", ejeY: "litros", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Pólizas por aseguradora", dataset: "seguros", ejeX: "aseguradora", ejeY: "aseguradora", agregacion: "conteo", tipoGrafica: "pie" },
+  { label: "Operadores por estatus documental", dataset: "operadores", ejeX: "estatusDocumental", ejeY: "estatusDocumental", agregacion: "conteo", tipoGrafica: "pie" },
+  { label: "Documentos por vencer por tipo", dataset: "documentos_operador", ejeX: "tipoDocumento", ejeY: "tipoDocumento", agregacion: "conteo", tipoGrafica: "barras" },
+  { label: "Gasto de peajes por mes", dataset: "peajes", ejeX: "mes", ejeY: "monto", agregacion: "suma", tipoGrafica: "lineas" },
+  { label: "Presupuesto autorizado por categoría", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "montoPresupuestado", agregacion: "suma", tipoGrafica: "barras" },
 ];
 
 /** Posición/tamaño en la cuadrícula de arrastre (react-grid-layout), en unidades de columna/fila. */
