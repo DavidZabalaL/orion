@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
+import { logActivity } from "@/lib/activity";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -53,6 +54,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return session;
+    },
+  },
+  events: {
+    // Efectos secundarios de solo registro (no de autorización) — separados de
+    // `callbacks` a propósito, para la Analítica de Uso y Trazabilidad (ActivityLog).
+    async signIn({ user }) {
+      if (!user.email) return;
+      const usuario = await prisma.usuario.findUnique({ where: { correo: user.email.toLowerCase() } });
+      if (usuario) await logActivity({ userId: usuario.id, modulo: "auth", accion: "login" });
+    },
+    async signOut(message) {
+      const usuarioId = "token" in message ? (message.token?.usuarioId as string | undefined) : undefined;
+      if (usuarioId) await logActivity({ userId: usuarioId, modulo: "auth", accion: "logout" });
     },
   },
 });

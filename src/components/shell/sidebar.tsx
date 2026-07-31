@@ -19,11 +19,13 @@ export function Sidebar({
   onClose,
   user,
   modulosVisibles,
+  esDevAdmin = false,
 }: {
   mobileOpen?: boolean;
   onClose?: () => void;
   user: Usuario;
   modulosVisibles: string[];
+  esDevAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const [colapsado, setColapsado] = useState(false);
@@ -158,7 +160,7 @@ export function Sidebar({
         </nav>
 
         <div className="border-t px-3 pt-3 shrink-0" style={{ borderColor: "var(--header-border)" }}>
-          <UserMenu user={user} colapsado={colapsado} />
+          <UserMenu user={user} colapsado={colapsado} esDevAdmin={esDevAdmin} />
         </div>
 
         <div

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { logActivity } from "@/lib/activity";
 
 export async function actualizarOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -58,6 +59,14 @@ export async function actualizarOperador(formData: FormData) {
         valoresAnteriores: { nombre: anterior.nombre, curp: anterior.curp, proyectoId: anterior.proyectoId },
         valoresNuevos: { nombre, curp, proyectoId },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "operadores",
+      accion: "update",
+      entidad: "Operador",
+      entidadId: id,
+      detalle: { anterior: { nombre: anterior.nombre, curp: anterior.curp, proyectoId: anterior.proyectoId }, nuevo: { nombre, curp, proyectoId } },
     });
   }
 

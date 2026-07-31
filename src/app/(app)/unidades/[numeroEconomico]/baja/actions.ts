@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { logActivity } from "@/lib/activity";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
   await exigirPermisoModulo("B", "editar");
@@ -62,6 +63,14 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
         valoresAnteriores: { estatus: unidad.estatus },
         valoresNuevos: { estatus: "BAJA", motivoBaja, fechaEfectiva },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "update",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { campo: "estatus", anterior: unidad.estatus, nuevo: "BAJA", motivoBaja },
     });
   }
 

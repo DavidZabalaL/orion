@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
+import { logActivity } from "@/lib/activity";
 
 export async function crearOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -34,6 +35,8 @@ export async function crearOperador(formData: FormData) {
     throw new Error("No tienes permiso para asignar ese proyecto.");
   }
 
+  const session = await auth();
+
   const placeholderDoc = await prisma.documento.create({
     data: { entidadRelacionada: "Operador", entidadId: "pendiente", url: "/mock/placeholder.jpg", tipo: "foto" },
   });
@@ -61,7 +64,7 @@ export async function crearOperador(formData: FormData) {
         : await prisma.documento.create({
             data: { entidadRelacionada: "DocumentoOperador", entidadId: operador.id, url: "/mock/licencia.pdf", tipo: "licencia" },
           });
-    await prisma.documentoOperador.create({
+    const documentoOperador = await prisma.documentoOperador.create({
       data: {
         operadorId: operador.id,
         tipoDocumento: "LICENCIA",
@@ -74,9 +77,19 @@ export async function crearOperador(formData: FormData) {
         verificado: false,
       },
     });
+
+    if (session?.user?.id) {
+      await logActivity({
+        userId: session.user.id,
+        modulo: "documentos",
+        accion: "create",
+        entidad: "DocumentoOperador",
+        entidadId: documentoOperador.id,
+        detalle: { operadorId: operador.id, tipoDocumento: "LICENCIA" },
+      });
+    }
   }
 
-  const session = await auth();
   if (session?.user?.id) {
     await prisma.bitacoraCambio.create({
       data: {
@@ -86,6 +99,14 @@ export async function crearOperador(formData: FormData) {
         accion: "CREAR",
         valoresNuevos: { nombre, curp },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "operadores",
+      accion: "create",
+      entidad: "Operador",
+      entidadId: operador.id,
+      detalle: { nombre, curp, proyectoId },
     });
   }
 

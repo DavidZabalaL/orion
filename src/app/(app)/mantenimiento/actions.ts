@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function crearGasto(formData: FormData) {
   await exigirPermisoModulo("C", "editar");
@@ -44,7 +46,7 @@ export async function crearGasto(formData: FormData) {
     }
   }
 
-  await prisma.gastoVehicular.create({
+  const gasto = await prisma.gastoVehicular.create({
     data: {
       numeroEconomico: aplicaAUnidad ? numeroEconomico : null,
       proyectoReportanteId: aplicaAUnidad ? null : proyectoReportanteId,
@@ -59,6 +61,18 @@ export async function crearGasto(formData: FormData) {
       estatus: estatus as never,
     },
   });
+
+  const sesionCrear = await auth();
+  if (sesionCrear?.user?.id) {
+    await logActivity({
+      userId: sesionCrear.user.id,
+      modulo: "mantenimiento",
+      accion: "create",
+      entidad: "GastoVehicular",
+      entidadId: gasto.id,
+      detalle: { categoria, costo, numeroEconomico, proyectoReportanteId },
+    });
+  }
 
   revalidatePath("/mantenimiento");
   if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
@@ -81,6 +95,19 @@ export async function marcarRealizado(formData: FormData) {
   }
 
   const gasto = await prisma.gastoVehicular.update({ where: { id }, data: { estatus: "REALIZADO" } });
+
+  const sesionRealizado = await auth();
+  if (sesionRealizado?.user?.id) {
+    await logActivity({
+      userId: sesionRealizado.user.id,
+      modulo: "mantenimiento",
+      accion: "update",
+      entidad: "GastoVehicular",
+      entidadId: id,
+      detalle: { campo: "estatus", nuevo: "REALIZADO" },
+    });
+  }
+
   revalidatePath("/mantenimiento");
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
 }
@@ -137,6 +164,18 @@ export async function actualizarGasto(formData: FormData) {
       estatus: estatus as never,
     },
   });
+
+  const sesionActualizar = await auth();
+  if (sesionActualizar?.user?.id) {
+    await logActivity({
+      userId: sesionActualizar.user.id,
+      modulo: "mantenimiento",
+      accion: "update",
+      entidad: "GastoVehicular",
+      entidadId: id,
+      detalle: { costo, estatus },
+    });
+  }
 
   revalidatePath("/mantenimiento");
   if (actual.numeroEconomico) revalidatePath(`/unidades/${actual.numeroEconomico}`);

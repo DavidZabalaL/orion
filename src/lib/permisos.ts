@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { MODULOS } from "@/lib/modulos";
+import { esCorreoDevAdmin } from "@/lib/dev-admin";
 
 export type PermisoEspecial = { id: string; label: string };
 
@@ -12,6 +13,17 @@ export const PERMISOS_ESPECIALES: PermisoEspecial[] = [
 
 type PermisosJson = Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }>;
 
+/**
+ * true si la sesión actual pertenece al equipo de Desarrollo (allowlist por
+ * variable de entorno, ver src/lib/dev-admin.ts) — acceso total e irrevocable,
+ * deliberadamente independiente de la tabla `Rol`: ningún cambio de permisos
+ * hecho desde /usuarios/roles puede quitarlo ni otorgarlo.
+ */
+export async function esDevAdmin(): Promise<boolean> {
+  const session = await auth();
+  return esCorreoDevAdmin(session?.user?.email);
+}
+
 async function obtenerPermisosDelRol(): Promise<PermisosJson | null> {
   const session = await auth();
   const rolNombre = session?.user?.rol;
@@ -21,13 +33,15 @@ async function obtenerPermisosDelRol(): Promise<PermisosJson | null> {
   return (rol?.permisos as PermisosJson | undefined) ?? null;
 }
 
-/** true si el rol actual tiene acceso global ("*"), como el Administrador — sin restricción de proyecto. */
+/** true si el rol actual tiene acceso global ("*"), como el Administrador o el equipo de Desarrollo — sin restricción de proyecto. */
 export async function esRolGlobal(): Promise<boolean> {
+  if (await esDevAdmin()) return true;
   const permisos = await obtenerPermisosDelRol();
   return !!permisos && "*" in permisos;
 }
 
 export async function tienePermisoEspecial(permisoId: string): Promise<boolean> {
+  if (await esDevAdmin()) return true;
   const permisos = await obtenerPermisosDelRol();
   if (!permisos) return false;
   if ("*" in permisos) return true;
@@ -59,6 +73,7 @@ function nivelDe(p?: { ver?: boolean; editar?: boolean; aprobar?: boolean }): Ni
 }
 
 export async function tienePermisoModulo(moduloId: string, minimo: NivelPermisoModulo = "ver"): Promise<boolean> {
+  if (await esDevAdmin()) return true;
   const permisos = await obtenerPermisosDelRol();
   if (!permisos) return false;
   if ("*" in permisos) return true;
@@ -81,8 +96,14 @@ export async function exigirPermisoModulo(moduloId: string, minimo: NivelPermiso
 
 /** Ids de módulo visibles para el rol actual (nivel "ver" o superior) — para filtrar el menú lateral. */
 export async function obtenerModulosVisibles(): Promise<string[]> {
+  if (await esDevAdmin()) return MODULOS.map((m) => m.id);
   const permisos = await obtenerPermisosDelRol();
   if (!permisos) return [];
   if ("*" in permisos) return MODULOS.map((m) => m.id);
   return MODULOS.filter((m) => nivelDe(permisos[m.id]) !== null).map((m) => m.id);
+}
+
+/** Para Server Components: redirige a /sin-acceso si la sesión no es del equipo de Desarrollo. */
+export async function requerirDevAdmin(): Promise<void> {
+  if (!(await esDevAdmin())) redirect("/sin-acceso");
 }

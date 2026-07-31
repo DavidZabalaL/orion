@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
+import { logActivity } from "@/lib/activity";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -94,6 +95,14 @@ export async function crearUnidad(formData: FormData) {
         accion: "CREAR",
         valoresNuevos: { numeroEconomico, placas, marca, unidadModelo },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "create",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { placas, marca, unidadModelo, proyectoId },
     });
   }
 

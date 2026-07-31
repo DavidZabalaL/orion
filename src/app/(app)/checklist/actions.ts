@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { logActivity } from "@/lib/activity";
 
 export async function crearChecklist(formData: FormData) {
   await exigirPermisoModulo("A.1", "editar");
@@ -42,7 +43,7 @@ export async function crearChecklist(formData: FormData) {
     evidenciaId = documento.id;
   }
 
-  await prisma.checklist.create({
+  const checklist = await prisma.checklist.create({
     data: {
       numeroEconomico,
       fecha: new Date(),
@@ -52,6 +53,15 @@ export async function crearChecklist(formData: FormData) {
       evidenciaId,
       capturadoPorId: session.user.id,
     },
+  });
+
+  await logActivity({
+    userId: session.user.id,
+    modulo: "checklist",
+    accion: "create",
+    entidad: "Checklist",
+    entidadId: checklist.id,
+    detalle: { numeroEconomico, odometro, horometro },
   });
 
   revalidatePath("/checklist");

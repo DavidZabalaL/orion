@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 import { cerrarSesion } from "@/lib/auth-actions";
 import { iniciales } from "@/lib/formato";
@@ -12,10 +13,12 @@ export function UserMenu({
   user,
   colapsado = false,
   variante = "sidebar",
+  esDevAdmin = false,
 }: {
   user: Usuario;
   colapsado?: boolean;
   variante?: "sidebar" | "header";
+  esDevAdmin?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -74,6 +77,16 @@ export function UserMenu({
             <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{nombre}</div>
             <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{user.email}</div>
           </div>
+          {esDevAdmin && (
+            <Link
+              href="/admin/actividad"
+              onClick={() => setAbierto(false)}
+              className="flex w-full items-center gap-2 px-3 py-2"
+              style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}
+            >
+              <ShieldCheck size={14} /> Analítica de uso y trazabilidad
+            </Link>
+          )}
           <form action={cerrarSesion}>
             <button
               type="submit"

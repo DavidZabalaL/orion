@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
 
@@ -21,6 +22,19 @@ export async function actualizarCapacidadTanque(formData: FormData): Promise<Res
   }
 
   await prisma.unidad.update({ where: { numeroEconomico }, data: { capacidadTanqueLitros } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "update",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { campo: "capacidadTanqueLitros", nuevo: capacidadTanqueLitros },
+    });
+  }
+
   revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true };
 }
@@ -56,6 +70,14 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
         valoresAnteriores: { proyectoId: anterior?.proyectoId ?? null },
         valoresNuevos: { proyectoId },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "update",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { campo: "proyectoId", anterior: anterior?.proyectoId ?? null, nuevo: proyectoId },
     });
   }
 
@@ -140,6 +162,14 @@ export async function actualizarUnidad(formData: FormData) {
         valoresAnteriores: anterior ? { placas: anterior.placas, marca: anterior.marca, proyectoId: anterior.proyectoId } : undefined,
         valoresNuevos: { placas, marca, proyectoId },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "update",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { anterior: { placas: anterior.placas, marca: anterior.marca, proyectoId: anterior.proyectoId }, nuevo: { placas, marca, proyectoId } },
     });
   }
 

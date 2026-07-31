@@ -249,6 +249,7 @@ model Usuario {
   presupuestosPartidaCargados   PresupuestoPartida[]
   notificacionesLeidas          NotificacionLeida[]
   vistasDashboardBI             VistaDashboardBI[]
+  actividad                     ActivityLog[]
 }
 
 model UsuarioProyecto {
@@ -836,6 +837,31 @@ model VistaDashboardBI {
   creadoPor   Usuario? @relation(fields: [creadoPorId], references: [id])
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+// ───────────────────────── ANALÍTICA DE USO Y TRAZABILIDAD ─────────────────────────
+// Capa independiente de BitacoraCambio: BitacoraCambio audita cambios de datos de
+// negocio puntuales (unidades, operadores, presupuesto...); ActivityLog es el log
+// de actividad de toda la plataforma (login/logout incluido) para adopción y
+// trazabilidad. Append-only por convención de aplicación — nunca se actualiza ni
+// se borra un registro desde el código (ver src/lib/activity.ts).
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  usuario   Usuario  @relation(fields: [userId], references: [id])
+  modulo    String
+  accion    String
+  entidad   String?
+  entidadId String?
+  detalle   Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entidad, entidadId])
+  @@index([modulo, createdAt])
 }
 
 // ───────────────────────── NOTIFICACIONES LEÍDAS ─────────────────────────

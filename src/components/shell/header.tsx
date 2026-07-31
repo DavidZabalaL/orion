@@ -110,10 +110,12 @@ export function Header({
   onMenuClick,
   user,
   notificaciones,
+  esDevAdmin = false,
 }: {
   onMenuClick?: () => void;
   user: Usuario;
   notificaciones: Notificacion[];
+  esDevAdmin?: boolean;
 }) {
   return (
     <header
@@ -140,7 +142,7 @@ export function Header({
       <div className="flex items-center gap-4">
         <ThemeToggle />
         <NotificacionesBell notificaciones={notificaciones} />
-        <UserMenu user={user} variante="header" />
+        <UserMenu user={user} variante="header" esDevAdmin={esDevAdmin} />
       </div>
     </header>
   );
