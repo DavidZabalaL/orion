@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
@@ -61,6 +63,18 @@ export async function crearSeguro(formData: FormData) {
     },
   });
 
+  const sesionCrear = await auth();
+  if (sesionCrear?.user?.id) {
+    await logActivity({
+      userId: sesionCrear.user.id,
+      modulo: "seguros",
+      accion: "create",
+      entidad: "Seguro",
+      entidadId: seguro.id,
+      detalle: { numeroEconomico, aseguradora, numeroPoliza, costo },
+    });
+  }
+
   revalidatePath("/seguros");
   revalidatePath(`/unidades/${numeroEconomico}`);
   redirect(`/seguros/${seguro.id}`);
@@ -88,6 +102,18 @@ export async function renovarSeguro(formData: FormData) {
     where: { id },
     data: { fechaVencimiento: new Date(fechaVencimiento), costo, estatus },
   });
+
+  const sesionRenovar = await auth();
+  if (sesionRenovar?.user?.id) {
+    await logActivity({
+      userId: sesionRenovar.user.id,
+      modulo: "seguros",
+      accion: "update",
+      entidad: "Seguro",
+      entidadId: id,
+      detalle: { fechaVencimiento, costo, estatus },
+    });
+  }
 
   revalidatePath(`/seguros/${id}`);
   revalidatePath("/seguros");
@@ -123,6 +149,18 @@ export async function subirDocumentoSeguro(formData: FormData) {
   });
 
   await prisma.seguro.update({ where: { id }, data: { documentoId: documento.id } });
+
+  const sesionDocumento = await auth();
+  if (sesionDocumento?.user?.id) {
+    await logActivity({
+      userId: sesionDocumento.user.id,
+      modulo: "seguros",
+      accion: "update",
+      entidad: "Seguro",
+      entidadId: id,
+      detalle: { campo: "documentoId", nuevo: documento.id },
+    });
+  }
 
   revalidatePath(`/seguros/${id}`);
   revalidatePath(`/unidades/${seguro.numeroEconomico}`);

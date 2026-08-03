@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function crearTag(formData: FormData) {
   await exigirPermisoModulo("E", "editar");
@@ -24,9 +26,21 @@ export async function crearTag(formData: FormData) {
     if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
-  await prisma.tag.create({
+  const tag = await prisma.tag.create({
     data: { numeroEconomico, fecha: new Date(fecha), monto, caseta, proveedorTag: proveedorTag as never, conciliado: false },
   });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "tag",
+      accion: "create",
+      entidad: "Tag",
+      entidadId: tag.id,
+      detalle: { numeroEconomico, monto, caseta, proveedorTag },
+    });
+  }
 
   revalidatePath("/tag");
 }
@@ -44,6 +58,19 @@ export async function conciliarTag(formData: FormData) {
   }
 
   await prisma.tag.update({ where: { id }, data: { conciliado: true } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "tag",
+      accion: "update",
+      entidad: "Tag",
+      entidadId: id,
+      detalle: { campo: "conciliado", nuevo: true },
+    });
+  }
+
   revalidatePath("/tag");
 }
 
@@ -61,5 +88,18 @@ export async function asignarEconomicoTag(formData: FormData) {
   }
 
   await prisma.tag.update({ where: { id }, data: { numeroEconomico } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "tag",
+      accion: "update",
+      entidad: "Tag",
+      entidadId: id,
+      detalle: { campo: "numeroEconomico", nuevo: numeroEconomico },
+    });
+  }
+
   revalidatePath("/tag");
 }

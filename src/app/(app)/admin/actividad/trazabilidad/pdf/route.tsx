@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { esDevAdmin } from "@/lib/permisos";
 import { buscarTrazabilidad, MODULO_ACTIVIDAD_LABEL } from "@/lib/actividad";
+import { ZONA_HORARIA_MX } from "@/lib/timezone";
 
 const estilos = StyleSheet.create({
   page: { padding: 32, fontSize: 10, fontFamily: "Helvetica" },
@@ -14,7 +15,7 @@ const estilos = StyleSheet.create({
 });
 
 function fmtFecha(d: Date): string {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "medium" }).format(d);
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "medium", timeZone: ZONA_HORARIA_MX }).format(d);
 }
 
 function fmtDetalle(detalle: unknown): string | null {

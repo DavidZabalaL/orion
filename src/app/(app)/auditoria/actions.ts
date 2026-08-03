@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { logActivity } from "@/lib/activity";
 
 export async function resolverAuditoria(formData: FormData) {
   await exigirPermisoModulo("I", "aprobar");
@@ -36,6 +37,14 @@ export async function resolverAuditoria(formData: FormData) {
         valoresAnteriores: { estatus: "ABIERTA" },
         valoresNuevos: { estatus: "RESUELTA", resolucion },
       },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "auditoria",
+      accion: "update",
+      entidad: "Auditoria",
+      entidadId: auditoria.id,
+      detalle: { estatus: "RESUELTA", resolucion },
     });
   }
 

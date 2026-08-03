@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
+import { logActivity } from "@/lib/activity";
 import {
   obtenerDataset,
   obtenerCampo,
@@ -104,6 +105,9 @@ export async function guardarVistaDashboard(input: { id?: string; nombre: string
         where: { id: input.id },
         data: { nombre, widgets },
       });
+      if (usuarioId) {
+        await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "update", entidad: "VistaDashboardBI", entidadId: actualizada.id, detalle: { nombre } });
+      }
       revalidatePath("/dashboards");
       return { ok: true, id: actualizada.id };
     }
@@ -111,6 +115,9 @@ export async function guardarVistaDashboard(input: { id?: string; nombre: string
     const creada = await prisma.vistaDashboardBI.create({
       data: { nombre, widgets, creadoPorId: usuarioId ?? null },
     });
+    if (usuarioId) {
+      await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "create", entidad: "VistaDashboardBI", entidadId: creada.id, detalle: { nombre } });
+    }
     revalidatePath("/dashboards");
     return { ok: true, id: creada.id };
   } catch {
@@ -128,6 +135,11 @@ export async function eliminarVistaDashboard(id: string): Promise<ResultadoVista
     await prisma.vistaDashboardBI.delete({ where: { id } });
   } catch {
     return { ok: false, error: "No se pudo eliminar la vista." };
+  }
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({ userId: session.user.id, modulo: "dashboards", accion: "delete", entidad: "VistaDashboardBI", entidadId: id });
   }
 
   revalidatePath("/dashboards");

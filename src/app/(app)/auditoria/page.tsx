@@ -6,14 +6,9 @@ import { ClipboardList, AlertOctagon, CheckCircle2, Scale } from "lucide-react";
 import { fmtMoney } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
-
-function inicioDeHoy() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 export default async function AuditoriaPage() {
   await requerirPermisoModulo("I");

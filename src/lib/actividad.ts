@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { inicioDeHoyMx, inicioDeMesMx, ZONA_HORARIA_MX } from "@/lib/timezone";
 
 export const MODULO_ACTIVIDAD_LABEL: Record<string, string> = {
   vehiculos: "Vehículos",
@@ -8,6 +9,15 @@ export const MODULO_ACTIVIDAD_LABEL: Record<string, string> = {
   documentos: "Documentos",
   operadores: "Operadores",
   auth: "Sesión (login/logout)",
+  combustible: "Combustible",
+  seguros: "Seguros",
+  tag: "TAG / Peajes",
+  mapa: "Geolocalización",
+  proyectos: "Proyectos",
+  usuarios: "Administración",
+  auditoria: "Auditoría",
+  reportes: "Reportes",
+  dashboards: "Dashboards",
 };
 
 export type KpisAdopcion = {
@@ -18,28 +28,15 @@ export type KpisAdopcion = {
   porcentajeAdopcion: number;
 };
 
-function inicioDeHoy(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function inicioDeMes(): Date {
-  const d = new Date();
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 function haceDias(n: number): Date {
   return new Date(Date.now() - n * 86_400_000);
 }
 
 export async function obtenerKpisAdopcion(): Promise<KpisAdopcion> {
   const [activosHoy, activosSemana, activosMes, totalCuentasActivas] = await Promise.all([
-    prisma.activityLog.findMany({ where: { createdAt: { gte: inicioDeHoy() } }, distinct: ["userId"], select: { userId: true } }),
+    prisma.activityLog.findMany({ where: { createdAt: { gte: inicioDeHoyMx() } }, distinct: ["userId"], select: { userId: true } }),
     prisma.activityLog.findMany({ where: { createdAt: { gte: haceDias(7) } }, distinct: ["userId"], select: { userId: true } }),
-    prisma.activityLog.findMany({ where: { createdAt: { gte: inicioDeMes() } }, distinct: ["userId"], select: { userId: true } }),
+    prisma.activityLog.findMany({ where: { createdAt: { gte: inicioDeMesMx() } }, distinct: ["userId"], select: { userId: true } }),
     prisma.usuario.count({ where: { estatus: "ACTIVO" } }),
   ]);
 
@@ -90,7 +87,7 @@ export async function obtenerSerieActividadDiaria(dias: number): Promise<PuntoAc
   const desde = haceDias(dias);
   const filas = await prisma.$queryRaw<{ dia: string; total: bigint }[]>(
     Prisma.sql`
-      SELECT TO_CHAR("createdAt", 'YYYY-MM-DD') AS dia, COUNT(*) AS total
+      SELECT TO_CHAR("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE ${ZONA_HORARIA_MX}, 'YYYY-MM-DD') AS dia, COUNT(*) AS total
       FROM "ActivityLog"
       WHERE "createdAt" >= ${desde}
       GROUP BY dia

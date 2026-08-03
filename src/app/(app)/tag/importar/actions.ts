@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
 import { parsearFechaFlexible } from "@/lib/import-tag";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
@@ -80,6 +82,17 @@ export async function importarTags(
     } catch (e) {
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
     }
+  }
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "tag",
+      accion: "import",
+      entidad: "Tag",
+      detalle: { creadas: resultado.creadas.length, omitidas: resultado.omitidas.length, proveedorTag },
+    });
   }
 
   return resultado;

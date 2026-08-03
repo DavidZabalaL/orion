@@ -7,6 +7,7 @@ import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, valorWidgetUnidades, type WidgetConfigItem } from "@/lib/widgets";
 import Link from "next/link";
+import { inicioDeHoyMx } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -65,8 +66,7 @@ export default async function UnidadesPage() {
 
   const proyectosOptions = Array.from(new Set(rows.map((r) => r.proyecto).filter(Boolean))) as string[];
 
-  const hoyInicio = new Date();
-  hoyInicio.setHours(0, 0, 0, 0);
+  const hoyInicio = inicioDeHoyMx();
   const [gastoHoyAgg, configWidgets, puedeConfigurar] = await Promise.all([
     prisma.gastoVehicular.aggregate({
       where: { fecha: { gte: hoyInicio }, ...(proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {}) },

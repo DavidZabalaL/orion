@@ -6,14 +6,9 @@ import { ChecklistLista } from "@/components/checklist/checklist-lista";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
-
-function inicioDeHoy() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 export default async function ChecklistPage() {
   await requerirPermisoModulo("A.1");

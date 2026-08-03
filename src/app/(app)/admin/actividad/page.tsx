@@ -9,12 +9,13 @@ import {
   obtenerSerieActividadDiaria,
   MODULO_ACTIVIDAD_LABEL,
 } from "@/lib/actividad";
+import { ZONA_HORARIA_MX } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
 function fmtFecha(d: Date | null): string {
   if (!d) return "Nunca";
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(d);
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: ZONA_HORARIA_MX }).format(d);
 }
 
 export default async function AdopcionPage({

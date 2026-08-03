@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
 
@@ -53,7 +55,7 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   const nivelEstimadoDespues = nivelAntes + litros;
   const alertaSobrellenado = nivelEstimadoDespues > capacidadTanqueLitros;
 
-  await prisma.combustible.create({
+  const combustible = await prisma.combustible.create({
     data: {
       numeroEconomico,
       fecha: new Date(fecha),
@@ -67,6 +69,18 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
       alertaSobrellenado,
     },
   });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "combustible",
+      accion: "create",
+      entidad: "Combustible",
+      entidadId: combustible.id,
+      detalle: { numeroEconomico, litros, costo, alertaSobrellenado },
+    });
+  }
 
   revalidatePath("/combustible");
   revalidatePath(`/unidades/${numeroEconomico}`);
@@ -91,9 +105,21 @@ export async function crearMapeoTarjeta(formData: FormData) {
     if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
-  await prisma.mapeoTarjetaEconomico.create({
+  const mapeo = await prisma.mapeoTarjetaEconomico.create({
     data: { numeroTarjeta, numeroEconomico, proveedor, vigenciaDesde: new Date(vigenciaDesde) },
   });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "combustible",
+      accion: "create",
+      entidad: "MapeoTarjetaEconomico",
+      entidadId: mapeo.numeroTarjeta,
+      detalle: { numeroTarjeta, numeroEconomico, proveedor },
+    });
+  }
 
   revalidatePath("/combustible/mapeo-tarjetas");
 }

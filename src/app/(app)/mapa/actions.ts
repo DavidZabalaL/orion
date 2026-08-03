@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { evaluarAnomalia } from "@/lib/gps";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function registrarPosicion(formData: FormData) {
   await exigirPermisoModulo("G", "editar");
@@ -73,6 +75,18 @@ export async function registrarPosicion(formData: FormData) {
 
   if (!esAnomalo && kmReportado) {
     await prisma.unidad.update({ where: { numeroEconomico }, data: { kmOficial: kmReportado } });
+  }
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "mapa",
+      accion: "create",
+      entidad: "PosicionGPS",
+      entidadId: numeroEconomico,
+      detalle: { lat, lng, esAnomalo },
+    });
   }
 
   revalidatePath("/mapa");

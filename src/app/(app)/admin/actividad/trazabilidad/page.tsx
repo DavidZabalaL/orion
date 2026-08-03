@@ -2,11 +2,12 @@ import Link from "next/link";
 import { FileDown, Search } from "lucide-react";
 import { EmptyState } from "@/components/ui/table";
 import { buscarTrazabilidad, MODULO_ACTIVIDAD_LABEL } from "@/lib/actividad";
+import { ZONA_HORARIA_MX } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
 function fmtFecha(d: Date): string {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "medium" }).format(d);
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "medium", timeZone: ZONA_HORARIA_MX }).format(d);
 }
 
 function fmtDetalle(detalle: unknown): string | null {

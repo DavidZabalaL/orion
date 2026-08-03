@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { puedeCargarPresupuesto, exigirPermisoModulo } from "@/lib/permisos";
 import { parsearExcelPresupuesto, resolverCategoria, resolverProyecto, type FilaPresupuestoExcel } from "@/lib/import-presupuesto";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
+import { logActivity } from "@/lib/activity";
 
 export type GrupoProyectoDetectado = { alias: string; proyectoIdSugerido: string | null; nombreSugerido: string | null };
 export type GrupoPartidaDetectado = { texto: string; categoriaSugerida: string | null };
@@ -161,6 +162,14 @@ export async function confirmarCargaPresupuesto(
   }
 
   resultado.omitidas = Array.from(motivosOmitidas.entries()).map(([motivo, cantidad]) => ({ motivo, cantidad }));
+
+  await logActivity({
+    userId: usuarioId,
+    modulo: "proyectos",
+    accion: "import",
+    entidad: "PresupuestoPartida",
+    detalle: { creadas: resultado.creadas, actualizadas: resultado.actualizadas, sinCambio: resultado.sinCambio, archivoNombre },
+  });
 
   for (const proyectoId of proyectosAfectados) {
     revalidatePath(`/proyectos/${proyectoId}/presupuesto`);

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { logActivity } from "@/lib/activity";
 
 export async function crearReporteProgramado(formData: FormData) {
   await exigirPermisoModulo("J", "editar");
@@ -25,7 +26,7 @@ export async function crearReporteProgramado(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Sesión no válida.");
 
-  await prisma.reporteProgramado.create({
+  const reporte = await prisma.reporteProgramado.create({
     data: {
       nombre,
       tipo,
@@ -38,6 +39,15 @@ export async function crearReporteProgramado(formData: FormData) {
     },
   });
 
+  await logActivity({
+    userId: session.user.id,
+    modulo: "reportes",
+    accion: "create",
+    entidad: "ReporteProgramado",
+    entidadId: reporte.id,
+    detalle: { nombre, tipo, frecuencia },
+  });
+
   revalidatePath("/reportes");
 }
 
@@ -47,5 +57,18 @@ export async function alternarReporte(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const activo = String(formData.get("activo") ?? "true") === "true";
   await prisma.reporteProgramado.update({ where: { id }, data: { activo: !activo } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "reportes",
+      accion: "update",
+      entidad: "ReporteProgramado",
+      entidadId: id,
+      detalle: { campo: "activo", nuevo: !activo },
+    });
+  }
+
   revalidatePath("/reportes");
 }

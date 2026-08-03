@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 function parseDias(v: FormDataEntryValue | null) {
   return String(v ?? "")
@@ -46,10 +48,19 @@ export async function actualizarConfiguracionNotificaciones(formData: FormData) 
       .filter(Boolean),
   };
 
-  if (id) {
-    await prisma.configuracionNotificaciones.update({ where: { id }, data });
-  } else {
-    await prisma.configuracionNotificaciones.create({ data });
+  const config = id
+    ? await prisma.configuracionNotificaciones.update({ where: { id }, data })
+    : await prisma.configuracionNotificaciones.create({ data });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "update",
+      entidad: "ConfiguracionNotificaciones",
+      entidadId: config.id,
+    });
   }
 
   revalidatePath("/usuarios/notificaciones");

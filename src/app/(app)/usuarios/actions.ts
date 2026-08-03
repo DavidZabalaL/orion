@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { enviarInvitacion } from "@/lib/email";
 import { exigirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
+import { logActivity } from "@/lib/activity";
 
 export type ResultadoInvitarUsuario = { id: string; correoEnviado: boolean; errorCorreo?: string };
 
@@ -37,6 +38,18 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
 
   const resultadoCorreo = await enviarInvitacion({ correo, nombre, rol: rol.nombre });
 
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "create",
+      entidad: "Usuario",
+      entidadId: usuario.id,
+      detalle: { nombre, correo, rol: rol.nombre },
+    });
+  }
+
   revalidatePath("/usuarios");
   return { id: usuario.id, correoEnviado: resultadoCorreo.enviado, errorCorreo: resultadoCorreo.error };
 }
@@ -48,6 +61,19 @@ export async function alternarEstatusUsuario(formData: FormData) {
   const estatusActual = String(formData.get("estatus") ?? "");
   const nuevoEstatus = estatusActual === "DESACTIVADO" ? "ACTIVO" : "DESACTIVADO";
   await prisma.usuario.update({ where: { id }, data: { estatus: nuevoEstatus } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "update",
+      entidad: "Usuario",
+      entidadId: id,
+      detalle: { campo: "estatus", nuevo: nuevoEstatus },
+    });
+  }
+
   revalidatePath("/usuarios");
 }
 
@@ -75,6 +101,18 @@ export async function actualizarUsuario(formData: FormData) {
     }),
   ]);
 
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "update",
+      entidad: "Usuario",
+      entidadId: id,
+      detalle: { nombre, rolId },
+    });
+  }
+
   revalidatePath("/usuarios");
 }
 
@@ -94,6 +132,9 @@ export async function eliminarUsuario(formData: FormData): Promise<ResultadoElim
   try {
     await prisma.usuarioProyecto.deleteMany({ where: { usuarioId: id } });
     await prisma.usuario.delete({ where: { id } });
+    if (session?.user?.id) {
+      await logActivity({ userId: session.user.id, modulo: "usuarios", accion: "delete", entidad: "Usuario", entidadId: id });
+    }
     revalidatePath("/usuarios");
     return { ok: true };
   } catch {
@@ -123,6 +164,12 @@ export async function actualizarPermisosRol(formData: FormData) {
   }
 
   await prisma.rol.update({ where: { id: rolId }, data: { permisos } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({ userId: session.user.id, modulo: "usuarios", accion: "update", entidad: "Rol", entidadId: rolId, detalle: { permisos } });
+  }
+
   revalidatePath("/usuarios/roles");
 }
 
@@ -140,6 +187,19 @@ export async function actualizarPermisoEspecial(formData: FormData) {
   };
 
   await prisma.rol.update({ where: { id: rolId }, data: { permisos } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "update",
+      entidad: "Rol",
+      entidadId: rolId,
+      detalle: { permisoId, activo },
+    });
+  }
+
   revalidatePath("/usuarios/roles");
 }
 
@@ -149,5 +209,18 @@ export async function actualizarModulosProyecto(formData: FormData) {
   const proyectoId = String(formData.get("proyectoId") ?? "");
   const modulosActivos = formData.getAll("modulosActivos").map(String);
   await prisma.proyecto.update({ where: { id: proyectoId }, data: { modulosActivos } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "update",
+      entidad: "Proyecto",
+      entidadId: proyectoId,
+      detalle: { modulosActivos },
+    });
+  }
+
   revalidatePath("/usuarios/proyectos");
 }

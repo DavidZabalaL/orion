@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function crearProyecto(formData: FormData) {
   await exigirPermisoModulo("H", "editar");
@@ -28,6 +30,18 @@ export async function crearProyecto(formData: FormData) {
       procesosActivos: ["checklist_diario", "conciliacion_diaria"],
     },
   });
+
+  const sesionCrear = await auth();
+  if (sesionCrear?.user?.id) {
+    await logActivity({
+      userId: sesionCrear.user.id,
+      modulo: "proyectos",
+      accion: "create",
+      entidad: "Proyecto",
+      entidadId: proyecto.id,
+      detalle: { nombre, estadoRepublica },
+    });
+  }
 
   revalidatePath("/proyectos");
   // El presupuesto por partida se carga aparte (opcional) justo después de crear el proyecto.
@@ -56,6 +70,18 @@ export async function actualizarProyecto(formData: FormData): Promise<ResultadoA
     where: { id },
     data: { nombre, estadoRepublica, fechaInicio: new Date(fechaInicio), estatus },
   });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "proyectos",
+      accion: "update",
+      entidad: "Proyecto",
+      entidadId: id,
+      detalle: { nombre, estadoRepublica, estatus },
+    });
+  }
 
   revalidatePath(`/proyectos/${id}`);
   revalidatePath("/proyectos");
@@ -89,6 +115,11 @@ export async function eliminarProyecto(formData: FormData): Promise<ResultadoAcc
     return { ok: false, error: "No se pudo eliminar: el proyecto todavía tiene datos asociados." };
   }
 
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({ userId: session.user.id, modulo: "proyectos", accion: "delete", entidad: "Proyecto", entidadId: id });
+  }
+
   revalidatePath("/proyectos");
   return { ok: true };
 }
@@ -107,6 +138,18 @@ export async function actualizarPresupuestoAprobado(formData: FormData) {
   if (permitidos !== null && !permitidos.includes(id)) throw new Error("No tienes permiso para realizar esta acción.");
 
   await prisma.proyecto.update({ where: { id }, data: { presupuestoAprobadoAnual } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "proyectos",
+      accion: "update",
+      entidad: "Proyecto",
+      entidadId: id,
+      detalle: { campo: "presupuestoAprobadoAnual", nuevo: presupuestoAprobadoAnual },
+    });
+  }
 
   revalidatePath(`/proyectos/${id}`);
   revalidatePath("/proyectos");
@@ -132,6 +175,18 @@ export async function actualizarPresupuestoMensual(formData: FormData) {
     create: { proyectoId, anio, mes, montoAsignado },
     update: { montoAsignado },
   });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "proyectos",
+      accion: "update",
+      entidad: "PresupuestoMensual",
+      entidadId: proyectoId,
+      detalle: { anio, mes, montoAsignado },
+    });
+  }
 
   revalidatePath(`/proyectos/${proyectoId}`);
   revalidatePath("/proyectos");

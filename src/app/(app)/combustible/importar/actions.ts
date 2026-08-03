@@ -5,6 +5,8 @@ import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/
 import { parsearFechaFlexible } from "@/lib/import-tag";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
@@ -104,6 +106,17 @@ export async function importarCombustible(filas: FilaMapeada[]): Promise<Resulta
     } catch (e) {
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
     }
+  }
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "combustible",
+      accion: "import",
+      entidad: "Combustible",
+      detalle: { creadas: resultado.creadas.length, omitidas: resultado.omitidas.length },
+    });
   }
 
   return resultado;

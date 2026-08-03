@@ -11,6 +11,8 @@ import {
 } from "@/lib/import-unidades";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 export type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
 
@@ -125,6 +127,17 @@ export async function importarUnidades(
     } catch (e) {
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
     }
+  }
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "import",
+      entidad: "Unidad",
+      detalle: { creadas: resultado.creadas.length, actualizadas: resultado.actualizadas.length, omitidas: resultado.omitidas.length },
+    });
   }
 
   return resultado;
