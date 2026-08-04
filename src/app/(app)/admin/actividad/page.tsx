@@ -1,4 +1,5 @@
-import { Users, UserCheck, CalendarDays, Percent } from "lucide-react";
+import Link from "next/link";
+import { Users, UserCheck, CalendarDays, Percent, ChevronRight } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BiChart } from "@/components/bi/bi-chart";
@@ -56,6 +57,9 @@ export default async function AdopcionPage({
             Usuarios por última actividad (los más inactivos primero)
           </h3>
         </div>
+        <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Da clic en un usuario para ver el detalle completo de todo lo que ha hecho en la plataforma.
+        </p>
 
         <form className="mb-3 flex flex-wrap gap-3" data-no-print>
           <select
@@ -88,13 +92,22 @@ export default async function AdopcionPage({
         {tabla.length === 0 ? (
           <EmptyState>Sin usuarios que coincidan.</EmptyState>
         ) : (
-          <Table headers={["Usuario", "Correo", "Rol", "Última actividad"]} minWidth={640}>
+          <Table headers={["Usuario", "Correo", "Rol", "Última actividad", ""]} minWidth={720}>
             {tabla.map((u) => (
               <tr key={u.usuarioId} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{u.nombre}</td>
+                <td className="px-4 py-3">
+                  <Link href={`/admin/actividad/usuarios/${u.usuarioId}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+                    {u.nombre}
+                  </Link>
+                </td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.correo}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.rol}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: u.ultimaActividad ? "var(--field-text)" : "var(--color-status-escena)" }}>{fmtFecha(u.ultimaActividad)}</td>
+                <td className="px-4 py-3">
+                  <Link href={`/admin/actividad/usuarios/${u.usuarioId}`} className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                    Ver detalle <ChevronRight size={14} />
+                  </Link>
+                </td>
               </tr>
             ))}
           </Table>

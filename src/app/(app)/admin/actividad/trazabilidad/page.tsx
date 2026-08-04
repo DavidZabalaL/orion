@@ -36,6 +36,10 @@ export default async function TrazabilidadPage({
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Buscar por número económico o por entidad
         </h3>
+        <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Esta búsqueda es por registro afectado (ej. una unidad o un operador), para ver quién lo tocó. Si lo que buscas es todo lo que ha hecho un usuario en general, ve a la pestaña{" "}
+          <Link href="/admin/actividad" style={{ color: "var(--color-primary)" }}>Adopción</Link> y da clic en su nombre.
+        </p>
         <form className="flex flex-wrap gap-2" data-no-print>
           <div className="relative flex-1 min-w-[240px]">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color="var(--sidebar-text)" />

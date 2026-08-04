@@ -20,6 +20,45 @@ export const MODULO_ACTIVIDAD_LABEL: Record<string, string> = {
   dashboards: "Dashboards",
 };
 
+const ACCION_VERBO: Record<string, string> = {
+  create: "Registró",
+  update: "Actualizó",
+  delete: "Eliminó",
+  import: "Importó",
+  login: "Inició sesión",
+  logout: "Cerró sesión",
+};
+
+const ENTIDAD_LABEL: Record<string, string> = {
+  Unidad: "una unidad",
+  Checklist: "un checklist",
+  GastoVehicular: "un gasto de mantenimiento",
+  Combustible: "una carga de combustible",
+  MapeoTarjetaEconomico: "un mapeo de tarjeta de combustible",
+  Seguro: "una póliza de seguro",
+  Tag: "un peaje",
+  PosicionGPS: "una posición GPS",
+  Proyecto: "un proyecto",
+  PresupuestoMensual: "el presupuesto mensual",
+  PresupuestoPartida: "presupuesto por partida",
+  Auditoria: "una discrepancia de auditoría",
+  ReporteProgramado: "un reporte programado",
+  VistaDashboardBI: "una vista de dashboard",
+  Usuario: "un usuario",
+  Rol: "permisos de un rol",
+  ConfiguracionNotificaciones: "la configuración de notificaciones",
+  ConfiguracionWidgets: "la configuración de widgets",
+  Operador: "un operador",
+};
+
+/** Frase legible de un evento, ej. "Actualizó una unidad" o "Inició sesión". */
+export function descripcionEvento(modulo: string, accion: string, entidad: string | null): string {
+  if (modulo === "auth") return ACCION_VERBO[accion] ?? accion;
+  const verbo = ACCION_VERBO[accion] ?? accion;
+  const objeto = entidad ? (ENTIDAD_LABEL[entidad] ?? entidad) : (MODULO_ACTIVIDAD_LABEL[modulo] ?? modulo).toLowerCase();
+  return `${verbo} ${objeto}`;
+}
+
 export type KpisAdopcion = {
   activosHoy: number;
   activosSemana: number;
@@ -79,6 +118,59 @@ export async function obtenerTablaUltimaActividad(filtros: { rolId?: string; mod
 
 export async function obtenerRolesConActividad(): Promise<{ id: string; nombre: string }[]> {
   return prisma.rol.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
+}
+
+export type EventoActividadUsuario = {
+  id: string;
+  modulo: string;
+  accion: string;
+  entidad: string | null;
+  entidadId: string | null;
+  detalle: unknown;
+  descripcion: string;
+  createdAt: Date;
+};
+
+export type PerfilActividadUsuario = {
+  usuario: { id: string; nombre: string; correo: string; rol: string; estatus: string };
+  totalEventos: number;
+  primeraActividad: Date | null;
+  eventos: EventoActividadUsuario[];
+};
+
+/** Historial completo de un usuario — todo lo que ha hecho en la plataforma, más reciente primero. */
+export async function obtenerActividadUsuario(usuarioId: string, opts?: { modulo?: string }): Promise<PerfilActividadUsuario | null> {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    select: { id: true, nombre: true, correo: true, estatus: true, rol: { select: { nombre: true } } },
+  });
+  if (!usuario) return null;
+
+  const [eventos, totalEventos, primerEvento] = await Promise.all([
+    prisma.activityLog.findMany({
+      where: { userId: usuarioId, ...(opts?.modulo ? { modulo: opts.modulo } : {}) },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+    }),
+    prisma.activityLog.count({ where: { userId: usuarioId } }),
+    prisma.activityLog.findFirst({ where: { userId: usuarioId }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+  ]);
+
+  return {
+    usuario: { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol.nombre, estatus: usuario.estatus },
+    totalEventos,
+    primeraActividad: primerEvento?.createdAt ?? null,
+    eventos: eventos.map((e) => ({
+      id: e.id,
+      modulo: e.modulo,
+      accion: e.accion,
+      entidad: e.entidad,
+      entidadId: e.entidadId,
+      detalle: e.detalle,
+      descripcion: descripcionEvento(e.modulo, e.accion, e.entidad),
+      createdAt: e.createdAt,
+    })),
+  };
 }
 
 export type PuntoActividadDiaria = { dimension: string; valor: number };
