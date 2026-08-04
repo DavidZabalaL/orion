@@ -7,6 +7,7 @@ import { resolverEstado } from "@/lib/bi/estados-mexico";
 export type BiDato = { dimension: string; valor: number };
 export type BiCaja = { dimension: string; min: number; q1: number; mediana: number; q3: number; max: number };
 export type BiPar = { dimension: string; izquierda: number; derecha: number };
+export type BiCruzado = { series: string[]; filas: { dimension: string; valores: Record<string, number> }[]; truncado: boolean };
 
 // Paleta categórica validada (contraste + separación CVD) — orden fijo,
 // nunca se reasigna por rango. Ver skill dataviz/references/palette.md.
@@ -55,6 +56,7 @@ export function BiChart({
   cajas,
   pares,
   splitLabels,
+  cruzado,
   tipoGrafica,
   ejeYLabel,
   agregacion,
@@ -64,6 +66,7 @@ export function BiChart({
   cajas?: BiCaja[];
   pares?: BiPar[];
   splitLabels?: [string, string];
+  cruzado?: BiCruzado | null;
   tipoGrafica: TipoGrafica;
   ejeYLabel: string;
   agregacion?: TipoAgregacion;
@@ -74,7 +77,14 @@ export function BiChart({
   const contenedorRef = useRef<HTMLDivElement>(null);
   const { width, height } = useTamanoContenedor(contenedorRef);
 
-  const vacio = tipoGrafica === "caja" ? (cajas?.length ?? 0) === 0 : tipoGrafica === "piramide" ? (pares?.length ?? 0) === 0 : datos.length === 0;
+  const vacio =
+    tipoGrafica === "caja"
+      ? (cajas?.length ?? 0) === 0
+      : tipoGrafica === "piramide"
+      ? (pares?.length ?? 0) === 0
+      : tipoGrafica === "barras" && cruzado
+      ? cruzado.filas.length === 0
+      : datos.length === 0;
 
   return (
     <div ref={contenedorRef} className="flex h-full min-h-[280px] w-full flex-col gap-2">
@@ -94,6 +104,7 @@ export function BiChart({
             cajas={cajas ?? []}
             pares={pares ?? []}
             splitLabels={splitLabels ?? ["", ""]}
+            cruzado={cruzado ?? null}
             tipoGrafica={tipoGrafica}
             ejeYLabel={ejeYLabel}
             agregacion={agregacion}
@@ -114,6 +125,7 @@ function BiChartInterno(props: {
   cajas: BiCaja[];
   pares: BiPar[];
   splitLabels: [string, string];
+  cruzado: BiCruzado | null;
   tipoGrafica: TipoGrafica;
   ejeYLabel: string;
   agregacion?: TipoAgregacion;
@@ -123,7 +135,7 @@ function BiChartInterno(props: {
   setHover: (i: number | null) => void;
   uid: string;
 }) {
-  const { datos, cajas, pares, splitLabels, tipoGrafica, ejeYLabel, agregacion, width, height, hover, setHover, uid } = props;
+  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, agregacion, width, height, hover, setHover, uid } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
   if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} agregacion={agregacion} width={width} height={height} />;
@@ -136,6 +148,7 @@ function BiChartInterno(props: {
   if (tipoGrafica === "caja") return <BiCajaChart cajas={cajas} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "piramide") return <BiPiramide pares={pares} splitLabels={splitLabels} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "mapa") return <BiMapa datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  if (tipoGrafica === "barras" && cruzado) return <BiBarrasAgrupadas cruzado={cruzado} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
 }
 
@@ -211,6 +224,93 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height }: { 
           <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor)}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Barras agrupadas: cruce de 2 dimensiones — una barra por serie dentro de cada grupo (eje X). `hover` indexa `dimension::serie` aplanado. */
+function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, width, height }: { cruzado: BiCruzado; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+  const { series, filas } = cruzado;
+  const nSeries = Math.max(series.length, 1);
+  const legendH = 28;
+  const groupMinWidth = Math.max(50, nSeries * 16 + 12);
+  const W = Math.max(width, filas.length * groupMinWidth);
+  const H = height;
+  const max = Math.max(...filas.flatMap((f) => series.map((s) => f.valores[s] ?? 0)), 0);
+  const { max: maxSeguro, innerW, innerH } = ejes(W, H - legendH, [max]);
+  const groupGap = 16;
+  const groupWidth = (innerW - groupGap * (filas.length - 1)) / filas.length;
+  const barGap = 2;
+  const barWidth = (groupWidth - barGap * (nSeries - 1)) / nSeries;
+  const mostrarEtiquetas = filas.length <= 8;
+  const ink = dark ? "#c3c2b7" : "#52514e";
+  const grid = dark ? "#2c2c2a" : "#e1e0d9";
+  const celdaHover = hover !== null ? { fila: Math.floor(hover / nSeries), serie: hover % nSeries } : null;
+
+  return (
+    <div className="relative flex h-full w-full flex-col gap-1">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-1" style={{ height: legendH }}>
+        {series.map((s, i) => (
+          <div key={s} className="flex items-center gap-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: colorFor(i, dark), flexShrink: 0 }} />
+            {s}
+          </div>
+        ))}
+      </div>
+      <div className="relative min-h-0 flex-1 overflow-x-auto">
+        <svg width={W} height={H - legendH} viewBox={`0 0 ${W} ${H - legendH}`}>
+          {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+            <line key={t} x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH * (1 - t)} y2={PAD.top + innerH * (1 - t)} stroke={grid} strokeWidth={1} />
+          ))}
+          {filas.map((f, fi) => {
+            const gx = PAD.left + fi * (groupWidth + groupGap);
+            return (
+              <g key={f.dimension}>
+                {series.map((s, si) => {
+                  const valor = f.valores[s] ?? 0;
+                  const h = (valor / maxSeguro) * innerH;
+                  const x = gx + si * (barWidth + barGap);
+                  const y = PAD.top + innerH - h;
+                  const idx = fi * nSeries + si;
+                  return (
+                    <g key={s} onMouseEnter={() => setHover(idx)} onMouseLeave={() => setHover(null)}>
+                      <rect x={x} y={y} width={Math.max(barWidth, 1)} height={Math.max(h, 1)} rx={3} fill={colorFor(si, dark)} opacity={hover === null || hover === idx ? 1 : 0.4} />
+                      {mostrarEtiquetas && (
+                        <text x={x + barWidth / 2} y={y - 5} textAnchor="middle" fontSize={9} fontFamily="var(--font-ui)" fill={ink}>
+                          {fmtNumero(valor)}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+                <text x={gx + groupWidth / 2} y={H - legendH - PAD.bottom + 16} textAnchor="middle" fontSize={10} fontFamily="var(--font-ui)" fill={ink}>
+                  {f.dimension.length > 14 ? f.dimension.slice(0, 13) + "…" : f.dimension}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        {celdaHover && filas[celdaHover.fila] && (
+          <div
+            className="pointer-events-none absolute rounded-md px-3 py-2 text-xs"
+            style={{
+              left: `${((celdaHover.fila + 0.5) / filas.length) * 100}%`,
+              top: 4,
+              transform: "translateX(-50%)",
+              background: "var(--panel-bg)",
+              boxShadow: "var(--shadow-md)",
+              fontFamily: "var(--font-ui)",
+              color: "var(--sidebar-text-active)",
+            }}
+          >
+            <div style={{ fontWeight: 600 }}>{filas[celdaHover.fila].dimension}</div>
+            <div style={{ color: colorFor(celdaHover.serie, dark) }}>
+              {series[celdaHover.serie]}: {fmtNumero(filas[celdaHover.fila].valores[series[celdaHover.serie]] ?? 0)}
+            </div>
+            <div style={{ color: "var(--sidebar-text)", opacity: 0.7 }}>{ejeYLabel}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

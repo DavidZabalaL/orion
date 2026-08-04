@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
 import { BiChart } from "@/components/bi/bi-chart";
+import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
 import { useBiQuery } from "@/components/bi/use-bi-query";
-import { SelectoresCombinacion, type CombinacionBI } from "@/components/bi/selectores-combinacion";
+import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 
-export function BiExplorer() {
+export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: ProyectoDisponible[] }) {
   const [combinacion, setCombinacion] = useState<CombinacionBI>({
     datasetId: BI_DATASETS[0].id,
     ejeX: BI_DATASETS[0].campos[0].id,
@@ -25,10 +26,21 @@ export function BiExplorer() {
   }
 
   const params = useMemo(
-    () => ({ dataset: combinacion.datasetId, ejeX: combinacion.ejeX, ejeY: combinacion.ejeY, agregacion: combinacion.agregacion, tipoGrafica: combinacion.tipoGrafica, ejeSplit: combinacion.ejeSplit, orden: combinacion.orden }),
+    () => ({
+      dataset: combinacion.datasetId,
+      ejeX: combinacion.ejeX,
+      ejeY: combinacion.ejeY,
+      agregacion: combinacion.agregacion,
+      tipoGrafica: combinacion.tipoGrafica,
+      ejeSplit: combinacion.ejeSplit,
+      orden: combinacion.orden,
+      filtros: combinacion.filtros,
+      proyectoIds: combinacion.proyectoIds,
+    }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
+  const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
 
   return (
     <div className="flex flex-col gap-5">
@@ -47,13 +59,13 @@ export function BiExplorer() {
       </div>
 
       <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <SelectoresCombinacion combinacion={combinacion} onChange={setCombinacion} />
+        <SelectoresCombinacion combinacion={combinacion} onChange={setCombinacion} proyectosDisponibles={proyectosDisponibles} />
 
         <div className="mt-5 flex items-center justify-between">
           <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             {dataset.label}
           </h3>
-          {soportaTabla && (
+          {(soportaTabla || cruzado) && (
             <button
               type="button"
               onClick={() => setVerTabla((v) => !v)}
@@ -74,10 +86,12 @@ export function BiExplorer() {
             <div className="flex items-center justify-center p-10" style={{ color: "var(--color-error)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               {error}
             </div>
+          ) : verTabla && cruzado ? (
+            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} />
           ) : verTabla && soportaTabla ? (
-            <TablaDatos datos={datos} ejeXLabel={dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX} ejeYLabel={ejeYLabel} />
+            <TablaDatos datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} />
           ) : (
-            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} truncado={truncado} />
+            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} truncado={truncado} />
           )}
         </div>
       </div>

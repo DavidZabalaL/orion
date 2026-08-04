@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { BiDato, BiCaja, BiPar } from "@/components/bi/bi-chart";
-import type { TipoAgregacion, TipoGrafica, TipoOrden } from "@/lib/bi/metadata";
+import type { BiDato, BiCaja, BiPar, BiCruzado } from "@/components/bi/bi-chart";
+import type { TipoAgregacion, TipoGrafica, TipoOrden, FiltroGuardable } from "@/lib/bi/metadata";
 
 export type BiQueryParams = {
   dataset: string;
@@ -12,6 +12,8 @@ export type BiQueryParams = {
   tipoGrafica: TipoGrafica;
   ejeSplit?: string;
   orden?: TipoOrden;
+  filtros?: FiltroGuardable[];
+  proyectoIds?: string[];
 };
 
 export type BiQueryResultado = {
@@ -20,12 +22,13 @@ export type BiQueryResultado = {
   cajas: BiCaja[];
   pares: BiPar[];
   splitLabels: [string, string];
+  cruzado: BiCruzado | null;
   truncado: boolean;
   cargando: boolean;
   error: string | null;
 };
 
-const VACIO: Omit<BiQueryResultado, "cargando" | "error"> = { datos: [], ejeYLabel: "", cajas: [], pares: [], splitLabels: ["", ""], truncado: false };
+const VACIO: Omit<BiQueryResultado, "cargando" | "error"> = { datos: [], ejeYLabel: "", cajas: [], pares: [], splitLabels: ["", ""], cruzado: null, truncado: false };
 
 /** Ejecuta /api/bi/query y deriva el estado de carga de la comparación de "key" en vez de setState síncrono en el efecto. */
 export function useBiQuery(params: BiQueryParams): BiQueryResultado {
@@ -55,7 +58,8 @@ export function useBiQuery(params: BiQueryParams): BiQueryResultado {
           cajas: body.cajas ?? [],
           pares: body.pares ?? [],
           splitLabels: body.splitLabels ?? ["", ""],
-          truncado: body.truncado ?? false,
+          cruzado: body.cruzado ?? null,
+          truncado: (body.truncado ?? false) || (body.cruzado?.truncado ?? false),
         });
         setError(null);
         setResolvedKey(key);

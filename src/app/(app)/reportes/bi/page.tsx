@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { BiExplorer } from "@/components/bi/bi-explorer";
 
 export const dynamic = "force-dynamic";
 
 export default async function BiPage() {
   await requerirPermisoModulo("J");
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("J");
+  const proyectosDisponibles = await prisma.proyecto.findMany({
+    where: proyectosPermitidos === null ? undefined : { id: { in: proyectosPermitidos } },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -22,7 +31,7 @@ export default async function BiPage() {
         </p>
       </div>
 
-      <BiExplorer />
+      <BiExplorer proyectosDisponibles={proyectosDisponibles} />
     </div>
   );
 }

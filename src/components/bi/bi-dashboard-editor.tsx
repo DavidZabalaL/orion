@@ -10,13 +10,19 @@ import { Pencil, Plus, Printer, Save, Trash2, X, TriangleAlert, CheckCircle2 } f
 import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI } from "@/lib/bi/metadata";
 import { BiCard } from "@/components/bi/bi-card";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
+import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
 
 export type VistaDashboard = { id: string; nombre: string; widgets: WidgetDashboardBI[] };
 
 const TEMPORAL = "__temporal__";
-const BREAKPOINTS = { lg: 1024, md: 640, sm: 0 };
-const COLS = { lg: 12, md: 6, sm: 1 };
+// Solo dos niveles a propósito: un "md" intermedio sin layout propio hacía que
+// react-grid-layout reacomodara los widgets (de 12 a 6 columnas) cada vez que
+// el ancho del contenedor cruzaba su umbral — algo que el colapso de la barra
+// lateral dispara constantemente. Con un único corte, muy por debajo de
+// cualquier ancho de escritorio real, ese cruce accidental deja de ocurrir.
+const BREAKPOINTS = { lg: 600, sm: 0 };
+const COLS = { lg: 12, sm: 1 };
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -35,7 +41,7 @@ function nuevoIdWidget(): string {
   return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `w-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashboard[]; puedeEditar: boolean }) {
+export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }: { vistas: VistaDashboard[]; puedeEditar: boolean; proyectosDisponibles: ProyectoDisponible[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { width, containerRef, mounted } = useContainerWidth();
@@ -226,6 +232,8 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
                     agregacion={w.agregacion}
                     tipoGrafica={w.tipoGrafica}
                     ejeSplit={w.ejeSplit}
+                    filtros={w.filtros}
+                    proyectoIds={w.proyectoIds}
                     orden={w.orden}
                     editMode={editMode}
                     onEditar={() => setFormulario({ editarId: w.id })}
@@ -316,12 +324,15 @@ export function BiDashboardEditor({ vistas, puedeEditar }: { vistas: VistaDashbo
                           tipoGrafica: widgetEditando.tipoGrafica,
                           ejeSplit: widgetEditando.ejeSplit,
                           orden: widgetEditando.orden,
+                          filtros: widgetEditando.filtros,
+                          proyectoIds: widgetEditando.proyectoIds,
                         },
                       }
                     : undefined
                 }
                 onGuardar={guardarWidgetDesdeFormulario}
                 onCancelar={() => setFormulario(null)}
+                proyectosDisponibles={proyectosDisponibles}
               />
             ) : (
               <button

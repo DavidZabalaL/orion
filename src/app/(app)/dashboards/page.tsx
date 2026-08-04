@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Settings2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { BiDashboardEditor, type VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { WidgetDashboardBI } from "@/lib/bi/metadata";
 
@@ -10,10 +11,17 @@ export const dynamic = "force-dynamic";
 export default async function DashboardsPage() {
   await requerirPermisoModulo("M");
 
-  const [vistasDb, puedeEditar] = await Promise.all([
+  const [vistasDb, puedeEditar, proyectosPermitidos] = await Promise.all([
     prisma.vistaDashboardBI.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, nombre: true, widgets: true } }),
     tienePermisoModulo("M", "editar"),
+    proyectosPermitidosParaModulo("J"),
   ]);
+
+  const proyectosDisponibles = await prisma.proyecto.findMany({
+    where: proyectosPermitidos === null ? undefined : { id: { in: proyectosPermitidos } },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
 
   const vistas: VistaDashboard[] = vistasDb.map((v) => ({
     id: v.id,
@@ -37,7 +45,7 @@ export default async function DashboardsPage() {
         </Link>
       </div>
 
-      <BiDashboardEditor vistas={vistas} puedeEditar={puedeEditar} />
+      <BiDashboardEditor vistas={vistas} puedeEditar={puedeEditar} proyectosDisponibles={proyectosDisponibles} />
     </div>
   );
 }

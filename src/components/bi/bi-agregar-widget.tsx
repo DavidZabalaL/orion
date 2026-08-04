@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { BI_DATASETS, obtenerDataset, type WidgetDashboardBI } from "@/lib/bi/metadata";
-import { SelectoresCombinacion, type CombinacionBI, fieldStyle, labelStyle } from "@/components/bi/selectores-combinacion";
+import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible, fieldStyle, labelStyle } from "@/components/bi/selectores-combinacion";
 import { BiChart } from "@/components/bi/bi-chart";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 
@@ -10,12 +10,14 @@ export function BiAgregarWidget({
   valorInicial,
   onGuardar,
   onCancelar,
+  proyectosDisponibles,
   compacto = false,
 }: {
   /** Si se pasa, el formulario edita ese widget en vez de crear uno nuevo. */
   valorInicial?: { label: string; combinacion: CombinacionBI };
   onGuardar: (widget: Omit<WidgetDashboardBI, "id" | "layout">) => void;
   onCancelar: () => void;
+  proyectosDisponibles: ProyectoDisponible[];
   compacto?: boolean;
 }) {
   const [combinacion, setCombinacion] = useState<CombinacionBI>(
@@ -33,10 +35,20 @@ export function BiAgregarWidget({
   const etiquetaPreview = label.trim() || `${dataset.label} — ${dataset.campos.find((c) => c.id === combinacion.ejeX)?.label}`;
 
   const params = useMemo(
-    () => ({ dataset: combinacion.datasetId, ejeX: combinacion.ejeX, ejeY: combinacion.ejeY, agregacion: combinacion.agregacion, tipoGrafica: combinacion.tipoGrafica, ejeSplit: combinacion.ejeSplit, orden: combinacion.orden }),
+    () => ({
+      dataset: combinacion.datasetId,
+      ejeX: combinacion.ejeX,
+      ejeY: combinacion.ejeY,
+      agregacion: combinacion.agregacion,
+      tipoGrafica: combinacion.tipoGrafica,
+      ejeSplit: combinacion.ejeSplit,
+      orden: combinacion.orden,
+      filtros: combinacion.filtros,
+      proyectoIds: combinacion.proyectoIds,
+    }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, ejeYLabel, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, cargando, error } = useBiQuery(params);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +61,8 @@ export function BiAgregarWidget({
       tipoGrafica: combinacion.tipoGrafica,
       ejeSplit: combinacion.ejeSplit,
       orden: combinacion.orden,
+      filtros: combinacion.filtros,
+      proyectoIds: combinacion.proyectoIds,
     });
   }
 
@@ -59,7 +73,7 @@ export function BiAgregarWidget({
         <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ej. Unidades por marca" style={fieldStyle} />
       </div>
 
-      <SelectoresCombinacion combinacion={combinacion} onChange={setCombinacion} compacto={compacto} />
+      <SelectoresCombinacion combinacion={combinacion} onChange={setCombinacion} proyectosDisponibles={proyectosDisponibles} compacto={compacto} />
 
       <div>
         <label style={labelStyle}>Vista previa</label>
@@ -77,7 +91,7 @@ export function BiAgregarWidget({
                 {error}
               </div>
             ) : (
-              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} />
+              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} />
             )}
           </div>
         </div>

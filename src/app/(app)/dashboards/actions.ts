@@ -12,16 +12,40 @@ import {
   campoValidoParaEje,
   REQUISITOS_TIPO_GRAFICA,
   type WidgetDashboardBI,
+  type FiltroGuardable,
   type TipoAgregacion,
   type TipoGrafica,
   type TipoOrden,
   type LayoutWidget,
+  type DatasetMeta,
 } from "@/lib/bi/metadata";
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
 const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contador", "puntos", "divergente", "histograma", "dispersion", "calendario", "caja", "piramide", "mapa"];
 const ORDENES_VALIDOS: TipoOrden[] = ["dimension", "valor_desc", "valor_asc"];
+const MAX_FILTROS = 20;
+const MAX_VALORES_POR_FILTRO = 100;
+
+function validarFiltros(filtros: unknown, ds: DatasetMeta): FiltroGuardable[] | undefined | null {
+  if (filtros === undefined) return undefined;
+  if (!Array.isArray(filtros) || filtros.length > MAX_FILTROS) return null;
+  const limpios: FiltroGuardable[] = [];
+  for (const f of filtros) {
+    if (!f || typeof f !== "object") return null;
+    const { campoId, valores } = f as Record<string, unknown>;
+    if (typeof campoId !== "string" || !obtenerCampo(ds, campoId)) return null;
+    if (!Array.isArray(valores) || valores.length > MAX_VALORES_POR_FILTRO || !valores.every((v) => typeof v === "string")) return null;
+    limpios.push({ campoId, valores: valores.map((v: string) => v.slice(0, 200)) });
+  }
+  return limpios;
+}
+
+function validarProyectoIds(proyectoIds: unknown): string[] | undefined | null {
+  if (proyectoIds === undefined) return undefined;
+  if (!Array.isArray(proyectoIds) || !proyectoIds.every((id) => typeof id === "string")) return null;
+  return proyectoIds;
+}
 
 function validarLayout(layout: unknown): LayoutWidget | null {
   if (!layout || typeof layout !== "object") return null;
@@ -35,7 +59,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, orden } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, orden, filtros, proyectoIds } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
     if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
@@ -54,9 +78,14 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
     }
 
     let ejeSplitLimpio: string | undefined;
-    if (requisitos.requiereSplit) {
-      if (typeof ejeSplit !== "string" || !obtenerCampo(ds, ejeSplit)) return null;
-      ejeSplitLimpio = ejeSplit;
+    if (requisitos.ejeSplit) {
+      if (requisitos.ejeSplit.obligatorio) {
+        if (typeof ejeSplit !== "string" || !obtenerCampo(ds, ejeSplit)) return null;
+        ejeSplitLimpio = ejeSplit;
+      } else if (ejeSplit !== undefined) {
+        if (typeof ejeSplit !== "string" || !obtenerCampo(ds, ejeSplit)) return null;
+        ejeSplitLimpio = ejeSplit;
+      }
     }
 
     let ordenLimpio: TipoOrden | undefined;
@@ -64,6 +93,12 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       if (!ORDENES_VALIDOS.includes(orden as TipoOrden)) return null;
       ordenLimpio = orden as TipoOrden;
     }
+
+    const filtrosLimpios = validarFiltros(filtros, ds);
+    if (filtrosLimpios === null) return null;
+
+    const proyectoIdsLimpios = validarProyectoIds(proyectoIds);
+    if (proyectoIdsLimpios === null) return null;
 
     const layoutValido = validarLayout(layout);
     if (!layoutValido) return null;
@@ -78,6 +113,8 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       tipoGrafica: tipoGrafica as TipoGrafica,
       ejeSplit: ejeSplitLimpio,
       orden: ordenLimpio,
+      filtros: filtrosLimpios,
+      proyectoIds: proyectoIdsLimpios,
       layout: layoutValido,
     });
   }

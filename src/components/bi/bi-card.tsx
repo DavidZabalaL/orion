@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-import { X, Pencil, GripVertical } from "lucide-react";
+import { useMemo, useState } from "react";
+import { X, Pencil, GripVertical, Table2 } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
+import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
 import { useBiQuery } from "@/components/bi/use-bi-query";
-import type { TipoGrafica, TipoAgregacion, TipoOrden } from "@/lib/bi/metadata";
+import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
 
 export function BiCard({
   label,
@@ -15,6 +16,8 @@ export function BiCard({
   tipoGrafica,
   ejeSplit,
   orden,
+  filtros,
+  proyectoIds,
   editMode = false,
   onEditar,
   onEliminar,
@@ -27,12 +30,19 @@ export function BiCard({
   tipoGrafica: TipoGrafica;
   ejeSplit?: string;
   orden?: TipoOrden;
+  filtros?: FiltroGuardable[];
+  proyectoIds?: string[];
   editMode?: boolean;
   onEditar?: () => void;
   onEliminar?: () => void;
 }) {
-  const params = useMemo(() => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden }), [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden]);
-  const { datos, cajas, pares, splitLabels, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
+  const [verTabla, setVerTabla] = useState(false);
+  const params = useMemo(
+    () => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden, filtros, proyectoIds }),
+    [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden, filtros, proyectoIds]
+  );
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
+  const ejeXLabel = obtenerCampo(obtenerDataset(dataset)!, ejeX)?.label ?? ejeX;
 
   return (
     <div className="flex h-full flex-col rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -43,30 +53,44 @@ export function BiCard({
             {label}
           </h3>
         </div>
-        {editMode && (
-          <div className="flex shrink-0 items-center gap-1.5" data-no-print>
+        <div className="flex shrink-0 items-center gap-1.5" data-no-print>
+          {cruzado && (
             <button
               type="button"
-              onClick={onEditar}
+              onClick={() => setVerTabla((v) => !v)}
               onMouseDown={(e) => e.stopPropagation()}
-              className="flex h-6 w-6 items-center justify-center rounded-md"
-              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
-              title="Editar este widget"
+              className="flex h-6 items-center gap-1 rounded-md px-2"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+              title={verTabla ? "Ver gráfica" : "Ver tabla"}
             >
-              <Pencil size={12} />
+              <Table2 size={12} /> {verTabla ? "Gráfica" : "Tabla"}
             </button>
-            <button
-              type="button"
-              onClick={onEliminar}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="flex h-6 w-6 items-center justify-center rounded-md"
-              style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)" }}
-              title="Quitar de la vista"
-            >
-              <X size={13} />
-            </button>
-          </div>
-        )}
+          )}
+          {editMode && (
+            <>
+              <button
+                type="button"
+                onClick={onEditar}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="flex h-6 w-6 items-center justify-center rounded-md"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
+                title="Editar este widget"
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={onEliminar}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="flex h-6 w-6 items-center justify-center rounded-md"
+                style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)" }}
+                title="Quitar de la vista"
+              >
+                <X size={13} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {cargando ? (
@@ -77,8 +101,10 @@ export function BiCard({
           <div className="flex items-center justify-center p-10" style={{ color: "var(--color-error)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
             {error}
           </div>
+        ) : verTabla && cruzado ? (
+          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} />
         ) : (
-          <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} agregacion={agregacion} truncado={truncado} />
+          <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={tipoGrafica} ejeYLabel={ejeYLabel} agregacion={agregacion} truncado={truncado} />
         )}
       </div>
     </div>
