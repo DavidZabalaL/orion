@@ -361,6 +361,9 @@ model Unidad {
   estatus        EstatusUnidad @default(ACTIVO)
   disponibilidad Boolean       @default(true)
   diasSinOperar  Int           @default(0)
+  /// Fecha del último cambio de `disponibilidad` (botón de encendido/apagado).
+  /// Cuando está apagada, "días sin operar" se cuenta desde aquí.
+  fechaCambioDisponibilidad DateTime?
 
   resguardanteId String?
   resguardante   Operador? @relation("ResguardanteActual", fields: [resguardanteId], references: [id])

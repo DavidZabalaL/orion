@@ -8,6 +8,7 @@ import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, valorWidgetUnidades, type WidgetConfigItem } from "@/lib/widgets";
 import Link from "next/link";
 import { inicioDeHoyMx } from "@/lib/timezone";
+import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function UnidadesPage() {
   const restriccionOperador = await unidadRestringidaParaOperador();
   const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: restriccionOperador.numeroEconomico ?? "__ninguna__" } : {};
 
-  const [unidades, ultimosMantenimientos, proximosMantenimientos] = await Promise.all([
+  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps] = await Promise.all([
     prisma.unidad.findMany({
       where: { ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}), ...filtroOperador },
       include: {
@@ -38,25 +39,42 @@ export default async function UnidadesPage() {
       where: { categoria: { in: [...CATEGORIAS_MANTENIMIENTO] }, estatus: "PROGRAMADO" },
       _min: { fecha: true },
     }),
+    prisma.combustible.groupBy({ by: ["numeroEconomico"], _max: { fecha: true } }),
+    prisma.tag.groupBy({ by: ["numeroEconomico"], where: { numeroEconomico: { not: null } }, _max: { fecha: true } }),
+    prisma.posicionGPS.groupBy({ by: ["numeroEconomico"], _max: { timestamp: true } }),
   ]);
 
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
   const proximoPorEconomico = new Map(proximosMantenimientos.map((m) => [m.numeroEconomico, m._min.fecha]));
+  const ultimoCombustiblePorEconomico = new Map(ultimosCombustibles.map((m) => [m.numeroEconomico, m._max.fecha]));
+  const ultimoTagPorEconomico = new Map(ultimosTags.map((m) => [m.numeroEconomico as string, m._max.fecha]));
+  const ultimoGpsPorEconomico = new Map(ultimosGps.map((m) => [m.numeroEconomico, m._max.timestamp]));
 
-  const rows: UnidadRow[] = unidades.map((u) => ({
-    numeroEconomico: u.numeroEconomico,
-    placas: u.placas,
-    tipoVehiculo: u.tipoVehiculo,
-    marca: u.marca,
-    unidadModelo: u.unidadModelo,
-    proyecto: u.proyecto?.nombre ?? null,
-    estatus: u.estatus,
-    disponibilidad: u.disponibilidad,
-    diasSinOperar: u.diasSinOperar,
-    resguardante: u.resguardante?.nombre ?? null,
-    ultimoMantenimiento: ultimoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
-    proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
-  }));
+  const rows: UnidadRow[] = unidades.map((u) => {
+    const { diasSinOperar, origen, fuente } = calcularDiasSinOperar(
+      u.disponibilidad,
+      u.fechaCambioDisponibilidad,
+      ultimoCombustiblePorEconomico.get(u.numeroEconomico),
+      ultimoTagPorEconomico.get(u.numeroEconomico),
+      ultimoGpsPorEconomico.get(u.numeroEconomico)
+    );
+    return {
+      numeroEconomico: u.numeroEconomico,
+      placas: u.placas,
+      tipoVehiculo: u.tipoVehiculo,
+      marca: u.marca,
+      unidadModelo: u.unidadModelo,
+      proyecto: u.proyecto?.nombre ?? null,
+      estatus: u.estatus,
+      disponibilidad: u.disponibilidad,
+      diasSinOperar,
+      origenDiasSinOperar: origen,
+      fuenteActividad: fuente,
+      resguardante: u.resguardante?.nombre ?? null,
+      ultimoMantenimiento: ultimoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
+      proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
+    };
+  });
 
   const total = rows.length;
   const activas = rows.filter((r) => r.estatus === "ACTIVO").length;

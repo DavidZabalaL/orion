@@ -86,6 +86,57 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
   return { ok: true };
 }
 
+/**
+ * Botón de encendido/apagado del listado y la ficha: alterna `disponibilidad`
+ * y marca `fechaCambioDisponibilidad` — de ahí cuenta "días sin operar" mientras
+ * la unidad permanezca apagada (ver src/lib/actividad-unidad.ts).
+ */
+export async function alternarDisponibilidad(formData: FormData): Promise<ResultadoSimple> {
+  if (!(await tienePermisoModulo("A", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
+  const disponibilidad = String(formData.get("disponibilidad") ?? "") === "true";
+  if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
+
+  const anterior = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { disponibilidad: true, estatus: true, proyectoId: true } });
+  if (!anterior) return { ok: false, error: "La unidad no existe." };
+  if (anterior.estatus === "BAJA") return { ok: false, error: "Una unidad dada de baja no se puede encender ni apagar." };
+
+  const permitidos = await proyectosPermitidosParaModulo("A");
+  if (permitidos !== null && (!anterior.proyectoId || !permitidos.includes(anterior.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
+
+  const ahora = new Date();
+  await prisma.unidad.update({ where: { numeroEconomico }, data: { disponibilidad, fechaCambioDisponibilidad: ahora } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await prisma.bitacoraCambio.create({
+      data: {
+        entidad: "Unidad",
+        entidadId: numeroEconomico,
+        usuarioId: session.user.id,
+        accion: "EDITAR",
+        valoresAnteriores: { disponibilidad: anterior.disponibilidad },
+        valoresNuevos: { disponibilidad },
+      },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: disponibilidad ? "encender" : "apagar",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { disponibilidadAnterior: anterior.disponibilidad, disponibilidadNueva: disponibilidad },
+    });
+  }
+
+  revalidatePath(`/unidades/${numeroEconomico}`);
+  revalidatePath("/unidades");
+  return { ok: true };
+}
+
 export async function actualizarUnidad(formData: FormData) {
   await exigirPermisoModulo("A", "editar");
 

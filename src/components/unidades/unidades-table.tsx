@@ -10,6 +10,8 @@ import {
   TIPO_VEHICULO_LABEL,
 } from "@/lib/estatus";
 import { fmtFecha } from "@/lib/formato";
+import { labelFuenteActividad, type FuenteActividad } from "@/lib/actividad-unidad";
+import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 
 export type UnidadRow = {
   numeroEconomico: string;
@@ -21,6 +23,8 @@ export type UnidadRow = {
   estatus: string;
   disponibilidad: boolean;
   diasSinOperar: number;
+  origenDiasSinOperar: "apagada" | "actividad" | "sin_datos";
+  fuenteActividad: FuenteActividad | null;
   resguardante: string | null;
   ultimoMantenimiento: string | null;
   proximoMantenimiento: string | null;
@@ -198,13 +202,19 @@ export function UnidadesTable({
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ background: r.disponibilidad ? "var(--resource-disponible)" : "var(--sidebar-text)" }}
-                    title={r.disponibilidad ? "Disponible" : "No disponible"}
-                  />
+                  <ToggleDisponibilidad numeroEconomico={r.numeroEconomico} disponibleInicial={r.disponibilidad} deshabilitado={r.estatus === "BAJA"} />
                 </td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: r.diasSinOperar > 3 ? "var(--priority-alta)" : "var(--field-text)" }}>
+                <td
+                  className="px-4 py-3"
+                  style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: r.diasSinOperar > 3 ? "var(--priority-alta)" : "var(--field-text)" }}
+                  title={
+                    r.origenDiasSinOperar === "apagada"
+                      ? "Contando desde que se apagó con el botón de encendido/apagado"
+                      : r.origenDiasSinOperar === "actividad"
+                        ? `Estimado por última actividad: ${labelFuenteActividad(r.fuenteActividad)}`
+                        : "Sin actividad ni cambios de disponibilidad registrados"
+                  }
+                >
                   {r.diasSinOperar}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>

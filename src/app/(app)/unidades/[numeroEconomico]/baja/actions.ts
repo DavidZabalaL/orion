@@ -40,6 +40,7 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
     data: {
       estatus: "BAJA",
       disponibilidad: false,
+      fechaCambioDisponibilidad: new Date(fechaEfectiva),
       proyectoId: null,
       fechaBaja: new Date(fechaEfectiva),
       motivoBaja: motivoBaja as never,

@@ -27,6 +27,8 @@ import {
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { actualizarCapacidadTanque, reasignarProyecto } from "@/app/(app)/unidades/actions";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
+import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
+import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-unidad";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -180,6 +182,22 @@ export function FichaUnidad({
   const diasSeguro = diasPara(seguroVigente?.fechaVencimiento);
   const proximoMantenimiento = unidad.gastos?.find((g: Unidad) => g.estatus === "PROGRAMADO");
 
+  // combustible/tags/posicionesGps vienen ordenados desc por fecha — el [0] es el más reciente.
+  const { diasSinOperar, operando, origen, fuente } = calcularDiasSinOperar(
+    unidad.disponibilidad,
+    unidad.fechaCambioDisponibilidad,
+    unidad.combustible?.[0]?.fecha,
+    unidad.tags?.[0]?.fecha,
+    unidad.posicionesGps?.[0]?.timestamp
+  );
+  const subDiasSinOperar = operando
+    ? "Encendida"
+    : origen === "apagada"
+      ? "Apagada con el botón de encendido/apagado"
+      : origen === "actividad"
+        ? `Estimado — última actividad: ${labelFuenteActividad(fuente)}`
+        : "Sin actividad registrada";
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-col gap-4">
@@ -225,6 +243,12 @@ export function FichaUnidad({
             >
               <Printer size={15} /> Imprimir
             </button>
+            <ToggleDisponibilidad
+              numeroEconomico={unidad.numeroEconomico}
+              disponibleInicial={unidad.disponibilidad}
+              deshabilitado={unidad.estatus === "BAJA"}
+              variante="completo"
+            />
             <ReasignarProyectoButton numeroEconomico={unidad.numeroEconomico} proyectoActualId={unidad.proyectoId ?? null} proyectos={proyectos} />
             <Link
               href={`/unidades/${unidad.numeroEconomico}/editar`}
@@ -257,7 +281,7 @@ export function FichaUnidad({
           sub={diasSeguro !== null ? (diasSeguro >= 0 ? `en ${diasSeguro} días` : `vencido hace ${-diasSeguro} días`) : "Registrar en Módulo F"}
           alert={diasSeguro !== null && diasSeguro <= 30}
         />
-        <Kpi icon={CalendarClock} label="Días sin operar" value={String(unidad.diasSinOperar)} sub={unidad.disponibilidad ? "Disponible" : "No disponible"} alert={unidad.diasSinOperar > 2} />
+        <Kpi icon={CalendarClock} label="Días sin operar" value={String(diasSinOperar)} sub={subDiasSinOperar} alert={!operando && diasSinOperar > 2} />
       </div>
 
       {alertaPreventiva && (
