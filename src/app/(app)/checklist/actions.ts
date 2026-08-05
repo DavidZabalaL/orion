@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
+import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
@@ -62,6 +63,92 @@ export async function crearChecklist(formData: FormData) {
     entidad: "Checklist",
     entidadId: checklist.id,
     detalle: { numeroEconomico, odometro, horometro },
+  });
+
+  revalidatePath("/checklist");
+  revalidatePath(`/unidades/${numeroEconomico}`);
+}
+
+/**
+ * Checklist Semanal (59 campos, ver src/lib/checklist-semanal.ts) — a diferencia
+ * del Diario, no usa `odometro` ni `puntosInspeccion`: todas las respuestas
+ * (incluyendo las URLs de las fotos, ya subidas a Blob por el formulario) se
+ * guardan en `respuestasSemanal`, un solo JSON por captura.
+ */
+export async function crearChecklistSemanal(formData: FormData) {
+  await exigirPermisoModulo("A.1", "editar");
+
+  const numeroEconomico = String(formData.get("gen_numero_economico") ?? "");
+  const fechaStr = String(formData.get("gen_fecha") ?? "");
+  const oficinaSede = String(formData.get("gen_oficina_sede") ?? "").trim();
+  const licenciaPermanente = String(formData.get("gen_licencia_permanente") ?? "");
+  const fotoLicencia = String(formData.get("gen_foto_licencia") ?? "").trim();
+
+  if (!numeroEconomico || !fechaStr || !oficinaSede || !fotoLicencia) {
+    throw new Error("Fecha, oficina/sede, número económico y foto de licencia son obligatorios.");
+  }
+
+  const unidad = await prisma.unidad.findUnique({
+    where: { numeroEconomico },
+    select: { proyectoId: true, marca: true, unidadModelo: true, tipoVehiculo: true },
+  });
+  if (!unidad) throw new Error("La unidad no existe.");
+
+  const permitidos = await proyectosPermitidosParaModulo("A.1");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    throw new Error("No tienes permiso para realizar esta acción.");
+  }
+
+  const respuestas: Record<string, string> = {
+    oficinaSede,
+    licenciaPermanente,
+    fotoLicenciaUrl: fotoLicencia,
+    modelo: `${unidad.marca} ${unidad.unidadModelo}`,
+    tipoVehiculo: unidad.tipoVehiculo,
+  };
+
+  const camposFaltantes: string[] = [];
+  for (const seccion of SECCIONES_CHECKLIST_SEMANAL) {
+    for (const campo of seccion.campos) {
+      if (campo.tipo === "radio" && campo.soloTipoVehiculo && campo.soloTipoVehiculo !== unidad.tipoVehiculo) continue;
+
+      const valor = String(formData.get(campo.key) ?? "").trim();
+      if (campo.requerido && !valor) camposFaltantes.push(campo.label);
+      if (valor) respuestas[campo.key] = valor;
+
+      if (campo.tipo === "radio" && campo.fotoKey) {
+        const fotoValor = String(formData.get(campo.fotoKey) ?? "").trim();
+        if (campo.fotoRequerido && !fotoValor) camposFaltantes.push(campo.fotoLabel ?? campo.fotoKey);
+        if (fotoValor) respuestas[campo.fotoKey] = fotoValor;
+      }
+    }
+  }
+
+  if (camposFaltantes.length > 0) {
+    throw new Error(`Faltan campos obligatorios: ${camposFaltantes.join(", ")}.`);
+  }
+
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Sesión no válida.");
+
+  const checklist = await prisma.checklist.create({
+    data: {
+      numeroEconomico,
+      tipo: "SEMANAL",
+      fecha: new Date(fechaStr),
+      puntosInspeccion: {},
+      respuestasSemanal: respuestas,
+      capturadoPorId: session.user.id,
+    },
+  });
+
+  await logActivity({
+    userId: session.user.id,
+    modulo: "checklist",
+    accion: "create",
+    entidad: "Checklist",
+    entidadId: checklist.id,
+    detalle: { numeroEconomico, tipo: "SEMANAL" },
   });
 
   revalidatePath("/checklist");

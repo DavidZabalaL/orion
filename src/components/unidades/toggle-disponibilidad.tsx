@@ -6,25 +6,28 @@ import { alternarDisponibilidad } from "@/app/(app)/unidades/actions";
 
 type Props = {
   numeroEconomico: string;
-  disponibleInicial: boolean;
+  /** Controlado: el padre es dueño del valor, para mantenerlo en sync con el badge de estatus y "días sin operar". */
+  disponible: boolean;
+  /** Se llama solo cuando el servidor confirma el cambio — el padre debe actualizar su estado con este valor. */
+  onCambio: (nuevoDisponible: boolean) => void;
   deshabilitado?: boolean;
   variante?: "compacto" | "completo";
 };
 
-export function ToggleDisponibilidad({ numeroEconomico, disponibleInicial, deshabilitado, variante = "compacto" }: Props) {
-  const [disponible, setDisponible] = useState(disponibleInicial);
+export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, deshabilitado, variante = "compacto" }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function alternar() {
     if (deshabilitado || pending) return;
     setError(null);
+    const nuevoValor = !disponible;
     const formData = new FormData();
     formData.set("numeroEconomico", numeroEconomico);
-    formData.set("disponibilidad", String(!disponible));
+    formData.set("disponibilidad", String(nuevoValor));
     startTransition(async () => {
       const res = await alternarDisponibilidad(formData);
-      if (res.ok) setDisponible((v) => !v);
+      if (res.ok) onCambio(nuevoValor);
       else setError(res.error ?? "No se pudo actualizar.");
     });
   }

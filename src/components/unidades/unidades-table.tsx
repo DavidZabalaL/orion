@@ -6,8 +6,8 @@ import { Search, Download, Plus, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   ESTATUS_UNIDAD_LABEL,
-  ESTATUS_UNIDAD_STYLE,
   TIPO_VEHICULO_LABEL,
+  estatusVisibleUnidad,
 } from "@/lib/estatus";
 import { fmtFecha } from "@/lib/formato";
 import { labelFuenteActividad, type FuenteActividad } from "@/lib/actividad-unidad";
@@ -39,7 +39,7 @@ function exportarCsv(rows: UnidadRow[]) {
     r.marca,
     r.unidadModelo,
     r.proyecto ?? "",
-    ESTATUS_UNIDAD_LABEL[r.estatus] ?? r.estatus,
+    estatusVisibleUnidad(r.estatus, r.disponibilidad).label,
     r.disponibilidad ? "Sí" : "No",
     String(r.diasSinOperar),
     r.resguardante ?? "",
@@ -68,16 +68,29 @@ const selectStyle: React.CSSProperties = {
 };
 
 export function UnidadesTable({
-  rows,
+  rows: rowsIniciales,
   proyectos,
 }: {
   rows: UnidadRow[];
   proyectos: string[];
 }) {
+  const [rows, setRows] = useState(rowsIniciales);
   const [busqueda, setBusqueda] = useState("");
   const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [estatusFiltro, setEstatusFiltro] = useState("");
+
+  // Al encender/apagar desde esta tabla, "días sin operar" arranca en 0 —
+  // acaba de cambiar en este instante — sin esperar a recargar la página.
+  function alCambiarDisponibilidad(numeroEconomico: string, nuevoDisponible: boolean) {
+    setRows((prev) =>
+      prev.map((r) =>
+        r.numeroEconomico === numeroEconomico
+          ? { ...r, disponibilidad: nuevoDisponible, diasSinOperar: 0, origenDiasSinOperar: nuevoDisponible ? r.origenDiasSinOperar : "apagada" }
+          : r
+      )
+    );
+  }
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
@@ -196,23 +209,30 @@ export function UnidadesTable({
                 </td>
                 <td className="px-4 py-3">
                   <Badge
-                    label={ESTATUS_UNIDAD_LABEL[r.estatus] ?? r.estatus}
-                    color={ESTATUS_UNIDAD_STYLE[r.estatus]?.color ?? "var(--sidebar-text)"}
-                    bg={ESTATUS_UNIDAD_STYLE[r.estatus]?.bg ?? "var(--chip)"}
+                    label={estatusVisibleUnidad(r.estatus, r.disponibilidad).label}
+                    color={estatusVisibleUnidad(r.estatus, r.disponibilidad).color}
+                    bg={estatusVisibleUnidad(r.estatus, r.disponibilidad).bg}
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <ToggleDisponibilidad numeroEconomico={r.numeroEconomico} disponibleInicial={r.disponibilidad} deshabilitado={r.estatus === "BAJA"} />
+                  <ToggleDisponibilidad
+                    numeroEconomico={r.numeroEconomico}
+                    disponible={r.disponibilidad}
+                    onCambio={(nuevo) => alCambiarDisponibilidad(r.numeroEconomico, nuevo)}
+                    deshabilitado={r.estatus === "BAJA"}
+                  />
                 </td>
                 <td
                   className="px-4 py-3"
                   style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: r.diasSinOperar > 3 ? "var(--priority-alta)" : "var(--field-text)" }}
                   title={
-                    r.origenDiasSinOperar === "apagada"
-                      ? "Contando desde que se apagó con el botón de encendido/apagado"
-                      : r.origenDiasSinOperar === "actividad"
-                        ? `Estimado por última actividad: ${labelFuenteActividad(r.fuenteActividad)}`
-                        : "Sin actividad ni cambios de disponibilidad registrados"
+                    r.disponibilidad
+                      ? "Encendida"
+                      : r.origenDiasSinOperar === "apagada"
+                        ? "Contando desde que se apagó con el botón de encendido/apagado"
+                        : r.origenDiasSinOperar === "actividad"
+                          ? `Estimado por última actividad: ${labelFuenteActividad(r.fuenteActividad)}`
+                          : "Sin actividad ni cambios de disponibilidad registrados"
                   }
                 >
                   {r.diasSinOperar}

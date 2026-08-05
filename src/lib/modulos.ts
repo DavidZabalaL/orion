@@ -32,7 +32,7 @@ export type Modulo = {
 
 export const MODULOS: Modulo[] = [
   { id: "A", label: "Inventario de Unidades", href: "/unidades", icon: Car, descripcion: "Ficha única por número económico con vista consolidada", grupo: "Flota" },
-  { id: "A.1", label: "Checklist diario", href: "/checklist", icon: ClipboardCheck, descripcion: "Inspección diaria con campo de odómetro", grupo: "Flota" },
+  { id: "A.1", label: "Checklist", href: "/checklist", icon: ClipboardCheck, descripcion: "Inspección diaria (odómetro) y semanal (59 puntos)", grupo: "Flota" },
   { id: "B", label: "Alta / Baja", href: "/altas-bajas", icon: FilePlus2, descripcion: "Ciclo de vida de unidades", grupo: "Flota" },
   { id: "C", label: "Mantenimiento y Gastos", href: "/mantenimiento", icon: Wrench, descripcion: "12 categorías de gasto vehicular", grupo: "Operación y gasto" },
   { id: "D", label: "Combustible", href: "/combustible", icon: Fuel, descripcion: "Consumo, rendimiento y anomalías", grupo: "Operación y gasto" },

@@ -358,9 +358,9 @@ model Unidad {
   proyectoId String?
   proyecto   Proyecto? @relation(fields: [proyectoId], references: [id])
 
-  estatus        EstatusUnidad @default(ACTIVO)
-  disponibilidad Boolean       @default(true)
-  diasSinOperar  Int           @default(0)
+  estatus                   EstatusUnidad @default(ACTIVO)
+  disponibilidad            Boolean       @default(true)
+  diasSinOperar             Int           @default(0)
   /// Fecha del último cambio de `disponibilidad` (botón de encendido/apagado).
   /// Cuando está apagada, "días sin operar" se cuenta desde aquí.
   fechaCambioDisponibilidad DateTime?
@@ -500,22 +500,30 @@ model Resguardo {
 
 // ───────────────────────── MÓDULO A.1 — CHECKLIST ─────────────────────────
 
+enum TipoChecklist {
+  DIARIO
+  SEMANAL
+}
+
 model Checklist {
-  id               String     @id @default(cuid())
-  numeroEconomico  String
-  unidad           Unidad     @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fecha            DateTime
-  odometro         Int
-  horometro        Int?
-  puntosInspeccion Json
-  evidenciaId      String?
-  evidencia        Documento? @relation(fields: [evidenciaId], references: [id])
-  capturadoPorId   String
-  capturadoPor     Usuario    @relation(fields: [capturadoPorId], references: [id])
+  id                String        @id @default(cuid())
+  numeroEconomico   String
+  unidad            Unidad        @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  tipo              TipoChecklist @default(DIARIO)
+  fecha             DateTime
+  odometro          Int?
+  horometro         Int?
+  puntosInspeccion  Json // solo DIARIO: { puntoKey: "ok" | "revisar" }
+  respuestasSemanal Json? // solo SEMANAL: todas las respuestas del checklist de 59 campos (ver src/lib/checklist-semanal.ts)
+  evidenciaId       String?
+  evidencia         Documento?    @relation(fields: [evidenciaId], references: [id])
+  capturadoPorId    String
+  capturadoPor      Usuario       @relation(fields: [capturadoPorId], references: [id])
 
   createdAt DateTime @default(now())
 
   @@index([numeroEconomico, fecha])
+  @@index([tipo, fecha])
 }
 
 // ───────────────────────── MÓDULO C — GASTOS VEHICULARES ─────────────────────────
@@ -838,8 +846,8 @@ model VistaDashboardBI {
   widgets     Json
   creadoPorId String?
   creadoPor   Usuario? @relation(fields: [creadoPorId], references: [id])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ───────────────────────── ANALÍTICA DE USO Y TRAZABILIDAD ─────────────────────────

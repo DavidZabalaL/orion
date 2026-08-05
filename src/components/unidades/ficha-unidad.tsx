@@ -19,10 +19,9 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-  ESTATUS_UNIDAD_LABEL,
-  ESTATUS_UNIDAD_STYLE,
   ESTATUS_SEGURO_STYLE,
   TIPO_VEHICULO_LABEL,
+  estatusVisibleUnidad,
 } from "@/lib/estatus";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { actualizarCapacidadTanque, reasignarProyecto } from "@/app/(app)/unidades/actions";
@@ -178,18 +177,25 @@ export function FichaUnidad({
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
+  // Estado del botón de encendido/apagado, elevado hasta aquí para que el badge
+  // de estatus del encabezado, el de la pestaña General y el KPI de "días sin
+  // operar" cambien todos juntos al usarlo, sin esperar a recargar la página.
+  const [disponible, setDisponible] = useState<boolean>(unidad.disponibilidad);
+  const [fechaCambioLocal, setFechaCambioLocal] = useState<Date | null>(null);
+
   const seguroVigente = unidad.seguros?.[0];
   const diasSeguro = diasPara(seguroVigente?.fechaVencimiento);
   const proximoMantenimiento = unidad.gastos?.find((g: Unidad) => g.estatus === "PROGRAMADO");
 
   // combustible/tags/posicionesGps vienen ordenados desc por fecha — el [0] es el más reciente.
   const { diasSinOperar, operando, origen, fuente } = calcularDiasSinOperar(
-    unidad.disponibilidad,
-    unidad.fechaCambioDisponibilidad,
+    disponible,
+    fechaCambioLocal ?? unidad.fechaCambioDisponibilidad,
     unidad.combustible?.[0]?.fecha,
     unidad.tags?.[0]?.fecha,
     unidad.posicionesGps?.[0]?.timestamp
   );
+  const estatusVisible = estatusVisibleUnidad(unidad.estatus, disponible);
   const subDiasSinOperar = operando
     ? "Encendida"
     : origen === "apagada"
@@ -222,11 +228,7 @@ export function FichaUnidad({
                 <h1 style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
                   {unidad.numeroEconomico}
                 </h1>
-                <Badge
-                  label={ESTATUS_UNIDAD_LABEL[unidad.estatus] ?? unidad.estatus}
-                  color={ESTATUS_UNIDAD_STYLE[unidad.estatus]?.color}
-                  bg={ESTATUS_UNIDAD_STYLE[unidad.estatus]?.bg}
-                />
+                <Badge label={estatusVisible.label} color={estatusVisible.color} bg={estatusVisible.bg} />
               </div>
               <div className="mt-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
                 {unidad.marca} {unidad.unidadModelo} · {unidad.anio} · {TIPO_VEHICULO_LABEL[unidad.tipoVehiculo]} · Placas{" "}
@@ -245,7 +247,11 @@ export function FichaUnidad({
             </button>
             <ToggleDisponibilidad
               numeroEconomico={unidad.numeroEconomico}
-              disponibleInicial={unidad.disponibilidad}
+              disponible={disponible}
+              onCambio={(nuevo) => {
+                setDisponible(nuevo);
+                setFechaCambioLocal(new Date());
+              }}
               deshabilitado={unidad.estatus === "BAJA"}
               variante="completo"
             />
@@ -314,7 +320,7 @@ export function FichaUnidad({
         </div>
 
         <div className="pt-5">
-          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} />}
+          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} />}
@@ -364,7 +370,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEditarCapacidad: boolean }) {
+function TabGeneral({ unidad, puedeEditarCapacidad, disponible }: { unidad: Unidad; puedeEditarCapacidad: boolean; disponible: boolean }) {
+  const estatusVisible = estatusVisibleUnidad(unidad.estatus, disponible);
   const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
   return (
     <div className="flex flex-col gap-6">
@@ -403,7 +410,7 @@ function TabGeneral({ unidad, puedeEditarCapacidad }: { unidad: Unidad; puedeEdi
           <Field label="Proyecto" value={unidad.proyecto?.nombre ?? "—"} />
           <Field
             label="Estatus"
-            value={<Badge label={ESTATUS_UNIDAD_LABEL[unidad.estatus]} color={ESTATUS_UNIDAD_STYLE[unidad.estatus]?.color} bg={ESTATUS_UNIDAD_STYLE[unidad.estatus]?.bg} />}
+            value={<Badge label={estatusVisible.label} color={estatusVisible.color} bg={estatusVisible.bg} />}
           />
           <Field label="Resguardante" value={unidad.resguardante ? <Link href="#" onClick={(e) => e.preventDefault()} style={{ color: "var(--color-primary)" }}>{unidad.resguardante.nombre}</Link> : "Sin asignar"} />
           <Field label="Propietario" value={unidad.propietario} />

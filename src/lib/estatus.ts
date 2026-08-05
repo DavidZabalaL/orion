@@ -12,6 +12,24 @@ export const ESTATUS_UNIDAD_STYLE: Record<string, { color: string; bg: string }>
   BAJA: { color: "var(--color-status-escena)", bg: "var(--status-escena-bg)" },
 };
 
+/**
+ * Badge que se muestra para el estatus de una unidad — ligado al botón de
+ * encendido/apagado: una unidad ACTIVO que se apaga (disponibilidad = false)
+ * deja de mostrarse como "Activo" y pasa a "No disponible". Consignación,
+ * Dirección y Baja no cambian con el switch (son estatus de ciclo de vida
+ * aparte, no el operativo del día a día).
+ */
+export function estatusVisibleUnidad(estatus: string, disponibilidad: boolean): { label: string; color: string; bg: string } {
+  if (estatus === "ACTIVO" && !disponibilidad) {
+    return { label: "No disponible", color: "var(--sidebar-text)", bg: "var(--chip)" };
+  }
+  return {
+    label: ESTATUS_UNIDAD_LABEL[estatus] ?? estatus,
+    color: ESTATUS_UNIDAD_STYLE[estatus]?.color ?? "var(--sidebar-text)",
+    bg: ESTATUS_UNIDAD_STYLE[estatus]?.bg ?? "var(--chip)",
+  };
+}
+
 export const TIPO_VEHICULO_LABEL: Record<string, string> = {
   AUTO: "Auto",
   CAMIONETA: "Camioneta",

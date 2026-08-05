@@ -27,6 +27,7 @@ export default async function HistorialChecklistPage({
 
   const checklists = await prisma.checklist.findMany({
     where: {
+      tipo: "DIARIO",
       fecha: { gte: inicio, lte: fin },
       ...(proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {}),
     },
