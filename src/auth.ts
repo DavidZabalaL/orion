@@ -35,7 +35,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // de rol o una reasignación se reflejen sin pedir reingresar sesión.
       if (user?.email) {
         const usuario = await prisma.usuario.findUnique({ where: { correo: user.email.toLowerCase() } });
-        if (usuario) token.usuarioId = usuario.id;
+        if (usuario) {
+          token.usuarioId = usuario.id;
+          // Un inicio de sesión explícito "cumple" cualquier cierre de sesión forzado
+          // pendiente (Analítica de Uso y Trazabilidad) — se limpia para que el
+          // indicador no quede mostrándose para siempre tras volver a entrar.
+          if (usuario.sesionInvalidadaEn) {
+            await prisma.usuario.update({ where: { id: usuario.id }, data: { sesionInvalidadaEn: null } });
+          }
+        }
       }
       return token;
     },
@@ -47,7 +55,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (usuarioId) {
           const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { rol: true } });
-          if (usuario && usuario.estatus !== "DESACTIVADO") {
+
+          // Sesión forzada a cerrar desde el panel de Analítica de Uso y Trazabilidad:
+          // cualquier JWT emitido antes de `sesionInvalidadaEn` deja de ser válido. Se
+          // vacía `session.user.id` — AppGroupLayout redirige a /iniciar-sesion cuando
+          // lo detecta, sin afectar el estatus real de la cuenta (a diferencia de
+          // desactivarla, aquí un nuevo inicio de sesión vuelve a funcionar de inmediato).
+          const invalidada = usuario?.sesionInvalidadaEn && typeof token.iat === "number" && usuario.sesionInvalidadaEn.getTime() / 1000 > token.iat;
+
+          if (invalidada) {
+            session.user.id = "";
+          } else if (usuario && usuario.estatus !== "DESACTIVADO") {
             session.user.name = usuario.nombre;
             session.user.rol = usuario.rol.nombre;
           }

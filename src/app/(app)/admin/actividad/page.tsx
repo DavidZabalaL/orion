@@ -3,6 +3,7 @@ import { Users, UserCheck, CalendarDays, Percent, ChevronRight } from "lucide-re
 import { StatCard } from "@/components/ui/stat-card";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BiChart } from "@/components/bi/bi-chart";
+import { BotonCerrarSesion } from "@/components/actividad/boton-cerrar-sesion";
 import {
   obtenerKpisAdopcion,
   obtenerTablaUltimaActividad,
@@ -92,13 +93,18 @@ export default async function AdopcionPage({
         {tabla.length === 0 ? (
           <EmptyState>Sin usuarios que coincidan.</EmptyState>
         ) : (
-          <Table headers={["Usuario", "Correo", "Rol", "Última actividad", ""]} minWidth={720}>
+          <Table headers={["Usuario", "Correo", "Rol", "Última actividad", "", "Acciones"]} minWidth={860}>
             {tabla.map((u) => (
               <tr key={u.usuarioId} style={{ borderBottom: "1px solid var(--field-border)" }}>
                 <td className="px-4 py-3">
                   <Link href={`/admin/actividad/usuarios/${u.usuarioId}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
                     {u.nombre}
                   </Link>
+                  {u.sesionInvalidadaEn && (
+                    <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+                      Sesión cerrada el {fmtFecha(u.sesionInvalidadaEn)}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.correo}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.rol}</td>
@@ -107,6 +113,9 @@ export default async function AdopcionPage({
                   <Link href={`/admin/actividad/usuarios/${u.usuarioId}`} className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
                     Ver detalle <ChevronRight size={14} />
                   </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <BotonCerrarSesion usuarioId={u.usuarioId} nombre={u.nombre} />
                 </td>
               </tr>
             ))}

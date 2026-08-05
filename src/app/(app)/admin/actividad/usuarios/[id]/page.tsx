@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { BotonCerrarSesion } from "@/components/actividad/boton-cerrar-sesion";
 import { obtenerActividadUsuario, MODULO_ACTIVIDAD_LABEL, type EventoActividadUsuario } from "@/lib/actividad";
 import { ZONA_HORARIA_MX } from "@/lib/timezone";
 
@@ -86,10 +87,18 @@ export default async function ActividadUsuarioPage({
                 <span style={{ color: "var(--color-status-escena)" }}> · Desactivado</span>
               )}
             </p>
+            {perfil.usuario.sesionInvalidadaEn && (
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+                Sesión cerrada el {fmtHora(perfil.usuario.sesionInvalidadaEn)} del {fmtDiaCompleto(perfil.usuario.sesionInvalidadaEn)}
+              </p>
+            )}
           </div>
-          <div className="text-right" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-            <div>{perfil.totalEventos} evento(s) registrado(s)</div>
-            {perfil.primeraActividad && <div>Desde {fmtDiaCompleto(perfil.primeraActividad)}</div>}
+          <div className="flex flex-col items-end gap-2">
+            <BotonCerrarSesion usuarioId={perfil.usuario.id} nombre={perfil.usuario.nombre} />
+            <div className="text-right" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+              <div>{perfil.totalEventos} evento(s) registrado(s)</div>
+              {perfil.primeraActividad && <div>Desde {fmtDiaCompleto(perfil.primeraActividad)}</div>}
+            </div>
           </div>
         </div>
       </div>

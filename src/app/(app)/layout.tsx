@@ -7,6 +7,9 @@ import { obtenerModulosVisibles, esDevAdmin } from "@/lib/permisos";
 export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/iniciar-sesion");
+  // session.user.id vacío = sesión sin usuario resuelto, o forzada a cerrar
+  // (ver el callback `session` en src/auth.ts) — se trata igual que no tener sesión.
+  if (!session.user.id) redirect("/iniciar-sesion");
 
   const [notificaciones, modulosVisibles, devAdmin] = await Promise.all([
     obtenerNotificaciones(session.user.id),

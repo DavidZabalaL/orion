@@ -27,6 +27,7 @@ const ACCION_VERBO: Record<string, string> = {
   import: "Importó",
   login: "Inició sesión",
   logout: "Cerró sesión",
+  forzar_logout: "Forzó el cierre de sesión de",
 };
 
 const ENTIDAD_LABEL: Record<string, string> = {
@@ -96,12 +97,13 @@ export type FilaUltimaActividad = {
   correo: string;
   rol: string;
   ultimaActividad: Date | null;
+  sesionInvalidadaEn: Date | null;
 };
 
 export async function obtenerTablaUltimaActividad(filtros: { rolId?: string; modulo?: string }): Promise<FilaUltimaActividad[]> {
   const usuarios = await prisma.usuario.findMany({
     where: { estatus: "ACTIVO", ...(filtros.rolId ? { rolId: filtros.rolId } : {}) },
-    select: { id: true, nombre: true, correo: true, rol: { select: { nombre: true } } },
+    select: { id: true, nombre: true, correo: true, sesionInvalidadaEn: true, rol: { select: { nombre: true } } },
   });
 
   const ultimas = await prisma.activityLog.groupBy({
@@ -112,7 +114,14 @@ export async function obtenerTablaUltimaActividad(filtros: { rolId?: string; mod
   const ultimaPorUsuario = new Map(ultimas.map((u) => [u.userId, u._max.createdAt]));
 
   return usuarios
-    .map((u) => ({ usuarioId: u.id, nombre: u.nombre, correo: u.correo, rol: u.rol.nombre, ultimaActividad: ultimaPorUsuario.get(u.id) ?? null }))
+    .map((u) => ({
+      usuarioId: u.id,
+      nombre: u.nombre,
+      correo: u.correo,
+      rol: u.rol.nombre,
+      ultimaActividad: ultimaPorUsuario.get(u.id) ?? null,
+      sesionInvalidadaEn: u.sesionInvalidadaEn,
+    }))
     .sort((a, b) => (a.ultimaActividad?.getTime() ?? -Infinity) - (b.ultimaActividad?.getTime() ?? -Infinity));
 }
 
@@ -132,7 +141,7 @@ export type EventoActividadUsuario = {
 };
 
 export type PerfilActividadUsuario = {
-  usuario: { id: string; nombre: string; correo: string; rol: string; estatus: string };
+  usuario: { id: string; nombre: string; correo: string; rol: string; estatus: string; sesionInvalidadaEn: Date | null };
   totalEventos: number;
   primeraActividad: Date | null;
   eventos: EventoActividadUsuario[];
@@ -142,7 +151,7 @@ export type PerfilActividadUsuario = {
 export async function obtenerActividadUsuario(usuarioId: string, opts?: { modulo?: string }): Promise<PerfilActividadUsuario | null> {
   const usuario = await prisma.usuario.findUnique({
     where: { id: usuarioId },
-    select: { id: true, nombre: true, correo: true, estatus: true, rol: { select: { nombre: true } } },
+    select: { id: true, nombre: true, correo: true, estatus: true, sesionInvalidadaEn: true, rol: { select: { nombre: true } } },
   });
   if (!usuario) return null;
 
@@ -157,7 +166,7 @@ export async function obtenerActividadUsuario(usuarioId: string, opts?: { modulo
   ]);
 
   return {
-    usuario: { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol.nombre, estatus: usuario.estatus },
+    usuario: { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol.nombre, estatus: usuario.estatus, sesionInvalidadaEn: usuario.sesionInvalidadaEn },
     totalEventos,
     primeraActividad: primerEvento?.createdAt ?? null,
     eventos: eventos.map((e) => ({

@@ -234,6 +234,10 @@ model Usuario {
   rolId      String
   rol        Rol               @relation(fields: [rolId], references: [id])
   estatus    EstatusUsuario    @default(INVITADO)
+  /** Si tiene fecha, cualquier sesión (JWT) emitida antes de este momento se
+   *  considera inválida — ver el callback `session` en src/auth.ts. La usa el
+   *  botón "Cerrar sesión" del panel de Analítica de Uso y Trazabilidad. */
+  sesionInvalidadaEn DateTime?
   proyectos  UsuarioProyecto[]
   operadorId String?           @unique
   operador   Operador?         @relation(fields: [operadorId], references: [id])
