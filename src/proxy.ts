@@ -25,5 +25,10 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api/auth|iniciar-sesion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
+  // api/exec: endpoints de solo lectura para el Dashboard Directivo,
+  // autenticados con su propio secreto (requireExecKey en
+  // src/lib/exec-auth.ts) — no pueden pasar por este middleware de sesión,
+  // que redirigiría cualquier request sin cookie a /iniciar-sesion antes de
+  // llegar a la ruta.
+  matcher: ["/((?!api/auth|api/exec|iniciar-sesion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
 };
