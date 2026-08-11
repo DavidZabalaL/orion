@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, FileBadge, Pencil, TriangleAlert, Car } from "lucide-react";
+import { ChevronLeft, FileBadge, Pencil, TriangleAlert, Car, GraduationCap, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, EmptyState, Field, panelStyle, tdStyle } from "@/components/ui/table";
 import {
@@ -11,6 +11,8 @@ import {
 } from "@/lib/estatus-operador";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { fmtFecha, diasPara } from "@/lib/formato";
+import { FormAccidente } from "@/components/accidentes/form-accidente";
+import { FormCurso } from "@/components/operadores/form-curso";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Operador = any;
@@ -22,6 +24,11 @@ const LICENCIA_REQUERIDA: Record<string, string> = {
   CAMIONETA: "B",
   GRUA: "C",
   OTRO: "B",
+};
+
+const TIPO_LICENCIA_MANEJO_LABEL: Record<string, string> = {
+  TIPO_A: "Tipo A — Autos / camionetas / motos",
+  TIPO_B: "Tipo B — Solo grúas",
 };
 
 export function FichaOperador({ operador }: { operador: Operador }) {
@@ -75,7 +82,34 @@ export function FichaOperador({ operador }: { operador: Operador }) {
             <Field label="Tipo de sangre" value={operador.tipoSangre ? TIPO_SANGRE_LABEL[operador.tipoSangre] : "—"} />
             <Field label="Teléfono" value={operador.telefono ?? "—"} />
             <Field label="Contacto de emergencia" value={operador.contactoEmergencia ?? "—"} />
+            <Field
+              label="Tipo de licencia"
+              value={
+                operador.tipoLicenciaManejo
+                  ? <Badge
+                      label={TIPO_LICENCIA_MANEJO_LABEL[operador.tipoLicenciaManejo] ?? operador.tipoLicenciaManejo}
+                      color="var(--color-primary)"
+                      bg="var(--chip)"
+                    />
+                  : "—"
+              }
+            />
+            <Field
+              label="Última capacitación"
+              value={operador.fechaUltimaCapacitacion ? fmtFecha(operador.fechaUltimaCapacitacion) : "—"}
+            />
           </div>
+          {operador.licenciaDocumentoUrl && (
+            <a
+              href={operador.licenciaDocumentoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1 rounded-md px-3 h-8"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+            >
+              <FileBadge size={14} /> Ver documento de licencia
+            </a>
+          )}
         </div>
 
         <div className="rounded-xl p-5" style={panelStyle}>
@@ -175,6 +209,75 @@ export function FichaOperador({ operador }: { operador: Operador }) {
                 <td className="px-4 py-3" style={tdStyle}>{fmtFecha(r.fechaDesde)}</td>
                 <td className="px-4 py-3" style={tdStyle}>{r.fechaHasta ? fmtFecha(r.fechaHasta) : "Actual"}</td>
                 <td className="px-4 py-3" style={tdStyle}>{r.motivoCambio ?? "—"}</td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </div>
+
+      {/* Historial de accidentes */}
+      <div>
+        <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+          <h3 className="flex items-center gap-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            <AlertTriangle size={18} color="var(--color-status-revision)" />
+            Historial de accidentes / siniestros
+          </h3>
+          <FormAccidente numeroEconomico={operador.unidadesResguardadas[0]?.numeroEconomico ?? ""} operadorId={operador.id} />
+        </div>
+        {!operador.accidentes || operador.accidentes.length === 0 ? (
+          <EmptyState>Sin accidentes registrados.</EmptyState>
+        ) : (
+          <Table headers={["Fecha", "Unidad", "Tipo", "Descripción", "Evidencias"]} minWidth={700}>
+            {operador.accidentes.map((a: Operador) => (
+              <tr key={a.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+                <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{fmtFecha(a.fecha)}</td>
+                <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>
+                  {a.numeroEconomico ? <Link href={`/unidades/${a.numeroEconomico}`} style={{ color: "var(--color-primary)" }}>{a.numeroEconomico}</Link> : "—"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{a.tipo}</td>
+                <td className="px-4 py-3" style={tdStyle}>{a.descripcion}</td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1 flex-wrap">
+                    {(a.evidencias ?? []).map((url: string, i: number) => (
+                      <a key={url} href={url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
+                        Foto {i + 1}
+                      </a>
+                    ))}
+                    {(!a.evidencias || a.evidencias.length === 0) && <span style={{ color: "var(--sidebar-text)" }}>—</span>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </div>
+
+      {/* Historial de cursos y capacitaciones */}
+      <div>
+        <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+          <h3 className="flex items-center gap-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            <GraduationCap size={18} color="var(--color-primary)" />
+            Cursos y capacitaciones
+          </h3>
+          <FormCurso operadorId={operador.id} />
+        </div>
+        {!operador.cursos || operador.cursos.length === 0 ? (
+          <EmptyState>Sin cursos registrados.</EmptyState>
+        ) : (
+          <Table headers={["Fecha", "Nombre del curso", "Evidencia"]} minWidth={500}>
+            {operador.cursos.map((c: Operador) => (
+              <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+                <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{fmtFecha(c.fecha)}</td>
+                <td className="px-4 py-3" style={tdStyle}>{c.nombre}</td>
+                <td className="px-4 py-3">
+                  {c.evidenciaUrl ? (
+                    <a href={c.evidenciaUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                      Ver constancia
+                    </a>
+                  ) : (
+                    <span style={{ color: "var(--sidebar-text)" }}>—</span>
+                  )}
+                </td>
               </tr>
             ))}
           </Table>

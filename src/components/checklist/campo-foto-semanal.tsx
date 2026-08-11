@@ -8,13 +8,15 @@ export function CampoFotoSemanal({
   name,
   label,
   requerido,
+  initialUrl,
 }: {
   name: string;
   label: string;
   requerido: boolean;
+  initialUrl?: string;
 }) {
-  const [nombreArchivo, setNombreArchivo] = useState<string | null>(null);
-  const [url, setUrl] = useState<string | null>(null);
+  const [nombreArchivo, setNombreArchivo] = useState<string | null>(initialUrl ? "foto anterior" : null);
+  const [url, setUrl] = useState<string | null>(initialUrl ?? null);
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

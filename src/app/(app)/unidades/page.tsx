@@ -20,7 +20,8 @@ export default async function UnidadesPage() {
   const restriccionOperador = await unidadRestringidaParaOperador();
   const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: restriccionOperador.numeroEconomico ?? "__ninguna__" } : {};
 
-  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps] = await Promise.all([
+  const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([
     prisma.unidad.findMany({
       where: { ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}), ...filtroOperador },
       include: {
@@ -42,6 +43,15 @@ export default async function UnidadesPage() {
     prisma.combustible.groupBy({ by: ["numeroEconomico"], _max: { fecha: true } }),
     prisma.tag.groupBy({ by: ["numeroEconomico"], where: { numeroEconomico: { not: null } }, _max: { fecha: true } }),
     prisma.posicionGPS.groupBy({ by: ["numeroEconomico"], _max: { timestamp: true } }),
+    prisma.seguro.groupBy({
+      by: ["numeroEconomico"],
+      where: {
+        fechaVencimiento: { lte: treintaDias, gte: new Date() },
+        estatus: "VIGENTE",
+        ...(proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {}),
+      },
+      _count: { id: true },
+    }),
   ]);
 
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
@@ -49,6 +59,7 @@ export default async function UnidadesPage() {
   const ultimoCombustiblePorEconomico = new Map(ultimosCombustibles.map((m) => [m.numeroEconomico, m._max.fecha]));
   const ultimoTagPorEconomico = new Map(ultimosTags.map((m) => [m.numeroEconomico as string, m._max.fecha]));
   const ultimoGpsPorEconomico = new Map(ultimosGps.map((m) => [m.numeroEconomico, m._max.timestamp]));
+  const conSeguroProximo = new Set(segurosProximos.map((s) => s.numeroEconomico));
 
   const rows: UnidadRow[] = unidades.map((u) => {
     const { diasSinOperar, origen, fuente } = calcularDiasSinOperar(
@@ -58,6 +69,11 @@ export default async function UnidadesPage() {
       ultimoTagPorEconomico.get(u.numeroEconomico),
       ultimoGpsPorEconomico.get(u.numeroEconomico)
     );
+    const semaforo: "verde" | "amarillo" | "rojo" = (() => {
+      if (u.estatus !== "ACTIVO") return "rojo";
+      if (!u.disponibilidad || diasSinOperar > 5 || conSeguroProximo.has(u.numeroEconomico)) return "amarillo";
+      return "verde";
+    })();
     return {
       numeroEconomico: u.numeroEconomico,
       placas: u.placas,
@@ -73,6 +89,7 @@ export default async function UnidadesPage() {
       resguardante: u.resguardante?.nombre ?? null,
       ultimoMantenimiento: ultimoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
       proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
+      semaforo,
     };
   });
 

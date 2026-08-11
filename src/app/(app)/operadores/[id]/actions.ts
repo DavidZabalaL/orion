@@ -20,6 +20,7 @@ export async function actualizarOperador(formData: FormData) {
   const telefono = String(formData.get("telefono") ?? "").trim() || null;
   const contactoEmergencia = String(formData.get("contactoEmergencia") ?? "").trim() || null;
   const proyectoId = String(formData.get("proyectoId") ?? "") || null;
+  const tipoLicenciaManejo = String(formData.get("tipoLicenciaManejo") ?? "") || null;
 
   if (!id || !nombre || !curp) {
     throw new Error("Nombre y CURP son obligatorios.");
@@ -45,7 +46,8 @@ export async function actualizarOperador(formData: FormData) {
       telefono,
       contactoEmergencia,
       proyectoId,
-    },
+      tipoLicenciaManejo: tipoLicenciaManejo || null,
+    } as never,
   });
 
   const session = await auth();

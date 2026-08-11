@@ -22,7 +22,9 @@ export default async function FichaOperadorPage({ params }: { params: Promise<{ 
         include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, tipoVehiculo: true } } },
         orderBy: { fechaDesde: "desc" },
       },
-    },
+      accidentes: { orderBy: { fecha: "desc" } },
+      cursos: { orderBy: { fecha: "desc" } },
+    } as never,
   });
 
   if (!operador) notFound();

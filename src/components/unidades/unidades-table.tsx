@@ -28,6 +28,19 @@ export type UnidadRow = {
   resguardante: string | null;
   ultimoMantenimiento: string | null;
   proximoMantenimiento: string | null;
+  semaforo: "verde" | "amarillo" | "rojo";
+};
+
+const SEMAFORO_COLOR: Record<string, string> = {
+  verde: "#22c55e",
+  amarillo: "#f59e0b",
+  rojo: "#ef4444",
+};
+
+const SEMAFORO_LABEL: Record<string, string> = {
+  verde: "Disponible / Óptimas condiciones",
+  amarillo: "Requiere atención (doc. faltante, póliza por vencer, sin operar)",
+  rojo: "Parada por daño, baja, mantenimiento o inactiva",
 };
 
 function exportarCsv(rows: UnidadRow[]) {
@@ -79,6 +92,7 @@ export function UnidadesTable({
   const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [estatusFiltro, setEstatusFiltro] = useState("");
+  const [semaforoFiltro, setSemaforoFiltro] = useState("");
 
   // Al encender/apagar desde esta tabla, "días sin operar" arranca en 0 —
   // acaba de cambiar en este instante — sin esperar a recargar la página.
@@ -99,6 +113,7 @@ export function UnidadesTable({
       if (proyectoFiltro && r.proyecto !== proyectoFiltro) return false;
       if (tipoFiltro && r.tipoVehiculo !== tipoFiltro) return false;
       if (estatusFiltro && r.estatus !== estatusFiltro) return false;
+      if (semaforoFiltro && r.semaforo !== semaforoFiltro) return false;
       return true;
     });
   }, [rows, busqueda, proyectoFiltro, tipoFiltro, estatusFiltro]);
@@ -140,6 +155,13 @@ export function UnidadesTable({
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
+
+          <select value={semaforoFiltro} onChange={(e) => setSemaforoFiltro(e.target.value)} className="rounded-md px-3" style={selectStyle}>
+            <option value="">🚦 Todos</option>
+            <option value="verde">🟢 Disponibles</option>
+            <option value="amarillo">🟡 Requieren atención</option>
+            <option value="rojo">🔴 Inactivas / Baja</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -169,7 +191,7 @@ export function UnidadesTable({
         <table className="w-full min-w-[1140px] border-collapse">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-              {["N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar", "Resguardante", "Último manto.", "Próx. manto.", ""].map((h) => (
+              {["", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar", "Resguardante", "Último manto.", "Próx. manto.", ""].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 whitespace-nowrap"
@@ -187,6 +209,18 @@ export function UnidadesTable({
                 className="transition-colors"
                 style={{ borderBottom: "1px solid var(--field-border)" }}
               >
+                <td className="px-3 py-3">
+                  <div
+                    title={SEMAFORO_LABEL[r.semaforo]}
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: SEMAFORO_COLOR[r.semaforo],
+                      flexShrink: 0,
+                    }}
+                  />
+                </td>
                 <td className="px-4 py-3">
                   <Link
                     href={`/unidades/${r.numeroEconomico}`}
@@ -255,7 +289,7 @@ export function UnidadesTable({
             ))}
             {filtradas.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
+                <td colSpan={13} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
                   No se encontraron unidades con los filtros aplicados.
                 </td>
               </tr>

@@ -28,6 +28,7 @@ import { actualizarCapacidadTanque, reasignarProyecto } from "@/app/(app)/unidad
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-unidad";
+import { FormAccidente } from "@/components/accidentes/form-accidente";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -41,6 +42,7 @@ const TABS = [
   { id: "gps", label: "GPS" },
   { id: "checklist", label: "Checklist" },
   { id: "operador", label: "Operador" },
+  { id: "accidentes", label: "Accidentes" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -328,6 +330,7 @@ export function FichaUnidad({
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
+          {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} />}
         </div>
       </div>
     </div>
@@ -695,6 +698,43 @@ function TabChecklist({ checklists }: { checklists: Unidad[] }) {
         </tr>
       ))}
       </Table>
+    </div>
+  );
+}
+
+function TabAccidentes({ accidentes, numeroEconomico }: { accidentes: Unidad[]; numeroEconomico: string }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          {accidentes.length} accidente(s) registrado(s)
+        </span>
+        <FormAccidente numeroEconomico={numeroEconomico} />
+      </div>
+      {accidentes.length === 0 ? (
+        <EmptyState>Sin accidentes registrados para esta unidad.</EmptyState>
+      ) : (
+        <Table headers={["Fecha", "Tipo", "Descripción", "Evidencias"]}>
+          {accidentes.map((a: Unidad) => (
+            <tr key={a.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(a.fecha)}</td>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{a.tipo}</td>
+              <td className="px-4 py-3" style={td}>{a.descripcion}</td>
+              <td className="px-4 py-3">
+                <div className="flex gap-2 flex-wrap">
+                  {(a.evidencias ?? []).map((url: string, i: number) => (
+                    <a key={url} href={url} target="_blank" rel="noopener noreferrer"
+                      style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
+                      Foto {i + 1}
+                    </a>
+                  ))}
+                  {(!a.evidencias || a.evidencias.length === 0) && <span style={{ color: "var(--sidebar-text)" }}>—</span>}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
     </div>
   );
 }

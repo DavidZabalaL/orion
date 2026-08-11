@@ -19,6 +19,7 @@ export async function crearOperador(formData: FormData) {
   const telefono = String(formData.get("telefono") ?? "").trim() || null;
   const contactoEmergencia = String(formData.get("contactoEmergencia") ?? "").trim() || null;
   const proyectoId = String(formData.get("proyectoId") ?? "") || null;
+  const tipoLicenciaManejo = String(formData.get("tipoLicenciaManejo") ?? "") || null;
 
   const tipoLicencia = String(formData.get("tipoLicencia") ?? "") || null;
   const numeroLicencia = String(formData.get("numeroLicencia") ?? "").trim() || null;
@@ -52,9 +53,10 @@ export async function crearOperador(formData: FormData) {
       contactoEmergencia,
       fotoId: placeholderDoc.id,
       proyectoId,
+      tipoLicenciaManejo: tipoLicenciaManejo || undefined,
       estatus: "ACTIVO",
       estatusDocumental: "INCOMPLETO",
-    },
+    } as never,
   });
 
   if (tipoLicencia && numeroLicencia) {

@@ -174,6 +174,16 @@ export async function actualizarUnidad(formData: FormData) {
     if (proyectoId && !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para asignar ese proyecto.");
   }
 
+  if (resguardanteId && tipoVehiculo === "GRUA") {
+    const op = await prisma.operador.findUnique({
+      where: { id: resguardanteId },
+      select: { nombre: true, tipoLicenciaManejo: true } as never,
+    }) as { nombre: string; tipoLicenciaManejo: string | null } | null;
+    if (op?.tipoLicenciaManejo === "TIPO_A") {
+      throw new Error(`El operador ${op?.nombre ?? ""} tiene licencia Tipo A y no puede ser asignado a una grúa.`);
+    }
+  }
+
   await prisma.unidad.update({
     where: { numeroEconomico },
     data: {

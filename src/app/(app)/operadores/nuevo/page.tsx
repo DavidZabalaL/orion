@@ -103,6 +103,14 @@ export default async function AltaOperadorPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <CampoAyuda style={labelStyle} texto="Tipo A: autos, camionetas, motos. Tipo B: solo grúas. El sistema bloqueará asignar una grúa a un operador Tipo A.">Tipo de licencia de manejo</CampoAyuda>
+              <select name="tipoLicenciaManejo" style={fieldStyle}>
+                <option value="">No especificado</option>
+                <option value="TIPO_A">Tipo A — Autos / camionetas / motos</option>
+                <option value="TIPO_B">Tipo B — Solo grúas</option>
+              </select>
+            </div>
           </div>
         </div>
 

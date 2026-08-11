@@ -93,6 +93,13 @@ enum TipoLicencia {
   E
 }
 
+// Tipo de licencia de manejo simplificado para operadores:
+// TIPO_A = autos, camionetas, motos; TIPO_B = solo grúas.
+enum TipoLicenciaManejo {
+  TIPO_A
+  TIPO_B
+}
+
 enum CategoriaGasto {
   MANTENIMIENTO_PREVENTIVO
   MANTENIMIENTO_CORRECTIVO
@@ -397,6 +404,7 @@ model Unidad {
   mapeoTarjetas   MapeoTarjetaEconomico[]
   auditorias      Auditoria[]
   placasHistorial Placa[]
+  accidentes      Accidente[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -426,11 +434,14 @@ model Operador {
   curp               String      @unique
   rfc                String?
   nss                String?
-  tipoSangre         TipoSangre?
-  telefono           String?
-  contactoEmergencia String?
-  fotoId             String?
-  foto               Documento?  @relation("OperadorFoto", fields: [fotoId], references: [id])
+  tipoSangre              TipoSangre?
+  telefono                String?
+  contactoEmergencia      String?
+  fotoId                  String?
+  foto                    Documento?           @relation("OperadorFoto", fields: [fotoId], references: [id])
+  tipoLicenciaManejo      TipoLicenciaManejo?
+  fechaUltimaCapacitacion DateTime?
+  licenciaDocumentoUrl    String?
 
   proyectoId String?
   proyecto   Proyecto? @relation(fields: [proyectoId], references: [id])
@@ -443,6 +454,8 @@ model Operador {
   resguardos           Resguardo[]
   unidadesResguardadas Unidad[]             @relation("ResguardanteActual")
   usuario              Usuario?
+  accidentes           Accidente[]
+  cursos               CursoOperador[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -890,4 +903,37 @@ model NotificacionLeida {
 
   @@unique([usuarioId, notificacionId])
   @@index([usuarioId])
+}
+
+// ───────────────────────── ACCIDENTES / SINIESTROS ─────────────────────────
+
+model Accidente {
+  id              String    @id @default(cuid())
+  fecha           DateTime
+  descripcion     String
+  tipo            String    // "choque", "raspón", "robo parcial", "otro"
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  operadorId      String?
+  operador        Operador? @relation(fields: [operadorId], references: [id])
+  evidencias      String[]
+  registradoPorId String?   // ID del usuario que registró (sin FK formal para evitar circular)
+  createdAt       DateTime  @default(now())
+
+  @@index([numeroEconomico])
+  @@index([operadorId])
+}
+
+// ───────────────────────── CURSOS Y CAPACITACIONES DE OPERADOR ─────────────────────────
+
+model CursoOperador {
+  id           String   @id @default(cuid())
+  operadorId   String
+  operador     Operador @relation(fields: [operadorId], references: [id], onDelete: Cascade)
+  nombre       String
+  fecha        DateTime
+  evidenciaUrl String?
+  createdAt    DateTime @default(now())
+
+  @@index([operadorId])
 }

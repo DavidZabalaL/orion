@@ -33,7 +33,8 @@ export default async function FichaUnidadPage({
         seguros: { include: { coberturas: true }, orderBy: { fechaVencimiento: "desc" } },
         posicionesGps: { orderBy: { timestamp: "desc" }, take: 20 },
         placasHistorial: { orderBy: { fechaDesde: "desc" } },
-      },
+        accidentes: { orderBy: { fecha: "desc" } },
+      } as never,
     }),
     puedeEditarCapacidadTanque(),
     prisma.proyecto.findMany({
