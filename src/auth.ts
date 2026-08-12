@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { logActivity } from "@/lib/activity";
@@ -13,6 +14,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
       authorization: { params: { prompt: "select_account" } },
     }),
+    // Solo activo en preview/staging — nunca en producción
+    ...(process.env.PREVIEW_LOGIN_ENABLED === "true"
+      ? [
+          Credentials({
+            credentials: { email: {}, password: {} },
+            async authorize(credentials) {
+              const email = (credentials.email as string | undefined)?.toLowerCase().trim();
+              const pass = credentials.password as string | undefined;
+              if (!email || !pass) return null;
+              if (email !== process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase() || pass !== process.env.PREVIEW_LOGIN_PASS) return null;
+              const usuario = await prisma.usuario.findUnique({ where: { correo: email } });
+              if (!usuario || usuario.estatus === "DESACTIVADO") return null;
+              return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
+            },
+          }),
+        ]
+      : []),
   ],
   session: { strategy: "jwt" },
   callbacks: {
