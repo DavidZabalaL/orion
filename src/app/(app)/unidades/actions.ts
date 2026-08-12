@@ -157,6 +157,7 @@ export async function actualizarUnidad(formData: FormData) {
   const origenPlaca = String(formData.get("origenPlaca") ?? "").trim();
   const tagIave = String(formData.get("tagIave") ?? "").trim() || null;
   const numeroTarjetaCombustible = String(formData.get("numeroTarjetaCombustible") ?? "").trim() || null;
+  const licenciaRequerida = String(formData.get("licenciaRequerida") ?? "") || null;
 
   if (!placas || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !propietario || !origenPlaca) {
     throw new Error("Faltan campos obligatorios.");
@@ -174,13 +175,16 @@ export async function actualizarUnidad(formData: FormData) {
     if (proyectoId && !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para asignar ese proyecto.");
   }
 
-  if (resguardanteId && tipoVehiculo === "GRUA") {
+  if (resguardanteId) {
     const op = await prisma.operador.findUnique({
       where: { id: resguardanteId },
       select: { nombre: true, tipoLicenciaManejo: true } as never,
     }) as { nombre: string; tipoLicenciaManejo: string | null } | null;
-    if (op?.tipoLicenciaManejo === "TIPO_A") {
-      throw new Error(`El operador ${op?.nombre ?? ""} tiene licencia Tipo A y no puede ser asignado a una grúa.`);
+
+    // Operador Tipo A no puede manejar unidades que requieren Tipo B (grúas)
+    const licReq = licenciaRequerida ?? (tipoVehiculo === "GRUA" ? "TIPO_B" : "TIPO_A");
+    if (op?.tipoLicenciaManejo === "TIPO_A" && licReq === "TIPO_B") {
+      throw new Error(`El operador ${op?.nombre ?? ""} tiene licencia Tipo A y no puede ser asignado a una unidad que requiere Tipo B.`);
     }
   }
 
@@ -201,6 +205,7 @@ export async function actualizarUnidad(formData: FormData) {
       origenPlaca,
       tagIave,
       numeroTarjetaCombustible,
+      licenciaRequerida: licenciaRequerida as "TIPO_A" | "TIPO_B" | null,
     },
   });
 

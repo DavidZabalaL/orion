@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition, useEffect } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, AlertTriangle, Clock } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,8 @@ export type GastoRow = {
   fechaCxp: string | null;
   fechaPago: string | null;
   kmAlMomento: number | null;
+  fechaIngresoTaller: string | null;
+  fechaEstimadaSalida: string | null;
 };
 
 function coincide(g: GastoRow, q: string) {
@@ -68,6 +70,36 @@ function soloFecha(v: string | null) {
   return v ? v.slice(0, 10) : "";
 }
 
+function TimerTaller({ ingreso, estimada }: { ingreso: string | null; estimada: string | null }) {
+  const [ahora, setAhora] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!ingreso) return null;
+  const desde = new Date(ingreso);
+  const diasEnTaller = Math.floor((ahora.getTime() - desde.getTime()) / 86_400_000);
+  const vencida = estimada ? ahora > new Date(estimada) : false;
+
+  return (
+    <div
+      className="flex items-center gap-2 rounded-md px-3 py-2"
+      style={{ background: vencida ? "var(--status-escena-bg, #fef2f2)" : "var(--chip)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+    >
+      {vencida ? (
+        <AlertTriangle size={14} color="var(--color-status-escena, #ef4444)" />
+      ) : (
+        <Clock size={14} color="var(--sidebar-text)" />
+      )}
+      <span style={{ color: vencida ? "var(--color-status-escena, #ef4444)" : "var(--field-text)", fontWeight: vencida ? 600 : 400 }}>
+        {diasEnTaller === 0 ? "Entró hoy" : `${diasEnTaller} día${diasEnTaller !== 1 ? "s" : ""} en taller`}
+        {vencida && " — VENCIDA"}
+      </span>
+    </div>
+  );
+}
+
 function VerOrdenButton({ abierto, onClick }: { abierto: boolean; onClick: () => void }) {
   return (
     <button
@@ -87,6 +119,13 @@ function OrdenDetalle({ g }: { g: GastoRow }) {
   if (!editando) {
     return (
       <div className="flex flex-col gap-3">
+        {g.fechaIngresoTaller && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <TimerTaller ingreso={g.fechaIngresoTaller} estimada={g.fechaEstimadaSalida} />
+            <Detalle label="Ingreso taller" value={fmtFecha(g.fechaIngresoTaller)} />
+            <Detalle label="Salida estimada" value={g.fechaEstimadaSalida ? fmtFecha(g.fechaEstimadaSalida) : null} />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Detalle label="Proveedor" value={g.proveedor} />
           <Detalle label="Servicio" value={g.servicio} />
@@ -183,6 +222,14 @@ function OrdenDetalle({ g }: { g: GastoRow }) {
         <div>
           <label style={labelStyle}>Fecha de pago</label>
           <input name="fechaPago" type="date" defaultValue={soloFecha(g.fechaPago)} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Ingreso taller</label>
+          <input name="fechaIngresoTaller" type="date" defaultValue={soloFecha(g.fechaIngresoTaller)} style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Salida estimada taller</label>
+          <input name="fechaEstimadaSalida" type="date" defaultValue={soloFecha(g.fechaEstimadaSalida)} style={fieldStyle} />
         </div>
       </div>
       <div className="flex items-center gap-2">

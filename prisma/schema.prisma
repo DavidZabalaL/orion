@@ -88,9 +88,6 @@ enum TipoDocumentoOperador {
 enum TipoLicencia {
   A
   B
-  C
-  D
-  E
 }
 
 // Tipo de licencia de manejo simplificado para operadores:
@@ -261,6 +258,9 @@ model Usuario {
   notificacionesLeidas          NotificacionLeida[]
   vistasDashboardBI             VistaDashboardBI[]
   actividad                     ActivityLog[]
+  ticketsReportados             TicketRescate[] @relation("TicketReportadoPor")
+  ticketsAsignados              TicketRescate[] @relation("TicketAsignadoA")
+  historicoTickets              HistoricoTicketRescate[]
 }
 
 model UsuarioProyecto {
@@ -311,6 +311,8 @@ model Proyecto {
   presupuestosMensuales PresupuestoMensual[]
   presupuestosPartida   PresupuestoPartida[]
   gastosReportados      GastoVehicular[]
+  insumos               InsumoInventario[]
+  tickets               TicketRescate[]
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 }
@@ -379,6 +381,8 @@ model Unidad {
   resguardanteId String?
   resguardante   Operador? @relation("ResguardanteActual", fields: [resguardanteId], references: [id])
 
+  licenciaRequerida TipoLicenciaManejo?
+
   propietario PropietarioUnidad
   origenPlaca String
   tagIave     String?
@@ -405,6 +409,7 @@ model Unidad {
   auditorias      Auditoria[]
   placasHistorial Placa[]
   accidentes      Accidente[]
+  tickets         TicketRescate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -568,6 +573,9 @@ model GastoVehicular {
   fechaFactura     DateTime?
   fechaCxp         DateTime?
   fechaPago        DateTime?
+
+  fechaIngresoTaller    DateTime?
+  fechaEstimadaSalida   DateTime?
 
   evidenciaId String?
   evidencia   Documento?   @relation(fields: [evidenciaId], references: [id])
@@ -936,4 +944,105 @@ model CursoOperador {
   createdAt    DateTime @default(now())
 
   @@index([operadorId])
+}
+
+// ───────────────────────── MÓDULO G — INVENTARIO DE INSUMOS ─────────────────────────
+
+model InsumoInventario {
+  id          String   @id @default(cuid())
+  proyectoId  String
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  nombre      String
+  categoria   String?
+  unidad      String   @default("pza")
+  existencias Decimal  @default(0) @db.Decimal(12, 2)
+  minimoStock Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([proyectoId])
+}
+
+// ───────────────────────── MÓDULO R — RESCATE DE UNIDADES ─────────────────────────
+
+enum CategoriaRescate {
+  MECANICO
+  ELECTRICO
+  NEUMATICO
+  ACCIDENTE
+  SEGURIDAD
+  COMBUSTIBLE
+  OTRO
+}
+
+enum PrioridadRescate {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum EstatusTicketRescate {
+  ABIERTO
+  ASIGNADO
+  EN_ATENCION
+  EN_TRANSITO
+  RESUELTO
+  CERRADO
+  CANCELADO
+}
+
+model CatalogoMotivoRescate {
+  id               String           @id @default(cuid())
+  nombre           String           @unique
+  categoria        CategoriaRescate
+  prioridadDefault PrioridadRescate @default(MEDIA)
+  activo           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+
+  tickets TicketRescate[]
+}
+
+model TicketRescate {
+  id              String               @id @default(cuid())
+  folio           String               @unique
+  numeroEconomico String
+  unidad          Unidad               @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  motivoId        String
+  motivo          CatalogoMotivoRescate @relation(fields: [motivoId], references: [id])
+  descripcion     String?
+  prioridad       PrioridadRescate     @default(MEDIA)
+  estatus         EstatusTicketRescate @default(ABIERTO)
+  ubicacion       String?
+  latitud         Decimal?             @db.Decimal(10, 7)
+  longitud        Decimal?             @db.Decimal(10, 7)
+  reportadoPorId  String
+  reportadoPor    Usuario              @relation("TicketReportadoPor", fields: [reportadoPorId], references: [id])
+  asignadoAId     String?
+  asignadoA       Usuario?             @relation("TicketAsignadoA", fields: [asignadoAId], references: [id])
+  proyectoId      String?
+  proyecto        Proyecto?            @relation(fields: [proyectoId], references: [id])
+  cerradoAt       DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  historico HistoricoTicketRescate[]
+
+  @@index([numeroEconomico])
+  @@index([estatus])
+  @@index([proyectoId])
+  @@index([folio])
+}
+
+model HistoricoTicketRescate {
+  id         String               @id @default(cuid())
+  ticketId   String
+  ticket     TicketRescate        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  estatus    EstatusTicketRescate
+  comentario String?
+  usuarioId  String
+  usuario    Usuario              @relation(fields: [usuarioId], references: [id])
+  createdAt  DateTime             @default(now())
+
+  @@index([ticketId])
 }

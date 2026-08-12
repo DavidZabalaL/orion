@@ -100,6 +100,14 @@ export default async function NuevaOrdenPage() {
               <option value="CANCELADO">Cancelado</option>
             </select>
           </div>
+          <div>
+            <CampoAyuda style={labelStyle} texto="Fecha en que la unidad entró al taller. Se usa para el temporizador de tiempo en taller.">Fecha ingreso taller</CampoAyuda>
+            <input name="fechaIngresoTaller" type="date" style={fieldStyle} />
+          </div>
+          <div>
+            <CampoAyuda style={labelStyle} texto="Fecha estimada de entrega del taller. Si se supera, se genera alerta.">Fecha estimada de salida</CampoAyuda>
+            <input name="fechaEstimadaSalida" type="date" style={fieldStyle} />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">

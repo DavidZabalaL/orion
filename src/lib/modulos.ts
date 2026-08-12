@@ -15,11 +15,13 @@ import {
   Settings,
   IdCard,
   LayoutDashboard,
+  Package,
+  Siren,
 } from "lucide-react";
 
-export type Grupo = "Flota" | "Operación y gasto" | "Geo" | "Gestión";
+export type Grupo = "Flota" | "Operación y gasto" | "Geo" | "Gestión" | "Rescate y campo";
 
-export const GRUPOS: Grupo[] = ["Flota", "Operación y gasto", "Geo", "Gestión"];
+export const GRUPOS: Grupo[] = ["Flota", "Operación y gasto", "Rescate y campo", "Geo", "Gestión"];
 
 export type Modulo = {
   id: string;
@@ -46,4 +48,6 @@ export const MODULOS: Modulo[] = [
   { id: "M", label: "Dashboards", href: "/dashboards", icon: LayoutDashboard, descripcion: "BI configurable de toda la plataforma, por eje X/Y", grupo: "Gestión" },
   { id: "L", label: "Gestión de Operadores", href: "/operadores", icon: IdCard, descripcion: "Expediente digital y alertas de vencimiento", grupo: "Gestión" },
   { id: "K", label: "Administración", href: "/usuarios", icon: Settings, descripcion: "Usuarios, roles, notificaciones y módulos por proyecto", grupo: "Gestión" },
+  { id: "N", label: "Inventario de Insumos", href: "/inventario-insumos", icon: Package, descripcion: "Stock de aceite, anticongelante y consumibles por proyecto", grupo: "Gestión" },
+  { id: "R", label: "Rescate de Unidades", href: "/rescate", icon: Siren, descripcion: "Tickets de rescate en campo con folio RSC-AAAA-######", grupo: "Rescate y campo" },
 ];

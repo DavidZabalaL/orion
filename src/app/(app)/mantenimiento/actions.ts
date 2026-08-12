@@ -23,6 +23,8 @@ export async function crearGasto(formData: FormData) {
   const sc = String(formData.get("sc") ?? "").trim() || null;
   const odc = String(formData.get("odc") ?? "").trim() || null;
   const estatus = String(formData.get("estatus") ?? "PROGRAMADO");
+  const fechaIngresoTaller = String(formData.get("fechaIngresoTaller") ?? "") || null;
+  const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
 
   if (!categoria || !fecha || !costo) {
     throw new Error("Categoría, fecha y costo son obligatorios.");
@@ -59,6 +61,8 @@ export async function crearGasto(formData: FormData) {
       sc,
       odc,
       estatus: estatus as never,
+      fechaIngresoTaller: fechaIngresoTaller ? new Date(fechaIngresoTaller) : null,
+      fechaEstimadaSalida: fechaEstimadaSalida ? new Date(fechaEstimadaSalida) : null,
     },
   });
 
@@ -129,6 +133,8 @@ export async function actualizarGasto(formData: FormData) {
   const fechaFactura = String(formData.get("fechaFactura") ?? "") || null;
   const fechaCxp = String(formData.get("fechaCxp") ?? "") || null;
   const fechaPago = String(formData.get("fechaPago") ?? "") || null;
+  const fechaIngresoTaller = String(formData.get("fechaIngresoTaller") ?? "") || null;
+  const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
   const estatus = String(formData.get("estatus") ?? "");
 
   if (!costo || !estatus) throw new Error("Costo y estatus son obligatorios.");
@@ -161,6 +167,8 @@ export async function actualizarGasto(formData: FormData) {
       fechaFactura: fechaFactura ? new Date(fechaFactura) : null,
       fechaCxp: fechaCxp ? new Date(fechaCxp) : null,
       fechaPago: fechaPago ? new Date(fechaPago) : null,
+      fechaIngresoTaller: fechaIngresoTaller ? new Date(fechaIngresoTaller) : null,
+      fechaEstimadaSalida: fechaEstimadaSalida ? new Date(fechaEstimadaSalida) : null,
       estatus: estatus as never,
     },
   });

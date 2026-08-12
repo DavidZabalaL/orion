@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, Download, Plus, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -87,12 +88,22 @@ export function UnidadesTable({
   rows: UnidadRow[];
   proyectos: string[];
 }) {
+  const router = useRouter();
   const [rows, setRows] = useState(rowsIniciales);
   const [busqueda, setBusqueda] = useState("");
   const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [estatusFiltro, setEstatusFiltro] = useState("");
   const [semaforoFiltro, setSemaforoFiltro] = useState("");
+
+  useEffect(() => {
+    setRows(rowsIniciales);
+  }, [rowsIniciales]);
+
+  useEffect(() => {
+    const id = setInterval(() => router.refresh(), 60_000);
+    return () => clearInterval(id);
+  }, [router]);
 
   // Al encender/apagar desde esta tabla, "días sin operar" arranca en 0 —
   // acaba de cambiar en este instante — sin esperar a recargar la página.
@@ -116,7 +127,7 @@ export function UnidadesTable({
       if (semaforoFiltro && r.semaforo !== semaforoFiltro) return false;
       return true;
     });
-  }, [rows, busqueda, proyectoFiltro, tipoFiltro, estatusFiltro]);
+  }, [rows, busqueda, proyectoFiltro, tipoFiltro, estatusFiltro, semaforoFiltro]);
 
   return (
     <div className="flex flex-col gap-4">

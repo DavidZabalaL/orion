@@ -152,6 +152,14 @@ export default async function EditarUnidadPage({
               ))}
             </select>
           </div>
+          <div>
+            <CampoAyuda style={labelStyle} texto="Tipo de licencia que requiere el operador para manejar esta unidad. Tipo A: autos, camionetas, motos. Tipo B: grúas.">Licencia requerida</CampoAyuda>
+            <select name="licenciaRequerida" defaultValue={(unidad as never as { licenciaRequerida: string | null }).licenciaRequerida ?? ""} style={fieldStyle}>
+              <option value="">Sin especificar</option>
+              <option value="TIPO_A">Tipo A (auto, camioneta, moto)</option>
+              <option value="TIPO_B">Tipo B (grúa)</option>
+            </select>
+          </div>
         </Bloque>
 
         <Bloque titulo="Documentación">
