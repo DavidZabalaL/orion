@@ -14,26 +14,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
       authorization: { params: { prompt: "select_account" } },
     }),
-    // Solo activo en preview/staging — nunca en producción
-    ...(process.env.PREVIEW_LOGIN_ENABLED === "true"
-      ? [
-          Credentials({
-            credentials: { username: {}, password: {} },
-            async authorize(credentials) {
-              const username = (credentials.username as string | undefined)?.trim();
-              const pass = credentials.password as string | undefined;
-              if (!username || !pass) return null;
-              if (username !== process.env.PREVIEW_LOGIN_USER || pass !== process.env.PREVIEW_LOGIN_PASS) return null;
-              // El username/pass solo es la llave; el usuario real viene del correo configurado en env
-              const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
-              if (!correo) return null;
-              const usuario = await prisma.usuario.findUnique({ where: { correo } });
-              if (!usuario || usuario.estatus === "DESACTIVADO") return null;
-              return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
-            },
-          }),
-        ]
-      : []),
+    Credentials({
+      credentials: { username: {}, password: {} },
+      async authorize(credentials) {
+        const username = (credentials.username as string | undefined)?.trim();
+        const pass = credentials.password as string | undefined;
+        if (!username || !pass) return null;
+        const validUser = process.env.PREVIEW_LOGIN_USER;
+        const validPass = process.env.PREVIEW_LOGIN_PASS;
+        // Sin las variables de entorno configuradas, siempre falla
+        if (!validUser || !validPass) return null;
+        if (username !== validUser || pass !== validPass) return null;
+        const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
+        if (!correo) return null;
+        const usuario = await prisma.usuario.findUnique({ where: { correo } });
+        if (!usuario || usuario.estatus === "DESACTIVADO") return null;
+        return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
+      },
+    }),
   ],
   session: { strategy: "jwt" },
   callbacks: {
