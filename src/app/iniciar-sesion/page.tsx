@@ -5,7 +5,7 @@ import { signIn } from "@/auth";
 import { OrionIcon } from "@/components/brand/orion-icon";
 import logoKabat from "../../../public/Logo-Grupo-Kabat_bl.png";
 
-const PREVIEW_LOGIN = true;
+const PREVIEW_LOGIN = process.env.PREVIEW_LOGIN_ENABLED === "true";
 
 const ERROR_LABEL: Record<string, string> = {
   SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orión. Pide a un administrador que te invite desde Administración.",
