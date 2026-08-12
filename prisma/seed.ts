@@ -137,13 +137,13 @@ async function main() {
 
   // ── Operadores ──
   const operadoresData = [
-    { nombre: "Carlos Hernández López", curp: "HELC850312HTSRPZ01", licencia: "C" as const },
+    { nombre: "Carlos Hernández López", curp: "HELC850312HTSRPZ01", licencia: "B" as const },
     { nombre: "Miguel Ángel Torres", curp: "TOAM900521HDFRRG05", licencia: "B" as const },
-    { nombre: "Fernando García Ruiz", curp: "GARF880115HVZRZR02", licencia: "C" as const },
+    { nombre: "Fernando García Ruiz", curp: "GARF880115HVZRZR02", licencia: "B" as const },
     { nombre: "Ricardo Pérez Domínguez", curp: "PEDR920804HNLRMC08", licencia: "A" as const },
     { nombre: "Alejandro Sosa Medina", curp: "SOMA870630HJCSDL03", licencia: "B" as const },
-    { nombre: "Javier Morales Castillo", curp: "MOCJ950228HTSRRV06", licencia: "C" as const },
-    { nombre: "Daniel Reyes Aguilar", curp: "READ830917HDFYGL09", licencia: "D" as const },
+    { nombre: "Javier Morales Castillo", curp: "MOCJ950228HTSRRV06", licencia: "B" as const },
+    { nombre: "Daniel Reyes Aguilar", curp: "READ830917HDFYGL09", licencia: "B" as const },
     { nombre: "Luis Ángel Vázquez", curp: "VALA910405HVZZGS04", licencia: "B" as const },
   ];
 
