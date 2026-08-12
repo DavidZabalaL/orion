@@ -206,7 +206,7 @@ export function InventarioTabla({
                         >
                           <Pencil size={12} /> Editar
                         </button>
-                        <form action={(fd) => { fd.set("id", insumo.id); start(() => eliminarInsumo(fd)); }}>
+                        <form action={(fd) => { fd.set("id", insumo.id); start(() => { eliminarInsumo(fd); }); }}>
                           <input type="hidden" name="id" value={insumo.id} />
                           <button
                             type="submit"
