@@ -26,9 +26,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!validUser || !validPass) return null;
         if (username !== validUser || pass !== validPass) return null;
         const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
-        if (!correo) return null;
-        const usuario = await prisma.usuario.findUnique({ where: { correo } });
-        if (!usuario || usuario.estatus === "DESACTIVADO") return null;
+        const usuario = correo
+          ? await prisma.usuario.findFirst({ where: { correo, estatus: { not: "DESACTIVADO" } } })
+          : await prisma.usuario.findFirst({ where: { estatus: "ACTIVO" } });
+        if (!usuario) return null;
         return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
       },
     }),
