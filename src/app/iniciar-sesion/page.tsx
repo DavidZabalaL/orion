@@ -118,13 +118,14 @@ export default async function IniciarSesionPage({
                 className="mt-4 flex flex-col gap-3"
                 action={async (fd) => {
                   "use server";
-                  await signIn("credentials", { email: fd.get("email"), password: fd.get("password"), redirectTo: "/unidades" });
+                  await signIn("credentials", { username: fd.get("username"), password: fd.get("password"), redirectTo: "/unidades" });
                 }}
               >
                 <input
-                  name="email"
-                  type="email"
-                  placeholder="Correo"
+                  name="username"
+                  type="text"
+                  placeholder="Usuario"
+                  autoComplete="off"
                   required
                   style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
                 />

@@ -18,13 +18,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...(process.env.PREVIEW_LOGIN_ENABLED === "true"
       ? [
           Credentials({
-            credentials: { email: {}, password: {} },
+            credentials: { username: {}, password: {} },
             async authorize(credentials) {
-              const email = (credentials.email as string | undefined)?.toLowerCase().trim();
+              const username = (credentials.username as string | undefined)?.trim();
               const pass = credentials.password as string | undefined;
-              if (!email || !pass) return null;
-              if (email !== process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase() || pass !== process.env.PREVIEW_LOGIN_PASS) return null;
-              const usuario = await prisma.usuario.findUnique({ where: { correo: email } });
+              if (!username || !pass) return null;
+              if (username !== process.env.PREVIEW_LOGIN_USER || pass !== process.env.PREVIEW_LOGIN_PASS) return null;
+              // El username/pass solo es la llave; el usuario real viene del correo configurado en env
+              const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
+              if (!correo) return null;
+              const usuario = await prisma.usuario.findUnique({ where: { correo } });
               if (!usuario || usuario.estatus === "DESACTIVADO") return null;
               return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
             },
