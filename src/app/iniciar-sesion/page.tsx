@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { TriangleAlert, Car, Wrench, BarChart3 } from "lucide-react";
 import { signIn } from "@/auth";
 import { OrionIcon } from "@/components/brand/orion-icon";
@@ -9,6 +10,7 @@ const PREVIEW_LOGIN = true;
 const ERROR_LABEL: Record<string, string> = {
   SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orión. Pide a un administrador que te invite desde Administración.",
   AccessDenied: "Acceso denegado. Verifica que estés usando tu cuenta de Grupo Kabat.",
+  CredencialesInvalidas: "Usuario o contraseña incorrectos.",
 };
 
 const DESTACADOS = [
@@ -118,7 +120,13 @@ export default async function IniciarSesionPage({
                 className="mt-4 flex flex-col gap-3"
                 action={async (fd) => {
                   "use server";
-                  await signIn("credentials", { username: fd.get("username"), password: fd.get("password"), redirectTo: "/unidades" });
+                  try {
+                    await signIn("credentials", { username: fd.get("username"), password: fd.get("password"), redirectTo: "/unidades" });
+                  } catch (error) {
+                    // Re-throw redirects (éxito) — Next.js los intercepta
+                    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+                    redirect("/iniciar-sesion?error=CredencialesInvalidas");
+                  }
                 }}
               >
                 <input
