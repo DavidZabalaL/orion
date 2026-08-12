@@ -31,8 +31,8 @@ export default async function InventarioInsumosPage() {
     nombre: i.nombre,
     categoria: i.categoria,
     unidad: i.unidad,
-    existencias: i.existencias,
-    minimoStock: i.minimoStock,
+    existencias: i.existencias.toString(),
+    minimoStock: i.minimoStock.toString(),
     proyectoId: i.proyectoId,
     proyectoNombre: i.proyecto.nombre,
   }));

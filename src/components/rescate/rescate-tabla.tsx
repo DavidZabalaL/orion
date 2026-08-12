@@ -102,7 +102,7 @@ function TicketAcciones({ t, usuarios }: { t: TicketRow; usuarios: { id: string;
         />
       )}
       {t.estatus === "ABIERTO" && (
-        <form action={(fd) => { fd.set("ticketId", t.id); start(() => asignarTicket(fd)); }}>
+        <form action={(fd) => { fd.set("ticketId", t.id); start(() => { asignarTicket(fd); }); }}>
           <div className="flex items-center gap-2">
             <select name="asignadoAId" defaultValue={""} style={{ ...selectStyle, height: 32, fontSize: "var(--text-sm)", width: 200 }}>
               <option value="">Asignar a…</option>

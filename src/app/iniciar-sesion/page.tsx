@@ -1,12 +1,16 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { TriangleAlert, Car, Wrench, BarChart3 } from "lucide-react";
 import { signIn } from "@/auth";
 import { OrionIcon } from "@/components/brand/orion-icon";
 import logoKabat from "../../../public/Logo-Grupo-Kabat_bl.png";
 
+const PREVIEW_LOGIN = process.env.PREVIEW_LOGIN_ENABLED === "true";
+
 const ERROR_LABEL: Record<string, string> = {
   SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orión. Pide a un administrador que te invite desde Administración.",
   AccessDenied: "Acceso denegado. Verifica que estés usando tu cuenta de Grupo Kabat.",
+  CredencialesInvalidas: "Usuario o contraseña incorrectos.",
 };
 
 const DESTACADOS = [
@@ -106,6 +110,49 @@ export default async function IniciarSesionPage({
           <p className="mt-6 text-center" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>
             Plataforma interna — acceso restringido al equipo de Kabat
           </p>
+
+          {PREVIEW_LOGIN && (
+            <details className="mt-8" style={{ fontFamily: "var(--font-ui)" }}>
+              <summary style={{ fontSize: "var(--text-xs)", color: "#cbd5e1", cursor: "pointer", userSelect: "none", listStyle: "none", textAlign: "center" }}>
+                ···
+              </summary>
+              <form
+                className="mt-4 flex flex-col gap-3"
+                action={async (fd) => {
+                  "use server";
+                  try {
+                    await signIn("credentials", { username: fd.get("username"), password: fd.get("password"), redirectTo: "/unidades" });
+                  } catch (error) {
+                    // Re-throw redirects (éxito) — Next.js los intercepta
+                    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+                    redirect("/iniciar-sesion?error=CredencialesInvalidas");
+                  }
+                }}
+              >
+                <input
+                  name="username"
+                  type="text"
+                  placeholder="Usuario"
+                  autoComplete="off"
+                  required
+                  style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
+                />
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Contraseña"
+                  required
+                  style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
+                />
+                <button
+                  type="submit"
+                  style={{ background: "#0f1b2d", color: "#fff", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", fontWeight: 600, border: "none", cursor: "pointer" }}
+                >
+                  Entrar
+                </button>
+              </form>
+            </details>
+          )}
         </div>
       </div>
     </div>

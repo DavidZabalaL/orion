@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { logActivity } from "@/lib/activity";
@@ -12,6 +13,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
       issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
       authorization: { params: { prompt: "select_account" } },
+    }),
+    Credentials({
+      credentials: { username: {}, password: {} },
+      async authorize(credentials) {
+        const username = (credentials.username as string | undefined)?.trim();
+        const pass = credentials.password as string | undefined;
+        if (!username || !pass) return null;
+        const validUser = process.env.PREVIEW_LOGIN_USER;
+        const validPass = process.env.PREVIEW_LOGIN_PASS;
+        // Sin las variables de entorno configuradas, siempre falla
+        if (!validUser || !validPass) return null;
+        if (username !== validUser || pass !== validPass) return null;
+        const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
+        const usuario = correo
+          ? await prisma.usuario.findFirst({ where: { correo, estatus: { not: "DESACTIVADO" } } })
+          : await prisma.usuario.findFirst({ where: { estatus: "ACTIVO" } });
+        if (!usuario) return null;
+        return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
+      },
     }),
   ],
   session: { strategy: "jwt" },

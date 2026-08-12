@@ -183,8 +183,8 @@ export function InventarioTabla({
                   <tr key={insumo.id} style={{ borderBottom: mostrando === insumo.id ? "none" : "1px solid var(--field-border)" }}>
                     <td className="px-4 py-3">
                       {bajo
-                        ? <AlertTriangle size={16} color="var(--color-status-escena, #ef4444)" title="Stock bajo mínimo" />
-                        : <CheckCircle size={16} color="#22c55e" title="Stock suficiente" />
+                        ? <AlertTriangle size={16} color="var(--color-status-escena, #ef4444)" />
+                        : <CheckCircle size={16} color="#22c55e" />
                       }
                     </td>
                     <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{insumo.proyectoNombre}</td>
@@ -206,7 +206,7 @@ export function InventarioTabla({
                         >
                           <Pencil size={12} /> Editar
                         </button>
-                        <form action={(fd) => { fd.set("id", insumo.id); start(() => eliminarInsumo(fd)); }}>
+                        <form action={(fd) => { fd.set("id", insumo.id); start(() => { eliminarInsumo(fd); }); }}>
                           <input type="hidden" name="id" value={insumo.id} />
                           <button
                             type="submit"
