@@ -366,7 +366,7 @@ export function FichaUnidad({
         <div className="pt-5">
           {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} />}
-          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} />}
+          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} />}
@@ -578,7 +578,19 @@ function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
   );
 }
 
-function TabGastos({ gastos }: { gastos: Unidad[] }) {
+type HistoricoProyecto = { fechaInicio: string; fechaFin: string | null; proyecto: { nombre: string } };
+
+function proyectoDeGasto(fecha: string, historicos: HistoricoProyecto[]): string {
+  const f = new Date(fecha).getTime();
+  const h = historicos.find((h) => {
+    const inicio = new Date(h.fechaInicio).getTime();
+    const fin = h.fechaFin ? new Date(h.fechaFin).getTime() : Infinity;
+    return f >= inicio && f < fin;
+  });
+  return h?.proyecto?.nombre ?? "—";
+}
+
+function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: HistoricoProyecto[] }) {
   const [busqueda, setBusqueda] = useState("");
   const gastosOtros = useMemo(() => gastos.filter((g) => !CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
   const filtrados = useMemo(() => {
@@ -587,18 +599,20 @@ function TabGastos({ gastos }: { gastos: Unidad[] }) {
     return gastosOtros.filter((g) =>
       g.categoria.toUpperCase().includes(q) ||
       fmtFecha(g.fecha).toUpperCase().includes(q) ||
-      (g.descripcion ?? "").toUpperCase().includes(q)
+      (g.descripcion ?? "").toUpperCase().includes(q) ||
+      proyectoDeGasto(g.fecha, historicos).toUpperCase().includes(q)
     );
-  }, [gastosOtros, busqueda]);
+  }, [gastosOtros, busqueda, historicos]);
 
   if (!gastosOtros.length) return <EmptyState>Sin otros gastos vehiculares registrados.</EmptyState>;
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar categoría, descripción o fecha…" />
-      <Table headers={["Fecha", "Categoría", "Descripción", "Costo", "Km", "Estatus"]}>
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar categoría, descripción, proyecto o fecha…" />
+      <Table headers={["Fecha", "Proyecto", "Categoría", "Descripción", "Costo", "Km", "Estatus"]}>
         {filtrados.map((g) => (
           <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
             <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(g.fecha)}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{proyectoDeGasto(g.fecha, historicos)}</td>
             <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.categoria.replaceAll("_", " ")}</td>
             <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
             <td className="px-4 py-3 whitespace-nowrap" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(g.costo)}</td>
