@@ -7,6 +7,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function registrarPosicion(formData: FormData) {
   await exigirPermisoModulo("G", "editar");
@@ -55,6 +56,7 @@ export async function registrarPosicion(formData: FormData) {
     },
   });
 
+  let huecoRegistrado = false;
   if (anterior) {
     const minutos = (fechaPunto.getTime() - anterior.timestamp.getTime()) / 60_000;
     if (minutos > 15) {
@@ -70,11 +72,14 @@ export async function registrarPosicion(formData: FormData) {
           primeraPosicionLng: lng,
         },
       });
+      huecoRegistrado = true;
     }
   }
 
+  let kmActualizado = false;
   if (!esAnomalo && kmReportado) {
     await prisma.unidad.update({ where: { numeroEconomico }, data: { kmOficial: kmReportado } });
+    kmActualizado = true;
   }
 
   const session = await auth();
@@ -92,4 +97,5 @@ export async function registrarPosicion(formData: FormData) {
   revalidatePath("/mapa");
   revalidatePath("/mapa/integridad");
   revalidatePath(`/unidades/${numeroEconomico}`);
+  invalidarCacheBI(["gps_posiciones", ...(huecoRegistrado ? ["gps_huecos_senal"] : []), ...(kmActualizado ? ["unidades"] : [])]);
 }

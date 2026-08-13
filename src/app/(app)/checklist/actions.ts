@@ -9,6 +9,7 @@ import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
@@ -93,6 +94,7 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
     });
 
     revalidatePath("/checklist");
+    invalidarCacheBI(["checklist"]);
     revalidatePath(`/unidades/${numeroEconomico}`);
     return { ok: true };
   } catch (e) {
@@ -195,6 +197,7 @@ export async function crearChecklistSemanal(formData: FormData): Promise<{ ok: t
     });
 
     revalidatePath("/checklist");
+    invalidarCacheBI(["checklist"]);
     revalidatePath(`/unidades/${numeroEconomico}`);
     return { ok: true };
   } catch (e) {

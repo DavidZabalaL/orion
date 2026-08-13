@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function registrarAccidente(
   formData: FormData
@@ -52,6 +53,7 @@ export async function registrarAccidente(
 
     revalidatePath(`/unidades/${numeroEconomico}`);
     if (operadorId) revalidatePath(`/operadores/${operadorId}`);
+    invalidarCacheBI(["accidentes"]);
     return { ok: true, id: accidente.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo registrar el accidente." };

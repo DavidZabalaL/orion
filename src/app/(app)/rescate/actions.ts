@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { auth } from "@/auth";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type ResultadoSimple = { ok: boolean; error?: string; folio?: string };
 
@@ -75,6 +76,7 @@ export async function crearTicket(formData: FormData): Promise<ResultadoSimple> 
   });
 
   revalidatePath("/rescate");
+  invalidarCacheBI(["tickets_rescate"]);
   return { ok: true, folio: ticket.folio };
 }
 
@@ -123,6 +125,7 @@ export async function avanzarEstatus(formData: FormData): Promise<ResultadoSimpl
   });
 
   revalidatePath("/rescate");
+  invalidarCacheBI(["tickets_rescate"]);
   revalidatePath(`/rescate/${ticketId}`);
   return { ok: true };
 }
@@ -152,6 +155,7 @@ export async function asignarTicket(formData: FormData): Promise<ResultadoSimple
   });
 
   revalidatePath("/rescate");
+  invalidarCacheBI(["tickets_rescate"]);
   revalidatePath(`/rescate/${ticketId}`);
   return { ok: true };
 }
