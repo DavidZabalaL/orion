@@ -29,7 +29,7 @@ export type GrupoCombustible = {
   transacciones: CombustibleTransaccion[];
 };
 
-export function CombustibleAcordeon({ grupos }: { grupos: GrupoCombustible[] }) {
+export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: GrupoCombustible[]; isAdmin?: boolean }) {
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
@@ -96,7 +96,7 @@ export function CombustibleAcordeon({ grupos }: { grupos: GrupoCombustible[] }) 
                     </thead>
                     <tbody>
                       {g.transacciones.map((t) => (
-                        <CombustibleRow key={t.id} registro={t} />
+                        <CombustibleRow key={t.id} registro={t} isAdmin={isAdmin} />
                       ))}
                     </tbody>
                   </table>

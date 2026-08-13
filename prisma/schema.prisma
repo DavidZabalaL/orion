@@ -201,6 +201,7 @@ enum AccionBitacora {
   EDITAR
   DAR_DE_BAJA
   REACTIVAR
+  ELIMINAR
 }
 
 enum EstatusProyecto {

@@ -6,13 +6,14 @@ import { EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { CombustibleAcordeon, type GrupoCombustible } from "@/components/combustible/combustible-acordeon";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function CombustiblePage() {
   await requerirPermisoModulo("D");
+  const isAdmin = await esRolGlobal();
   const proyectosPermitidos = await proyectosPermitidosParaModulo("D");
   const filtroProyecto =
     proyectosPermitidos !== null
@@ -98,7 +99,7 @@ export default async function CombustiblePage() {
           {grupos.length === 0 ? (
             <EmptyState>Sin transacciones registradas.</EmptyState>
           ) : (
-            <CombustibleAcordeon grupos={grupos} />
+            <CombustibleAcordeon grupos={grupos} isAdmin={isAdmin} />
           )}
         </div>
 
