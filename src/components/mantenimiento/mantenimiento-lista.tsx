@@ -11,6 +11,8 @@ import { CATEGORIA_GASTO_LABEL, ESTATUS_GASTO_LABEL, ESTATUS_GASTO_STYLE } from 
 import { MarcarRealizadoButton } from "@/components/mantenimiento/marcar-realizado-button";
 import { actualizarGasto } from "@/app/(app)/mantenimiento/actions";
 
+const HOY = new Date().toISOString().slice(0, 10);
+
 export type GastoRow = {
   id: string;
   fecha: string;
@@ -205,27 +207,27 @@ function OrdenDetalle({ g }: { g: GastoRow }) {
         </div>
         <div>
           <label style={labelStyle}>Fecha requisición</label>
-          <input name="fechaRequisicion" type="date" defaultValue={soloFecha(g.fechaRequisicion)} style={fieldStyle} />
+          <input name="fechaRequisicion" type="date" max={HOY} defaultValue={soloFecha(g.fechaRequisicion)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Fecha ODC</label>
-          <input name="fechaOdc" type="date" defaultValue={soloFecha(g.fechaOdc)} style={fieldStyle} />
+          <input name="fechaOdc" type="date" max={HOY} defaultValue={soloFecha(g.fechaOdc)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Fecha factura</label>
-          <input name="fechaFactura" type="date" defaultValue={soloFecha(g.fechaFactura)} style={fieldStyle} />
+          <input name="fechaFactura" type="date" max={HOY} defaultValue={soloFecha(g.fechaFactura)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Fecha CXP</label>
-          <input name="fechaCxp" type="date" defaultValue={soloFecha(g.fechaCxp)} style={fieldStyle} />
+          <input name="fechaCxp" type="date" max={HOY} defaultValue={soloFecha(g.fechaCxp)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Fecha de pago</label>
-          <input name="fechaPago" type="date" defaultValue={soloFecha(g.fechaPago)} style={fieldStyle} />
+          <input name="fechaPago" type="date" max={HOY} defaultValue={soloFecha(g.fechaPago)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Ingreso taller</label>
-          <input name="fechaIngresoTaller" type="date" defaultValue={soloFecha(g.fechaIngresoTaller)} style={fieldStyle} />
+          <input name="fechaIngresoTaller" type="date" max={HOY} defaultValue={soloFecha(g.fechaIngresoTaller)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Salida estimada taller</label>

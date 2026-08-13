@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Package,
   Siren,
+  AlertOctagon,
 } from "lucide-react";
 
 export type Grupo = "Flota" | "Operación y gasto" | "Geo" | "Gestión" | "Rescate y campo";
@@ -50,4 +51,5 @@ export const MODULOS: Modulo[] = [
   { id: "K", label: "Administración", href: "/usuarios", icon: Settings, descripcion: "Usuarios, roles, notificaciones y módulos por proyecto", grupo: "Gestión" },
   { id: "N", label: "Inventario de Insumos", href: "/inventario-insumos", icon: Package, descripcion: "Stock de aceite, anticongelante y consumibles por proyecto", grupo: "Gestión" },
   { id: "R", label: "Rescate de Unidades", href: "/rescate", icon: Siren, descripcion: "Tickets de rescate en campo con folio RSC-AAAA-######", grupo: "Rescate y campo" },
+  { id: "S", label: "Siniestros", href: "/siniestros", icon: AlertOctagon, descripcion: "Registro y seguimiento de siniestros vehiculares", grupo: "Rescate y campo" },
 ];

@@ -81,7 +81,7 @@ export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: str
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó la carga.">Fecha *</CampoAyuda>
-          <input name="fecha" type="date" required style={fieldStyle} />
+          <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Cantidad de combustible cargado, en litros.">Litros *</CampoAyuda>

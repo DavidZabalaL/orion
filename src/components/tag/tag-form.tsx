@@ -57,7 +57,7 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que ocurrió el cruce por caseta.">Fecha *</CampoAyuda>
-          <input name="fecha" type="date" required style={fieldStyle} />
+          <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Monto cobrado por el cruce.">Monto *</CampoAyuda>

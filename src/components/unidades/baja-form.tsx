@@ -98,6 +98,7 @@ export function BajaForm({
             <input
               type="date"
               required
+              max={new Date().toISOString().slice(0, 10)}
               value={formData.fechaEfectiva}
               onChange={(e) => setFormData({ ...formData, fechaEfectiva: e.target.value })}
               style={fieldStyle}

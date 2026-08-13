@@ -33,6 +33,8 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
     const puntosInspeccion: Record<string, string> = {};
     for (const p of PUNTOS_INSPECCION) {
       puntosInspeccion[p.key] = String(formData.get(`punto_${p.key}`) ?? "ok");
+      const fotoUrl = String(formData.get(`foto_${p.key}`) ?? "").trim();
+      if (fotoUrl) puntosInspeccion[`${p.key}_foto`] = fotoUrl;
     }
 
     const session = await auth();

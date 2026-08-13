@@ -35,6 +35,7 @@ const labelStyle: React.CSSProperties = {
 export default async function NuevaOrdenPage() {
   await requerirPermisoModulo("C", "editar");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("C");
+  const hoy = new Date().toISOString().slice(0, 10);
 
   const [unidades, proyectos] = await Promise.all([
     prisma.unidad.findMany({
@@ -69,7 +70,7 @@ export default async function NuevaOrdenPage() {
           </div>
           <div>
             <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó o se programó el gasto.">Fecha *</CampoAyuda>
-            <input name="fecha" type="date" required style={fieldStyle} />
+            <input name="fecha" type="date" required max={hoy} style={fieldStyle} />
           </div>
           <div>
             <CampoAyuda style={labelStyle} texto="Monto total del gasto en pesos mexicanos.">Costo (MXN) *</CampoAyuda>
@@ -102,7 +103,7 @@ export default async function NuevaOrdenPage() {
           </div>
           <div>
             <CampoAyuda style={labelStyle} texto="Fecha en que la unidad entró al taller. Se usa para el temporizador de tiempo en taller.">Fecha ingreso taller</CampoAyuda>
-            <input name="fechaIngresoTaller" type="date" style={fieldStyle} />
+            <input name="fechaIngresoTaller" type="date" max={hoy} style={fieldStyle} />
           </div>
           <div>
             <CampoAyuda style={labelStyle} texto="Fecha estimada de entrega del taller. Si se supera, se genera alerta.">Fecha estimada de salida</CampoAyuda>

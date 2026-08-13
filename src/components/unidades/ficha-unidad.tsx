@@ -16,6 +16,9 @@ import {
   Check,
   X,
   Lock,
+  AlertTriangle,
+  History,
+  AlertOctagon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,6 +39,7 @@ type Unidad = any;
 const TABS = [
   { id: "general", label: "Datos generales" },
   { id: "mantenimiento", label: "Mantenimiento" },
+  { id: "gastos", label: "Gastos" },
   { id: "combustible", label: "Combustible" },
   { id: "tag", label: "TAG" },
   { id: "seguro", label: "Seguro" },
@@ -43,7 +47,28 @@ const TABS = [
   { id: "checklist", label: "Checklist" },
   { id: "operador", label: "Operador" },
   { id: "accidentes", label: "Accidentes" },
+  { id: "historico", label: "Hist. proyectos" },
+  { id: "siniestros", label: "Siniestros" },
 ] as const;
+
+const CATEGORIAS_MANTENIMIENTO = new Set(["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_CORRECTIVO"]);
+
+const TIPO_SINIESTRO_LABEL: Record<string, string> = {
+  COLISION: "Colisión",
+  ROBO_TOTAL: "Robo total",
+  ROBO_PARCIAL: "Robo parcial",
+  VANDALISMO: "Vandalismo",
+  INCENDIO: "Incendio",
+  FENOMENO_NATURAL: "Fenómeno natural",
+  OTRO: "Otro",
+};
+
+const ESTATUS_SINIESTRO_STYLE: Record<string, { color: string; bg: string }> = {
+  ABIERTO: { color: "var(--color-status-escena)", bg: "var(--status-escena-bg)" },
+  EN_PROCESO: { color: "var(--color-status-revision)", bg: "var(--status-revision-bg)" },
+  CERRADO: { color: "var(--color-status-cerrado)", bg: "var(--status-cerrado-bg)" },
+  CERRADO_SIN_INDEMNIZACION: { color: "var(--sidebar-text)", bg: "var(--field-bg)" },
+};
 
 type TabId = (typeof TABS)[number]["id"];
 
@@ -239,7 +264,7 @@ export function FichaUnidad({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 rounded-md px-3 h-9"
@@ -258,21 +283,25 @@ export function FichaUnidad({
               variante="completo"
             />
             <ReasignarProyectoButton numeroEconomico={unidad.numeroEconomico} proyectoActualId={unidad.proyectoId ?? null} proyectos={proyectos} />
-            <Link
-              href={`/unidades/${unidad.numeroEconomico}/editar`}
-              className="flex items-center gap-2 rounded-md px-3 h-9"
-              style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-            >
-              <Pencil size={15} /> Editar
-            </Link>
-            {unidad.estatus !== "BAJA" && (
-              <Link
-                href={`/unidades/${unidad.numeroEconomico}/baja`}
-                className="flex items-center gap-2 rounded-md px-3 h-9"
-                style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-              >
-                <Ban size={15} /> Dar de baja
-              </Link>
+            {unidad.proyectoId && (
+              <>
+                <Link
+                  href={`/unidades/${unidad.numeroEconomico}/editar`}
+                  className="flex items-center gap-2 rounded-md px-3 h-9"
+                  style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+                >
+                  <Pencil size={15} /> Editar
+                </Link>
+                {unidad.estatus !== "BAJA" && (
+                  <Link
+                    href={`/unidades/${unidad.numeroEconomico}/baja`}
+                    className="flex items-center gap-2 rounded-md px-3 h-9"
+                    style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+                  >
+                    <Ban size={15} /> Dar de baja
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -291,6 +320,15 @@ export function FichaUnidad({
         />
         <Kpi icon={CalendarClock} label="Días sin operar" value={String(diasSinOperar)} sub={subDiasSinOperar} alert={!operando && diasSinOperar > 2} />
       </div>
+
+      {!unidad.proyectoId && (
+        <div className="rounded-md px-4 py-3 flex items-start gap-3" style={{ background: "#fff7ed", border: "1px solid #fed7aa", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#c2410c" }}>
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+          <span>
+            <strong>Unidad sin proyecto asignado.</strong> Asigna un proyecto para habilitar la edición y registro de actividades. Solo la reasignación de proyecto está disponible.
+          </span>
+        </div>
+      )}
 
       {alertaPreventiva && (
         <div className="rounded-md px-4 py-3" style={{ background: "var(--status-escena-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
@@ -324,13 +362,16 @@ export function FichaUnidad({
         <div className="pt-5">
           {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} />}
+          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
-          {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} bloqueada={!unidad.proyectoId} />}
+          {tab === "historico" && <TabHistorico historicos={unidad.historicosProyecto ?? []} />}
+          {tab === "siniestros" && <TabSiniestros siniestros={unidad.siniestros ?? []} />}
         </div>
       </div>
     </div>
@@ -477,27 +518,82 @@ const td: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(-
 
 function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
   const [busqueda, setBusqueda] = useState("");
+  const gastosMantenimiento = useMemo(() => gastos.filter((g) => CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
-    if (!q) return gastos;
-    return gastos.filter((g) => g.categoria.toUpperCase().includes(q) || fmtFecha(g.fecha).toUpperCase().includes(q));
-  }, [gastos, busqueda]);
+    if (!q) return gastosMantenimiento;
+    return gastosMantenimiento.filter((g) =>
+      g.categoria.toUpperCase().includes(q) ||
+      fmtFecha(g.fecha).toUpperCase().includes(q) ||
+      (g.descripcion ?? "").toUpperCase().includes(q)
+    );
+  }, [gastosMantenimiento, busqueda]);
 
-  if (!gastos.length) return <EmptyState>Sin gastos vehiculares registrados.</EmptyState>;
+  const hoy = new Date();
+
+  if (!gastosMantenimiento.length) return <EmptyState>Sin órdenes de mantenimiento registradas.</EmptyState>;
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar categoría o fecha…" />
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar tipo, descripción o fecha…" />
+      <Table headers={["Fecha", "Tipo", "Descripción", "Ingreso taller", "Salida estimada", "Costo", "Estatus"]}>
+        {filtrados.map((g) => {
+          const excedido =
+            g.fechaEstimadaSalida &&
+            new Date(g.fechaEstimadaSalida) < hoy &&
+            g.estatus !== "CERRADO" &&
+            g.estatus !== "PAGADO";
+          return (
+            <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(g.fecha)}</td>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.categoria.replaceAll("_", " ")}</td>
+              <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.fechaIngresoTaller ? fmtFecha(g.fechaIngresoTaller) : "—"}</td>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>
+                <div className="flex items-center gap-2">
+                  {g.fechaEstimadaSalida ? fmtFecha(g.fechaEstimadaSalida) : "—"}
+                  {excedido && (
+                    <Badge label="Excedido" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(g.costo)}</td>
+              <td className="px-4 py-3" style={td}>{g.estatus}</td>
+            </tr>
+          );
+        })}
+      </Table>
+    </div>
+  );
+}
+
+function TabGastos({ gastos }: { gastos: Unidad[] }) {
+  const [busqueda, setBusqueda] = useState("");
+  const gastosOtros = useMemo(() => gastos.filter((g) => !CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
+    if (!q) return gastosOtros;
+    return gastosOtros.filter((g) =>
+      g.categoria.toUpperCase().includes(q) ||
+      fmtFecha(g.fecha).toUpperCase().includes(q) ||
+      (g.descripcion ?? "").toUpperCase().includes(q)
+    );
+  }, [gastosOtros, busqueda]);
+
+  if (!gastosOtros.length) return <EmptyState>Sin otros gastos vehiculares registrados.</EmptyState>;
+  return (
+    <div className="flex flex-col gap-3">
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar categoría, descripción o fecha…" />
       <Table headers={["Fecha", "Categoría", "Descripción", "Costo", "Km", "Estatus"]}>
-      {filtrados.map((g) => (
-        <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td className="px-4 py-3" style={td}>{fmtFecha(g.fecha)}</td>
-          <td className="px-4 py-3" style={td}>{g.categoria.replaceAll("_", " ")}</td>
-          <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
-          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(g.costo)}</td>
-          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{g.kmAlMomento ?? "—"}</td>
-          <td className="px-4 py-3" style={td}>{g.estatus}</td>
-        </tr>
-      ))}
+        {filtrados.map((g) => (
+          <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(g.fecha)}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.categoria.replaceAll("_", " ")}</td>
+            <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(g.costo)}</td>
+            <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{g.kmAlMomento ?? "—"}</td>
+            <td className="px-4 py-3" style={td}>{g.estatus}</td>
+          </tr>
+        ))}
       </Table>
     </div>
   );
@@ -685,14 +781,25 @@ function TabChecklist({ checklists }: { checklists: Unidad[] }) {
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{c.odometro} km</td>
           <td className="px-4 py-3" style={td}>
             <div className="flex flex-wrap gap-1.5">
-              {Object.entries(c.puntosInspeccion ?? {}).map(([k, v]) => (
-                <Badge
-                  key={k}
-                  label={`${k}: ${v}`}
-                  color={v === "ok" ? "var(--color-status-cerrado)" : "var(--color-status-revision)"}
-                  bg={v === "ok" ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)"}
-                />
-              ))}
+              {Object.entries(c.puntosInspeccion ?? {})
+                .filter(([k]) => !k.endsWith("_foto"))
+                .map(([k, v]) => {
+                  const fotoUrl = (c.puntosInspeccion as Record<string, string>)?.[`${k}_foto`];
+                  return (
+                    <span key={k} className="flex items-center gap-1">
+                      <Badge
+                        label={`${k}: ${v}`}
+                        color={v === "ok" ? "var(--color-status-cerrado)" : "var(--color-status-revision)"}
+                        bg={v === "ok" ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)"}
+                      />
+                      {fotoUrl && (
+                        <a href={fotoUrl as string} target="_blank" rel="noopener noreferrer" style={{ fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
+                          📷
+                        </a>
+                      )}
+                    </span>
+                  );
+                })}
             </div>
           </td>
         </tr>
@@ -702,14 +809,14 @@ function TabChecklist({ checklists }: { checklists: Unidad[] }) {
   );
 }
 
-function TabAccidentes({ accidentes, numeroEconomico }: { accidentes: Unidad[]; numeroEconomico: string }) {
+function TabAccidentes({ accidentes, numeroEconomico, bloqueada }: { accidentes: Unidad[]; numeroEconomico: string; bloqueada?: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
           {accidentes.length} accidente(s) registrado(s)
         </span>
-        <FormAccidente numeroEconomico={numeroEconomico} />
+        {!bloqueada && <FormAccidente numeroEconomico={numeroEconomico} />}
       </div>
       {accidentes.length === 0 ? (
         <EmptyState>Sin accidentes registrados para esta unidad.</EmptyState>
@@ -735,6 +842,66 @@ function TabAccidentes({ accidentes, numeroEconomico }: { accidentes: Unidad[]; 
           ))}
         </Table>
       )}
+    </div>
+  );
+}
+
+function TabHistorico({ historicos }: { historicos: Unidad[] }) {
+  if (!historicos.length)
+    return (
+      <EmptyState>
+        <History size={20} className="mx-auto mb-2 opacity-40" />
+        Sin historial de proyectos registrado. El historial se genera automáticamente al reasignar la unidad a un proyecto.
+      </EmptyState>
+    );
+  return (
+    <div className="flex flex-col gap-3">
+      <Table headers={["Proyecto", "Inicio", "Fin", "Estado"]}>
+        {historicos.map((h) => (
+          <tr key={h.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+            <td className="px-4 py-3" style={{ ...td, fontWeight: 600 }}>{h.proyecto?.nombre ?? "—"}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(h.fechaInicio)}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{h.fechaFin ? fmtFecha(h.fechaFin) : "—"}</td>
+            <td className="px-4 py-3">
+              {!h.fechaFin ? (
+                <Badge label="Actual" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
+              ) : (
+                <Badge label="Terminado" color="var(--sidebar-text)" bg="var(--field-bg)" />
+              )}
+            </td>
+          </tr>
+        ))}
+      </Table>
+    </div>
+  );
+}
+
+function TabSiniestros({ siniestros }: { siniestros: Unidad[] }) {
+  if (!siniestros.length)
+    return (
+      <EmptyState>
+        <AlertOctagon size={20} className="mx-auto mb-2 opacity-40" />
+        Sin siniestros registrados para esta unidad. Los siniestros se gestionan en el Módulo S.
+      </EmptyState>
+    );
+  return (
+    <div className="flex flex-col gap-3">
+      <Table headers={["Folio", "Fecha", "Tipo", "Descripción", "Estatus"]}>
+        {siniestros.map((s) => {
+          const style = ESTATUS_SINIESTRO_STYLE[s.estatus] ?? { color: "var(--sidebar-text)", bg: "var(--field-bg)" };
+          return (
+            <tr key={s.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)" }}>{s.folio}</td>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(s.fecha)}</td>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{TIPO_SINIESTRO_LABEL[s.tipo] ?? s.tipo}</td>
+              <td className="px-4 py-3" style={td}>{s.descripcion}</td>
+              <td className="px-4 py-3">
+                <Badge label={s.estatus.replaceAll("_", " ")} color={style.color} bg={style.bg} />
+              </td>
+            </tr>
+          );
+        })}
+      </Table>
     </div>
   );
 }

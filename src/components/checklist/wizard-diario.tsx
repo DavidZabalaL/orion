@@ -100,13 +100,17 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const [proyectoFiltro, setProyectoFiltro] = useState(proyectos[0]?.id ?? "");
   const [numeroEconomico, setNumeroEconomico] = useState("");
   const [estados, setEstados] = useState<Record<string, "ok" | "revisar">>({});
+  const [fotosPorPunto, setFotosPorPunto] = useState<Record<string, string>>({});
   const [odometro, setOdometro] = useState("");
   const [horometro, setHorometro] = useState("");
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [subiendoFotoPunto, setSubiendoFotoPunto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const fotoInputRef = useRef<HTMLInputElement>(null);
+  const fotoPuntoInputRef = useRef<HTMLInputElement>(null);
+  const puntoFotoActualRef = useRef<string | null>(null);
 
   const unidadesFiltradas = useMemo(
     () => (proyectoFiltro ? unidades.filter((u) => u.proyectoId === proyectoFiltro) : unidades),
@@ -151,11 +155,39 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     }
   }
 
+  async function subirFotoPunto(file: File | undefined) {
+    const key = puntoFotoActualRef.current;
+    if (!file || !key) return;
+    setSubiendoFotoPunto(true);
+    setError(null);
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/checklist-upload",
+      });
+      setFotosPorPunto((prev) => ({ ...prev, [key]: blob.url }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
+    } finally {
+      setSubiendoFotoPunto(false);
+    }
+  }
+
+  function abrirFotoPunto(key: string) {
+    puntoFotoActualRef.current = key;
+    fotoPuntoInputRef.current?.click();
+  }
+
+  function avanzar() {
+    setIdx((i) => (i < total - 1 ? i + 1 : i));
+  }
+
   function seleccionarPunto(key: string, valor: "ok" | "revisar") {
     setEstados((s) => ({ ...s, [key]: valor }));
-    setTimeout(() => {
-      setIdx((i) => (i < total - 1 ? i + 1 : i));
-    }, 160);
+    if (valor === "ok") {
+      setTimeout(() => avanzar(), 160);
+    }
+    // Para "revisar": no auto-avanzar; esperar foto opcional o botón continuar
   }
 
   function enviar() {
@@ -171,6 +203,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
       if (esGrua && horometro) fd.set("horometro", horometro);
       fd.set("evidenciaUrl", fotoUrl ?? "");
       for (const [k, v] of Object.entries(estados)) fd.set(`punto_${k}`, v);
+      for (const [k, url] of Object.entries(fotosPorPunto)) fd.set(`foto_${k}`, url);
       const res = await crearChecklist(fd);
       if (!res.ok) {
         setError(res.error);
@@ -472,16 +505,58 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
               </button>
             </div>
 
-            <p
-              style={{
-                fontFamily: "var(--font-ui)",
-                fontSize: "var(--text-xs)",
-                color: "var(--sidebar-text)",
-                textAlign: "center",
-              }}
-            >
-              Selecciona una opción para continuar automáticamente
-            </p>
+            {/* Input oculto para foto de este rubro */}
+            <input
+              ref={fotoPuntoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => subirFotoPunto(e.target.files?.[0])}
+            />
+
+            {/* Foto + botón continuar cuando el punto está marcado "revisar" */}
+            {estados[item.key] === "revisar" && (
+              <div className="flex flex-col gap-3 pt-1 border-t" style={{ borderColor: "var(--field-border)" }}>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)", fontWeight: 600 }}>
+                  Foto del problema (opcional)
+                </p>
+                {fotosPorPunto[item.key] ? (
+                  <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
+                    <Camera size={15} color="#16a34a" className="shrink-0" />
+                    <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+                    <button type="button" onClick={() => setFotosPorPunto((p) => { const copy = { ...p }; delete copy[item.key]; return copy; })} style={{ color: "#16a34a", opacity: 0.6 }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => abrirFotoPunto(item.key)}
+                    className="flex items-center justify-center gap-2 rounded-xl w-full"
+                    style={{ height: 48, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}
+                  >
+                    {subiendoFotoPunto ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                    {subiendoFotoPunto ? "Subiendo…" : "Tomar foto del problema"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={avanzar}
+                  disabled={subiendoFotoPunto}
+                  className="w-full rounded-xl h-11 font-semibold transition-colors disabled:opacity-60"
+                  style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+                >
+                  Continuar →
+                </button>
+              </div>
+            )}
+
+            {!estados[item.key] && (
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center" }}>
+                Selecciona una opción para continuar automáticamente
+              </p>
+            )}
           </>
         )}
 

@@ -112,7 +112,7 @@ export function FormAccidente({ numeroEconomico, operadorId }: Props) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label style={labelStyle}>Fecha *</label>
-          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={fieldStyle} className="rounded-md" required />
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} max={new Date().toISOString().slice(0, 10)} style={fieldStyle} className="rounded-md" required />
         </div>
         <div>
           <label style={labelStyle}>Tipo *</label>

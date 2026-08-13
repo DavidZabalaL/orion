@@ -35,10 +35,10 @@ async function main() {
     },
   });
   const rolCoordinador = await prisma.rol.upsert({
-    where: { nombre: "Coordinador de Proyecto" },
+    where: { nombre: "Gerente administrativo" },
     update: {},
     create: {
-      nombre: "Coordinador de Proyecto",
+      nombre: "Gerente administrativo",
       permisos: {
         A: ver, "A.1": editar, C: ver, D: editar, E: editar, F: ver,
         G: ver, "G.1": ver, H: ver, I: ver, J: editar, L: ver, M: editar,
