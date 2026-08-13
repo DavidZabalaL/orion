@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
+import { esRolGlobal, tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
+export type ResultadoEliminarCombustible = { ok: boolean; error?: string };
 
 export async function crearCombustible(formData: FormData): Promise<ResultadoCrearCombustible> {
   if (!(await tienePermisoModulo("D", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
@@ -122,4 +123,46 @@ export async function crearMapeoTarjeta(formData: FormData) {
   }
 
   revalidatePath("/combustible/mapeo-tarjetas");
+}
+
+export async function eliminarCombustible(formData: FormData): Promise<ResultadoEliminarCombustible> {
+  if (!(await esRolGlobal())) {
+    return { ok: false, error: "Solo el Administrador puede eliminar cargas de combustible." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  if (!id) return { ok: false, error: "Registro inválido." };
+  if (motivo.length < 5) return { ok: false, error: "Describe la razón de la eliminación (mínimo 5 caracteres)." };
+
+  const registro = await prisma.combustible.findUnique({ where: { id } });
+  if (!registro) return { ok: false, error: "Registro no encontrado." };
+
+  await prisma.combustible.delete({ where: { id } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await prisma.bitacoraCambio.create({
+      data: {
+        entidad: "Combustible",
+        entidadId: id,
+        usuarioId: session.user.id,
+        accion: "ELIMINAR",
+        valoresAnteriores: JSON.parse(JSON.stringify(registro)),
+        valoresNuevos: { motivo },
+      },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "combustible",
+      accion: "delete",
+      entidad: "Combustible",
+      entidadId: id,
+      detalle: { motivo, registroEliminado: JSON.parse(JSON.stringify(registro)) },
+    });
+  }
+
+  revalidatePath("/combustible");
+  revalidatePath(`/unidades/${registro.numeroEconomico}`);
+  return { ok: true };
 }

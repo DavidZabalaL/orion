@@ -1,15 +1,16 @@
 "use client";
 
 import { Fragment, useMemo, useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, AlertTriangle, Clock } from "lucide-react";
+import { ChevronDown, ChevronUp, AlertTriangle, Clock, Trash2, TriangleAlert } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL, ESTATUS_GASTO_LABEL, ESTATUS_GASTO_STYLE } from "@/lib/categorias-gasto";
 import { MarcarRealizadoButton } from "@/components/mantenimiento/marcar-realizado-button";
-import { actualizarGasto } from "@/app/(app)/mantenimiento/actions";
+import { actualizarGasto, eliminarGasto } from "@/app/(app)/mantenimiento/actions";
 
 const HOY = new Date().toISOString().slice(0, 10);
 
@@ -114,7 +115,7 @@ function VerOrdenButton({ abierto, onClick }: { abierto: boolean; onClick: () =>
   );
 }
 
-function OrdenDetalle({ g }: { g: GastoRow }) {
+function OrdenDetalle({ g, isAdmin }: { g: GastoRow; isAdmin: boolean }) {
   const [editando, setEditando] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -142,13 +143,16 @@ function OrdenDetalle({ g }: { g: GastoRow }) {
           <Detalle label="Fecha CXP" value={g.fechaCxp ? fmtFecha(g.fechaCxp) : null} />
           <Detalle label="Fecha de pago" value={g.fechaPago ? fmtFecha(g.fechaPago) : null} />
         </div>
-        <button
-          onClick={() => setEditando(true)}
-          className="rounded-md px-3 h-9 w-fit"
-          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-        >
-          Editar orden
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setEditando(true)}
+            className="rounded-md px-3 h-9 w-fit"
+            style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+          >
+            Editar orden
+          </button>
+          {isAdmin && <EliminarGasto id={g.id} />}
+        </div>
       </div>
     );
   }
@@ -246,6 +250,67 @@ function OrdenDetalle({ g }: { g: GastoRow }) {
   );
 }
 
+function EliminarGasto({ id }: { id: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [confirmando, setConfirmando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleEliminar(formData: FormData) {
+    setError(null);
+    startTransition(async () => {
+      const res = await eliminarGasto(formData);
+      if (res.ok) {
+        setConfirmando(false);
+        router.refresh();
+      } else {
+        setError(res.error ?? "No se pudo eliminar.");
+      }
+    });
+  }
+
+  if (!confirmando) {
+    return (
+      <button
+        onClick={() => setConfirmando(true)}
+        className="flex items-center gap-1.5 rounded-md px-3 h-9 w-fit"
+        style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+      >
+        <Trash2 size={13} /> Eliminar orden
+      </button>
+    );
+  }
+
+  return (
+    <form
+      action={handleEliminar}
+      className="rounded-xl p-4 flex flex-col gap-3"
+      style={{ background: "var(--status-escena-bg)" }}
+    >
+      <input type="hidden" name="id" value={id} />
+      <div className="flex items-start gap-2">
+        <TriangleAlert size={16} color="var(--color-status-escena)" className="shrink-0 mt-0.5" />
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
+          Esta acción no se puede deshacer. Escribe la razón por la que se elimina esta orden — quedará registrada en el historial.
+        </span>
+      </div>
+      <div>
+        <label style={labelStyle}>Razón de la eliminación *</label>
+        <textarea name="motivo" required minLength={5} rows={2} style={{ ...fieldStyle, height: "auto", padding: "8px 10px" }} />
+      </div>
+      {error && <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</span>}
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={pending} className="rounded-md px-3 h-8 font-semibold disabled:opacity-60" style={{ background: "var(--color-status-escena)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+          {pending ? "Eliminando…" : "Sí, eliminar"}
+        </button>
+        <button type="button" onClick={() => setConfirmando(false)} className="rounded-md px-3 h-8" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Detalle({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
@@ -255,7 +320,7 @@ function Detalle({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-export function PendientesLista({ pendientes }: { pendientes: GastoRow[] }) {
+export function PendientesLista({ pendientes, isAdmin = false }: { pendientes: GastoRow[]; isAdmin?: boolean }) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
   const ahora = useMemo(() => new Date(), []);
@@ -301,7 +366,7 @@ export function PendientesLista({ pendientes }: { pendientes: GastoRow[] }) {
               {expandido === g.id && (
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                    <OrdenDetalle g={g} />
+                    <OrdenDetalle g={g} isAdmin={isAdmin} />
                   </td>
                 </tr>
               )}
@@ -313,7 +378,7 @@ export function PendientesLista({ pendientes }: { pendientes: GastoRow[] }) {
   );
 }
 
-export function HistorialLista({ historial }: { historial: GastoRow[] }) {
+export function HistorialLista({ historial, isAdmin = false }: { historial: GastoRow[]; isAdmin?: boolean }) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
 
@@ -347,7 +412,7 @@ export function HistorialLista({ historial }: { historial: GastoRow[] }) {
               {expandido === g.id && (
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                    <OrdenDetalle g={g} />
+                    <OrdenDetalle g={g} isAdmin={isAdmin} />
                   </td>
                 </tr>
               )}

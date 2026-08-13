@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
-import { exigirPermisoModulo } from "@/lib/permisos";
+import { esRolGlobal, exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+
+export type ResultadoEliminarGasto = { ok: boolean; error?: string };
 
 export async function crearGasto(formData: FormData) {
   await exigirPermisoModulo("C", "editar");
@@ -187,4 +189,46 @@ export async function actualizarGasto(formData: FormData) {
 
   revalidatePath("/mantenimiento");
   if (actual.numeroEconomico) revalidatePath(`/unidades/${actual.numeroEconomico}`);
+}
+
+export async function eliminarGasto(formData: FormData): Promise<ResultadoEliminarGasto> {
+  if (!(await esRolGlobal())) {
+    return { ok: false, error: "Solo el Administrador puede eliminar órdenes de mantenimiento o gastos." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  if (!id) return { ok: false, error: "Orden inválida." };
+  if (motivo.length < 5) return { ok: false, error: "Describe la razón de la eliminación (mínimo 5 caracteres)." };
+
+  const gasto = await prisma.gastoVehicular.findUnique({ where: { id } });
+  if (!gasto) return { ok: false, error: "Orden no encontrada." };
+
+  await prisma.gastoVehicular.delete({ where: { id } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await prisma.bitacoraCambio.create({
+      data: {
+        entidad: "GastoVehicular",
+        entidadId: id,
+        usuarioId: session.user.id,
+        accion: "ELIMINAR",
+        valoresAnteriores: JSON.parse(JSON.stringify(gasto)),
+        valoresNuevos: { motivo },
+      },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "mantenimiento",
+      accion: "delete",
+      entidad: "GastoVehicular",
+      entidadId: id,
+      detalle: { motivo, registroEliminado: JSON.parse(JSON.stringify(gasto)) },
+    });
+  }
+
+  revalidatePath("/mantenimiento");
+  if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
+  return { ok: true };
 }

@@ -5,7 +5,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { PendientesLista, HistorialLista } from "@/components/mantenimiento/mantenimiento-lista";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { obtenerAlertasMantenimientoPreventivo } from "@/lib/mantenimiento-preventivo";
 
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MantenimientoPage() {
   await requerirPermisoModulo("C");
+  const isAdmin = await esRolGlobal();
   const proyectosPermitidos = await proyectosPermitidosParaModulo("C");
   const filtroProyecto =
     proyectosPermitidos !== null
@@ -79,7 +80,7 @@ export default async function MantenimientoPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Calendario / Pendientes
         </h3>
-        <PendientesLista pendientes={JSON.parse(JSON.stringify(pendientes))} />
+        <PendientesLista pendientes={JSON.parse(JSON.stringify(pendientes))} isAdmin={isAdmin} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -87,7 +88,7 @@ export default async function MantenimientoPage() {
           <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             Historial reciente
           </h3>
-          <HistorialLista historial={JSON.parse(JSON.stringify(historial))} />
+          <HistorialLista historial={JSON.parse(JSON.stringify(historial))} isAdmin={isAdmin} />
         </div>
 
         <div>
