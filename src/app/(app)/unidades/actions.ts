@@ -57,7 +57,25 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
     if (proyectoId && !permitidos.includes(proyectoId)) return { ok: false, error: "No tienes permiso para asignar ese proyecto." };
   }
 
+  const ahora = new Date();
+
+  // Actualizar proyectoId en la unidad
   await prisma.unidad.update({ where: { numeroEconomico }, data: { proyectoId } });
+
+  // Cerrar el registro histórico abierto del proyecto anterior
+  if (anterior.proyectoId) {
+    await prisma.unidadHistoricoProyecto.updateMany({
+      where: { numeroEconomico, fechaFin: null },
+      data: { fechaFin: ahora },
+    });
+  }
+
+  // Abrir nuevo registro histórico para el proyecto nuevo
+  if (proyectoId) {
+    await prisma.unidadHistoricoProyecto.create({
+      data: { numeroEconomico, proyectoId, fechaInicio: ahora },
+    });
+  }
 
   const session = await auth();
   if (session?.user?.id) {
