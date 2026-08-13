@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
@@ -8,6 +9,28 @@ import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
+
+const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+const TAMANO_MAX = 20 * 1024 * 1024;
+
+export async function subirFotoChecklist(
+  formData: FormData,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    await exigirPermisoModulo("A.1", "editar");
+    const file = formData.get("file") as File | null;
+    if (!file || file.size === 0) return { ok: false, error: "No se seleccionó ningún archivo." };
+    if (file.size > TAMANO_MAX) return { ok: false, error: "La foto excede el límite de 20 MB." };
+    if (!TIPOS_IMAGEN.includes(file.type) && !file.type.startsWith("image/")) {
+      return { ok: false, error: "Solo se permiten imágenes (JPG, PNG, WEBP, HEIC)." };
+    }
+    const nombre = `checklist/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
+    const blob = await put(nombre, file, { access: "public", addRandomSuffix: false });
+    return { ok: true, url: blob.url };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo subir la foto." };
+  }
+}
 
 export async function crearChecklist(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   try {

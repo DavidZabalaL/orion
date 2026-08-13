@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { Plus, X, Camera, Loader2 } from "lucide-react";
-import { upload } from "@vercel/blob/client";
 import { useRouter } from "next/navigation";
 import { registrarAccidente } from "@/app/(app)/accidentes/actions";
+import { subirFotoChecklist } from "@/app/(app)/checklist/actions";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -51,10 +51,13 @@ export function FormAccidente({ numeroEconomico, operadorId }: Props) {
     if (!file) return;
     setSubiendoFoto(true);
     try {
-      const blob = await upload(file.name, file, { access: "public", handleUploadUrl: "/api/checklist-upload" });
-      setEvidencias((prev) => [...prev, blob.url]);
-    } catch {
-      setError("No se pudo subir la foto.");
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await subirFotoChecklist(fd);
+      if (!result.ok) throw new Error(result.error);
+      setEvidencias((prev) => [...prev, result.url]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
     } finally {
       setSubiendoFoto(false);
     }

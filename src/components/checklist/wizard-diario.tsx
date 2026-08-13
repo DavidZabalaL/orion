@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { upload } from "@vercel/blob/client";
 import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
-import { crearChecklist } from "@/app/(app)/checklist/actions";
+import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 
@@ -143,11 +142,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     setSubiendoFoto(true);
     setError(null);
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/checklist-upload",
-      });
-      setFotoUrl(blob.url);
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await subirFotoChecklist(fd);
+      if (!result.ok) throw new Error(result.error);
+      setFotoUrl(result.url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
     } finally {
@@ -161,11 +160,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     setSubiendoFotoPunto(true);
     setError(null);
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/checklist-upload",
-      });
-      setFotosPorPunto((prev) => ({ ...prev, [key]: blob.url }));
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await subirFotoChecklist(fd);
+      if (!result.ok) throw new Error(result.error);
+      setFotosPorPunto((prev) => ({ ...prev, [key]: result.url }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
     } finally {

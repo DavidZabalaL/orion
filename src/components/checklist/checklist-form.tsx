@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { upload } from "@vercel/blob/client";
 import { Camera, CheckCircle2, Loader2 } from "lucide-react";
-import { crearChecklist } from "@/app/(app)/checklist/actions";
+import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 // PUNTOS_INSPECCION moved to @/lib/checklist (server action files may only export async functions)
@@ -61,8 +60,11 @@ export function ChecklistForm({
     setSubiendoFoto(true);
     setError(null);
     try {
-      const blob = await upload(file.name, file, { access: "public", handleUploadUrl: "/api/checklist-upload" });
-      setFotoUrl(blob.url);
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await subirFotoChecklist(fd);
+      if (!result.ok) throw new Error(result.error);
+      setFotoUrl(result.url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir la foto. Intenta de nuevo.");
       setFotoNombre(null);

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { upload } from "@vercel/blob/client";
 import { Camera, Loader2 } from "lucide-react";
+import { subirFotoChecklist } from "@/app/(app)/checklist/actions";
 
 export function CampoFotoSemanal({
   name,
@@ -31,8 +31,11 @@ export function CampoFotoSemanal({
     setSubiendo(true);
     setError(null);
     try {
-      const blob = await upload(file.name, file, { access: "public", handleUploadUrl: "/api/checklist-upload" });
-      setUrl(blob.url);
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await subirFotoChecklist(fd);
+      if (!result.ok) throw new Error(result.error);
+      setUrl(result.url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
       setNombreArchivo(null);
