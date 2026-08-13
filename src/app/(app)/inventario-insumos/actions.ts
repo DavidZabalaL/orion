@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { auth } from "@/auth";
 
 export type ResultadoSimple = { ok: boolean; error?: string };
 
@@ -74,6 +75,62 @@ export async function eliminarInsumo(formData: FormData): Promise<ResultadoSimpl
 
   await prisma.insumoInventario.delete({ where: { id } });
 
+  revalidatePath("/inventario-insumos");
+  return { ok: true };
+}
+
+export async function registrarConsumo(formData: FormData): Promise<ResultadoSimple> {
+  await exigirPermisoModulo("A");
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return { ok: false, error: "Sin sesión." };
+
+  const insumoId = String(formData.get("insumoId") ?? "").trim();
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "").trim();
+  const cantidadStr = String(formData.get("cantidad") ?? "").trim();
+  const nota = String(formData.get("nota") ?? "").trim() || null;
+
+  if (!insumoId || !numeroEconomico || !cantidadStr) {
+    return { ok: false, error: "Insumo, unidad y cantidad son obligatorios." };
+  }
+
+  const cantidad = parseFloat(cantidadStr);
+  if (isNaN(cantidad) || cantidad <= 0) return { ok: false, error: "La cantidad debe ser mayor a 0." };
+
+  const insumo = await prisma.insumoInventario.findUnique({
+    where: { id: insumoId },
+    select: { existencias: true },
+  });
+  if (!insumo) return { ok: false, error: "Insumo no encontrado." };
+  if (Number(insumo.existencias) < cantidad) {
+    return { ok: false, error: `Existencias insuficientes (disponible: ${Number(insumo.existencias)}).` };
+  }
+
+  const historico = await prisma.unidadHistoricoProyecto.findFirst({
+    where: { numeroEconomico, fechaFin: null },
+    select: { id: true },
+  });
+
+  const nuevaExistencia = Number(insumo.existencias) - cantidad;
+
+  await prisma.$transaction([
+    prisma.consumoInsumo.create({
+      data: {
+        insumoId,
+        cantidad: cantidad as never,
+        numeroEconomico,
+        historicoId: historico?.id ?? null,
+        nota,
+        registradoPorId: userId,
+      },
+    }),
+    prisma.insumoInventario.update({
+      where: { id: insumoId },
+      data: { existencias: nuevaExistencia as never },
+    }),
+  ]);
+
+  revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/inventario-insumos");
   return { ok: true };
 }

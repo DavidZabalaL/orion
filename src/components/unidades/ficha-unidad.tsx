@@ -32,6 +32,7 @@ import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-unidad";
 import { FormAccidente } from "@/components/accidentes/form-accidente";
+import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -49,6 +50,7 @@ const TABS = [
   { id: "accidentes", label: "Accidentes" },
   { id: "historico", label: "Hist. proyectos" },
   { id: "siniestros", label: "Siniestros" },
+  { id: "insumos", label: "Insumos" },
 ] as const;
 
 const CATEGORIAS_MANTENIMIENTO = new Set(["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_CORRECTIVO"]);
@@ -196,11 +198,13 @@ export function FichaUnidad({
   puedeEditarCapacidad,
   proyectos,
   alertaPreventiva,
+  insumos = [],
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
   proyectos: { id: string; nombre: string }[];
   alertaPreventiva: Unidad | null;
+  insumos?: { id: string; nombre: string; unidad: string; existencias: string }[];
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -372,6 +376,14 @@ export function FichaUnidad({
           {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} bloqueada={!unidad.proyectoId} />}
           {tab === "historico" && <TabHistorico historicos={unidad.historicosProyecto ?? []} />}
           {tab === "siniestros" && <TabSiniestros siniestros={unidad.siniestros ?? []} />}
+          {tab === "insumos" && (
+            <TabInsumos
+              consumos={unidad.consumosInsumos ?? []}
+              insumos={insumos}
+              numeroEconomico={unidad.numeroEconomico}
+              bloqueada={!unidad.proyectoId}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -841,6 +853,95 @@ function TabAccidentes({ accidentes, numeroEconomico, bloqueada }: { accidentes:
             </tr>
           ))}
         </Table>
+      )}
+    </div>
+  );
+}
+
+function TabInsumos({
+  consumos,
+  insumos,
+  numeroEconomico,
+  bloqueada,
+}: {
+  consumos: Unidad[];
+  insumos: { id: string; nombre: string; unidad: string; existencias: string }[];
+  numeroEconomico: string;
+  bloqueada?: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [ok, setOk] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  return (
+    <div className="flex flex-col gap-5">
+      {!bloqueada && insumos.length > 0 && (
+        <div className="rounded-xl p-5" style={panelStyle}>
+          <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            Registrar consumo
+          </h3>
+          <form
+            className="flex flex-col gap-3"
+            action={(fd) => {
+              setOk(false);
+              setErrorMsg(null);
+              fd.set("numeroEconomico", numeroEconomico);
+              startTransition(async () => {
+                const res = await registrarConsumo(fd);
+                if (res.ok) setOk(true);
+                else setErrorMsg(res.error ?? "Error al registrar.");
+              });
+            }}
+          >
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div>
+                <label style={labelStyle}>Insumo *</label>
+                <select name="insumoId" required style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", height: "var(--h-md)", width: "100%", borderRadius: "var(--radius-md)", padding: "0 12px" }}>
+                  <option value="">Selecciona…</option>
+                  {insumos.map((ins) => (
+                    <option key={ins.id} value={ins.id}>
+                      {ins.nombre} ({Number(ins.existencias)} {ins.unidad} disponibles)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Cantidad *</label>
+                <input name="cantidad" type="number" step="0.01" min="0.01" required style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", height: "var(--h-md)", width: "100%", borderRadius: "var(--radius-md)", padding: "0 12px" }} />
+              </div>
+              <div>
+                <label style={labelStyle}>Nota</label>
+                <input name="nota" style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", height: "var(--h-md)", width: "100%", borderRadius: "var(--radius-md)", padding: "0 12px" }} />
+              </div>
+            </div>
+            {errorMsg && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{errorMsg}</p>}
+            {ok && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-cerrado)" }}>Consumo registrado. Inventario actualizado.</p>}
+            <button type="submit" disabled={pending} className="rounded-md px-4 h-9 w-fit font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+              {pending ? "Guardando…" : "Registrar consumo"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {!bloqueada && insumos.length === 0 && (
+        <EmptyState>Esta unidad no tiene inventario de insumos asociado. Agrega insumos al proyecto en el Módulo N.</EmptyState>
+      )}
+
+      {consumos.length > 0 ? (
+        <Table headers={["Fecha", "Insumo", "Cantidad", "Nota"]}>
+          {consumos.map((c) => (
+            <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(c.fecha)}</td>
+              <td className="px-4 py-3" style={td}>{c.insumo?.nombre ?? "—"}</td>
+              <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>
+                {Number(c.cantidad)} {c.insumo?.unidad ?? ""}
+              </td>
+              <td className="px-4 py-3" style={td}>{c.nota ?? "—"}</td>
+            </tr>
+          ))}
+        </Table>
+      ) : (
+        <EmptyState>Sin consumos de insumos registrados para esta unidad.</EmptyState>
       )}
     </div>
   );

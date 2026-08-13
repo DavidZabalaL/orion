@@ -46,6 +46,11 @@ export default async function FichaUnidadPage({
           orderBy: { fecha: "desc" },
           take: 30,
         },
+        consumosInsumos: {
+          include: { insumo: { select: { nombre: true, unidad: true } } },
+          orderBy: { fecha: "desc" },
+          take: 30,
+        },
       } as never,
     }),
     puedeEditarCapacidadTanque(),
@@ -62,9 +67,16 @@ export default async function FichaUnidadPage({
   const restriccionOperador = await unidadRestringidaParaOperador();
   if (restriccionOperador.esOperador && restriccionOperador.numeroEconomico !== numeroEconomico) notFound();
 
-  // Decimal y Date exponen toJSON(); JSON.stringify los serializa automáticamente
-  // a string / ISO-string, dejando el resultado listo para un Client Component.
-  const serializado = JSON.parse(JSON.stringify(unidad));
+  const insumos = unidad.proyectoId
+    ? await prisma.insumoInventario.findMany({
+        where: { proyectoId: unidad.proyectoId },
+        select: { id: true, nombre: true, unidad: true, existencias: true },
+        orderBy: { nombre: "asc" },
+      })
+    : [];
 
-  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} proyectos={proyectos} alertaPreventiva={alertaPreventiva} />;
+  const serializado = JSON.parse(JSON.stringify(unidad));
+  const insumosSerializados = JSON.parse(JSON.stringify(insumos));
+
+  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} proyectos={proyectos} alertaPreventiva={alertaPreventiva} insumos={insumosSerializados} />;
 }
