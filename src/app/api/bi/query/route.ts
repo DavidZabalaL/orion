@@ -19,6 +19,8 @@ import {
 } from "@/lib/bi/metadata";
 
 type Filtro = { campoId: string; valores: string[] };
+type TipoAnalisis = "simple" | "variacion" | "cohorte" | "funnel";
+type Comparacion = "periodo_anterior" | "mismo_periodo_anio_anterior";
 
 type BiQueryBody = {
   dataset: string;
@@ -30,6 +32,14 @@ type BiQueryBody = {
   orden?: TipoOrden;
   filtros?: Filtro[];
   proyectoIds?: string[];
+  /** "simple" (default, comportamiento actual) | "variacion" (%/YoY) | "cohorte" | "funnel". */
+  tipoAnalisis?: TipoAnalisis;
+  /** Solo con tipoAnalisis "variacion": contra qué periodo comparar. */
+  comparacion?: Comparacion;
+  /** Solo con tipoGrafica de serie de tiempo (ejeX fecha_mes/fecha_dia): rellena con 0 los periodos sin datos dentro del rango presente. */
+  rellenarHuecos?: boolean;
+  /** Solo con tipoAnalisis "funnel": etapas acumulativas, en orden, sobre el mismo dataset. */
+  etapas?: { campoId: string; valores: string[] }[];
 };
 
 const LIMITE_DISPERSION = 500;
@@ -38,6 +48,8 @@ const MAX_FILTROS = 20;
 const MAX_VALORES_POR_FILTRO = 100;
 const MAX_DIMENSIONES_CRUZADO = 200;
 const MAX_SERIES_CRUZADO = 30;
+const MAX_ETAPAS_FUNNEL = 8;
+const VENTANA_COHORTE_MESES = 12;
 
 function campoExpr(campo: CampoMeta): Prisma.Sql {
   if (campo.tipo === "fecha_mes") return Prisma.sql`TO_CHAR(${Prisma.raw(campo.expr)}, 'YYYY-MM')`;
@@ -52,17 +64,23 @@ function metricaExpr(agregacion: TipoAgregacion, campoY: CampoMeta): Prisma.Sql 
   return Prisma.sql`AVG(${columna})`;
 }
 
+/** Condición "campo IN (valores)" para un campo ya validado contra el whitelist del dataset — nunca acepta nombres de columna del cliente, solo `campoId`. */
+function condicionCampoIn(dataset: DatasetMeta, campoId: string, valores: unknown): Prisma.Sql | null {
+  const campo = obtenerCampo(dataset, campoId);
+  if (!campo || !Array.isArray(valores)) return null;
+  const limpios = valores.filter((v) => typeof v === "string" && v.trim() !== "").slice(0, MAX_VALORES_POR_FILTRO);
+  if (limpios.length === 0) return null;
+  return Prisma.sql`${campoExpr(campo)} IN (${Prisma.join(limpios)})`;
+}
+
 function construirWhere(dataset: DatasetMeta, filtros: Filtro[] | undefined, extra: Prisma.Sql[]): Prisma.Sql {
   // `extra` puede traer Prisma.empty (p. ej. condicionAlcanceProyecto() para un
   // rol global, sin restricción) — se filtra aquí, si no, un solo elemento vacío
   // hace que condiciones.length sea > 0 y se emita "WHERE " sin nada detrás.
   const condiciones: Prisma.Sql[] = extra.filter((e) => e !== Prisma.empty);
   for (const filtro of (filtros ?? []).slice(0, MAX_FILTROS)) {
-    const campoFiltro = obtenerCampo(dataset, filtro.campoId);
-    if (!campoFiltro || !Array.isArray(filtro.valores)) continue;
-    const limpios = filtro.valores.filter((v) => typeof v === "string" && v.trim() !== "").slice(0, MAX_VALORES_POR_FILTRO);
-    if (limpios.length === 0) continue;
-    condiciones.push(Prisma.sql`${campoExpr(campoFiltro)} IN (${Prisma.join(limpios)})`);
+    const condicion = condicionCampoIn(dataset, filtro.campoId, filtro.valores);
+    if (condicion) condiciones.push(condicion);
   }
   return condiciones.length > 0 ? Prisma.sql`WHERE ${Prisma.join(condiciones, " AND ")}` : Prisma.empty;
 }
@@ -101,6 +119,36 @@ function ejeYLabelSimple(agregacion: TipoAgregacion, campoY: CampoMeta): string 
   return agregacion === "conteo" ? "N° de registros" : `${campoY.label} (${AGREGACION_LABEL[agregacion]})`;
 }
 
+/** Rellena con valor 0 los periodos (mes o día) sin datos entre el mínimo y máximo presentes — solo aplica a series ya agrupadas por fecha_mes/fecha_dia (formato TO_CHAR 'YYYY-MM'/'YYYY-MM-DD', que ordena igual lexicográfica y cronológicamente). */
+function rellenarHuecosPeriodo(datos: { dimension: string; valor: number }[], tipo: "fecha_mes" | "fecha_dia"): { dimension: string; valor: number }[] {
+  if (datos.length < 2) return datos;
+  const porPeriodo = new Map(datos.map((d) => [d.dimension, d.valor]));
+  const primero = datos[0].dimension;
+  const ultimo = datos[datos.length - 1].dimension;
+  const completos: { dimension: string; valor: number }[] = [];
+
+  if (tipo === "fecha_mes") {
+    const [anioInicio, mesInicio] = primero.split("-").map(Number);
+    const [anioFin, mesFin] = ultimo.split("-").map(Number);
+    const cursor = new Date(Date.UTC(anioInicio, mesInicio - 1, 1));
+    const fin = new Date(Date.UTC(anioFin, mesFin - 1, 1));
+    while (cursor <= fin) {
+      const clave = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}`;
+      completos.push({ dimension: clave, valor: porPeriodo.get(clave) ?? 0 });
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+  } else {
+    const cursor = new Date(`${primero}T00:00:00Z`);
+    const fin = new Date(`${ultimo}T00:00:00Z`);
+    while (cursor <= fin) {
+      const clave = cursor.toISOString().slice(0, 10);
+      completos.push({ dimension: clave, valor: porPeriodo.get(clave) ?? 0 });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+  return completos;
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   if (!(await tienePermisoModulo("J"))) {
     return NextResponse.json({ error: "No tienes permiso para consultar el motor de BI." }, { status: 403 });
@@ -115,6 +163,32 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const dataset = obtenerDataset(body.dataset);
   if (!dataset) return NextResponse.json({ error: "Dataset desconocido." }, { status: 400 });
+
+  if (body.proyectoIds !== undefined && !Array.isArray(body.proyectoIds)) {
+    return NextResponse.json({ error: "Proyectos elegidos inválidos." }, { status: 400 });
+  }
+
+  // "funnel" y "cohorte" tienen su propia forma de solicitud (no usan
+  // ejeX/ejeY/tipoGrafica) — se despachan antes de la validación genérica.
+  if (body.tipoAnalisis === "funnel") {
+    try {
+      const { condicion: alcance, llave: llaveAlcance } = await resolverAlcanceProyecto(dataset, body.proyectoIds);
+      return await consultarFunnel(dataset, body.etapas, body.filtros, alcance, llaveAlcance);
+    } catch (error) {
+      console.error("Error en /api/bi/query (funnel)", error);
+      return NextResponse.json({ error: "No se pudo ejecutar la consulta." }, { status: 500 });
+    }
+  }
+  if (body.tipoAnalisis === "cohorte") {
+    if (!dataset.cohorteConfig) return NextResponse.json({ error: "Este dataset no soporta análisis de cohortes." }, { status: 400 });
+    try {
+      const { condicion: alcance, llave: llaveAlcance } = await resolverAlcanceProyecto(dataset, body.proyectoIds);
+      return await consultarCohorte(dataset, body.filtros, alcance, llaveAlcance);
+    } catch (error) {
+      console.error("Error en /api/bi/query (cohorte)", error);
+      return NextResponse.json({ error: "No se pudo ejecutar la consulta." }, { status: 500 });
+    }
+  }
 
   const tipoGrafica = body.tipoGrafica;
   const requisitos = REQUISITOS_TIPO_GRAFICA[tipoGrafica];
@@ -154,19 +228,21 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
-  if (body.proyectoIds !== undefined && !Array.isArray(body.proyectoIds)) {
-    return NextResponse.json({ error: "Proyectos elegidos inválidos." }, { status: 400 });
-  }
-
   try {
     const { condicion: alcance, llave: llaveAlcance } = await resolverAlcanceProyecto(dataset, body.proyectoIds);
     const filtrosLlave = JSON.stringify(body.filtros ?? []);
+    if (body.tipoAnalisis === "variacion") {
+      if (campoX.tipo !== "fecha_mes" && campoX.tipo !== "fecha_dia") {
+        return NextResponse.json({ error: "La variación por periodo requiere un eje X de fecha." }, { status: 400 });
+      }
+      return await consultarVariacion(dataset, campoX, campoY!, agregacion, body.comparacion ?? "periodo_anterior", body.filtros, alcance, llaveAlcance, filtrosLlave);
+    }
     if (tipoGrafica === "histograma") return await consultarHistograma(dataset, campoX, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "dispersion") return await consultarDispersion(dataset, campoX, campoY!, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "caja") return await consultarCaja(dataset, campoX, campoY!, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "piramide") return await consultarPiramide(dataset, campoX, campoY!, agregacion, campoSplit!, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "barras" && campoSplit) return await consultarCruzado(dataset, campoX, campoY!, agregacion, campoSplit, body.orden, body.filtros, alcance, llaveAlcance, filtrosLlave);
-    return await consultarSimple(dataset, campoX, campoY!, agregacion, body.orden, body.filtros, alcance, llaveAlcance, filtrosLlave);
+    return await consultarSimple(dataset, campoX, campoY!, agregacion, body.orden, body.filtros, alcance, llaveAlcance, filtrosLlave, Boolean(body.rellenarHuecos));
   } catch (error) {
     console.error("Error en /api/bi/query", error);
     return NextResponse.json({ error: "No se pudo ejecutar la consulta." }, { status: 500 });
@@ -183,11 +259,15 @@ async function consultarSimple(
   filtros: Filtro[] | undefined,
   alcance: Prisma.Sql,
   llaveAlcance: string,
-  filtrosLlave: string
+  filtrosLlave: string,
+  rellenarHuecos = false
 ): Promise<NextResponse> {
+  // Solo tiene sentido si la serie queda en orden cronológico — con
+  // orden por valor los huecos no se pueden ubicar de forma consistente.
+  const rellenarAplicable = rellenarHuecos && (orden === undefined || orden === "dimension") && (campoX.tipo === "fecha_mes" || campoX.tipo === "fecha_dia");
   const resultado = await cachearConsultaBI(
     dataset.id,
-    ["simple", campoX.id, campoY.id, agregacion, orden ?? "", filtrosLlave, llaveAlcance],
+    ["simple", campoX.id, campoY.id, agregacion, orden ?? "", filtrosLlave, llaveAlcance, rellenarAplicable ? "rellenar" : ""],
     async () => {
       const dimensionExpr = campoExpr(campoX);
       const metrica = metricaExpr(agregacion, campoY);
@@ -203,7 +283,8 @@ async function consultarSimple(
       `;
 
       const filas = await prisma.$queryRaw<{ dimension: string | null; metrica: number | string | null }[]>(query);
-      const datos = filas.filter((f) => f.dimension !== null).map((f) => ({ dimension: String(f.dimension), valor: Number(f.metrica ?? 0) }));
+      let datos = filas.filter((f) => f.dimension !== null).map((f) => ({ dimension: String(f.dimension), valor: Number(f.metrica ?? 0) }));
+      if (rellenarAplicable) datos = rellenarHuecosPeriodo(datos, campoX.tipo as "fecha_mes" | "fecha_dia");
 
       return {
         dataset: dataset.id,
@@ -213,6 +294,180 @@ async function consultarSimple(
       };
     }
   );
+
+  return NextResponse.json(resultado);
+}
+
+/**
+ * Variación %/YoY: misma agregación que consultarSimple, agregando el valor
+ * del periodo anterior y del mismo periodo del año anterior vía LAG() sobre
+ * la serie ya agrupada — el % de cambio se calcula en TS (evita división
+ * por cero en SQL).
+ */
+async function consultarVariacion(
+  dataset: DatasetMeta,
+  campoX: CampoMeta,
+  campoY: CampoMeta,
+  agregacion: TipoAgregacion,
+  comparacion: Comparacion,
+  filtros: Filtro[] | undefined,
+  alcance: Prisma.Sql,
+  llaveAlcance: string,
+  filtrosLlave: string
+): Promise<NextResponse> {
+  const resultado = await cachearConsultaBI(dataset.id, ["variacion", campoX.id, campoY.id, agregacion, comparacion, filtrosLlave, llaveAlcance], async () => {
+    const dimensionExpr = campoExpr(campoX);
+    const metrica = metricaExpr(agregacion, campoY);
+    const where = construirWhere(dataset, filtros, [alcance]);
+    const lagAnio = campoX.tipo === "fecha_dia" ? 365 : 12;
+
+    const query = Prisma.sql`
+      WITH serie AS (
+        SELECT ${dimensionExpr} AS periodo, ${metrica} AS valor
+        FROM ${Prisma.raw(dataset.from)}
+        ${where}
+        GROUP BY ${dimensionExpr}
+      )
+      SELECT periodo, valor,
+        LAG(valor, 1) OVER (ORDER BY periodo) AS valor_anterior,
+        LAG(valor, ${lagAnio}) OVER (ORDER BY periodo) AS valor_anio_anterior
+      FROM serie
+      WHERE periodo IS NOT NULL
+      ORDER BY periodo
+    `;
+    const filas = await prisma.$queryRaw<{ periodo: string; valor: number | string; valor_anterior: number | string | null; valor_anio_anterior: number | string | null }[]>(query);
+
+    const datos = filas.map((f) => {
+      const valor = Number(f.valor ?? 0);
+      const comparado = comparacion === "mismo_periodo_anio_anterior" ? f.valor_anio_anterior : f.valor_anterior;
+      const valorComparacion = comparado === null || comparado === undefined ? null : Number(comparado);
+      const variacionPct = valorComparacion !== null && valorComparacion !== 0 ? (valor - valorComparacion) / valorComparacion : null;
+      return { dimension: f.periodo, valor, valorComparacion, variacionPct };
+    });
+
+    return {
+      dataset: dataset.id,
+      ejeX: { id: campoX.id, label: campoX.label },
+      ejeY: { label: ejeYLabelSimple(agregacion, campoY) },
+      comparacion,
+      datos,
+    };
+  });
+
+  return NextResponse.json(resultado);
+}
+
+/**
+ * Funnel: cuenta, para una secuencia ordenada de condiciones sobre el mismo
+ * dataset, cuántas filas cumplen cada etapa de forma ACUMULATIVA (etapa N =
+ * cumple la condición de la etapa N Y de todas las anteriores). Cada etapa
+ * es un filtro más sobre el mismo `from` — mismo mecanismo de validación
+ * (`condicionCampoIn`) que los filtros normales, cero SQL nuevo.
+ */
+async function consultarFunnel(
+  dataset: DatasetMeta,
+  etapas: { campoId: string; valores: string[] }[] | undefined,
+  filtros: Filtro[] | undefined,
+  alcance: Prisma.Sql,
+  llaveAlcance: string
+): Promise<NextResponse> {
+  if (!Array.isArray(etapas) || etapas.length === 0) {
+    return NextResponse.json({ error: "Define al menos una etapa para el funnel." }, { status: 400 });
+  }
+  if (etapas.length > MAX_ETAPAS_FUNNEL) {
+    return NextResponse.json({ error: `Máximo ${MAX_ETAPAS_FUNNEL} etapas.` }, { status: 400 });
+  }
+
+  const condicionesEtapa: { campoId: string; condicion: Prisma.Sql }[] = [];
+  for (const etapa of etapas) {
+    const condicion = condicionCampoIn(dataset, etapa.campoId, etapa.valores);
+    if (!condicion) return NextResponse.json({ error: `Etapa inválida: ${etapa.campoId}.` }, { status: 400 });
+    condicionesEtapa.push({ campoId: etapa.campoId, condicion });
+  }
+
+  const filtrosLlave = JSON.stringify(filtros ?? []);
+  const etapasLlave = JSON.stringify(etapas);
+  const resultado = await cachearConsultaBI(dataset.id, ["funnel", etapasLlave, filtrosLlave, llaveAlcance], async () => {
+    const where = construirWhere(dataset, filtros, [alcance]);
+    const selects = condicionesEtapa.map((_, i) => {
+      const acumuladas = condicionesEtapa.slice(0, i + 1).map((e) => e.condicion);
+      return Prisma.sql`COUNT(*) FILTER (WHERE ${Prisma.join(acumuladas, " AND ")})::int AS etapa_${Prisma.raw(String(i))}`;
+    });
+
+    const query = Prisma.sql`
+      SELECT ${Prisma.join(selects, ", ")}
+      FROM ${Prisma.raw(dataset.from)}
+      ${where}
+    `;
+    const [fila] = await prisma.$queryRaw<Record<string, number>[]>(query);
+
+    const etapasResultado = condicionesEtapa.map((e, i) => ({
+      campoId: e.campoId,
+      valores: etapas[i].valores,
+      total: fila ? Number(fila[`etapa_${i}`] ?? 0) : 0,
+    }));
+
+    return { dataset: dataset.id, etapas: etapasResultado };
+  });
+
+  return NextResponse.json(resultado);
+}
+
+/**
+ * Cohortes: agrupa entidades por el mes de su fecha de origen (`cohorteConfig.campoOrigenExpr`,
+ * ej. mes de alta de la unidad) y mide, para cada mes posterior (0..11), qué
+ * fracción de esa cohorte tuvo al menos un evento repetible (`campoEventoExpr`,
+ * ej. una carga de combustible) — alcance limitado a cohorte + evento DENTRO
+ * del mismo dataset (un `from` = una tabla/join fijo), nunca cross-dataset.
+ */
+async function consultarCohorte(dataset: DatasetMeta, filtros: Filtro[] | undefined, alcance: Prisma.Sql, llaveAlcance: string): Promise<NextResponse> {
+  const config = dataset.cohorteConfig;
+  if (!config) return NextResponse.json({ error: "Este dataset no soporta análisis de cohortes." }, { status: 400 });
+
+  const filtrosLlave = JSON.stringify(filtros ?? []);
+  const resultado = await cachearConsultaBI(dataset.id, ["cohorte", filtrosLlave, llaveAlcance], async () => {
+    const origenExpr = Prisma.raw(config.campoOrigenExpr);
+    const eventoExpr = Prisma.raw(config.campoEventoExpr);
+    const entidadExpr = Prisma.raw(config.entidadIdExpr);
+    const where = construirWhere(dataset, filtros, [alcance, Prisma.sql`${origenExpr} IS NOT NULL`, Prisma.sql`${eventoExpr} IS NOT NULL`]);
+
+    const query = Prisma.sql`
+      WITH eventos AS (
+        SELECT ${entidadExpr} AS entidad_id,
+          date_trunc('month', ${origenExpr})::date AS cohorte,
+          date_trunc('month', ${eventoExpr})::date AS periodo
+        FROM ${Prisma.raw(dataset.from)}
+        ${where}
+      ),
+      indexado AS (
+        SELECT entidad_id, cohorte,
+          ((EXTRACT(YEAR FROM periodo) - EXTRACT(YEAR FROM cohorte)) * 12
+            + (EXTRACT(MONTH FROM periodo) - EXTRACT(MONTH FROM cohorte)))::int AS periodo_index
+        FROM eventos
+        WHERE periodo >= cohorte
+      ),
+      tamanos AS (
+        SELECT cohorte, COUNT(DISTINCT entidad_id)::int AS tamano FROM eventos GROUP BY cohorte
+      )
+      SELECT TO_CHAR(i.cohorte, 'YYYY-MM') AS cohorte, i.periodo_index, COUNT(DISTINCT i.entidad_id)::int AS activos, t.tamano
+      FROM indexado i JOIN tamanos t ON t.cohorte = i.cohorte
+      WHERE i.periodo_index BETWEEN 0 AND ${VENTANA_COHORTE_MESES - 1}
+      GROUP BY i.cohorte, i.periodo_index, t.tamano
+      ORDER BY i.cohorte, i.periodo_index
+    `;
+    const filas = await prisma.$queryRaw<{ cohorte: string; periodo_index: number; activos: number; tamano: number }[]>(query);
+
+    const porCohorte = new Map<string, { tamano: number; retencion: (number | null)[] }>();
+    for (const f of filas) {
+      if (!porCohorte.has(f.cohorte)) porCohorte.set(f.cohorte, { tamano: f.tamano, retencion: Array(VENTANA_COHORTE_MESES).fill(null) });
+      porCohorte.get(f.cohorte)!.retencion[f.periodo_index] = f.tamano > 0 ? f.activos / f.tamano : 0;
+    }
+    const cohortes = Array.from(porCohorte.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([cohorte, v]) => ({ cohorte, tamano: v.tamano, retencion: v.retencion }));
+
+    return { dataset: dataset.id, ventanaMeses: VENTANA_COHORTE_MESES, cohortes };
+  });
 
   return NextResponse.json(resultado);
 }

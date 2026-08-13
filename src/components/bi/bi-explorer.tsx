@@ -7,6 +7,7 @@ import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
+import { AnalisisAvanzado } from "@/components/bi/analisis-avanzado";
 
 export type MetricaDisponible = {
   id: string;
@@ -141,6 +142,8 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
           )}
         </div>
       </div>
+
+      <AnalisisAvanzado datasetId={combinacion.datasetId} proyectoIds={combinacion.proyectoIds} filtros={combinacion.filtros} />
     </div>
   );
 }

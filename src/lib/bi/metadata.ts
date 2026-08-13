@@ -105,6 +105,21 @@ export type DatasetMeta = {
    *  tag de caché invalidar (`bi-dataset:<id>`) cuando se escribe en alguna de
    *  estas tablas. Es metadata pura, no cambia el whitelist de seguridad. */
   tablasBase: string[];
+  /**
+   * Habilita análisis de cohortes (tipoAnalisis: "cohorte") para este
+   * dataset — deliberadamente acotado a cohorte + evento repetible DENTRO
+   * del mismo `from` (no cohortes cross-dataset, ya que el catálogo modela
+   * "un dataset = un `from`"). Expresiones SQL fijas, igual que el resto de
+   * la metadata: nunca vienen del cliente.
+   */
+  cohorteConfig?: {
+    /** Fecha que define a qué cohorte (mes) pertenece la entidad — ej. mes de alta de la unidad. */
+    campoOrigenExpr: string;
+    /** Fecha del evento repetible que se mide por periodo — ej. cada carga de combustible. */
+    campoEventoExpr: string;
+    /** Identificador de la entidad que se seguirá a través de los periodos. */
+    entidadIdExpr: string;
+  };
 };
 
 export const BI_DATASETS: DatasetMeta[] = [
@@ -151,9 +166,14 @@ export const BI_DATASETS: DatasetMeta[] = [
   {
     id: "combustible",
     label: "Combustible",
-    from: `"Combustible" c LEFT JOIN "Proyecto" p ON p.id = c."proyectoReportanteId"`,
+    from: `"Combustible" c LEFT JOIN "Proyecto" p ON p.id = c."proyectoReportanteId" LEFT JOIN "Unidad" u3 ON u3."numeroEconomico" = c."numeroEconomico"`,
     proyectoScopeExpr: `c."proyectoReportanteId"`,
-    tablasBase: ["Combustible", "Proyecto"],
+    tablasBase: ["Combustible", "Proyecto", "Unidad"],
+    cohorteConfig: {
+      campoOrigenExpr: `u3."fechaAlta"`,
+      campoEventoExpr: `c."fecha"`,
+      entidadIdExpr: `c."numeroEconomico"`,
+    },
     campos: [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `c."fecha"` },
