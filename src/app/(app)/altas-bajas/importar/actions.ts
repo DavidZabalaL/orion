@@ -13,6 +13,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
 
@@ -128,6 +129,8 @@ export async function importarUnidades(
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
     }
   }
+
+  if (resultado.creadas.length > 0 || resultado.actualizadas.length > 0) invalidarCacheBI(["unidades"]);
 
   const session = await auth();
   if (session?.user?.id) {

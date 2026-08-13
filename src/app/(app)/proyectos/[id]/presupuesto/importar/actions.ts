@@ -7,6 +7,7 @@ import { puedeCargarPresupuesto, exigirPermisoModulo } from "@/lib/permisos";
 import { parsearExcelPresupuesto, resolverCategoria, resolverProyecto, type FilaPresupuestoExcel } from "@/lib/import-presupuesto";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type GrupoProyectoDetectado = { alias: string; proyectoIdSugerido: string | null; nombreSugerido: string | null };
 export type GrupoPartidaDetectado = { texto: string; categoriaSugerida: string | null };
@@ -174,6 +175,7 @@ export async function confirmarCargaPresupuesto(
   for (const proyectoId of proyectosAfectados) {
     revalidatePath(`/proyectos/${proyectoId}/presupuesto`);
   }
+  if (resultado.creadas > 0 || resultado.actualizadas > 0) invalidarCacheBI(["presupuesto_partida"]);
 
   return resultado;
 }

@@ -6,6 +6,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function crearTag(formData: FormData) {
   await exigirPermisoModulo("E", "editar");
@@ -43,6 +44,7 @@ export async function crearTag(formData: FormData) {
   }
 
   revalidatePath("/tag");
+  invalidarCacheBI(["peajes"]);
 }
 
 export async function conciliarTag(formData: FormData) {
@@ -72,6 +74,7 @@ export async function conciliarTag(formData: FormData) {
   }
 
   revalidatePath("/tag");
+  invalidarCacheBI(["peajes"]);
 }
 
 export async function asignarEconomicoTag(formData: FormData) {
@@ -102,4 +105,5 @@ export async function asignarEconomicoTag(formData: FormData) {
   }
 
   revalidatePath("/tag");
+  invalidarCacheBI(["peajes"]);
 }

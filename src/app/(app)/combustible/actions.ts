@@ -6,6 +6,7 @@ import { esRolGlobal, tienePermisoModulo, exigirPermisoModulo } from "@/lib/perm
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
 export type ResultadoEliminarCombustible = { ok: boolean; error?: string };
@@ -84,6 +85,7 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   }
 
   revalidatePath("/combustible");
+  invalidarCacheBI(["combustible"]);
   revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true, alertaSobrellenado };
 }
@@ -163,6 +165,7 @@ export async function eliminarCombustible(formData: FormData): Promise<Resultado
   }
 
   revalidatePath("/combustible");
+  invalidarCacheBI(["combustible"]);
   revalidatePath(`/unidades/${registro.numeroEconomico}`);
   return { ok: true };
 }

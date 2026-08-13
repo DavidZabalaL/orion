@@ -8,6 +8,7 @@ import { esRolGlobal, exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type ResultadoEliminarGasto = { ok: boolean; error?: string };
 
@@ -81,6 +82,7 @@ export async function crearGasto(formData: FormData) {
   }
 
   revalidatePath("/mantenimiento");
+  invalidarCacheBI(["mantenimiento"]);
   if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   redirect("/mantenimiento");
 }
@@ -115,6 +117,7 @@ export async function marcarRealizado(formData: FormData) {
   }
 
   revalidatePath("/mantenimiento");
+  invalidarCacheBI(["mantenimiento"]);
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
 }
 
@@ -188,6 +191,7 @@ export async function actualizarGasto(formData: FormData) {
   }
 
   revalidatePath("/mantenimiento");
+  invalidarCacheBI(["mantenimiento"]);
   if (actual.numeroEconomico) revalidatePath(`/unidades/${actual.numeroEconomico}`);
 }
 
@@ -229,6 +233,7 @@ export async function eliminarGasto(formData: FormData): Promise<ResultadoElimin
   }
 
   revalidatePath("/mantenimiento");
+  invalidarCacheBI(["mantenimiento"]);
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
   return { ok: true };
 }

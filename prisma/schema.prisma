@@ -250,21 +250,23 @@ model Rol {
 }
 
 model Usuario {
-  id         String            @id @default(cuid())
-  nombre     String
-  correo     String            @unique
-  rolId      String
-  rol        Rol               @relation(fields: [rolId], references: [id])
-  estatus    EstatusUsuario    @default(INVITADO)
-  /** Si tiene fecha, cualquier sesión (JWT) emitida antes de este momento se
-   *  considera inválida — ver el callback `session` en src/auth.ts. La usa el
-   *  botón "Cerrar sesión" del panel de Analítica de Uso y Trazabilidad. */
+  id                 String            @id @default(cuid())
+  nombre             String
+  correo             String            @unique
+  rolId              String
+  rol                Rol               @relation(fields: [rolId], references: [id])
+  estatus            EstatusUsuario    @default(INVITADO)
+  /**
+   * Si tiene fecha, cualquier sesión (JWT) emitida antes de este momento se
+   * considera inválida — ver el callback `session` en src/auth.ts. La usa el
+   * botón "Cerrar sesión" del panel de Analítica de Uso y Trazabilidad.
+   */
   sesionInvalidadaEn DateTime?
-  proyectos  UsuarioProyecto[]
-  operadorId String?           @unique
-  operador   Operador?         @relation(fields: [operadorId], references: [id])
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  proyectos          UsuarioProyecto[]
+  operadorId         String?           @unique
+  operador           Operador?         @relation(fields: [operadorId], references: [id])
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   bitacora                      BitacoraCambio[]
   checklists                    Checklist[]
@@ -276,11 +278,13 @@ model Usuario {
   notificacionesLeidas          NotificacionLeida[]
   vistasDashboardBI             VistaDashboardBI[]
   actividad                     ActivityLog[]
-  ticketsReportados             TicketRescate[] @relation("TicketReportadoPor")
-  ticketsAsignados              TicketRescate[] @relation("TicketAsignadoA")
+  ticketsReportados             TicketRescate[]               @relation("TicketReportadoPor")
+  ticketsAsignados              TicketRescate[]               @relation("TicketAsignadoA")
   historicoTickets              HistoricoTicketRescate[]
-  siniestrosReportados          Siniestro[]     @relation("SiniestroReportadoPor")
+  siniestrosReportados          Siniestro[]                   @relation("SiniestroReportadoPor")
   consumosRegistrados           ConsumoInsumo[]
+  metricasBICreadas             MetricaBI[]
+  accesosReporteBI              AccesoReporteBI[]
 }
 
 model UsuarioProyecto {
@@ -339,8 +343,8 @@ model Proyecto {
   insumos               InsumoInventario[]
   tickets               TicketRescate[]
   historicosUnidad      UnidadHistoricoProyecto[]
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
 }
 
 model PresupuestoMensual {
@@ -463,16 +467,16 @@ model Placa {
 // ───────────────────────── MÓDULO L — OPERADORES ─────────────────────────
 
 model Operador {
-  id                 String      @id @default(cuid())
-  nombre             String
-  curp               String      @unique
-  rfc                String?
-  nss                String?
+  id                      String              @id @default(cuid())
+  nombre                  String
+  curp                    String              @unique
+  rfc                     String?
+  nss                     String?
   tipoSangre              TipoSangre?
   telefono                String?
   contactoEmergencia      String?
   fotoId                  String?
-  foto                    Documento?           @relation("OperadorFoto", fields: [fotoId], references: [id])
+  foto                    Documento?          @relation("OperadorFoto", fields: [fotoId], references: [id])
   tipoLicenciaManejo      TipoLicenciaManejo?
   fechaUltimaCapacitacion DateTime?
   licenciaDocumentoUrl    String?
@@ -604,12 +608,12 @@ model GastoVehicular {
   fechaCxp         DateTime?
   fechaPago        DateTime?
 
-  fechaIngresoTaller    DateTime?
-  fechaEstimadaSalida   DateTime?
+  fechaIngresoTaller  DateTime?
+  fechaEstimadaSalida DateTime?
 
   evidenciaId String?
-  evidencia   Documento?              @relation(fields: [evidenciaId], references: [id])
-  estatus     EstatusGasto            @default(PROGRAMADO)
+  evidencia   Documento?   @relation(fields: [evidenciaId], references: [id])
+  estatus     EstatusGasto @default(PROGRAMADO)
 
   historicoProyectoId String?
   historicoProyecto   UnidadHistoricoProyecto? @relation(fields: [historicoProyectoId], references: [id])
@@ -908,6 +912,54 @@ model VistaDashboardBI {
   updatedAt   DateTime @updatedAt
 }
 
+// ───────────────────────── CAPA SEMÁNTICA — MÉTRICAS BI ─────────────────────────
+// Definición centralizada y reutilizable de una métrica de negocio (ej. "costo por
+// km"). NO es una vía alterna de ejecutar SQL: solo resuelve a los mismos parámetros
+// que ya acepta /api/bi/query (dataset/campo/agregación/filtros), que los revalida
+// contra el whitelist BI_DATASETS igual que cualquier otra consulta. Ver
+// src/lib/bi/metricas.ts.
+
+model MetricaBI {
+  id              String   @id @default(cuid())
+  clave           String   @unique
+  nombre          String
+  descripcion     String?
+  datasetId       String
+  campoId         String
+  agregacion      String
+  filtrosBaseJson Json?
+  formatoJson     Json?
+  activo          Boolean  @default(true)
+  creadoPorId     String
+  creadoPor       Usuario  @relation(fields: [creadoPorId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([datasetId])
+}
+
+// ───────────────────────── GOBERNANZA — AUDITORÍA DE ACCESO A REPORTES BI ─────────────────────────
+// Registra quién vio/exportó/recibió qué reporte o vista de BI. Complementa (no
+// reemplaza) ActivityLog: este modelo es específico del módulo de Reportes/BI y
+// guarda además el alcance de proyecto y los datasets efectivamente expuestos en
+// cada acceso, para poder auditar exposición de datos, no solo uso de la plataforma.
+
+model AccesoReporteBI {
+  id          String   @id @default(cuid())
+  userId      String
+  usuario     Usuario  @relation(fields: [userId], references: [id])
+  tipoRecurso String // "vista_dashboard" | "explorador" | "reporte_programado"
+  recursoId   String?
+  accion      String // "vio" | "exporto_pdf" | "exporto_excel" | "exporto_imagen" | "recibio_correo"
+  datasetIds  String[]
+  proyectoIds String[]
+  detalle     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tipoRecurso, recursoId])
+}
+
 // ───────────────────────── ANALÍTICA DE USO Y TRAZABILIDAD ─────────────────────────
 // Capa independiente de BitacoraCambio: BitacoraCambio audita cambios de datos de
 // negocio puntuales (unidades, operadores, presupuesto...); ActivityLog es el log
@@ -984,13 +1036,13 @@ model Accidente {
   id              String    @id @default(cuid())
   fecha           DateTime
   descripcion     String
-  tipo            String    // "choque", "raspón", "robo parcial", "otro"
+  tipo            String // "choque", "raspón", "robo parcial", "otro"
   numeroEconomico String
   unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
   operadorId      String?
   operador        Operador? @relation(fields: [operadorId], references: [id])
   evidencias      String[]
-  registradoPorId String?   // ID del usuario que registró (sin FK formal para evitar circular)
+  registradoPorId String? // ID del usuario que registró (sin FK formal para evitar circular)
   createdAt       DateTime  @default(now())
 
   @@index([numeroEconomico])
@@ -1014,17 +1066,17 @@ model CursoOperador {
 // ───────────────────────── MÓDULO G — INVENTARIO DE INSUMOS ─────────────────────────
 
 model InsumoInventario {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   proyectoId  String
-  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyecto    Proyecto        @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   nombre      String
   categoria   String?
-  unidad      String   @default("pza")
-  existencias Decimal  @default(0) @db.Decimal(12, 2)
-  minimoStock Decimal  @default(0) @db.Decimal(12, 2)
+  unidad      String          @default("pza")
+  existencias Decimal         @default(0) @db.Decimal(12, 2)
+  minimoStock Decimal         @default(0) @db.Decimal(12, 2)
   consumos    ConsumoInsumo[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@index([proyectoId])
 }
@@ -1032,16 +1084,16 @@ model InsumoInventario {
 // ───────────────────────── HISTÓRICO DE PROYECTOS POR UNIDAD ─────────────────────────
 
 model UnidadHistoricoProyecto {
-  id              String    @id @default(cuid())
+  id              String           @id @default(cuid())
   numeroEconomico String
-  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  unidad          Unidad           @relation(fields: [numeroEconomico], references: [numeroEconomico])
   proyectoId      String
-  proyecto        Proyecto  @relation(fields: [proyectoId], references: [id])
-  fechaInicio     DateTime  @default(now())
+  proyecto        Proyecto         @relation(fields: [proyectoId], references: [id])
+  fechaInicio     DateTime         @default(now())
   fechaFin        DateTime?
   gastos          GastoVehicular[]
   consumos        ConsumoInsumo[]
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime         @default(now())
 
   @@index([numeroEconomico])
   @@index([proyectoId])
@@ -1111,27 +1163,27 @@ model CatalogoMotivoRescate {
 }
 
 model TicketRescate {
-  id              String               @id @default(cuid())
-  folio           String               @unique
+  id              String                @id @default(cuid())
+  folio           String                @unique
   numeroEconomico String
-  unidad          Unidad               @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  unidad          Unidad                @relation(fields: [numeroEconomico], references: [numeroEconomico])
   motivoId        String
   motivo          CatalogoMotivoRescate @relation(fields: [motivoId], references: [id])
   descripcion     String?
-  prioridad       PrioridadRescate     @default(MEDIA)
-  estatus         EstatusTicketRescate @default(ABIERTO)
+  prioridad       PrioridadRescate      @default(MEDIA)
+  estatus         EstatusTicketRescate  @default(ABIERTO)
   ubicacion       String?
-  latitud         Decimal?             @db.Decimal(10, 7)
-  longitud        Decimal?             @db.Decimal(10, 7)
+  latitud         Decimal?              @db.Decimal(10, 7)
+  longitud        Decimal?              @db.Decimal(10, 7)
   reportadoPorId  String
-  reportadoPor    Usuario              @relation("TicketReportadoPor", fields: [reportadoPorId], references: [id])
+  reportadoPor    Usuario               @relation("TicketReportadoPor", fields: [reportadoPorId], references: [id])
   asignadoAId     String?
-  asignadoA       Usuario?             @relation("TicketAsignadoA", fields: [asignadoAId], references: [id])
+  asignadoA       Usuario?              @relation("TicketAsignadoA", fields: [asignadoAId], references: [id])
   proyectoId      String?
-  proyecto        Proyecto?            @relation(fields: [proyectoId], references: [id])
+  proyecto        Proyecto?             @relation(fields: [proyectoId], references: [id])
   cerradoAt       DateTime?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   historico HistoricoTicketRescate[]
 

@@ -101,6 +101,10 @@ export type DatasetMeta = {
    *  nunca los filtros elegidos por quien arma el widget. */
   proyectoScopeExpr: string;
   campos: CampoMeta[];
+  /** Modelos Prisma involucrados en `from` — usado únicamente para saber qué
+   *  tag de caché invalidar (`bi-dataset:<id>`) cuando se escribe en alguna de
+   *  estas tablas. Es metadata pura, no cambia el whitelist de seguridad. */
+  tablasBase: string[];
 };
 
 export const BI_DATASETS: DatasetMeta[] = [
@@ -109,6 +113,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Inventario de unidades",
     from: `"Unidad" u LEFT JOIN "Proyecto" p ON p.id = u."proyectoId" LEFT JOIN "Operador" r ON r.id = u."resguardanteId"`,
     proyectoScopeExpr: `u."proyectoId"`,
+    tablasBase: ["Unidad", "Proyecto", "Operador"],
     campos: [
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `u."estatus"`, opciones: opcionesDe(ESTATUS_UNIDAD_LABEL) },
       { id: "tipoVehiculo", label: "Tipo de vehículo", tipo: "texto", expr: `u."tipoVehiculo"`, opciones: opcionesDe(TIPO_VEHICULO_LABEL) },
@@ -132,6 +137,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Mantenimiento y gastos",
     from: `"GastoVehicular" g LEFT JOIN "Proyecto" p ON p.id = g."proyectoReportanteId"`,
     proyectoScopeExpr: `g."proyectoReportanteId"`,
+    tablasBase: ["GastoVehicular", "Proyecto"],
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `g."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `g."estatus"`, opciones: opcionesDe(ESTATUS_GASTO_LABEL) },
@@ -147,6 +153,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Combustible",
     from: `"Combustible" c LEFT JOIN "Proyecto" p ON p.id = c."proyectoReportanteId"`,
     proyectoScopeExpr: `c."proyectoReportanteId"`,
+    tablasBase: ["Combustible", "Proyecto"],
     campos: [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `c."fecha"` },
@@ -161,6 +168,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Seguros y vencimientos",
     from: `"Seguro" s LEFT JOIN "Unidad" u2 ON u2."numeroEconomico" = s."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = u2."proyectoId"`,
     proyectoScopeExpr: `u2."proyectoId"`,
+    tablasBase: ["Seguro", "Unidad", "Proyecto"],
     campos: [
       { id: "aseguradora", label: "Aseguradora", tipo: "texto", expr: `s."aseguradora"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `s."estatus"`, opciones: opcionesDe(ESTATUS_SEGURO_LABEL) },
@@ -175,6 +183,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Operadores",
     from: `"Operador" o LEFT JOIN "Proyecto" p ON p.id = o."proyectoId"`,
     proyectoScopeExpr: `o."proyectoId"`,
+    tablasBase: ["Operador", "Proyecto"],
     campos: [
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `o."estatus"`, opciones: opcionesDe(ESTATUS_OPERADOR_LABEL) },
       { id: "estatusDocumental", label: "Estatus documental", tipo: "texto", expr: `o."estatusDocumental"`, opciones: opcionesDe(ESTATUS_DOCUMENTAL_LABEL) },
@@ -187,6 +196,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Documentos de operadores",
     from: `"DocumentoOperador" do2 LEFT JOIN "Operador" o ON o.id = do2."operadorId" LEFT JOIN "Proyecto" p ON p.id = o."proyectoId"`,
     proyectoScopeExpr: `o."proyectoId"`,
+    tablasBase: ["DocumentoOperador", "Operador", "Proyecto"],
     campos: [
       { id: "tipoDocumento", label: "Tipo de documento", tipo: "texto", expr: `do2."tipoDocumento"`, opciones: opcionesDe(TIPO_DOCUMENTO_LABEL) },
       { id: "tipoLicencia", label: "Tipo de licencia", tipo: "texto", expr: `COALESCE(do2."tipoLicencia"::text, 'N/A')` },
@@ -201,6 +211,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "TAG / Peajes",
     from: `"Tag" t LEFT JOIN "Proyecto" p ON p.id = t."proyectoReportanteId"`,
     proyectoScopeExpr: `t."proyectoReportanteId"`,
+    tablasBase: ["Tag", "Proyecto"],
     campos: [
       { id: "proveedorTag", label: "Proveedor de TAG", tipo: "texto", expr: `t."proveedorTag"`, opciones: [{ valor: "IAVE", label: "IAVE" }, { valor: "PASE", label: "PASE" }, { valor: "TELEVIA", label: "Televía" }] },
       { id: "conciliado", label: "Conciliación", tipo: "texto", expr: `CASE WHEN t."conciliado" THEN 'Conciliado' ELSE 'Pendiente' END`, opciones: [{ valor: "Conciliado", label: "Conciliado" }, { valor: "Pendiente", label: "Pendiente" }] },
@@ -215,6 +226,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Presupuesto por partida (autorizado)",
     from: `"PresupuestoPartida" pp LEFT JOIN "Proyecto" p ON p.id = pp."proyectoId"`,
     proyectoScopeExpr: `pp."proyectoId"`,
+    tablasBase: ["PresupuestoPartida", "Proyecto"],
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `pp."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
@@ -227,6 +239,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Proyectos",
     from: `"Proyecto" p`,
     proyectoScopeExpr: `p."id"`,
+    tablasBase: ["Proyecto"],
     campos: [
       { id: "estadoRepublica", label: "Estado de la república", tipo: "geografico", expr: `p."estadoRepublica"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `p."estatus"`, opciones: [{ valor: "ACTIVO", label: "Activo" }, { valor: "CERRADO", label: "Cerrado" }] },

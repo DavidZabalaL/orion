@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
@@ -77,6 +78,7 @@ export async function crearSeguro(formData: FormData) {
 
   revalidatePath("/seguros");
   revalidatePath(`/unidades/${numeroEconomico}`);
+  invalidarCacheBI(["seguros"]);
   redirect(`/seguros/${seguro.id}`);
 }
 
@@ -118,6 +120,7 @@ export async function renovarSeguro(formData: FormData) {
   revalidatePath(`/seguros/${id}`);
   revalidatePath("/seguros");
   revalidatePath(`/unidades/${seguro.numeroEconomico}`);
+  invalidarCacheBI(["seguros"]);
 }
 
 export async function subirDocumentoSeguro(formData: FormData) {

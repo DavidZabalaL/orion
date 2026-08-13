@@ -7,6 +7,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -106,5 +107,6 @@ export async function crearUnidad(formData: FormData) {
     });
   }
 
+  invalidarCacheBI(["unidades"]);
   redirect(`/unidades/${numeroEconomico}`);
 }

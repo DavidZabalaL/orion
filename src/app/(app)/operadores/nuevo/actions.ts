@@ -7,6 +7,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function crearOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -112,5 +113,6 @@ export async function crearOperador(formData: FormData) {
     });
   }
 
+  invalidarCacheBI(["operadores", "documentos_operador"]);
   redirect(`/operadores/${operador.id}`);
 }
