@@ -42,18 +42,29 @@ export default async function FichaProyectoPage({
   if (!proyecto) notFound();
 
   const modulosActivos = new Set(proyecto.modulosActivos as string[]);
-  const numerosEconomicos = proyecto.unidades.map((u) => u.numeroEconomico);
   const anioActual = new Date().getFullYear();
 
+  // Historicos de todas las épocas (sin filtro de año) para el gasto acumulado total
+  const historicosTotal = await prisma.unidadHistoricoProyecto.findMany({
+    where: { proyectoId: proyecto.id },
+    select: { numeroEconomico: true, fechaInicio: true, fechaFin: true },
+  });
+
+  // Para cada período histórico, los gastos se acumulan solo mientras la unidad estuvo asignada aquí
+  const condHistorico = historicosTotal.map((h) => ({
+    numeroEconomico: h.numeroEconomico,
+    fecha: { gte: h.fechaInicio, ...(h.fechaFin ? { lt: h.fechaFin } : {}) },
+  }));
+
   const [gastos, combustible, tags, resumenPresupuestoAnual, resumenPorPartida, esAdmin] = await Promise.all([
-    modulosActivos.has("C")
-      ? prisma.gastoVehicular.aggregate({ where: { numeroEconomico: { in: numerosEconomicos } }, _sum: { costo: true } })
+    modulosActivos.has("C") && condHistorico.length > 0
+      ? prisma.gastoVehicular.aggregate({ where: { OR: condHistorico }, _sum: { costo: true } })
       : null,
-    modulosActivos.has("D")
-      ? prisma.combustible.aggregate({ where: { numeroEconomico: { in: numerosEconomicos } }, _sum: { costo: true } })
+    modulosActivos.has("D") && condHistorico.length > 0
+      ? prisma.combustible.aggregate({ where: { OR: condHistorico }, _sum: { costo: true } })
       : null,
-    modulosActivos.has("E")
-      ? prisma.tag.aggregate({ where: { numeroEconomico: { in: numerosEconomicos } }, _sum: { monto: true } })
+    modulosActivos.has("E") && condHistorico.length > 0
+      ? prisma.tag.aggregate({ where: { OR: condHistorico }, _sum: { monto: true } })
       : null,
     obtenerResumenPresupuestoAnual(proyecto.id, anioActual),
     obtenerResumenPresupuestoPorPartida(proyecto.id, anioActual),
