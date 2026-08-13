@@ -83,10 +83,8 @@ const selectStyle: React.CSSProperties = {
 
 export function UnidadesTable({
   rows: rowsIniciales,
-  proyectos,
 }: {
   rows: UnidadRow[];
-  proyectos: string[];
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(rowsIniciales);
@@ -116,6 +114,18 @@ export function UnidadesTable({
       )
     );
   }
+
+  // Opciones del selector de proyecto: derivadas de lo que llega en `rows`, así
+  // que si los chips de arriba ya acotaron por proyecto, este select solo
+  // ofrece esas opciones — ambos filtros conviven sin contradecirse.
+  const proyectos = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.proyecto).filter(Boolean))) as string[],
+    [rows]
+  );
+
+  useEffect(() => {
+    setProyectoFiltro((actual) => (actual && !proyectos.includes(actual) ? "" : actual));
+  }, [proyectos]);
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toUpperCase();

@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { StatCard } from "@/components/ui/stat-card";
-import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
-import { Car, CheckCircle2, Ban, ArrowLeftRight, LayoutGrid } from "lucide-react";
+import { type UnidadRow } from "@/components/unidades/unidades-table";
+import { InventarioUnidades } from "@/components/unidades/inventario-unidades";
+import { LayoutGrid } from "lucide-react";
 import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
-import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
-import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, valorWidgetUnidades, type WidgetConfigItem } from "@/lib/widgets";
+import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, type WidgetConfigItem } from "@/lib/widgets";
 import Link from "next/link";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
@@ -93,14 +92,6 @@ export default async function UnidadesPage() {
     };
   });
 
-  const total = rows.length;
-  const activas = rows.filter((r) => r.estatus === "ACTIVO").length;
-  const disponibles = rows.filter((r) => r.disponibilidad).length;
-  const enTransito = rows.filter((r) => r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION").length;
-  const bajas = rows.filter((r) => r.estatus === "BAJA").length;
-
-  const proyectosOptions = Array.from(new Set(rows.map((r) => r.proyecto).filter(Boolean))) as string[];
-
   const hoyInicio = inicioDeHoyMx();
   const [gastoHoyAgg, configWidgets, puedeConfigurar] = await Promise.all([
     prisma.gastoVehicular.aggregate({
@@ -111,25 +102,7 @@ export default async function UnidadesPage() {
     esRolGlobal(),
   ]);
 
-  const porTipoMap = new Map<string, number>();
-  const porProyectoMap = new Map<string, number>();
-  for (const r of rows) {
-    const tipoLabel = TIPO_VEHICULO_LABEL[r.tipoVehiculo] ?? r.tipoVehiculo;
-    porTipoMap.set(tipoLabel, (porTipoMap.get(tipoLabel) ?? 0) + 1);
-    const proyectoLabel = r.proyecto ?? "Sin proyecto";
-    porProyectoMap.set(proyectoLabel, (porProyectoMap.get(proyectoLabel) ?? 0) + 1);
-  }
-
-  const datosWidgets = {
-    total,
-    activas,
-    disponibles,
-    bajas,
-    consignacionODireccion: enTransito,
-    gastoHoy: Number(gastoHoyAgg._sum.costo ?? 0),
-    porTipo: Array.from(porTipoMap, ([label, value]) => ({ label, value })),
-    porProyecto: Array.from(porProyectoMap, ([label, value]) => ({ label, value })),
-  };
+  const gastoHoy = Number(gastoHoyAgg._sum.costo ?? 0);
 
   const widgetsGuardados = configWidgets?.widgets as WidgetConfigItem[] | undefined;
   const widgetsActivos: WidgetConfigItem[] = CATALOGO_WIDGETS_UNIDADES
@@ -157,30 +130,7 @@ export default async function UnidadesPage() {
         )}
       </div>
 
-      {widgetsActivos.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {widgetsActivos.map((w) => {
-            const valor = valorWidgetUnidades(w.id, datosWidgets);
-            if (Array.isArray(valor)) {
-              return (
-                <div key={w.id} className="rounded-xl p-4 col-span-2" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-                  <div className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>{w.label}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {valor.map((v) => (
-                      <span key={v.label} className="rounded-full px-3 py-1" style={{ background: "var(--chip)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
-                        {v.label}: <strong>{v.value}</strong>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            return <StatCard key={w.id} label={w.label} value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor} icon={w.id === "bajas" ? Ban : w.id === "consignacionODireccion" ? ArrowLeftRight : w.id === "activas" || w.id === "disponibles" ? CheckCircle2 : Car} accent="var(--color-primary)" />;
-          })}
-        </div>
-      )}
-
-      <UnidadesTable rows={rows} proyectos={proyectosOptions} />
+      <InventarioUnidades rows={rows} widgetsActivos={widgetsActivos} gastoHoy={gastoHoy} />
     </div>
   );
 }
