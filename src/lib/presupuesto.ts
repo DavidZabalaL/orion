@@ -11,23 +11,46 @@ export type ResumenPresupuestoAnual = {
   meses: MesPresupuesto[];
 };
 
-export async function obtenerResumenPresupuestoAnual(proyectoId: string, anio: number): Promise<ResumenPresupuestoAnual> {
-  const [proyecto, unidades, presupuestosMensuales] = await Promise.all([
-    prisma.proyecto.findUniqueOrThrow({ where: { id: proyectoId }, select: { presupuestoAprobadoAnual: true } }),
-    prisma.unidad.findMany({ where: { proyectoId }, select: { numeroEconomico: true } }),
-    prisma.presupuestoMensual.findMany({ where: { proyectoId, anio } }),
-  ]);
+/** Builds per-historico OR conditions intersected with a year range. */
+function condicionesPorPeriodo(
+  historicos: { numeroEconomico: string; fechaInicio: Date; fechaFin: Date | null }[],
+  inicio: Date,
+  fin: Date,
+) {
+  return historicos.map((h) => ({
+    numeroEconomico: h.numeroEconomico,
+    fecha: {
+      gte: h.fechaInicio > inicio ? h.fechaInicio : inicio,
+      lt: h.fechaFin && h.fechaFin < fin ? h.fechaFin : fin,
+    },
+  }));
+}
 
-  const numerosEconomicos = unidades.map((u) => u.numeroEconomico);
+export async function obtenerResumenPresupuestoAnual(proyectoId: string, anio: number): Promise<ResumenPresupuestoAnual> {
   const inicio = new Date(Date.UTC(anio, 0, 1));
   const fin = new Date(Date.UTC(anio + 1, 0, 1));
 
-  const [gastos, combustible, tags] = numerosEconomicos.length === 0
+  const [proyecto, historicos, presupuestosMensuales] = await Promise.all([
+    prisma.proyecto.findUniqueOrThrow({ where: { id: proyectoId }, select: { presupuestoAprobadoAnual: true } }),
+    prisma.unidadHistoricoProyecto.findMany({
+      where: {
+        proyectoId,
+        fechaInicio: { lt: fin },
+        OR: [{ fechaFin: null }, { fechaFin: { gte: inicio } }],
+      },
+      select: { numeroEconomico: true, fechaInicio: true, fechaFin: true },
+    }),
+    prisma.presupuestoMensual.findMany({ where: { proyectoId, anio } }),
+  ]);
+
+  const periodos = condicionesPorPeriodo(historicos, inicio, fin);
+
+  const [gastos, combustible, tags] = periodos.length === 0
     ? [[], [], []]
     : await Promise.all([
-        prisma.gastoVehicular.findMany({ where: { numeroEconomico: { in: numerosEconomicos }, fecha: { gte: inicio, lt: fin } }, select: { fecha: true, costo: true } }),
-        prisma.combustible.findMany({ where: { numeroEconomico: { in: numerosEconomicos }, fecha: { gte: inicio, lt: fin } }, select: { fecha: true, costo: true } }),
-        prisma.tag.findMany({ where: { numeroEconomico: { in: numerosEconomicos }, fecha: { gte: inicio, lt: fin } }, select: { fecha: true, monto: true } }),
+        prisma.gastoVehicular.findMany({ where: { OR: periodos }, select: { fecha: true, costo: true } }),
+        prisma.combustible.findMany({ where: { OR: periodos }, select: { fecha: true, costo: true } }),
+        prisma.tag.findMany({ where: { OR: periodos }, select: { fecha: true, monto: true } }),
       ]);
 
   const gastoPorMes = new Map<number, number>();
@@ -78,49 +101,52 @@ export type ResumenPresupuestoPorPartida = {
  * - CASETAS sale únicamente de Tag (el módulo de Mantenimiento ya no permite capturar Casetas).
  * - VIATICOS_OPERACION sale de GastoVehicular sin pasar por unidad (proyectoReportanteId).
  * - Las demás categorías salen de GastoVehicular de las unidades del proyecto.
- * Nota: como en obtenerResumenPresupuestoAnual, las unidades se resuelven por su
- * proyecto ACTUAL, no el histórico — si una unidad cambió de proyecto a mitad de
- * año, su gasto pasado queda atribuido al proyecto actual.
+ * Los gastos de unidades se atribuyen al proyecto según el período histórico en que
+ * la unidad estuvo asignada (UnidadHistoricoProyecto), no el proyecto actual.
  */
 export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, anio: number): Promise<ResumenPresupuestoPorPartida> {
   const inicio = new Date(Date.UTC(anio, 0, 1));
   const fin = new Date(Date.UTC(anio + 1, 0, 1));
 
-  const [unidades, presupuestosPartida] = await Promise.all([
-    prisma.unidad.findMany({ where: { proyectoId }, select: { numeroEconomico: true } }),
+  const [historicos, presupuestosPartida] = await Promise.all([
+    prisma.unidadHistoricoProyecto.findMany({
+      where: {
+        proyectoId,
+        fechaInicio: { lt: fin },
+        OR: [{ fechaFin: null }, { fechaFin: { gte: inicio } }],
+      },
+      select: { numeroEconomico: true, fechaInicio: true, fechaFin: true },
+    }),
     prisma.presupuestoPartida.findMany({ where: { proyectoId, anio } }),
   ]);
-  const numerosEconomicos = unidades.map((u) => u.numeroEconomico);
+
+  const periodos = condicionesPorPeriodo(historicos, inicio, fin);
+
+  // Expenses reported directly to the project (not via a unit) — always scoped by year only
+  const orConProyectoReportante = [
+    ...periodos,
+    { proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } } as const,
+  ];
 
   const [gastosPorUnidad, viaticos, combustible, tags] = await Promise.all([
-    numerosEconomicos.length === 0
-      ? []
+    periodos.length === 0
+      ? ([] as { categoria: string; fecha: Date; costo: unknown }[])
       : prisma.gastoVehicular.findMany({
-          where: { numeroEconomico: { in: numerosEconomicos }, fecha: { gte: inicio, lt: fin } },
+          where: { OR: periodos },
           select: { categoria: true, fecha: true, costo: true },
         }),
     prisma.gastoVehicular.findMany({
       where: { categoria: "VIATICOS_OPERACION", proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } },
       select: { fecha: true, costo: true },
     }),
-    numerosEconomicos.length === 0
-      ? []
-      : prisma.combustible.findMany({
-          where: {
-            fecha: { gte: inicio, lt: fin },
-            OR: [{ numeroEconomico: { in: numerosEconomicos } }, { proyectoReportanteId: proyectoId }],
-          },
-          select: { fecha: true, costo: true },
-        }),
-    numerosEconomicos.length === 0
-      ? []
-      : prisma.tag.findMany({
-          where: {
-            fecha: { gte: inicio, lt: fin },
-            OR: [{ numeroEconomico: { in: numerosEconomicos } }, { proyectoReportanteId: proyectoId }],
-          },
-          select: { fecha: true, monto: true },
-        }),
+    prisma.combustible.findMany({
+      where: { OR: orConProyectoReportante },
+      select: { fecha: true, costo: true },
+    }),
+    prisma.tag.findMany({
+      where: { OR: orConProyectoReportante },
+      select: { fecha: true, monto: true },
+    }),
   ]);
 
   const sumarPorMes = (filas: { fecha: Date; costo?: unknown; monto?: unknown }[]) => {

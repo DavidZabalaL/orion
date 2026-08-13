@@ -206,6 +206,8 @@ export async function actualizarUnidad(formData: FormData) {
     }
   }
 
+  const ahoraActualizar = new Date();
+
   await prisma.unidad.update({
     where: { numeroEconomico },
     data: {
@@ -226,6 +228,20 @@ export async function actualizarUnidad(formData: FormData) {
       licenciaRequerida: licenciaRequerida as "TIPO_A" | "TIPO_B" | null,
     },
   });
+
+  if (anterior.proyectoId !== proyectoId) {
+    if (anterior.proyectoId) {
+      await prisma.unidadHistoricoProyecto.updateMany({
+        where: { numeroEconomico, fechaFin: null },
+        data: { fechaFin: ahoraActualizar },
+      });
+    }
+    if (proyectoId) {
+      await prisma.unidadHistoricoProyecto.create({
+        data: { numeroEconomico, proyectoId, fechaInicio: ahoraActualizar },
+      });
+    }
+  }
 
   if (anterior.placas !== placas) {
     await prisma.placa.updateMany({
