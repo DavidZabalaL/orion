@@ -48,4 +48,30 @@ export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): nu
   }
 }
 
-export type WidgetConfigItem = { id: string; label: string; activo: boolean };
+export type TamanoWidget = "pequeno" | "mediano" | "grande";
+
+export const TAMANO_WIDGET_LABEL: Record<TamanoWidget, string> = {
+  pequeno: "Pequeño",
+  mediano: "Mediano",
+  grande: "Grande (ancho completo)",
+};
+
+// Clases de grid-column para un contenedor `grid-cols-2 md:grid-cols-4`.
+export const TAMANO_WIDGET_CLASE: Record<TamanoWidget, string> = {
+  pequeno: "col-span-1",
+  mediano: "col-span-2",
+  grande: "col-span-2 md:col-span-4",
+};
+
+export function tamanoWidgetPorDefecto(tipo: "contador" | "desglose"): TamanoWidget {
+  return tipo === "desglose" ? "mediano" : "pequeno";
+}
+
+export function esTamanoWidgetValido(valor: unknown): valor is TamanoWidget {
+  return valor === "pequeno" || valor === "mediano" || valor === "grande";
+}
+
+export type WidgetConfigItem = { id: string; activo: boolean; tamano: TamanoWidget };
+
+/** Forma que consumen las páginas al renderizar: incluye la etiqueta fija del catálogo (no editable). */
+export type WidgetActivo = WidgetConfigItem & { label: string };

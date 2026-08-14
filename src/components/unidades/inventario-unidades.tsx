@@ -5,7 +5,7 @@ import { Car, CheckCircle2, XCircle, Ban, ArrowLeftRight, Layers } from "lucide-
 import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
-import { valorWidgetUnidades, type WidgetConfigItem } from "@/lib/widgets";
+import { valorWidgetUnidades, TAMANO_WIDGET_CLASE, type WidgetActivo } from "@/lib/widgets";
 
 const ICONO_WIDGET: Record<string, typeof Car> = {
   total: Layers,
@@ -29,7 +29,7 @@ export function InventarioUnidades({
   gastoHoy,
 }: {
   rows: UnidadRow[];
-  widgetsActivos: WidgetConfigItem[];
+  widgetsActivos: WidgetActivo[];
   gastoHoy: number;
 }) {
   const [proyectosSeleccionados, setProyectosSeleccionados] = useState<string[]>([]);
@@ -70,42 +70,41 @@ export function InventarioUnidades({
     setCategoriaEstatus((prev) => (prev === valor ? null : valor));
   }
 
-  // Aplica los filtros activos, permitiendo excluir una dimensión (para que
-  // cada desglose muestre "cuántas habría si además filtro por esta opción",
-  // en vez de desaparecer sus propias opciones al seleccionarlas).
-  function aplicarFiltros(
-    lista: UnidadRow[],
-    opts: { excluirProyecto?: boolean; excluirTipo?: boolean; forzarNoDisponible?: boolean } = {}
-  ) {
-    return lista.filter((r) => {
-      if (!opts.excluirProyecto && proyectosSeleccionados.length && !proyectosSeleccionados.includes(r.proyecto ?? "Sin proyecto")) return false;
-      if (!opts.excluirTipo && tiposSeleccionados.length && !tiposSeleccionados.includes(tipoLabelDe(r))) return false;
-      if (opts.forzarNoDisponible) {
-        if (r.disponibilidad) return false;
-      } else {
-        if (disponibilidad === "disponible" && !r.disponibilidad) return false;
-        if (disponibilidad === "no_disponible" && r.disponibilidad) return false;
-      }
+  // La lista de abajo respeta TODOS los filtros (proyecto, tipo,
+  // disponibilidad, estatus) — cada widget sigue sirviendo para ver el
+  // detalle de lo que resume.
+  const rowsFiltradas = useMemo(() => {
+    return rows.filter((r) => {
+      if (proyectosSeleccionados.length && !proyectosSeleccionados.includes(r.proyecto ?? "Sin proyecto")) return false;
+      if (tiposSeleccionados.length && !tiposSeleccionados.includes(tipoLabelDe(r))) return false;
+      if (disponibilidad === "disponible" && !r.disponibilidad) return false;
+      if (disponibilidad === "no_disponible" && r.disponibilidad) return false;
       if (categoriaEstatus === "activas" && r.estatus !== "ACTIVO") return false;
       if (categoriaEstatus === "bajas" && r.estatus !== "BAJA") return false;
       if (categoriaEstatus === "transito" && !(r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION")) return false;
       return true;
     });
-  }
+  }, [rows, proyectosSeleccionados, tiposSeleccionados, disponibilidad, categoriaEstatus]);
 
-  const rowsFiltradas = useMemo(
-    () => aplicarFiltros(rows),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, proyectosSeleccionados, tiposSeleccionados, disponibilidad, categoriaEstatus]
-  );
+  // Los contadores y desgloses de los widgets solo se mueven con el proyecto
+  // seleccionado — los demás clics (tipo, disponibilidad, estatus) no los
+  // alteran, solo filtran la lista de arriba. Las unidades dadas de baja no
+  // cuentan para nada aquí (ni total, ni activas, ni disponibles/no
+  // disponibles, ni los desgloses); "Bajas" es la única excepción informativa.
+  const rowsProyecto = useMemo(() => {
+    if (proyectosSeleccionados.length === 0) return rows;
+    return rows.filter((r) => proyectosSeleccionados.includes(r.proyecto ?? "Sin proyecto"));
+  }, [rows, proyectosSeleccionados]);
+
+  const rowsParaContar = useMemo(() => rowsProyecto.filter((r) => r.estatus !== "BAJA"), [rowsProyecto]);
 
   const datosWidgets = useMemo(() => {
-    const total = rowsFiltradas.length;
-    const activas = rowsFiltradas.filter((r) => r.estatus === "ACTIVO").length;
-    const disponibles = rowsFiltradas.filter((r) => r.disponibilidad).length;
+    const total = rowsParaContar.length;
+    const activas = rowsParaContar.filter((r) => r.estatus === "ACTIVO").length;
+    const disponibles = rowsParaContar.filter((r) => r.disponibilidad).length;
     const noDisponibles = total - disponibles;
-    const bajas = rowsFiltradas.filter((r) => r.estatus === "BAJA").length;
-    const consignacionODireccion = rowsFiltradas.filter((r) => r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION").length;
+    const bajas = rowsProyecto.filter((r) => r.estatus === "BAJA").length;
+    const consignacionODireccion = rowsParaContar.filter((r) => r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION").length;
 
     const contarPorTipo = (lista: UnidadRow[]) => {
       const mapa = new Map<string, number>();
@@ -129,12 +128,11 @@ export function InventarioUnidades({
       bajas,
       consignacionODireccion,
       gastoHoy,
-      porTipo: contarPorTipo(aplicarFiltros(rows, { excluirTipo: true })),
-      porTipoNoDisponible: contarPorTipo(aplicarFiltros(rows, { excluirTipo: true, forzarNoDisponible: true })),
-      porProyecto: contarPorProyecto(aplicarFiltros(rows, { excluirProyecto: true })),
+      porTipo: contarPorTipo(rowsParaContar),
+      porTipoNoDisponible: contarPorTipo(rowsParaContar.filter((r) => !r.disponibilidad)),
+      porProyecto: contarPorProyecto(rows.filter((r) => r.estatus !== "BAJA")),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowsFiltradas, rows, gastoHoy, proyectosSeleccionados, tiposSeleccionados, disponibilidad, categoriaEstatus]);
+  }, [rowsParaContar, rowsProyecto, rows, gastoHoy]);
 
   function alClicWidget(id: string) {
     switch (id) {
@@ -186,7 +184,7 @@ export function InventarioUnidades({
               const estaSeleccionado = (label: string) =>
                 esProyecto ? proyectosSeleccionados.includes(label) : esTipo ? tiposSeleccionados.includes(label) : false;
               return (
-                <div key={w.id} className="rounded-xl p-4 col-span-2" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+                <div key={w.id} className={`rounded-xl p-4 ${TAMANO_WIDGET_CLASE[w.tamano]}`} style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
                   <div className="mb-2 flex items-center justify-between">
                     <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
                       {w.label}
@@ -221,15 +219,16 @@ export function InventarioUnidades({
               );
             }
             return (
-              <StatCard
-                key={w.id}
-                label={w.label}
-                value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
-                icon={ICONO_WIDGET[w.id] ?? Car}
-                accent="var(--color-primary)"
-                onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
-                seleccionado={widgetSeleccionado(w.id)}
-              />
+              <div key={w.id} className={TAMANO_WIDGET_CLASE[w.tamano]}>
+                <StatCard
+                  label={w.label}
+                  value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
+                  icon={ICONO_WIDGET[w.id] ?? Car}
+                  accent="var(--color-primary)"
+                  onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
+                  seleccionado={widgetSeleccionado(w.id)}
+                />
+              </div>
             );
           })}
         </div>

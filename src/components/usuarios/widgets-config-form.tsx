@@ -3,18 +3,17 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { actualizarConfiguracionWidgets } from "@/app/(app)/usuarios/widgets/actions";
-import type { DefinicionWidget, WidgetConfigItem } from "@/lib/widgets";
+import { TAMANO_WIDGET_LABEL, tamanoWidgetPorDefecto, type DefinicionWidget, type WidgetConfigItem } from "@/lib/widgets";
 
-const fieldStyle: React.CSSProperties = {
+const selectStyle: React.CSSProperties = {
   background: "var(--field-bg)",
   border: "1px solid var(--field-border)",
   color: "var(--field-text)",
   fontFamily: "var(--font-ui)",
-  fontSize: "var(--text-base)",
-  height: "var(--h-md)",
-  width: "100%",
+  fontSize: "var(--text-sm)",
+  height: "var(--h-sm)",
   borderRadius: "var(--radius-md)",
-  padding: "0 12px",
+  padding: "0 10px",
 };
 
 export function WidgetsConfigForm({
@@ -47,11 +46,14 @@ export function WidgetsConfigForm({
           return (
             <div key={w.id} className="flex items-center gap-3 rounded-xl p-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
               <input type="checkbox" name={`activo_${w.id}`} defaultChecked={actual?.activo ?? false} />
-              <input
-                name={`label_${w.id}`}
-                defaultValue={actual?.label ?? w.labelDefault}
-                style={{ ...fieldStyle, maxWidth: 320 }}
-              />
+              <span className="flex-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>
+                {w.labelDefault}
+              </span>
+              <select name={`tamano_${w.id}`} defaultValue={actual?.tamano ?? tamanoWidgetPorDefecto(w.tipo)} style={selectStyle}>
+                {Object.entries(TAMANO_WIDGET_LABEL).map(([valor, etiqueta]) => (
+                  <option key={valor} value={valor}>{etiqueta}</option>
+                ))}
+              </select>
               <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textTransform: "uppercase" }}>
                 {w.tipo === "contador" ? "Contador" : "Desglose"}
               </span>
