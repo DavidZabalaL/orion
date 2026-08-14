@@ -189,7 +189,7 @@ export function InventarioUnidades({
                 <div key={w.id} className="rounded-xl p-4 col-span-2" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
                   <div className="mb-2 flex items-center justify-between">
                     <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
-                      {w.label} — clic para filtrar
+                      {w.label}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
