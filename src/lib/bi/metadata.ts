@@ -514,6 +514,16 @@ export type CombinacionGuardable = {
    *  proyectos permitidos por su rol). SIEMPRE se intersecta en el servidor con
    *  proyectosPermitidosParaModulo("J") — nunca se confía en este valor tal cual. */
   proyectoIds?: string[];
+  /** Cross-filter: al hacer clic en una categoría de este widget, emite un
+   *  filtro de interacción (mismo mecanismo que `filtros` — un `Filtro` más
+   *  que /api/bi/query valida igual que cualquier otro, cero superficie
+   *  nueva) que se ofrece a los widgets marcados `escuchaFiltro`. */
+  emiteFiltro?: boolean;
+  /** Si hay un filtro de interacción activo (de algún widget `emiteFiltro`)
+   *  y su campo existe en el dataset de este widget, se fusiona con sus
+   *  `filtros` propios antes de consultar. Si no existe, se ignora en
+   *  silencio para este widget — nunca rompe la consulta. */
+  escuchaFiltro?: boolean;
 };
 
 /** Combinaciones curadas de arranque (MVP), antes de abrir el selector libre. */
