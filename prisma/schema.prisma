@@ -290,6 +290,7 @@ model Usuario {
   consumosRegistrados           ConsumoInsumo[]
   metricasBICreadas             MetricaBI[]
   accesosReporteBI              AccesoReporteBI[]
+  nlQueryLogs                   NlQueryLog[]
 }
 
 model UsuarioProyecto {
@@ -985,6 +986,42 @@ model AccesoReporteBI {
 
   @@index([userId, createdAt])
   @@index([tipoRecurso, recursoId])
+}
+
+// ───────────────────────── IA/NLP — CONSULTAS EN LENGUAJE NATURAL ─────────────────────────
+// Auditoría de cada pregunta en lenguaje natural: la interpretación cruda del
+// modelo (JSON, nunca SQL) y si pasó la validación contra BI_DATASETS. Sirve
+// para depurar rechazos y, a futuro, mejorar el prompt con ejemplos reales.
+
+model NlQueryLog {
+  id             String   @id @default(cuid())
+  usuarioId      String
+  usuario        Usuario  @relation(fields: [usuarioId], references: [id])
+  pregunta       String
+  interpretacion Json?
+  parametros     Json?
+  exito          Boolean
+  motivoRechazo  String?
+  createdAt      DateTime @default(now())
+
+  @@index([usuarioId, createdAt])
+}
+
+// Resumen/explicación en lenguaje natural cacheado por hash de los parámetros
+// de consulta ya resueltos (post-RLS) — compartido entre "insight" (resumen de
+// una gráfica) y "forecast" (explicación de una proyección). Nunca guarda
+// datos crudos, solo el texto ya generado.
+model InsightCache {
+  id            String   @id @default(cuid())
+  claveConsulta String   @unique
+  tipo          String // "insight" | "forecast"
+  resumen       String
+  datosHash     String
+  modelo        String
+  createdAt     DateTime @default(now())
+  expiraEn      DateTime
+
+  @@index([tipo, expiraEn])
 }
 
 // ───────────────────────── ANALÍTICA DE USO Y TRAZABILIDAD ─────────────────────────

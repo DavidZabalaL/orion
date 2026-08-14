@@ -9,6 +9,8 @@ import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { AnalisisAvanzado } from "@/components/bi/analisis-avanzado";
+import { PreguntaNatural } from "@/components/bi/pregunta-natural";
+import { InsightBI } from "@/components/bi/insight-bi";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 
 export type MetricaDisponible = {
@@ -80,8 +82,14 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
 
+  function aplicarInterpretacionNL(p: { datasetId: string; ejeX: string; ejeY: string; agregacion: "conteo" | "suma" | "promedio"; tipoGrafica: CombinacionBI["tipoGrafica"]; filtros?: CombinacionBI["filtros"] }) {
+    setCombinacion({ datasetId: p.datasetId, ejeX: p.ejeX, ejeY: p.ejeY, agregacion: p.agregacion, tipoGrafica: p.tipoGrafica, filtros: p.filtros });
+  }
+
   return (
     <div className="flex flex-col gap-5">
+      <PreguntaNatural onInterpretado={aplicarInterpretacionNL} />
+
       <div className="flex flex-wrap gap-2">
         {BI_COMBINACIONES_SUGERIDAS.map((s) => (
           <button
@@ -155,6 +163,17 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
           )}
         </div>
       </div>
+
+      <InsightBI
+        dataset={combinacion.datasetId}
+        ejeX={combinacion.ejeX}
+        ejeY={combinacion.ejeY}
+        agregacion={combinacion.agregacion}
+        orden={combinacion.orden}
+        filtros={combinacion.filtros}
+        proyectoIds={combinacion.proyectoIds}
+        tieneDatos={!cargando && !error && datos.length > 0}
+      />
 
       <AnalisisAvanzado datasetId={combinacion.datasetId} proyectoIds={combinacion.proyectoIds} filtros={combinacion.filtros} />
     </div>
