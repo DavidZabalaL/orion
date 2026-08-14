@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
+import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { AnalisisAvanzado } from "@/components/bi/analisis-avanzado";
+import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 
 export type MetricaDisponible = {
   id: string;
@@ -27,6 +29,13 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
     tipoGrafica: "barras",
   });
   const [verTabla, setVerTabla] = useState(false);
+
+  useEffect(() => {
+    const clave = "bi-vio:explorador:general";
+    if (sessionStorage.getItem(clave)) return;
+    sessionStorage.setItem(clave, "1");
+    void registrarAccesoBI({ tipoRecurso: "explorador", accion: "vio" });
+  }, []);
 
   const dataset = obtenerDataset(combinacion.datasetId)!;
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
@@ -69,6 +78,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   );
   const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
+  const graficaRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -122,9 +132,12 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
               <Table2 size={13} /> {verTabla ? "Ver gráfica" : "Ver tabla"}
             </button>
           )}
+          {!cargando && !error && (
+            <ExportarMenu dataset={combinacion.datasetId} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={combinacion.proyectoIds} contenedorRef={graficaRef} tipoRecurso="explorador" />
+          )}
         </div>
 
-        <div className="mt-3" style={{ minHeight: 320 }}>
+        <div ref={graficaRef} className="mt-3" style={{ minHeight: 320 }}>
           {cargando ? (
             <div className="flex items-center justify-center p-10" style={{ color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               Cargando…

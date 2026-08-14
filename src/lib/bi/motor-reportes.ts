@@ -9,6 +9,7 @@ import { resolverFilasReporte } from "@/lib/bi/ejecutar-reporte";
 import { generarExcelReporte } from "@/lib/bi/excel-export";
 import { generarPdfReporte } from "@/lib/bi/pdf/reporte-tabla-pdf";
 import { enviarReporteBI } from "@/lib/email";
+import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
 
 export type ResultadoEjecucionReporte = { ok: boolean; estatus: "ok" | "error" | "sin_destinatarios"; error?: string };
 
@@ -39,6 +40,14 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
     }
 
     await registrarEjecucion(reporteId, "ok", `${filas.length} registro(s) enviados a ${destinatarios.length} destinatario(s).`, destinatarios.length);
+    await registrarAccesoReporteBI({
+      userId: reporte.creadoPorId,
+      tipoRecurso: "reporte_programado",
+      accion: "recibio_correo",
+      recursoId: reporteId,
+      proyectoIds: proyectoIds ?? [],
+      detalle: { destinatarios, filas: filas.length },
+    });
     return { ok: true, estatus: "ok" };
   } catch (e) {
     const mensaje = e instanceof Error ? e.message : "Error desconocido al generar el reporte.";

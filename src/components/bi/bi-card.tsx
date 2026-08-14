@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { X, Pencil, GripVertical, Table2 } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
+import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
 
@@ -43,6 +44,7 @@ export function BiCard({
   );
   const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = obtenerCampo(obtenerDataset(dataset)!, ejeX)?.label ?? ejeX;
+  const graficaRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="flex h-full flex-col rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -65,6 +67,9 @@ export function BiCard({
             >
               <Table2 size={12} /> {verTabla ? "Gráfica" : "Tabla"}
             </button>
+          )}
+          {!cargando && !error && (
+            <ExportarMenu dataset={dataset} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={proyectoIds} contenedorRef={graficaRef} tipoRecurso="vista_dashboard" />
           )}
           {editMode && (
             <>
@@ -92,7 +97,7 @@ export function BiCard({
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div ref={graficaRef} className="min-h-0 flex-1 overflow-auto">
         {cargando ? (
           <div className="flex items-center justify-center p-10" style={{ color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
             Cargando…

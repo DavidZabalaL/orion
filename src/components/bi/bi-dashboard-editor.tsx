@@ -3,7 +3,7 @@
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
 import { Pencil, Plus, Printer, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
@@ -12,6 +12,7 @@ import { BiCard } from "@/components/bi/bi-card";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
+import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 
 export type VistaDashboard = { id: string; nombre: string; widgets: WidgetDashboardBI[] };
 
@@ -54,6 +55,17 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
   const [formulario, setFormulario] = useState<"agregar" | { editarId: string } | null>(null);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>("lg");
+
+  // Gobernanza: registra "vio" la primera vez que se abre esta vista guardada
+  // en la sesión del navegador (throttle en sessionStorage — no en cada
+  // render/cambio de breakpoint, solo la primera vez por pestaña).
+  useEffect(() => {
+    if (vistaActivaId === TEMPORAL) return;
+    const clave = `bi-vio:vista_dashboard:${vistaActivaId}`;
+    if (sessionStorage.getItem(clave)) return;
+    sessionStorage.setItem(clave, "1");
+    void registrarAccesoBI({ tipoRecurso: "vista_dashboard", accion: "vio", recursoId: vistaActivaId });
+  }, [vistaActivaId]);
 
   function cambiarVista(id: string) {
     setVistaActivaId(id);
