@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { esRolGlobal } from "@/lib/permisos";
+import { esCorreoDevAdmin } from "@/lib/dev-admin";
 
 export type ProyectosAsignados = { todos: true } | { todos: false; ids: string[] };
 
@@ -55,4 +56,34 @@ export async function unidadRestringidaParaOperador(): Promise<{ esOperador: tru
     select: { operador: { select: { unidadesResguardadas: { select: { numeroEconomico: true } } } } },
   });
   return { esOperador: true, numeroEconomico: usuario?.operador?.unidadesResguardadas[0]?.numeroEconomico ?? null };
+}
+
+/**
+ * Igual que `proyectosPermitidosParaModulo`, pero para un `usuarioId` explícito
+ * en vez de la sesión activa — necesario para el motor de reportes
+ * programados (cron de Vercel), que corre sin sesión HTTP: el alcance de cada
+ * reporte se resuelve con los permisos de su dueño (`ReporteProgramado.creadoPorId`),
+ * nunca con un usuario "sistema" sin restricción. Reimplementa la cadena
+ * esDevAdmin → rol "*" → UsuarioProyecto directamente (sin pasar por `auth()`)
+ * para no tocar el camino basado en sesión que usa el resto de la app.
+ */
+export async function proyectosPermitidosParaModuloDeUsuario(usuarioId: string, moduloId: string): Promise<string[] | null> {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    select: { correo: true, rol: { select: { permisos: true } } },
+  });
+  if (!usuario) return [];
+  if (esCorreoDevAdmin(usuario.correo)) return null;
+
+  const permisos = usuario.rol.permisos as Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> | null;
+  if (permisos && "*" in permisos) return null;
+
+  const asignaciones = await prisma.usuarioProyecto.findMany({ where: { usuarioId }, select: { proyectoId: true } });
+  if (asignaciones.length === 0) return [];
+
+  const proyectos = await prisma.proyecto.findMany({
+    where: { id: { in: asignaciones.map((a) => a.proyectoId) } },
+    select: { id: true, modulosActivos: true },
+  });
+  return proyectos.filter((p) => (p.modulosActivos as string[]).includes(moduloId)).map((p) => p.id);
 }

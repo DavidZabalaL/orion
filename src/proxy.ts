@@ -29,6 +29,8 @@ export const config = {
   // autenticados con su propio secreto (requireExecKey en
   // src/lib/exec-auth.ts) — no pueden pasar por este middleware de sesión,
   // que redirigiría cualquier request sin cookie a /iniciar-sesion antes de
-  // llegar a la ruta.
-  matcher: ["/((?!api/auth|api/exec|iniciar-sesion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
+  // llegar a la ruta. api/cron: mismo motivo — lo invoca Vercel Cron sin
+  // cookie de sesión, autenticado con CRON_SECRET (ver
+  // src/app/api/cron/reportes-programados/route.ts).
+  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
 };

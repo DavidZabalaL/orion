@@ -221,6 +221,11 @@ enum FrecuenciaReporte {
   MENSUAL
 }
 
+enum FormatoReporte {
+  PDF
+  EXCEL
+}
+
 enum TipoSiniestro {
   COLISION
   ROBO_TOTAL
@@ -830,12 +835,34 @@ model ReporteProgramado {
   destinatarios Json
   hora          String
   frecuencia    FrecuenciaReporte
+  formato       FormatoReporte    @default(EXCEL)
   activo        Boolean           @default(true)
   creadoPorId   String
   creadoPor     Usuario           @relation(fields: [creadoPorId], references: [id])
 
+  ultimaEjecucionEn  DateTime?
+  ultimoEstatus      String?
+  ultimoErrorDetalle String?
+
+  ejecuciones EjecucionReporteProgramado[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Historial de corridas del motor de reportes programados (cron de Vercel +
+// botón "Ejecutar ahora"), separado del registro principal para no perder
+// el histórico cada vez que se re-ejecuta.
+model EjecucionReporteProgramado {
+  id                 String            @id @default(cuid())
+  reporteId          String
+  reporte            ReporteProgramado @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  ejecutadoEn        DateTime          @default(now())
+  estatus            String // "ok" | "error" | "sin_destinatarios"
+  detalle            String?
+  destinatariosCount Int               @default(0)
+
+  @@index([reporteId, ejecutadoEn])
 }
 
 // ───────────────────────── CONFIGURACIÓN DE ALERTAS / NOTIFICACIONES ─────────────────────────
