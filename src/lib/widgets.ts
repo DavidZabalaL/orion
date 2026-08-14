@@ -7,6 +7,7 @@ export type DatosWidgetsUnidades = {
   consignacionODireccion: number;
   gastoHoy: number;
   porTipo: { label: string; value: number }[];
+  porTipoNoDisponible: { label: string; value: number }[];
   porProyecto: { label: string; value: number }[];
 };
 
@@ -25,10 +26,11 @@ export const CATALOGO_WIDGETS_UNIDADES: DefinicionWidget[] = [
   { id: "consignacionODireccion", labelDefault: "En consignación / dirección", tipo: "contador" },
   { id: "gastoHoy", labelDefault: "Gasto al día (hoy)", tipo: "contador" },
   { id: "porTipo", labelDefault: "Unidades por tipo de vehículo", tipo: "desglose" },
+  { id: "porTipoNoDisponible", labelDefault: "No disponibles por tipo de vehículo", tipo: "desglose" },
   { id: "porProyecto", labelDefault: "Unidades por proyecto", tipo: "desglose" },
 ];
 
-export const WIDGETS_DEFAULT_UNIDADES = ["total", "activas", "disponibles", "noDisponibles", "bajas", "consignacionODireccion"];
+export const WIDGETS_DEFAULT_UNIDADES = ["total", "activas", "disponibles", "noDisponibles", "bajas", "consignacionODireccion", "porTipo", "porTipoNoDisponible", "porProyecto"];
 
 export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): number | { label: string; value: number }[] {
   switch (id) {
@@ -40,6 +42,7 @@ export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): nu
     case "consignacionODireccion": return datos.consignacionODireccion;
     case "gastoHoy": return datos.gastoHoy;
     case "porTipo": return datos.porTipo;
+    case "porTipoNoDisponible": return datos.porTipoNoDisponible;
     case "porProyecto": return datos.porProyecto;
     default: return 0;
   }

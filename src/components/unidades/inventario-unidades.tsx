@@ -1,19 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Car, CheckCircle2, XCircle, Ban, ArrowLeftRight } from "lucide-react";
+import { Car, CheckCircle2, XCircle, Ban, ArrowLeftRight, Layers } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { valorWidgetUnidades, type WidgetConfigItem } from "@/lib/widgets";
 
 const ICONO_WIDGET: Record<string, typeof Car> = {
+  total: Layers,
   bajas: Ban,
   consignacionODireccion: ArrowLeftRight,
   activas: CheckCircle2,
   disponibles: CheckCircle2,
   noDisponibles: XCircle,
 };
+
+type CategoriaEstatus = "activas" | "bajas" | "transito";
+type Disponibilidad = "disponible" | "no_disponible";
+
+function tipoLabelDe(r: UnidadRow): string {
+  return TIPO_VEHICULO_LABEL[r.tipoVehiculo] ?? r.tipoVehiculo;
+}
 
 export function InventarioUnidades({
   rows,
@@ -25,17 +33,71 @@ export function InventarioUnidades({
   gastoHoy: number;
 }) {
   const [proyectosSeleccionados, setProyectosSeleccionados] = useState<string[]>([]);
+  const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([]);
+  const [disponibilidad, setDisponibilidad] = useState<Disponibilidad | null>(null);
+  const [categoriaEstatus, setCategoriaEstatus] = useState<CategoriaEstatus | null>(null);
 
-  function alternarProyecto(proyecto: string) {
-    setProyectosSeleccionados((prev) =>
-      prev.includes(proyecto) ? prev.filter((p) => p !== proyecto) : [...prev, proyecto]
-    );
+  const hayFiltrosActivos =
+    proyectosSeleccionados.length > 0 || tiposSeleccionados.length > 0 || disponibilidad !== null || categoriaEstatus !== null;
+
+  function limpiarFiltros() {
+    setProyectosSeleccionados([]);
+    setTiposSeleccionados([]);
+    setDisponibilidad(null);
+    setCategoriaEstatus(null);
   }
 
-  const rowsFiltradas = useMemo(() => {
-    if (proyectosSeleccionados.length === 0) return rows;
-    return rows.filter((r) => proyectosSeleccionados.includes(r.proyecto ?? "Sin proyecto"));
-  }, [rows, proyectosSeleccionados]);
+  function alternarProyecto(proyecto: string) {
+    setProyectosSeleccionados((prev) => (prev.includes(proyecto) ? prev.filter((p) => p !== proyecto) : [...prev, proyecto]));
+  }
+
+  function alternarTipo(tipo: string) {
+    setTiposSeleccionados((prev) => (prev.includes(tipo) ? prev.filter((t) => t !== tipo) : [...prev, tipo]));
+  }
+
+  // Clic en un chip de "no disponibles por tipo": además de filtrar por ese
+  // tipo, fuerza la vista a solo no-disponibles (es un drill-down directo).
+  function alternarTipoNoDisponible(tipo: string) {
+    setTiposSeleccionados((prev) => (prev.includes(tipo) ? prev.filter((t) => t !== tipo) : [...prev, tipo]));
+    setDisponibilidad("no_disponible");
+  }
+
+  function alternarDisponibilidad(valor: Disponibilidad) {
+    setDisponibilidad((prev) => (prev === valor ? null : valor));
+  }
+
+  function alternarCategoriaEstatus(valor: CategoriaEstatus) {
+    setCategoriaEstatus((prev) => (prev === valor ? null : valor));
+  }
+
+  // Aplica los filtros activos, permitiendo excluir una dimensión (para que
+  // cada desglose muestre "cuántas habría si además filtro por esta opción",
+  // en vez de desaparecer sus propias opciones al seleccionarlas).
+  function aplicarFiltros(
+    lista: UnidadRow[],
+    opts: { excluirProyecto?: boolean; excluirTipo?: boolean; forzarNoDisponible?: boolean } = {}
+  ) {
+    return lista.filter((r) => {
+      if (!opts.excluirProyecto && proyectosSeleccionados.length && !proyectosSeleccionados.includes(r.proyecto ?? "Sin proyecto")) return false;
+      if (!opts.excluirTipo && tiposSeleccionados.length && !tiposSeleccionados.includes(tipoLabelDe(r))) return false;
+      if (opts.forzarNoDisponible) {
+        if (r.disponibilidad) return false;
+      } else {
+        if (disponibilidad === "disponible" && !r.disponibilidad) return false;
+        if (disponibilidad === "no_disponible" && r.disponibilidad) return false;
+      }
+      if (categoriaEstatus === "activas" && r.estatus !== "ACTIVO") return false;
+      if (categoriaEstatus === "bajas" && r.estatus !== "BAJA") return false;
+      if (categoriaEstatus === "transito" && !(r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION")) return false;
+      return true;
+    });
+  }
+
+  const rowsFiltradas = useMemo(
+    () => aplicarFiltros(rows),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, proyectosSeleccionados, tiposSeleccionados, disponibilidad, categoriaEstatus]
+  );
 
   const datosWidgets = useMemo(() => {
     const total = rowsFiltradas.length;
@@ -45,19 +107,19 @@ export function InventarioUnidades({
     const bajas = rowsFiltradas.filter((r) => r.estatus === "BAJA").length;
     const consignacionODireccion = rowsFiltradas.filter((r) => r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION").length;
 
-    const porTipoMap = new Map<string, number>();
-    for (const r of rowsFiltradas) {
-      const tipoLabel = TIPO_VEHICULO_LABEL[r.tipoVehiculo] ?? r.tipoVehiculo;
-      porTipoMap.set(tipoLabel, (porTipoMap.get(tipoLabel) ?? 0) + 1);
-    }
-
-    // Los conteos por proyecto siempre reflejan el total sin filtrar, para
-    // que los chips sigan mostrando todas las opciones disponibles.
-    const porProyectoMap = new Map<string, number>();
-    for (const r of rows) {
-      const proyectoLabel = r.proyecto ?? "Sin proyecto";
-      porProyectoMap.set(proyectoLabel, (porProyectoMap.get(proyectoLabel) ?? 0) + 1);
-    }
+    const contarPorTipo = (lista: UnidadRow[]) => {
+      const mapa = new Map<string, number>();
+      for (const r of lista) mapa.set(tipoLabelDe(r), (mapa.get(tipoLabelDe(r)) ?? 0) + 1);
+      return Array.from(mapa, ([label, value]) => ({ label, value }));
+    };
+    const contarPorProyecto = (lista: UnidadRow[]) => {
+      const mapa = new Map<string, number>();
+      for (const r of lista) {
+        const proyectoLabel = r.proyecto ?? "Sin proyecto";
+        mapa.set(proyectoLabel, (mapa.get(proyectoLabel) ?? 0) + 1);
+      }
+      return Array.from(mapa, ([label, value]) => ({ label, value }));
+    };
 
     return {
       total,
@@ -67,10 +129,48 @@ export function InventarioUnidades({
       bajas,
       consignacionODireccion,
       gastoHoy,
-      porTipo: Array.from(porTipoMap, ([label, value]) => ({ label, value })),
-      porProyecto: Array.from(porProyectoMap, ([label, value]) => ({ label, value })),
+      porTipo: contarPorTipo(aplicarFiltros(rows, { excluirTipo: true })),
+      porTipoNoDisponible: contarPorTipo(aplicarFiltros(rows, { excluirTipo: true, forzarNoDisponible: true })),
+      porProyecto: contarPorProyecto(aplicarFiltros(rows, { excluirProyecto: true })),
     };
-  }, [rowsFiltradas, rows, gastoHoy]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowsFiltradas, rows, gastoHoy, proyectosSeleccionados, tiposSeleccionados, disponibilidad, categoriaEstatus]);
+
+  function alClicWidget(id: string) {
+    switch (id) {
+      case "total":
+        limpiarFiltros();
+        break;
+      case "activas":
+        alternarCategoriaEstatus("activas");
+        break;
+      case "bajas":
+        alternarCategoriaEstatus("bajas");
+        break;
+      case "consignacionODireccion":
+        alternarCategoriaEstatus("transito");
+        break;
+      case "disponibles":
+        alternarDisponibilidad("disponible");
+        break;
+      case "noDisponibles":
+        alternarDisponibilidad("no_disponible");
+        break;
+      default:
+        break;
+    }
+  }
+
+  function widgetSeleccionado(id: string): boolean {
+    switch (id) {
+      case "activas": return categoriaEstatus === "activas";
+      case "bajas": return categoriaEstatus === "bajas";
+      case "consignacionODireccion": return categoriaEstatus === "transito";
+      case "disponibles": return disponibilidad === "disponible";
+      case "noDisponibles": return disponibilidad === "no_disponible";
+      default: return false;
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,30 +180,28 @@ export function InventarioUnidades({
             const valor = valorWidgetUnidades(w.id, datosWidgets);
             if (Array.isArray(valor)) {
               const esProyecto = w.id === "porProyecto";
+              const esTipoNoDisponible = w.id === "porTipoNoDisponible";
+              const esTipo = w.id === "porTipo" || esTipoNoDisponible;
+              const alternar = esProyecto ? alternarProyecto : esTipoNoDisponible ? alternarTipoNoDisponible : esTipo ? alternarTipo : undefined;
+              const estaSeleccionado = (label: string) =>
+                esProyecto ? proyectosSeleccionados.includes(label) : esTipo ? tiposSeleccionados.includes(label) : false;
               return (
                 <div key={w.id} className="rounded-xl p-4 col-span-2" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
                   <div className="mb-2 flex items-center justify-between">
                     <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
-                      {w.label}
-                      {esProyecto && " — clic para filtrar"}
+                      {w.label} — clic para filtrar
                     </span>
-                    {esProyecto && proyectosSeleccionados.length > 0 && (
-                      <button
-                        onClick={() => setProyectosSeleccionados([])}
-                        style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text-active)", fontWeight: 600 }}
-                      >
-                        Quitar filtro ({proyectosSeleccionados.length})
-                      </button>
-                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {valor.length === 0 && (
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin unidades.</span>
+                    )}
                     {valor.map((v) => {
-                      const seleccionado = esProyecto && proyectosSeleccionados.includes(v.label);
-                      const Tag = esProyecto ? "button" : "span";
+                      const seleccionado = estaSeleccionado(v.label);
                       return (
-                        <Tag
+                        <button
                           key={v.label}
-                          onClick={esProyecto ? () => alternarProyecto(v.label) : undefined}
+                          onClick={() => alternar?.(v.label)}
                           className="rounded-full px-3 py-1"
                           style={{
                             background: seleccionado ? "var(--color-primary)" : "var(--chip)",
@@ -111,11 +209,11 @@ export function InventarioUnidades({
                             fontFamily: "var(--font-ui)",
                             fontSize: "var(--text-sm)",
                             fontWeight: seleccionado ? 600 : 400,
-                            cursor: esProyecto ? "pointer" : "default",
+                            cursor: "pointer",
                           }}
                         >
                           {v.label}: <strong>{v.value}</strong>
-                        </Tag>
+                        </button>
                       );
                     })}
                   </div>
@@ -129,9 +227,26 @@ export function InventarioUnidades({
                 value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
                 icon={ICONO_WIDGET[w.id] ?? Car}
                 accent="var(--color-primary)"
+                onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
+                seleccionado={widgetSeleccionado(w.id)}
               />
             );
           })}
+        </div>
+      )}
+
+      {hayFiltrosActivos && (
+        <div className="flex items-center gap-2">
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+            Mostrando {rowsFiltradas.length} de {rows.length} unidades según los widgets seleccionados.
+          </span>
+          <button
+            onClick={limpiarFiltros}
+            className="rounded-md px-3 py-1"
+            style={{ background: "var(--chip)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}
+          >
+            Quitar todos los filtros
+          </button>
         </div>
       )}
 

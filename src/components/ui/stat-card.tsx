@@ -5,16 +5,27 @@ export function StatCard({
   value,
   icon: Icon,
   accent,
+  onClick,
+  seleccionado,
 }: {
   label: string;
   value: string | number;
   icon: LucideIcon;
   accent: string;
+  onClick?: () => void;
+  seleccionado?: boolean;
 }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div
-      className="flex items-center gap-4 rounded-xl p-4"
-      style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
+    <Tag
+      onClick={onClick}
+      className="flex items-center gap-4 rounded-xl p-4 text-left w-full"
+      style={{
+        background: "var(--panel-bg)",
+        boxShadow: "var(--shadow-sm)",
+        border: seleccionado ? "2px solid var(--color-primary)" : "2px solid transparent",
+        cursor: onClick ? "pointer" : "default",
+      }}
     >
       <div
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
@@ -30,6 +41,6 @@ export function StatCard({
           {label}
         </div>
       </div>
-    </div>
+    </Tag>
   );
 }
