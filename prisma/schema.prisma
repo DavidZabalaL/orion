@@ -272,6 +272,8 @@ model Usuario {
   accesosReporteBI                    AccesoReporteBI[]
   nlQueryLogs                         NlQueryLog[]
   configuracionesNotificacionProyecto ConfiguracionNotificacionProyecto[]
+  solicitudesCombustibleSolicitadas   SolicitudAutorizacionCombustible[] @relation("SolicitudCombustibleSolicitante")
+  solicitudesCombustibleAprobadas     SolicitudAutorizacionCombustible[] @relation("SolicitudCombustibleAprobador")
 }
 
 model UsuarioProyecto {
@@ -318,21 +320,22 @@ model Proyecto {
   modulosActivos           Json
   procesosActivos          Json
 
-  unidades                  Unidad[]
-  operadores                Operador[]
-  usuarios                  UsuarioProyecto[]
-  gastosTag                 Tag[]
-  combustible               Combustible[]
-  geocercas                 Geocerca[]
-  presupuestosMensuales     PresupuestoMensual[]
-  presupuestosPartida       PresupuestoPartida[]
-  gastosReportados          GastoVehicular[]
-  insumos                   InsumoInventario[]
-  tickets                   TicketRescate[]
-  historicosUnidad          UnidadHistoricoProyecto[]
-  configuracionNotificacion ConfiguracionNotificacionProyecto?
-  createdAt                 DateTime                           @default(now())
-  updatedAt                 DateTime                           @updatedAt
+  unidades                           Unidad[]
+  operadores                         Operador[]
+  usuarios                           UsuarioProyecto[]
+  gastosTag                          Tag[]
+  combustible                        Combustible[]
+  geocercas                          Geocerca[]
+  presupuestosMensuales              PresupuestoMensual[]
+  presupuestosPartida                PresupuestoPartida[]
+  gastosReportados                   GastoVehicular[]
+  insumos                            InsumoInventario[]
+  tickets                            TicketRescate[]
+  historicosUnidad                   UnidadHistoricoProyecto[]
+  solicitudesAutorizacionCombustible SolicitudAutorizacionCombustible[]
+  configuracionNotificacion          ConfiguracionNotificacionProyecto?
+  createdAt                          DateTime                           @default(now())
+  updatedAt                          DateTime                           @updatedAt
 }
 
 // Destinatarios de correo específicos de un proyecto — hoy solo para el
@@ -560,6 +563,7 @@ model Resguardo {
 enum TipoChecklist {
   DIARIO
   SEMANAL
+  CARGA_COMBUSTIBLE
 }
 
 model Checklist {
@@ -1242,4 +1246,30 @@ model HistoricoTicketRescate {
   createdAt  DateTime             @default(now())
 
   @@index([ticketId])
+}
+
+// ───────────────────── MÓDULO D — AUTORIZACIÓN DE COMBUSTIBLE ─────────────────────
+
+model SolicitudAutorizacionCombustible {
+  id                     String   @id @default(cuid())
+  proyectoId             String
+  proyecto               Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  numeroEconomico        String?
+  monto                  Decimal  @db.Decimal(12, 2)
+  litros                 Decimal? @db.Decimal(10, 2)
+  motivo                 String
+  excedente              Decimal? @db.Decimal(12, 2)
+  periodoPresupuesto     String?
+  estatus                String   @default("PENDIENTE")
+  solicitadoPorId        String
+  solicitadoPor          Usuario  @relation("SolicitudCombustibleSolicitante", fields: [solicitadoPorId], references: [id])
+  aprobadoPorId          String?
+  aprobadoPor            Usuario? @relation("SolicitudCombustibleAprobador", fields: [aprobadoPorId], references: [id])
+  fechaRespuesta         DateTime?
+  observacionesAprobador String?
+  createdAt              DateTime @default(now())
+
+  @@index([proyectoId])
+  @@index([estatus])
+  @@index([createdAt])
 }
