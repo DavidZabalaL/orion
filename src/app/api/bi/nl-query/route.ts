@@ -23,7 +23,7 @@ const LIMITE_PREGUNTAS_POR_MINUTO = 10;
 const VENTANA_RATE_LIMIT_MS = 60_000;
 
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!(await tienePermisoModulo("J"))) {
+  if (!(await tienePermisoModulo("M"))) {
     return NextResponse.json({ error: "No tienes permiso para usar el explorador de BI." }, { status: 403 });
   }
   if (!geminiDisponible()) {

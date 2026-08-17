@@ -5,7 +5,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoAnual, obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ function en(dias: number) {
 
 export default async function ReportesPage() {
   await requerirPermisoModulo("J");
+  const accesoDashboards = await tienePermisoModulo("M");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("J");
   const filtroProyecto = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
   const filtroUnidadRelacion = proyectosPermitidos !== null ? { unidad: filtroProyecto } : {};
@@ -69,9 +70,11 @@ export default async function ReportesPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/reportes/bi" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-            <LayoutDashboard size={16} /> Explorador de BI
-          </Link>
+          {accesoDashboards && (
+            <Link href="/dashboards?tab=explorador" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+              <LayoutDashboard size={16} /> Explorador de BI
+            </Link>
+          )}
           <Link href="/reportes/generador" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
             <Settings2 size={16} /> Generador de reportes
           </Link>

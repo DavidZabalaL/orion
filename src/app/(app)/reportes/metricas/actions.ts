@@ -52,7 +52,7 @@ export type InputMetrica = {
 };
 
 export async function guardarMetrica(input: InputMetrica): Promise<ResultadoMetrica> {
-  await exigirPermisoModulo("J", "editar");
+  await exigirPermisoModulo("M", "editar");
 
   const nombre = input.nombre.trim().slice(0, 120);
   if (!nombre) return { ok: false, error: "Ponle un nombre a la métrica." };
@@ -113,14 +113,14 @@ export async function guardarMetrica(input: InputMetrica): Promise<ResultadoMetr
 }
 
 export async function alternarMetrica(id: string, activo: boolean): Promise<ResultadoMetrica> {
-  await exigirPermisoModulo("J", "editar");
+  await exigirPermisoModulo("M", "editar");
   await prisma.metricaBI.update({ where: { id }, data: { activo } });
   revalidatePath("/reportes/metricas");
   return { ok: true };
 }
 
 export async function eliminarMetrica(id: string): Promise<ResultadoMetrica> {
-  await exigirPermisoModulo("J", "editar");
+  await exigirPermisoModulo("M", "editar");
 
   const session = await auth();
   try {

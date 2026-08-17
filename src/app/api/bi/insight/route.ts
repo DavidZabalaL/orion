@@ -23,7 +23,7 @@ type BodyInsight = {
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!(await tienePermisoModulo("J"))) {
+  if (!(await tienePermisoModulo("M"))) {
     return NextResponse.json({ error: "No tienes permiso para consultar el motor de BI." }, { status: 403 });
   }
   if (!geminiDisponible()) {
