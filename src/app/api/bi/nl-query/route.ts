@@ -1,17 +1,18 @@
 // Consultas en lenguaje natural sobre el motor de BI. Invariante de
 // seguridad: el LLM SOLO puede producir los mismos parámetros que ya acepta
-// /api/bi/query (dataset/ejeX/ejeY/agregación/tipoGrafica/filtros) vía tool
-// use forzado — nunca genera SQL. El resultado se revalida por completo
-// contra BI_DATASETS (validar-interpretacion.ts) antes de devolverse; si no
-// calza, se rechaza con necesitaAclaracion en vez de intentar "corregirlo".
-// Este endpoint NUNCA ejecuta la consulta — solo devuelve los parámetros
-// para que el cliente los aplique a sus propios controles, exactamente como
-// si el usuario los hubiera elegido a mano.
+// /api/bi/query (dataset/ejeX/ejeY/agregación/tipoGrafica/filtros) vía
+// function calling forzado (mode: ANY) — nunca genera SQL. El resultado se
+// revalida por completo contra BI_DATASETS (validar-interpretacion.ts) antes
+// de devolverse; si no calza, se rechaza con necesitaAclaracion en vez de
+// intentar "corregirlo". Este endpoint NUNCA ejecuta la consulta — solo
+// devuelve los parámetros para que el cliente los aplique a sus propios
+// controles, exactamente como si el usuario los hubiera elegido a mano.
 import { NextResponse } from "next/server";
+import { FunctionCallingConfigMode } from "@google/genai";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo } from "@/lib/permisos";
-import { anthropicDisponible, obtenerClienteAnthropic, MODELO_INTERPRETACION } from "@/lib/ai/anthropic-client";
+import { geminiDisponible, obtenerClienteGemini, MODELO_INTERPRETACION } from "@/lib/ai/gemini-client";
 import { construirToolInterpretarConsulta, NOMBRE_TOOL_INTERPRETAR } from "@/lib/bi/nl-schema";
 import { validarInterpretacion } from "@/lib/bi/validar-interpretacion";
 
@@ -25,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!(await tienePermisoModulo("J"))) {
     return NextResponse.json({ error: "No tienes permiso para usar el explorador de BI." }, { status: 403 });
   }
-  if (!anthropicDisponible()) {
+  if (!geminiDisponible()) {
     return NextResponse.json({ error: "La búsqueda en lenguaje natural no está configurada en este entorno." }, { status: 503 });
   }
 
@@ -61,22 +62,26 @@ Si la pregunta no se puede responder con este catálogo, o es ambigua, usa aclar
   let paramsFinales: unknown = null;
 
   try {
-    const client = obtenerClienteAnthropic();
-    const response = await client.messages.create({
+    const client = obtenerClienteGemini();
+    const response = await client.models.generateContent({
       model: MODELO_INTERPRETACION,
-      max_tokens: 1024,
-      system: systemPrompt,
-      tools: [tool],
-      tool_choice: { type: "tool", name: NOMBRE_TOOL_INTERPRETAR },
-      messages: [{ role: "user", content: pregunta }],
+      contents: pregunta,
+      config: {
+        systemInstruction: systemPrompt,
+        maxOutputTokens: 1024,
+        tools: [{ functionDeclarations: [tool] }],
+        toolConfig: {
+          functionCallingConfig: { mode: FunctionCallingConfigMode.ANY, allowedFunctionNames: [NOMBRE_TOOL_INTERPRETAR] },
+        },
+      },
     });
 
-    const bloqueTool = response.content.find((b) => b.type === "tool_use");
-    if (!bloqueTool || bloqueTool.type !== "tool_use") {
+    const llamada = response.functionCalls?.find((f) => f.name === NOMBRE_TOOL_INTERPRETAR);
+    if (!llamada?.args) {
       motivoRechazo = "El modelo no produjo una interpretación estructurada.";
     } else {
-      interpretacionCruda = bloqueTool.input;
-      const resultado = validarInterpretacion(bloqueTool.input);
+      interpretacionCruda = llamada.args;
+      const resultado = validarInterpretacion(llamada.args);
       if (resultado.ok) {
         exito = true;
         paramsFinales = resultado.params;

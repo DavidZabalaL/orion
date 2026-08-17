@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { tienePermisoModulo } from "@/lib/permisos";
 import { validarParamsSimple, resolverAlcanceProyecto, ejecutarSimple, type Filtro } from "@/lib/bi/motor-consultas";
 import { hashDeObjeto, obtenerInsightCacheado, guardarInsightCache } from "@/lib/bi/insight-cache";
-import { anthropicDisponible, obtenerClienteAnthropic, MODELO_INSIGHT } from "@/lib/ai/anthropic-client";
+import { geminiDisponible, obtenerClienteGemini, MODELO_INSIGHT } from "@/lib/ai/gemini-client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -26,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!(await tienePermisoModulo("J"))) {
     return NextResponse.json({ error: "No tienes permiso para consultar el motor de BI." }, { status: 403 });
   }
-  if (!anthropicDisponible()) {
+  if (!geminiDisponible()) {
     return NextResponse.json({ error: "Los resúmenes automáticos no están configurados en este entorno." }, { status: 503 });
   }
 
@@ -56,23 +56,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     const cacheado = await obtenerInsightCacheado("insight", claveConsulta, datosHash);
     if (cacheado) return NextResponse.json({ resumen: cacheado, cacheado: true });
 
-    const client = obtenerClienteAnthropic();
+    const client = obtenerClienteGemini();
     const datosTexto = resultado.datos.map((d) => `${d.dimension}: ${d.valor}`).join("\n");
-    const response = await client.messages.create({
+    const response = await client.models.generateContent({
       model: MODELO_INSIGHT,
-      max_tokens: 300,
-      system:
-        "Eres un analista de datos de una flota vehicular. Se te da una tabla ya agregada (dimensión → valor) y debes escribir 2-3 frases en español explicando el patrón principal (el valor más alto/bajo, alguna concentración notable). No inventes cifras que no estén en la tabla. No des recomendaciones, solo describe.",
-      messages: [
-        {
-          role: "user",
-          content: `Dataset: ${dataset.label}\nDimensión: ${campoX.label}\nMétrica: ${resultado.ejeY.label}\n\n${datosTexto}`,
-        },
-      ],
+      contents: `Dataset: ${dataset.label}\nDimensión: ${campoX.label}\nMétrica: ${resultado.ejeY.label}\n\n${datosTexto}`,
+      config: {
+        maxOutputTokens: 300,
+        systemInstruction:
+          "Eres un analista de datos de una flota vehicular. Se te da una tabla ya agregada (dimensión → valor) y debes escribir 2-3 frases en español explicando el patrón principal (el valor más alto/bajo, alguna concentración notable). No inventes cifras que no estén en la tabla. No des recomendaciones, solo describe.",
+      },
     });
 
-    const bloqueTexto = response.content.find((b) => b.type === "text");
-    const resumen = bloqueTexto && bloqueTexto.type === "text" ? bloqueTexto.text.trim() : null;
+    const resumen = response.text?.trim() || null;
     if (resumen) {
       await guardarInsightCache({ tipo: "insight", claveConsulta, datosHash, resumen, modelo: MODELO_INSIGHT });
     }

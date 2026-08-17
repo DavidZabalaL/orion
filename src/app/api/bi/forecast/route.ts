@@ -7,7 +7,7 @@ import { tienePermisoModulo } from "@/lib/permisos";
 import { validarParamsSimple, resolverAlcanceProyecto, ejecutarSimple, type Filtro } from "@/lib/bi/motor-consultas";
 import { proyectar, detectarAnomalias, tendencia } from "@/lib/bi/forecast";
 import { hashDeObjeto, obtenerInsightCacheado, guardarInsightCache } from "@/lib/bi/insight-cache";
-import { anthropicDisponible, obtenerClienteAnthropic, MODELO_INTERPRETACION } from "@/lib/ai/anthropic-client";
+import { geminiDisponible, obtenerClienteGemini, MODELO_INTERPRETACION } from "@/lib/ai/gemini-client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -67,28 +67,24 @@ export async function POST(request: Request): Promise<NextResponse> {
       tendencia: tendenciaCalculada,
     };
 
-    if (explicar && anthropicDisponible()) {
+    if (explicar && geminiDisponible()) {
       const claveConsulta = hashDeObjeto({ tipo: "forecast", dataset: dataset.id, ejeX: campoX.id, ejeY: campoY.id, agregacion, filtrosLlave, llaveAlcance, periodosAdelante });
       const datosHash = hashDeObjeto({ historico: resultado.datos, proyeccion, anomalias });
       let explicacion = await obtenerInsightCacheado("forecast", claveConsulta, datosHash);
 
       if (!explicacion) {
         try {
-          const client = obtenerClienteAnthropic();
-          const response = await client.messages.create({
+          const client = obtenerClienteGemini();
+          const response = await client.models.generateContent({
             model: MODELO_INTERPRETACION,
-            max_tokens: 250,
-            system:
-              "Redactas en español 2-3 frases explicando una proyección y anomalías YA CALCULADAS. No recalcules ni corrijas las cifras que se te dan — solo explícalas con lenguaje claro para alguien no técnico.",
-            messages: [
-              {
-                role: "user",
-                content: `Métrica: ${resultado.ejeY.label}\nTendencia: ${tendenciaCalculada}\nÚltimos valores históricos: ${resultado.datos.slice(-6).map((d) => `${d.dimension}=${d.valor}`).join(", ")}\nProyección próximos ${periodosAdelante} periodos: ${proyeccion.map((v) => v.toFixed(1)).join(", ")}\nAnomalías detectadas: ${anomalias.length === 0 ? "ninguna" : anomalias.map((a) => `${a.dimension}=${a.valor}`).join(", ")}`,
-              },
-            ],
+            contents: `Métrica: ${resultado.ejeY.label}\nTendencia: ${tendenciaCalculada}\nÚltimos valores históricos: ${resultado.datos.slice(-6).map((d) => `${d.dimension}=${d.valor}`).join(", ")}\nProyección próximos ${periodosAdelante} periodos: ${proyeccion.map((v) => v.toFixed(1)).join(", ")}\nAnomalías detectadas: ${anomalias.length === 0 ? "ninguna" : anomalias.map((a) => `${a.dimension}=${a.valor}`).join(", ")}`,
+            config: {
+              maxOutputTokens: 250,
+              systemInstruction:
+                "Redactas en español 2-3 frases explicando una proyección y anomalías YA CALCULADAS. No recalcules ni corrijas las cifras que se te dan — solo explícalas con lenguaje claro para alguien no técnico.",
+            },
           });
-          const bloqueTexto = response.content.find((b) => b.type === "text");
-          explicacion = bloqueTexto && bloqueTexto.type === "text" ? bloqueTexto.text.trim() : null;
+          explicacion = response.text?.trim() || null;
           if (explicacion) await guardarInsightCache({ tipo: "forecast", claveConsulta, datosHash, resumen: explicacion, modelo: MODELO_INTERPRETACION });
         } catch (error) {
           console.error("Error generando explicación de forecast", error);
