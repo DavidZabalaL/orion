@@ -1,11 +1,16 @@
-// Genera el schema del tool "interpretar_consulta_bi" (para tool use forzado
-// de Anthropic) directamente desde BI_DATASETS — cualquier dataset/campo
-// nuevo se refleja solo, sin tocar este archivo. El LLM SOLO puede producir
-// estos parámetros; nunca SQL ni nombres de columna libres. La validación
-// real (¿existe el dataset? ¿existe el campo en ESE dataset? ¿aplica la
-// agregación?) ocurre después, en validar-interpretacion.ts, contra el mismo
-// whitelist que usa /api/bi/query — este schema solo acota la forma general
-// para que el modelo no alucine una estructura completamente distinta.
+// Genera la declaración de función "interpretar_consulta_bi" (para function
+// calling forzado de Gemini, mode: ANY) directamente desde BI_DATASETS —
+// cualquier dataset/campo nuevo se refleja solo, sin tocar este archivo. El
+// LLM SOLO puede producir estos parámetros; nunca SQL ni nombres de columna
+// libres. La validación real (¿existe el dataset? ¿existe el campo en ESE
+// dataset? ¿aplica la agregación?) ocurre después, en validar-interpretacion.ts,
+// contra el mismo whitelist que usa /api/bi/query — este schema solo acota
+// la forma general para que el modelo no alucine una estructura distinta.
+//
+// Se usa `parametersJsonSchema` (JSON Schema estándar, igual que el
+// `input_schema` de Anthropic) en vez de `parameters` (que exigiría el enum
+// `Type` de @google/genai en mayúsculas) — Gemini acepta ambas formas, esta
+// es la que menos fricción tiene al migrar de un proveedor a otro.
 import { BI_DATASETS, TIPO_GRAFICA_LABEL } from "@/lib/bi/metadata";
 
 export const NOMBRE_TOOL_INTERPRETAR = "interpretar_consulta_bi";
@@ -22,7 +27,7 @@ export function construirToolInterpretarConsulta() {
       name: NOMBRE_TOOL_INTERPRETAR,
       description:
         "Traduce una pregunta en lenguaje natural sobre datos de la flota a los parámetros de una consulta de BI ya existente. NUNCA generes SQL. Si la pregunta no se puede responder con los datasets/campos listados, o es ambigua, marca aclaracion_necesaria=true y explica qué falta en pregunta_aclaratoria en vez de inventar un dataset o campo.",
-      input_schema: {
+      parametersJsonSchema: {
         type: "object" as const,
         properties: {
           aclaracion_necesaria: {
