@@ -1,11 +1,17 @@
 "use client";
 
+import "react-grid-layout/css/styles.css";
+
 import { useMemo, useState } from "react";
 import { Car, CheckCircle2, XCircle, Ban, ArrowLeftRight, Layers } from "lucide-react";
+import { Responsive, useContainerWidth, type ResponsiveLayouts } from "react-grid-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
-import { valorWidgetUnidades, TAMANO_WIDGET_CLASE, type WidgetActivo } from "@/lib/widgets";
+import { valorWidgetUnidades, COLS_WIDGETS, type WidgetActivo } from "@/lib/widgets";
+
+const BREAKPOINTS = { lg: 600, sm: 0 };
+const COLS = { lg: COLS_WIDGETS, sm: 1 };
 
 const ICONO_WIDGET: Record<string, typeof Car> = {
   total: Layers,
@@ -32,6 +38,7 @@ export function InventarioUnidades({
   widgetsActivos: WidgetActivo[];
   gastoHoy: number;
 }) {
+  const { width, containerRef, mounted } = useContainerWidth();
   const [proyectosSeleccionados, setProyectosSeleccionados] = useState<string[]>([]);
   const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([]);
   const [disponibilidad, setDisponibilidad] = useState<Disponibilidad | null>(null);
@@ -170,67 +177,87 @@ export function InventarioUnidades({
     }
   }
 
+  const layouts: ResponsiveLayouts = {
+    lg: widgetsActivos.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h })),
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {widgetsActivos.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {widgetsActivos.map((w) => {
-            const valor = valorWidgetUnidades(w.id, datosWidgets);
-            if (Array.isArray(valor)) {
-              const esProyecto = w.id === "porProyecto";
-              const esTipoNoDisponible = w.id === "porTipoNoDisponible";
-              const esTipo = w.id === "porTipo" || esTipoNoDisponible;
-              const alternar = esProyecto ? alternarProyecto : esTipoNoDisponible ? alternarTipoNoDisponible : esTipo ? alternarTipo : undefined;
-              const estaSeleccionado = (label: string) =>
-                esProyecto ? proyectosSeleccionados.includes(label) : esTipo ? tiposSeleccionados.includes(label) : false;
-              return (
-                <div key={w.id} className={`rounded-xl p-4 ${TAMANO_WIDGET_CLASE[w.tamano]}`} style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
-                      {w.label}
-                    </span>
+        <div ref={containerRef}>
+          {mounted && (
+            <Responsive
+              layouts={layouts}
+              breakpoints={BREAKPOINTS}
+              cols={COLS}
+              width={width}
+              rowHeight={32}
+              margin={[16, 16]}
+              containerPadding={[0, 0]}
+              dragConfig={{ enabled: false }}
+              resizeConfig={{ enabled: false }}
+            >
+              {widgetsActivos.map((w) => {
+                const valor = valorWidgetUnidades(w.id, datosWidgets);
+                if (Array.isArray(valor)) {
+                  const esProyecto = w.id === "porProyecto";
+                  const esTipoNoDisponible = w.id === "porTipoNoDisponible";
+                  const esTipo = w.id === "porTipo" || esTipoNoDisponible;
+                  const alternar = esProyecto ? alternarProyecto : esTipoNoDisponible ? alternarTipoNoDisponible : esTipo ? alternarTipo : undefined;
+                  const estaSeleccionado = (label: string) =>
+                    esProyecto ? proyectosSeleccionados.includes(label) : esTipo ? tiposSeleccionados.includes(label) : false;
+                  return (
+                    <div key={w.id}>
+                      <div className="flex h-full flex-col overflow-auto rounded-xl p-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
+                            {w.label}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {valor.length === 0 && (
+                            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin unidades.</span>
+                          )}
+                          {valor.map((v) => {
+                            const seleccionado = estaSeleccionado(v.label);
+                            return (
+                              <button
+                                key={v.label}
+                                onClick={() => alternar?.(v.label)}
+                                className="rounded-full px-3 py-1"
+                                style={{
+                                  background: seleccionado ? "var(--color-primary)" : "var(--chip)",
+                                  color: seleccionado ? "#fff" : "var(--field-text)",
+                                  fontFamily: "var(--font-ui)",
+                                  fontSize: "var(--text-sm)",
+                                  fontWeight: seleccionado ? 600 : 400,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {v.label}: <strong>{v.value}</strong>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={w.id}>
+                    <StatCard
+                      label={w.label}
+                      value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
+                      icon={ICONO_WIDGET[w.id] ?? Car}
+                      accent="var(--color-primary)"
+                      onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
+                      seleccionado={widgetSeleccionado(w.id)}
+                    />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {valor.length === 0 && (
-                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin unidades.</span>
-                    )}
-                    {valor.map((v) => {
-                      const seleccionado = estaSeleccionado(v.label);
-                      return (
-                        <button
-                          key={v.label}
-                          onClick={() => alternar?.(v.label)}
-                          className="rounded-full px-3 py-1"
-                          style={{
-                            background: seleccionado ? "var(--color-primary)" : "var(--chip)",
-                            color: seleccionado ? "#fff" : "var(--field-text)",
-                            fontFamily: "var(--font-ui)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: seleccionado ? 600 : 400,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {v.label}: <strong>{v.value}</strong>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <div key={w.id} className={TAMANO_WIDGET_CLASE[w.tamano]}>
-                <StatCard
-                  label={w.label}
-                  value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
-                  icon={ICONO_WIDGET[w.id] ?? Car}
-                  accent="var(--color-primary)"
-                  onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
-                  seleccionado={widgetSeleccionado(w.id)}
-                />
-              </div>
-            );
-          })}
+                );
+              })}
+            </Responsive>
+          )}
         </div>
       )}
 

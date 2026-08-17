@@ -1,3 +1,5 @@
+import type { LayoutWidget } from "@/lib/bi/metadata";
+
 export type DatosWidgetsUnidades = {
   total: number;
   activas: number;
@@ -48,30 +50,41 @@ export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): nu
   }
 }
 
-export type TamanoWidget = "pequeno" | "mediano" | "grande";
+// Cuadrícula de 12 columnas — mismo esquema que el dashboard de BI
+// (react-grid-layout), para que arrastrar/redimensionar se sienta igual en
+// toda la plataforma. Los "contador" son angostos por default (4 por fila);
+// los "desglose" (con chips que pueden envolver) empiezan más anchos.
+export const COLS_WIDGETS = 12;
+const ANCHO_DEFAULT: Record<DefinicionWidget["tipo"], number> = { contador: 3, desglose: 6 };
+const ALTO_DEFAULT: Record<DefinicionWidget["tipo"], number> = { contador: 4, desglose: 6 };
 
-export const TAMANO_WIDGET_LABEL: Record<TamanoWidget, string> = {
-  pequeno: "Pequeño",
-  mediano: "Mediano",
-  grande: "Grande (ancho completo)",
-};
-
-// Clases de grid-column para un contenedor `grid-cols-2 md:grid-cols-4`.
-export const TAMANO_WIDGET_CLASE: Record<TamanoWidget, string> = {
-  pequeno: "col-span-1",
-  mediano: "col-span-2",
-  grande: "col-span-2 md:col-span-4",
-};
-
-export function tamanoWidgetPorDefecto(tipo: "contador" | "desglose"): TamanoWidget {
-  return tipo === "desglose" ? "mediano" : "pequeno";
+export function generarLayoutsPorDefecto(catalogo: DefinicionWidget[]): Record<string, LayoutWidget> {
+  const layouts: Record<string, LayoutWidget> = {};
+  let x = 0;
+  let y = 0;
+  let altoFila = 0;
+  for (const w of catalogo) {
+    const ancho = ANCHO_DEFAULT[w.tipo];
+    const alto = ALTO_DEFAULT[w.tipo];
+    if (x + ancho > COLS_WIDGETS) {
+      x = 0;
+      y += altoFila;
+      altoFila = 0;
+    }
+    layouts[w.id] = { x, y, w: ancho, h: alto };
+    x += ancho;
+    altoFila = Math.max(altoFila, alto);
+  }
+  return layouts;
 }
 
-export function esTamanoWidgetValido(valor: unknown): valor is TamanoWidget {
-  return valor === "pequeno" || valor === "mediano" || valor === "grande";
+export function esLayoutValido(valor: unknown): valor is LayoutWidget {
+  if (!valor || typeof valor !== "object") return false;
+  const v = valor as Record<string, unknown>;
+  return typeof v.x === "number" && typeof v.y === "number" && typeof v.w === "number" && typeof v.h === "number";
 }
 
-export type WidgetConfigItem = { id: string; activo: boolean; tamano: TamanoWidget };
+export type WidgetConfigItem = { id: string; activo: boolean; layout: LayoutWidget };
 
-/** Forma que consumen las páginas al renderizar: incluye la etiqueta fija del catálogo (no editable). */
-export type WidgetActivo = WidgetConfigItem & { label: string };
+/** Forma que consumen las páginas al renderizar: incluye la etiqueta fija del catálogo (no editable) y el tipo (para saber si es "contador" o "desglose"). */
+export type WidgetActivo = WidgetConfigItem & { label: string; tipo: DefinicionWidget["tipo"] };

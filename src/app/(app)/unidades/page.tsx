@@ -4,7 +4,7 @@ import { InventarioUnidades } from "@/components/unidades/inventario-unidades";
 import { LayoutGrid } from "lucide-react";
 import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
-import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, tamanoWidgetPorDefecto, esTamanoWidgetValido, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
+import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
 import Link from "next/link";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
@@ -105,14 +105,16 @@ export default async function UnidadesPage() {
   const gastoHoy = Number(gastoHoyAgg._sum.costo ?? 0);
 
   const widgetsGuardados = configWidgets?.widgets as WidgetConfigItem[] | undefined;
+  const layoutsPorDefecto = generarLayoutsPorDefecto(CATALOGO_WIDGETS_UNIDADES);
   const widgetsActivos: WidgetActivo[] = CATALOGO_WIDGETS_UNIDADES
     .map((w) => {
       const guardado = widgetsGuardados?.find((g) => g.id === w.id);
       return {
         id: w.id,
         label: w.labelDefault,
+        tipo: w.tipo,
         activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
-        tamano: esTamanoWidgetValido(guardado?.tamano) ? guardado.tamano : tamanoWidgetPorDefecto(w.tipo),
+        layout: esLayoutValido(guardado?.layout) ? guardado.layout : layoutsPorDefecto[w.id],
       };
     })
     .filter((w) => w.activo);
