@@ -127,6 +127,56 @@ export async function enviarReporteBI({
   }
 }
 
+const PRIORIDAD_RESCATE_LABEL: Record<string, string> = { BAJA: "Baja", MEDIA: "Media", ALTA: "Alta", URGENTE: "Urgente" };
+
+export async function enviarNotificacionTicketRescate({
+  destinatarios,
+  folio,
+  numeroEconomico,
+  motivo,
+  prioridad,
+  ubicacion,
+}: {
+  destinatarios: string[];
+  folio: string;
+  numeroEconomico: string;
+  motivo: string;
+  prioridad: string;
+  ubicacion?: string | null;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  }
+  if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
+
+  const prioridadLabel = PRIORIDAD_RESCATE_LABEL[prioridad] ?? prioridad;
+  const urlTicket = `${SITE_URL}/rescate`;
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      to: destinatarios.join(","),
+      subject: `Nuevo ticket de rescate ${folio} — ${numeroEconomico} (${prioridadLabel})`,
+      html: `
+        <div style="font-family:sans-serif;font-size:14px;color:#334155;">
+          <p>Se creó un nuevo ticket de rescate:</p>
+          <ul>
+            <li><strong>Folio:</strong> ${folio}</li>
+            <li><strong>Unidad:</strong> ${numeroEconomico}</li>
+            <li><strong>Motivo:</strong> ${motivo}</li>
+            <li><strong>Prioridad:</strong> ${prioridadLabel}</li>
+            ${ubicacion ? `<li><strong>Ubicación:</strong> ${ubicacion}</li>` : ""}
+          </ul>
+          <p><a href="${urlTicket}">Ver en Orión</a></p>
+        </div>
+      `,
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
 export async function enviarInvitacion({
   correo,
   nombre,

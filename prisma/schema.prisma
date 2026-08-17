@@ -254,23 +254,24 @@ model Usuario {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  bitacora                      BitacoraCambio[]
-  checklists                    Checklist[]
-  documentosVerificados         DocumentoOperador[]
-  reportesProgramados           ReporteProgramado[]
-  configuracionesNotificaciones ConfiguracionNotificaciones[]
-  presupuestosPartidaCargados   PresupuestoPartida[]
-  notificacionesLeidas          NotificacionLeida[]
-  vistasDashboardBI             VistaDashboardBI[]
-  actividad                     ActivityLog[]
-  ticketsReportados             TicketRescate[]               @relation("TicketReportadoPor")
-  ticketsAsignados              TicketRescate[]               @relation("TicketAsignadoA")
-  historicoTickets              HistoricoTicketRescate[]
-  siniestrosReportados          Siniestro[]                   @relation("SiniestroReportadoPor")
-  consumosRegistrados           ConsumoInsumo[]
-  metricasBICreadas             MetricaBI[]
-  accesosReporteBI              AccesoReporteBI[]
-  nlQueryLogs                   NlQueryLog[]
+  bitacora                            BitacoraCambio[]
+  checklists                          Checklist[]
+  documentosVerificados               DocumentoOperador[]
+  reportesProgramados                 ReporteProgramado[]
+  configuracionesNotificaciones       ConfiguracionNotificaciones[]
+  presupuestosPartidaCargados         PresupuestoPartida[]
+  notificacionesLeidas                NotificacionLeida[]
+  vistasDashboardBI                   VistaDashboardBI[]
+  actividad                           ActivityLog[]
+  ticketsReportados                   TicketRescate[]                     @relation("TicketReportadoPor")
+  ticketsAsignados                    TicketRescate[]                     @relation("TicketAsignadoA")
+  historicoTickets                    HistoricoTicketRescate[]
+  siniestrosReportados                Siniestro[]                         @relation("SiniestroReportadoPor")
+  consumosRegistrados                 ConsumoInsumo[]
+  metricasBICreadas                   MetricaBI[]
+  accesosReporteBI                    AccesoReporteBI[]
+  nlQueryLogs                         NlQueryLog[]
+  configuracionesNotificacionProyecto ConfiguracionNotificacionProyecto[]
 }
 
 model UsuarioProyecto {
@@ -317,20 +318,35 @@ model Proyecto {
   modulosActivos           Json
   procesosActivos          Json
 
-  unidades              Unidad[]
-  operadores            Operador[]
-  usuarios              UsuarioProyecto[]
-  gastosTag             Tag[]
-  combustible           Combustible[]
-  geocercas             Geocerca[]
-  presupuestosMensuales PresupuestoMensual[]
-  presupuestosPartida   PresupuestoPartida[]
-  gastosReportados      GastoVehicular[]
-  insumos               InsumoInventario[]
-  tickets               TicketRescate[]
-  historicosUnidad      UnidadHistoricoProyecto[]
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
+  unidades                  Unidad[]
+  operadores                Operador[]
+  usuarios                  UsuarioProyecto[]
+  gastosTag                 Tag[]
+  combustible               Combustible[]
+  geocercas                 Geocerca[]
+  presupuestosMensuales     PresupuestoMensual[]
+  presupuestosPartida       PresupuestoPartida[]
+  gastosReportados          GastoVehicular[]
+  insumos                   InsumoInventario[]
+  tickets                   TicketRescate[]
+  historicosUnidad          UnidadHistoricoProyecto[]
+  configuracionNotificacion ConfiguracionNotificacionProyecto?
+  createdAt                 DateTime                           @default(now())
+  updatedAt                 DateTime                           @updatedAt
+}
+
+// Destinatarios de correo específicos de un proyecto — hoy solo para el
+// aviso al crear un ticket de rescate (ver src/app/(app)/rescate/actions.ts).
+// Separado de ConfiguracionNotificaciones (global, umbrales de alertas
+// in-app) porque este es por proyecto y dispara un correo transaccional.
+model ConfiguracionNotificacionProyecto {
+  id                   String   @id @default(cuid())
+  proyectoId           String   @unique
+  proyecto             Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  destinatariosRescate Json // string[] de correos
+  actualizadoPorId     String?
+  actualizadoPor       Usuario? @relation(fields: [actualizadoPorId], references: [id])
+  updatedAt            DateTime @updatedAt
 }
 
 model PresupuestoMensual {

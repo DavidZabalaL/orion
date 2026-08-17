@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { auth } from "@/auth";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { enviarNotificacionTicketRescate } from "@/lib/email";
 
 export type ResultadoSimple = { ok: boolean; error?: string; folio?: string };
 
@@ -77,6 +78,28 @@ export async function crearTicket(formData: FormData): Promise<ResultadoSimple> 
 
   revalidatePath("/rescate");
   invalidarCacheBI(["tickets_rescate"]);
+
+  // El correo nunca debe tumbar la creación del ticket — se registra el
+  // error y se sigue, igual que el patrón defensivo del motor de reportes BI.
+  if (unidad.proyectoId) {
+    try {
+      const config = await prisma.configuracionNotificacionProyecto.findUnique({ where: { proyectoId: unidad.proyectoId } });
+      const destinatarios = Array.isArray(config?.destinatariosRescate) ? (config.destinatariosRescate as unknown[]).filter((d): d is string => typeof d === "string") : [];
+      if (destinatarios.length > 0) {
+        await enviarNotificacionTicketRescate({
+          destinatarios,
+          folio: ticket.folio,
+          numeroEconomico,
+          motivo: motivo.nombre,
+          prioridad,
+          ubicacion,
+        });
+      }
+    } catch (error) {
+      console.error("Error al enviar notificación de ticket de rescate", error);
+    }
+  }
+
   return { ok: true, folio: ticket.folio };
 }
 
