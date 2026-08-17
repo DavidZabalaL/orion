@@ -47,7 +47,7 @@ export function FormCurso({ operadorId }: Props) {
     if (!file) return;
     setSubiendoFoto(true);
     try {
-      const blob = await upload(file.name, file, { access: "public", handleUploadUrl: "/api/checklist-upload" });
+      const blob = await upload(file.name, file, { access: "private", handleUploadUrl: "/api/checklist-upload" });
       setEvidenciaUrl(blob.url);
     } catch {
       setError("No se pudo subir el archivo.");

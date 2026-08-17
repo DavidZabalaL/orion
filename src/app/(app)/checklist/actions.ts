@@ -27,7 +27,7 @@ export async function subirFotoChecklist(
       return { ok: false, error: "Solo se permiten imágenes (JPG, PNG, WEBP, HEIC)." };
     }
     const nombre = `checklist/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
-    const blob = await put(nombre, file, { access: "public", addRandomSuffix: false });
+    const blob = await put(nombre, file, { access: "private", addRandomSuffix: false });
     return { ok: true, url: blob.url };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo subir la foto." };
