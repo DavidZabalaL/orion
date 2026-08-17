@@ -6,6 +6,7 @@ import { requerirPermisoModulo } from "@/lib/permisos";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
+import { blobProxy as blobProxyLib } from "@/lib/blob";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,7 @@ function fmtFecha(d: Date | string) {
   });
 }
 
-function blobProxy(url: string | null | undefined): string {
-  if (!url) return "";
-  if (!url.includes(".blob.vercel-storage.com")) return url;
-  return `/api/blob?url=${encodeURIComponent(url)}`;
-}
+const blobProxy = blobProxyLib;
 
 function ColorChip({ value }: { value: string }) {
   const v = value?.toUpperCase() ?? "";

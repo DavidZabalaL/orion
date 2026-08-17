@@ -33,6 +33,7 @@ import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilida
 import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-unidad";
 import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
+import { blobProxy } from "@/lib/blob";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -928,7 +929,7 @@ function TabAccidentes({ accidentes, numeroEconomico, bloqueada }: { accidentes:
               <td className="px-4 py-3">
                 <div className="flex gap-2 flex-wrap">
                   {(a.evidencias ?? []).map((url: string, i: number) => (
-                    <a key={url} href={url} target="_blank" rel="noopener noreferrer"
+                    <a key={url} href={blobProxy(url)} target="_blank" rel="noopener noreferrer"
                       style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
                       Foto {i + 1}
                     </a>

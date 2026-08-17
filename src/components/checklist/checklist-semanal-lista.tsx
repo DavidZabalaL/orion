@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
+import { blobProxy } from "@/lib/blob";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
@@ -88,9 +89,9 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {fotos.map(([k, url]) => (
-                                  <a key={k} href={url} target="_blank" rel="noopener noreferrer" title={k}>
+                                  <a key={k} href={blobProxy(url)} target="_blank" rel="noopener noreferrer" title={k}>
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={url} alt={k} className="rounded-lg object-cover" style={{ width: 90, height: 90 }} />
+                                    <img src={blobProxy(url)} alt={k} className="rounded-lg object-cover" style={{ width: 90, height: 90 }} />
                                   </a>
                                 ))}
                               </div>
