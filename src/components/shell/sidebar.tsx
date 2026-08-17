@@ -73,7 +73,7 @@ export function Sidebar({
       )}
       <aside
         className={clsx(
-          "flex flex-col w-64 shrink-0 border-r fixed inset-y-0 left-0 z-50 transition-all md:static md:translate-x-0",
+          "flex flex-col w-64 shrink-0 border-r fixed inset-y-0 left-0 z-50 transition-all md:static md:h-full md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           colapsado ? "md:w-20" : "md:w-64"
         )}
