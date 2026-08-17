@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { redirect } from "next/navigation";
-import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, type WidgetConfigItem } from "@/lib/widgets";
+import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, tamanoWidgetPorDefecto, esTamanoWidgetValido, type WidgetConfigItem } from "@/lib/widgets";
 import { WidgetsConfigForm } from "@/components/usuarios/widgets-config-form";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +19,8 @@ export default async function ConfigurarWidgetsPage() {
     const guardado = widgetsGuardados?.find((g) => g.id === w.id);
     return {
       id: w.id,
-      label: guardado?.label ?? w.labelDefault,
       activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
+      tamano: esTamanoWidgetValido(guardado?.tamano) ? guardado.tamano : tamanoWidgetPorDefecto(w.tipo),
     };
   });
 
@@ -34,7 +34,7 @@ export default async function ConfigurarWidgetsPage() {
           Widgets del resumen — Inventario de Unidades
         </h1>
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Elige qué recuadros de resumen se muestran a todos los usuarios en la parte superior de Inventario de Unidades, y edita su etiqueta.
+          Elige qué recuadros de resumen se muestran a todos los usuarios en la parte superior de Inventario de Unidades, y su tamaño.
         </p>
       </div>
 
