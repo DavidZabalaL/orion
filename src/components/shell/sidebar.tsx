@@ -80,15 +80,17 @@ export function Sidebar({
           className={clsx("flex items-center gap-2 shrink-0", colapsado ? "md:justify-center md:px-0 px-5" : "px-5")}
           style={{ height: "var(--header-height)" }}
         >
-          <OrionIcon size={32} />
-          <div className={clsx("leading-tight overflow-hidden", colapsado && "md:hidden")}>
-            <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
-              Orión
+          <Link href="/unidades" onClick={onClose} className={clsx("flex items-center gap-2 min-w-0", colapsado && "md:justify-center")}>
+            <OrionIcon size={32} />
+            <div className={clsx("leading-tight overflow-hidden", colapsado && "md:hidden")}>
+              <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
+                Orión
+              </div>
+              <div className="whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                Control Vehicular · Grupo Kabat
+              </div>
             </div>
-            <div className="whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              Control Vehicular · Grupo Kabat
-            </div>
-          </div>
+          </Link>
           <button
             onClick={onClose}
             className={clsx("md:hidden ml-auto flex items-center justify-center rounded-md", colapsado && "md:ml-0")}
