@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, CheckCircle2, AlertTriangle, Camera } from "lucide-react";
+import { ChevronLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
-import { blobProxy as blobProxyLib } from "@/lib/blob";
+import { blobProxy } from "@/lib/blob";
+import { PrintButton } from "@/components/checklist/print-button";
 
 export const dynamic = "force-dynamic";
+
+const PRINT_CSS = `
+@media print {
+  [data-no-print], nav, aside { display: none !important; }
+  body { background: white !important; }
+  .checklist-wrap { padding: 12px !important; max-width: 100% !important; }
+  .print-section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; }
+  .print-row { break-inside: avoid; page-break-inside: avoid; }
+  .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+`;
 
 function fmtFecha(d: Date | string) {
   return new Date(d).toLocaleString("es-MX", {
@@ -21,81 +34,91 @@ function fmtFecha(d: Date | string) {
   });
 }
 
-const blobProxy = blobProxyLib;
+// ─── Piezas visuales ──────────────────────────────────────────────────────────
 
 function ColorChip({ value }: { value: string }) {
   const v = value?.toUpperCase() ?? "";
   let bg = "var(--chip)";
   let color = "var(--sidebar-text)";
-  if (v === "BUEN ESTADO" || v === "MAXIMO" || v === "Y" || v === "OK") {
-    bg = "var(--status-cerrado-bg)";
-    color = "var(--color-status-cerrado)";
-  } else if (v === "MAL ESTADO" || v === "MINIMO" || v === "N") {
-    bg = "var(--status-escena-bg, #fef2f2)";
-    color = "var(--color-status-escena)";
-  } else if (v === "MEDIO") {
-    bg = "var(--status-revision-bg)";
-    color = "var(--color-status-revision)";
-  } else if (v === "N/A" || v === "NA" || v === "NO APLICA") {
-    bg = "var(--chip)";
-    color = "var(--sidebar-text)";
-  }
+  if (["BUEN ESTADO", "MAXIMO", "Y", "OK"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
+  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
+  else if (v === "MEDIO") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
   return (
     <span
-      className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
-      style={{ background: bg, color, fontFamily: "var(--font-ui)", letterSpacing: "0.02em" }}
+      className="inline-block rounded-full whitespace-nowrap"
+      style={{ background: bg, color, fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", letterSpacing: "0.03em" }}
     >
       {value}
     </span>
   );
 }
 
-function GaleriaFotos({ urls, titulo }: { urls: string[]; titulo?: string }) {
-  const validas = urls.filter(Boolean);
-  if (!validas.length) return null;
+function Thumb({ url, label }: { url: string; label: string }) {
+  const src = blobProxy(url);
   return (
-    <div className="flex flex-col gap-2">
-      {titulo && (
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          {titulo}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-3">
-        {validas.map((url, i) => (
-          <a key={i} href={blobProxy(url)} target="_blank" rel="noopener noreferrer">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={blobProxy(url)}
-              alt={`foto ${i + 1}`}
-              style={{ width: 120, height: 120, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }}
-            />
-          </a>
-        ))}
-      </div>
-    </div>
+    <a href={src} target="_blank" rel="noopener noreferrer" className="shrink-0" title={`Ver foto: ${label}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={label}
+        style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6, border: "1px solid var(--field-border)", display: "block" }}
+      />
+    </a>
   );
 }
 
-function SeccionCard({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+/** Título de sección con línea de color */
+function SeccionTitulo({ titulo }: { titulo: string }) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-      <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--sidebar-text-active)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+    <div className="px-5 py-3" style={{ borderBottom: "1px solid var(--field-border)" }}>
+      <span
+        style={{
+          fontFamily: "var(--font)",
+          fontSize: "var(--text-xs)",
+          fontWeight: 700,
+          color: "var(--color-primary)",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+        }}
+      >
         {titulo}
-      </h2>
-      {children}
+      </span>
     </div>
   );
 }
 
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+/** Fila compacta: etiqueta | valor/chip | miniatura opcional */
+function FilaItem({
+  label,
+  badge,
+  foto,
+}: {
+  label: React.ReactNode;
+  badge: React.ReactNode;
+  foto?: string;
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+    <div
+      className="print-row flex items-center gap-3 px-4 py-2.5"
+      style={{ borderBottom: "1px solid var(--field-border)", minHeight: 44 }}
+    >
+      <div className="flex-1 min-w-0" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
         {label}
-      </span>
-      <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>
-        {children}
       </div>
+      <div className="shrink-0">{badge}</div>
+      {foto && <Thumb url={foto} label={typeof label === "string" ? label : "foto"} />}
+    </div>
+  );
+}
+
+/** Panel con borde y sombra que agrupa filas */
+function Panel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="print-section print-card rounded-xl overflow-hidden"
+      style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
+    >
+      {children}
     </div>
   );
 }
@@ -116,102 +139,101 @@ function DetalleDiario({
   const fotoHorometro = puntos["horometro_foto"];
 
   return (
-    <>
-      <SeccionCard titulo="Puntos de inspección">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {PUNTOS_INSPECCION.map((p) => {
-            const estado = puntos[p.key] ?? "—";
-            const foto = puntos[`${p.key}_foto`];
-            const ok = estado === "ok";
-            return (
+    <div className="flex flex-col gap-5">
+      {/* Puntos de inspección */}
+      <Panel>
+        <SeccionTitulo titulo="Puntos de inspección" />
+        {PUNTOS_INSPECCION.map((p) => {
+          const estado = puntos[p.key] ?? "—";
+          const ok = estado === "ok";
+          const foto = puntos[`${p.key}_foto`];
+          return (
+            <FilaItem
+              key={p.key}
+              label={
+                <span className="flex items-center gap-2">
+                  {ok
+                    ? <CheckCircle2 size={15} color="var(--color-status-cerrado)" className="shrink-0" />
+                    : <AlertTriangle size={15} color="var(--color-status-escena)" className="shrink-0" />}
+                  {p.label}
+                </span>
+              }
+              badge={<ColorChip value={ok ? "OK" : estado === "falla" ? "REVISAR" : estado.toUpperCase()} />}
+              foto={foto}
+            />
+          );
+        })}
+      </Panel>
+
+      {/* Lecturas y evidencia */}
+      {(odometro != null || horometro != null) && (
+        <Panel>
+          <SeccionTitulo titulo="Lecturas y evidencia" />
+          <div className="grid gap-0" style={{ gridTemplateColumns: odometro != null && horometro != null ? "1fr 1fr" : "1fr" }}>
+            {odometro != null && (
               <div
-                key={p.key}
-                className="flex flex-col rounded-lg overflow-hidden"
-                style={{ background: ok ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)" }}
+                className="flex flex-col gap-3 p-5"
+                style={{ borderRight: horometro != null ? "1px solid var(--field-border)" : undefined }}
               >
-                <div className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {ok ? (
-                      <CheckCircle2 size={18} color="var(--color-status-cerrado)" />
-                    ) : (
-                      <AlertTriangle size={18} color="var(--color-status-revision)" />
-                    )}
-                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: ok ? "var(--color-status-cerrado)" : "var(--color-status-revision)" }}>
-                      {p.label}
-                    </span>
+                <div>
+                  <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Odómetro
                   </div>
-                  <span
-                    className="rounded-full px-2 py-0.5 text-xs font-bold"
-                    style={{ background: ok ? "var(--color-status-cerrado)" : "var(--color-status-revision)", color: "#fff", fontFamily: "var(--font-ui)" }}
-                  >
-                    {ok ? "OK" : "REVISAR"}
-                  </span>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--field-text)", marginTop: 4 }}>
+                    {odometro.toLocaleString("es-MX")} <span style={{ fontSize: "var(--text-sm)", fontWeight: 400 }}>km</span>
+                  </div>
                 </div>
-                {foto && (
-                  <div className="px-4 pb-3">
-                    <a href={blobProxy(foto)} target="_blank" rel="noopener noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={blobProxy(foto)}
-                        alt={p.label}
-                        style={{ width: "100%", maxWidth: 200, height: 120, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid rgba(255,255,255,0.2)" }}
-                      />
-                    </a>
-                  </div>
+                {evidenciaUrl && (
+                  <a href={blobProxy(evidenciaUrl)} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={blobProxy(evidenciaUrl)}
+                      alt="Foto odómetro"
+                      style={{ width: "100%", maxWidth: 200, height: 130, objectFit: "cover", borderRadius: 8, border: "1px solid var(--field-border)" }}
+                    />
+                  </a>
                 )}
               </div>
-            );
-          })}
-        </div>
-      </SeccionCard>
-
-      <SeccionCard titulo="Lecturas y evidencia">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {odometro != null && (
-            <div className="flex flex-col gap-1">
-              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Odómetro</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{odometro.toLocaleString("es-MX")} km</span>
-              {evidenciaUrl && (
-                <a href={blobProxy(evidenciaUrl)} target="_blank" rel="noopener noreferrer" className="mt-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={blobProxy(evidenciaUrl)} alt="Foto odómetro" style={{ width: "100%", maxWidth: 120, height: 90, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }} />
-                </a>
-              )}
-            </div>
-          )}
-          {horometro != null && (
-            <div className="flex flex-col gap-1">
-              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Horómetro</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{horometro.toLocaleString("es-MX")} h</span>
-              {fotoHorometro && (
-                <a href={blobProxy(fotoHorometro)} target="_blank" rel="noopener noreferrer" className="mt-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={blobProxy(fotoHorometro)} alt="Foto horómetro" style={{ width: "100%", maxWidth: 120, height: 90, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }} />
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      </SeccionCard>
-    </>
+            )}
+            {horometro != null && (
+              <div className="flex flex-col gap-3 p-5">
+                <div>
+                  <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Horómetro
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--field-text)", marginTop: 4 }}>
+                    {horometro.toLocaleString("es-MX")} <span style={{ fontSize: "var(--text-sm)", fontWeight: 400 }}>h</span>
+                  </div>
+                </div>
+                {fotoHorometro && (
+                  <a href={blobProxy(fotoHorometro)} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={blobProxy(fotoHorometro)}
+                      alt="Foto horómetro"
+                      style={{ width: "100%", maxWidth: 200, height: 130, objectFit: "cover", borderRadius: 8, border: "1px solid var(--field-border)" }}
+                    />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </Panel>
+      )}
+    </div>
   );
 }
 
 // ─── Detalle Semanal ──────────────────────────────────────────────────────────
 
 function DetalleSemanal({ respuestas }: { respuestas: Record<string, string> }) {
-  const CLAVES_FOTO = new Set<string>();
-  for (const sec of SECCIONES_CHECKLIST_SEMANAL) {
-    for (const campo of sec.campos) {
-      if (campo.tipo === "foto") CLAVES_FOTO.add(campo.key);
-      if (campo.tipo === "radio" && "fotoKey" in campo && campo.fotoKey) CLAVES_FOTO.add(campo.fotoKey);
-    }
-  }
-  CLAVES_FOTO.add("fotoLicenciaUrl");
-  CLAVES_FOTO.add("gen_foto_odometro");
-  CLAVES_FOTO.add("gen_foto_horometro");
+  const fotosEncabezado = [
+    { url: respuestas.fotoLicenciaUrl, label: "Foto de licencia" },
+    { url: respuestas.gen_foto_odometro, label: "Foto odómetro" },
+    { url: respuestas.gen_foto_horometro, label: "Foto horómetro" },
+  ].filter((f) => f.url);
 
-  const generales = [
+  const generalesTexto = [
     { label: "Oficina / Sede", value: respuestas.oficinaSede },
     { label: "Modelo", value: respuestas.modelo },
     { label: "Tipo de vehículo", value: respuestas.tipoVehiculo },
@@ -220,69 +242,60 @@ function DetalleSemanal({ respuestas }: { respuestas: Record<string, string> }) 
     { label: "Horómetro", value: respuestas.gen_horometro ? `${respuestas.gen_horometro} h` : undefined },
   ].filter((c) => c.value);
 
-  const fotosGenerales = [
-    { url: respuestas.fotoLicenciaUrl, label: "Foto de licencia" },
-    { url: respuestas.gen_foto_odometro, label: "Foto odómetro" },
-    { url: respuestas.gen_foto_horometro, label: "Foto horómetro" },
-  ].filter((f) => f.url);
-
   return (
-    <>
-      <SeccionCard titulo="Datos generales">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {generales.map((c) => (
-            <Campo key={c.label} label={c.label}>
-              {c.value}
-            </Campo>
+    <div className="flex flex-col gap-5">
+      {/* Datos generales */}
+      {(generalesTexto.length > 0 || fotosEncabezado.length > 0) && (
+        <Panel>
+          <SeccionTitulo titulo="Datos generales" />
+          {generalesTexto.map((c) => (
+            <FilaItem
+              key={c.label}
+              label={c.label}
+              badge={
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", fontWeight: 500 }}>
+                  {c.value}
+                </span>
+              }
+            />
           ))}
-        </div>
-        {fotosGenerales.length > 0 && (
-          <GaleriaFotos
-            titulo="Documentos"
-            urls={fotosGenerales.map((f) => f.url!)}
-          />
-        )}
-      </SeccionCard>
+          {fotosEncabezado.map((f) => (
+            <FilaItem key={f.label} label={f.label} badge={null} foto={f.url!} />
+          ))}
+        </Panel>
+      )}
 
+      {/* Secciones de inspección */}
       {SECCIONES_CHECKLIST_SEMANAL.map((seccion) => {
-        const camposTexto: { label: string; value: string }[] = [];
-        const fotos: string[] = [];
-
+        const filas: { label: string; valor: string | null; foto: string | null }[] = [];
         for (const campo of seccion.campos) {
-          const valor = respuestas[campo.key];
-          if (!valor) continue;
           if (campo.tipo === "foto") {
-            fotos.push(valor);
+            const url = respuestas[campo.key];
+            if (url) filas.push({ label: campo.label, valor: null, foto: url });
           } else {
-            camposTexto.push({ label: campo.label, value: valor });
-          }
-          if (campo.tipo === "radio" && "fotoKey" in campo && campo.fotoKey) {
-            const fotoValor = respuestas[campo.fotoKey];
-            if (fotoValor) fotos.push(fotoValor);
+            const valor = respuestas[campo.key];
+            if (!valor) continue;
+            const foto = "fotoKey" in campo && campo.fotoKey ? (respuestas[campo.fotoKey] || null) : null;
+            filas.push({ label: campo.label, valor, foto });
           }
         }
-
-        if (!camposTexto.length && !fotos.length) return null;
+        if (!filas.length) return null;
 
         return (
-          <SeccionCard key={seccion.key} titulo={seccion.titulo}>
-            {camposTexto.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {camposTexto.map((c) => (
-                  <div key={c.label} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--field-bg)" }}>
-                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                      {c.label}
-                    </span>
-                    <ColorChip value={c.value} />
-                  </div>
-                ))}
-              </div>
-            )}
-            {fotos.length > 0 && <GaleriaFotos titulo="Fotografías" urls={fotos} />}
-          </SeccionCard>
+          <Panel key={seccion.key}>
+            <SeccionTitulo titulo={seccion.titulo} />
+            {filas.map((fila, i) => (
+              <FilaItem
+                key={i}
+                label={fila.label}
+                badge={fila.valor ? <ColorChip value={fila.valor} /> : null}
+                foto={fila.foto ?? undefined}
+              />
+            ))}
+          </Panel>
         );
       })}
-    </>
+    </div>
   );
 }
 
@@ -290,70 +303,73 @@ function DetalleSemanal({ respuestas }: { respuestas: Record<string, string> }) 
 
 function DetalleCargaCombustible({ respuestas }: { respuestas: Record<string, string> }) {
   return (
-    <>
+    <div className="flex flex-col gap-5">
       {SECCIONES_CARGA_COMBUSTIBLE.map((seccion) => {
-        const camposTexto = seccion.campos
+        const textoCampos = seccion.campos
           .map((c) => ({ label: c.label, value: respuestas[c.key] }))
           .filter((c) => c.value);
-
-        const fotos = seccion.fotos
+        const fotoCampos = seccion.fotos
           .map((f) => ({ label: f.label, url: respuestas[f.key] }))
           .filter((f) => f.url);
+        const firma = "firma" in seccion && seccion.firma ? respuestas[seccion.firma.key] : undefined;
 
-        const firma =
-          "firma" in seccion && seccion.firma
-            ? respuestas[seccion.firma.key]
-            : undefined;
-
-        if (!camposTexto.length && !fotos.length && !firma) return null;
+        if (!textoCampos.length && !fotoCampos.length && !firma) return null;
 
         return (
-          <SeccionCard key={seccion.key} titulo={seccion.titulo}>
-            {camposTexto.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {camposTexto.map((c) => (
-                  <Campo key={c.label} label={c.label}>
+          <Panel key={seccion.key}>
+            <SeccionTitulo titulo={seccion.titulo} />
+            {textoCampos.map((c) => (
+              <FilaItem
+                key={c.label}
+                label={c.label}
+                badge={
+                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", fontWeight: 500 }}>
                     {c.value}
-                  </Campo>
-                ))}
-              </div>
-            )}
-            {fotos.length > 0 && (
-              <div className="flex flex-wrap gap-4">
-                {fotos.map((f) => (
-                  <div key={f.label} className="flex flex-col gap-1">
-                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                      {f.label}
-                    </span>
-                    <a href={blobProxy(f.url)} target="_blank" rel="noopener noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={blobProxy(f.url)}
-                        alt={f.label}
-                        style={{ width: 140, height: 140, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }}
-                      />
-                    </a>
-                  </div>
-                ))}
+                  </span>
+                }
+              />
+            ))}
+            {fotoCampos.length > 0 && (
+              <div className="px-5 py-4" style={{ borderTop: "1px solid var(--field-border)" }}>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+                  Evidencia fotográfica
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  {fotoCampos.map((f) => (
+                    <div key={f.label} className="flex flex-col gap-1.5 items-center">
+                      <a href={blobProxy(f.url!)} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={blobProxy(f.url!)}
+                          alt={f.label}
+                          style={{ width: 110, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--field-border)" }}
+                        />
+                      </a>
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center", maxWidth: 110 }}>
+                        {f.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {firma && (
-              <div className="flex flex-col gap-2">
-                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              <div className="px-5 py-4 flex flex-col gap-2" style={{ borderTop: "1px solid var(--field-border)" }}>
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   Firma del responsable
                 </span>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={firma}
                   alt="Firma"
-                  style={{ maxWidth: 300, height: 100, objectFit: "contain", background: "#fff", border: "1px solid var(--field-border)", borderRadius: "var(--radius-md)", padding: 8 }}
+                  style={{ maxWidth: 260, height: 90, objectFit: "contain", background: "#fff", border: "1px solid var(--field-border)", borderRadius: 8, padding: 8 }}
                 />
               </div>
             )}
-          </SeccionCard>
+          </Panel>
         );
       })}
-    </>
+    </div>
   );
 }
 
@@ -385,65 +401,88 @@ export default async function DetalleChecklistPage({
         ? "Semanal"
         : "Carga de Combustible";
 
+  const tipoBadgeColor =
+    checklist.tipo === "DIARIO"
+      ? { bg: "var(--status-cerrado-bg)", color: "var(--color-status-cerrado)" }
+      : checklist.tipo === "SEMANAL"
+        ? { bg: "var(--chip)", color: "var(--sidebar-text-active)" }
+        : { bg: "var(--status-revision-bg)", color: "var(--color-status-revision)" };
+
   const puntos = (checklist.puntosInspeccion ?? {}) as Record<string, string>;
   const respuestas = (checklist.respuestasSemanal ?? {}) as Record<string, string>;
 
+  const metaItems = [
+    { label: "Unidad", value: `${checklist.unidad.numeroEconomico} — ${checklist.unidad.marca} ${checklist.unidad.unidadModelo}` },
+    { label: "Fecha y hora", value: fmtFecha(checklist.fecha) },
+    ...(checklist.odometro != null ? [{ label: "Odómetro", value: `${checklist.odometro.toLocaleString("es-MX")} km` }] : []),
+    ...(checklist.horometro != null ? [{ label: "Horómetro", value: `${checklist.horometro.toLocaleString("es-MX")} h` }] : []),
+    { label: "Capturado por", value: checklist.capturadoPor?.nombre ?? "—" },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <Link
-          href={`/unidades/${checklist.numeroEconomico}`}
-          className="flex items-center gap-1 w-fit"
-          style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
-        >
-          <ChevronLeft size={15} /> Volver a ficha de {checklist.numeroEconomico}
-        </Link>
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-            Checklist {tipoLabel}
-          </h1>
-          <span
-            className="rounded-full px-3 py-1 text-xs font-semibold"
-            style={{
-              background: checklist.tipo === "DIARIO" ? "var(--status-cerrado-bg)" : checklist.tipo === "SEMANAL" ? "var(--chip)" : "var(--status-revision-bg)",
-              color: checklist.tipo === "DIARIO" ? "var(--color-status-cerrado)" : checklist.tipo === "SEMANAL" ? "var(--sidebar-text-active)" : "var(--color-status-revision)",
-              fontFamily: "var(--font-ui)",
-            }}
-          >
-            {tipoLabel.toUpperCase()}
-          </span>
+    <>
+      {/* eslint-disable-next-line react/no-unknown-property */}
+      <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
+
+      <div className="checklist-wrap flex flex-col gap-5 p-4 md:p-6 max-w-3xl">
+        {/* ── Cabecera ── */}
+        <div className="flex flex-wrap items-start justify-between gap-3" data-no-print={undefined}>
+          <div className="flex flex-col gap-1.5">
+            <Link
+              href={`/unidades/${checklist.numeroEconomico}`}
+              data-no-print
+              className="flex items-center gap-1 w-fit"
+              style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
+            >
+              <ChevronLeft size={14} />
+              Volver a {checklist.numeroEconomico}
+            </Link>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+                Checklist {tipoLabel}
+              </h1>
+              <span
+                className="rounded-full"
+                style={{ background: tipoBadgeColor.bg, color: tipoBadgeColor.color, fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", letterSpacing: "0.04em" }}
+              >
+                {tipoLabel.toUpperCase()}
+              </span>
+            </div>
+          </div>
+          <PrintButton />
         </div>
-      </div>
 
-      {/* Meta */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <Campo label="Unidad">
-          <Link href={`/unidades/${checklist.unidad.numeroEconomico}`} style={{ color: "var(--color-primary)" }}>
-            {checklist.unidad.numeroEconomico}
-          </Link>
-          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-            {checklist.unidad.marca} {checklist.unidad.unidadModelo}
-          </span>
-        </Campo>
-        <Campo label="Fecha y hora">{fmtFecha(checklist.fecha)}</Campo>
-        {checklist.odometro != null && (
-          <Campo label="Odómetro">{checklist.odometro.toLocaleString("es-MX")} km</Campo>
-        )}
-        {checklist.horometro != null && (
-          <Campo label="Horómetro">{checklist.horometro.toLocaleString("es-MX")} h</Campo>
-        )}
-        <Campo label="Capturado por">{checklist.capturadoPor?.nombre ?? "—"}</Campo>
-      </div>
+        {/* ── Meta resumen ── */}
+        <div
+          className="print-card rounded-xl overflow-hidden"
+          style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
+        >
+          <div className="grid divide-y sm:divide-y-0 sm:divide-x sm:grid-cols-3" style={{ gridTemplateColumns: `repeat(${Math.min(metaItems.length, 3)}, 1fr)` }}>
+            {metaItems.map((item) => (
+              <div key={item.label} className="flex flex-col gap-0.5 px-5 py-3">
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  {item.label}
+                </span>
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", fontWeight: 500 }}>
+                  {item.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* Detalle por tipo */}
-      {checklist.tipo === "DIARIO" && (
-        <DetalleDiario puntos={puntos} evidenciaUrl={checklist.evidencia?.url} odometro={checklist.odometro} horometro={checklist.horometro} />
-      )}
-      {checklist.tipo === "SEMANAL" && <DetalleSemanal respuestas={respuestas} />}
-      {checklist.tipo === "CARGA_COMBUSTIBLE" && (
-        <DetalleCargaCombustible respuestas={respuestas} />
-      )}
-    </div>
+        {/* ── Contenido por tipo ── */}
+        {checklist.tipo === "DIARIO" && (
+          <DetalleDiario
+            puntos={puntos}
+            evidenciaUrl={checklist.evidencia?.url}
+            odometro={checklist.odometro}
+            horometro={checklist.horometro}
+          />
+        )}
+        {checklist.tipo === "SEMANAL" && <DetalleSemanal respuestas={respuestas} />}
+        {checklist.tipo === "CARGA_COMBUSTIBLE" && <DetalleCargaCombustible respuestas={respuestas} />}
+      </div>
+    </>
   );
 }
