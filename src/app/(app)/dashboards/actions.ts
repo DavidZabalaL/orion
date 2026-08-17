@@ -59,7 +59,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, orden, filtros, proyectoIds } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, orden, filtros, proyectoIds, emiteFiltro, escuchaFiltro } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
     if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
@@ -116,6 +116,8 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       filtros: filtrosLimpios,
       proyectoIds: proyectoIdsLimpios,
       layout: layoutValido,
+      emiteFiltro: emiteFiltro === true ? true : undefined,
+      escuchaFiltro: escuchaFiltro === true ? true : undefined,
     });
   }
   return limpios;

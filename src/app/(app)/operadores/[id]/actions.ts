@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function actualizarOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -74,5 +75,6 @@ export async function actualizarOperador(formData: FormData) {
 
   revalidatePath(`/operadores/${id}`);
   revalidatePath("/operadores");
+  invalidarCacheBI(["operadores"]);
   redirect(`/operadores/${id}`);
 }

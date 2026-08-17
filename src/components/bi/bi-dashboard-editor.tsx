@@ -3,15 +3,16 @@
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
 import { Pencil, Plus, Printer, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
-import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI } from "@/lib/bi/metadata";
+import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI, type FiltroGuardable } from "@/lib/bi/metadata";
 import { BiCard } from "@/components/bi/bi-card";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
+import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 
 export type VistaDashboard = { id: string; nombre: string; widgets: WidgetDashboardBI[] };
 
@@ -55,11 +56,35 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>("lg");
 
+  // Cross-filter (Fase 6): un único filtro de interacción global, activado al
+  // hacer clic en una categoría de un widget marcado "emite" — se ofrece a
+  // todos los widgets marcados "escucha" (fusión hecha dentro de BiCard, que
+  // ignora en silencio el filtro si su dataset no tiene ese campo). Cascada
+  // limitada a 1 nivel a propósito: los widgets filtrados no vuelven a emitir
+  // automáticamente por este cambio, solo por un clic directo del usuario.
+  const [filtroInteraccion, setFiltroInteraccion] = useState<FiltroGuardable | null>(null);
+
+  function manejarDrillDown(campoId: string, valor: string) {
+    setFiltroInteraccion((actual) => (actual?.campoId === campoId && actual.valores[0] === valor ? null : { campoId, valores: [valor] }));
+  }
+
+  // Gobernanza: registra "vio" la primera vez que se abre esta vista guardada
+  // en la sesión del navegador (throttle en sessionStorage — no en cada
+  // render/cambio de breakpoint, solo la primera vez por pestaña).
+  useEffect(() => {
+    if (vistaActivaId === TEMPORAL) return;
+    const clave = `bi-vio:vista_dashboard:${vistaActivaId}`;
+    if (sessionStorage.getItem(clave)) return;
+    sessionStorage.setItem(clave, "1");
+    void registrarAccesoBI({ tipoRecurso: "vista_dashboard", accion: "vio", recursoId: vistaActivaId });
+  }, [vistaActivaId]);
+
   function cambiarVista(id: string) {
     setVistaActivaId(id);
     setEditMode(false);
     setFormulario(null);
     setMensaje(null);
+    setFiltroInteraccion(null);
     if (id === TEMPORAL) {
       setNombreVista("Vista sugerida");
       setWidgets(WIDGETS_BI_DEFAULT);
@@ -207,6 +232,20 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
           </p>
         )}
 
+        {filtroInteraccion && (
+          <div className="mb-3 flex items-center gap-2" data-no-print>
+            <span
+              className="flex items-center gap-2 rounded-full px-3 py-1.5"
+              style={{ background: "var(--color-primary)", color: "white", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+            >
+              Filtro activo: {filtroInteraccion.campoId} = {filtroInteraccion.valores[0]}
+              <button type="button" onClick={() => setFiltroInteraccion(null)} className="flex items-center" aria-label="Quitar filtro">
+                <X size={12} />
+              </button>
+            </span>
+          </div>
+        )}
+
         <div ref={containerRef}>
           {mounted && (
             <Responsive
@@ -238,6 +277,10 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                     editMode={editMode}
                     onEditar={() => setFormulario({ editarId: w.id })}
                     onEliminar={() => eliminarWidget(w.id)}
+                    emiteFiltro={w.emiteFiltro}
+                    escuchaFiltro={w.escuchaFiltro}
+                    filtroInteraccion={filtroInteraccion}
+                    onCategoriaClick={manejarDrillDown}
                   />
                 </div>
               ))}
@@ -327,6 +370,8 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                           filtros: widgetEditando.filtros,
                           proyectoIds: widgetEditando.proyectoIds,
                         },
+                        emiteFiltro: widgetEditando.emiteFiltro,
+                        escuchaFiltro: widgetEditando.escuchaFiltro,
                       }
                     : undefined
                 }

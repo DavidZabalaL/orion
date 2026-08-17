@@ -61,6 +61,7 @@ export function BiChart({
   ejeYLabel,
   agregacion,
   truncado,
+  onCategoriaClick,
 }: {
   datos: BiDato[];
   cajas?: BiCaja[];
@@ -71,6 +72,8 @@ export function BiChart({
   ejeYLabel: string;
   agregacion?: TipoAgregacion;
   truncado?: boolean;
+  /** Drill-down: se dispara con el valor de la categoría clicada (barras, pie, puntos, divergente). Opcional — no rompe usos existentes. */
+  onCategoriaClick?: (valor: string) => void;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const uid = useId();
@@ -113,6 +116,7 @@ export function BiChart({
             hover={hover}
             setHover={setHover}
             uid={uid}
+            onCategoriaClick={onCategoriaClick}
           />
         )}
       </div>
@@ -134,22 +138,23 @@ function BiChartInterno(props: {
   hover: number | null;
   setHover: (i: number | null) => void;
   uid: string;
+  onCategoriaClick?: (valor: string) => void;
 }) {
-  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, agregacion, width, height, hover, setHover, uid } = props;
+  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
   if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} agregacion={agregacion} width={width} height={height} />;
-  if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
   if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "puntos") return <BiPuntos datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "divergente") return <BiDivergente datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  if (tipoGrafica === "puntos") return <BiPuntos datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
+  if (tipoGrafica === "divergente") return <BiDivergente datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
   if (tipoGrafica === "dispersion") return <BiDispersion datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "calendario") return <BiCalendario datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "caja") return <BiCajaChart cajas={cajas} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "piramide") return <BiPiramide pares={pares} splitLabels={splitLabels} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "mapa") return <BiMapa datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
   if (tipoGrafica === "barras" && cruzado) return <BiBarrasAgrupadas cruzado={cruzado} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
+  return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
 }
 
 function BiContador({ datos, ejeYLabel, agregacion, width, height }: { datos: BiDato[]; ejeYLabel: string; agregacion?: TipoAgregacion; width: number; height: number }) {
@@ -183,7 +188,7 @@ function ejes(w: number, h: number, valores: number[]) {
   return { max: max === 0 ? 1 : max, innerW, innerH };
 }
 
-function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const W = Math.max(width, datos.length * 60);
   const H = height;
   const { max, innerW, innerH } = ejes(W, H, datos.map((d) => d.valor));
@@ -204,7 +209,13 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height }: { 
           const x = PAD.left + i * (bw + gap);
           const y = PAD.top + innerH - h;
           return (
-            <g key={d.dimension} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+            <g
+              key={d.dimension}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onCategoriaClick?.(d.dimension)}
+              style={onCategoriaClick ? { cursor: "pointer" } : undefined}
+            >
               <rect x={x} y={y} width={bw} height={Math.max(h, 1)} rx={4} fill={colorFor(i, dark)} opacity={hover === null || hover === i ? 1 : 0.45} />
               {mostrarEtiquetas && (
                 <text x={x + bw / 2} y={y - 6} textAnchor="middle" fontSize={10} fontFamily="var(--font-ui)" fill={ink}>
@@ -353,7 +364,7 @@ function BiLineas({ datos, dark, hover, setHover, ejeYLabel, width, height }: { 
   );
 }
 
-function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; uid: string; ejeYLabel: string; width: number; height: number }) {
+function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; uid: string; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const total = datos.reduce((acc, d) => acc + d.valor, 0) || 1;
   const apilado = width < 420;
   const pieW = apilado ? width : Math.max(180, Math.min(width * 0.5, height));
@@ -392,12 +403,21 @@ function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height }: 
             opacity={hover === null || hover === i ? 1 : 0.45}
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(null)}
+            onClick={() => onCategoriaClick?.(datos[i].dimension)}
+            style={onCategoriaClick ? { cursor: "pointer" } : undefined}
           />
         ))}
       </svg>
       <div className="flex flex-1 flex-col gap-1.5 overflow-auto">
         {datos.map((d, i) => (
-          <div key={d.dimension} className="flex items-center gap-2" style={{ opacity: hover === null || hover === i ? 1 : 0.5, fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+          <div
+            key={d.dimension}
+            className="flex items-center gap-2"
+            style={{ opacity: hover === null || hover === i ? 1 : 0.5, fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: onCategoriaClick ? "pointer" : undefined }}
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover(null)}
+            onClick={() => onCategoriaClick?.(d.dimension)}
+          >
             <span style={{ width: 10, height: 10, borderRadius: 3, background: colorFor(i, dark), flexShrink: 0 }} />
             <span style={{ color: "var(--sidebar-text-active)" }}>{d.dimension}</span>
             <span style={{ color: "var(--sidebar-text)" }}>
@@ -411,7 +431,7 @@ function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height }: 
 }
 
 /** Diagrama de tira de puntos: una fila por categoría, punto posicionado por su valor — alternativa más ligera a las barras para rankings. */
-function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const W = width;
   const filaAlto = 28;
   const H = Math.max(height, PAD.top + PAD.bottom + datos.length * filaAlto);
@@ -430,7 +450,13 @@ function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height }: { 
           const x0 = PAD.left + labelAncho;
           const x = x0 + (d.valor / max) * innerW;
           return (
-            <g key={d.dimension} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+            <g
+              key={d.dimension}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onCategoriaClick?.(d.dimension)}
+              style={onCategoriaClick ? { cursor: "pointer" } : undefined}
+            >
               <text x={PAD.left} y={y + 4} fontSize={11} fontFamily="var(--font-ui)" fill={ink}>
                 {d.dimension.length > 20 ? d.dimension.slice(0, 19) + "…" : d.dimension}
               </text>
@@ -452,7 +478,7 @@ function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height }: { 
 }
 
 /** Barra divergente: desviación de cada categoría respecto al promedio del conjunto mostrado. */
-function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const promedio = datos.reduce((acc, d) => acc + d.valor, 0) / datos.length;
   const desviaciones = datos.map((d) => d.valor - promedio);
   const maxAbs = Math.max(...desviaciones.map((v) => Math.abs(v)), 1);
@@ -477,7 +503,13 @@ function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, width, height }
           const anchoBarra = (Math.abs(desv) / maxAbs) * mitad;
           const x = desv >= 0 ? centro : centro - anchoBarra;
           return (
-            <g key={d.dimension} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+            <g
+              key={d.dimension}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onCategoriaClick?.(d.dimension)}
+              style={onCategoriaClick ? { cursor: "pointer" } : undefined}
+            >
               <text x={PAD.left} y={y + 4} fontSize={11} fontFamily="var(--font-ui)" fill={ink}>
                 {d.dimension.length > 20 ? d.dimension.slice(0, 19) + "…" : d.dimension}
               </text>

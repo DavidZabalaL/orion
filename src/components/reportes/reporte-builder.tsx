@@ -84,13 +84,22 @@ export function ReporteBuilder() {
         </div>
       </div>
 
-      <div>
-        <label style={labelStyle}>Frecuencia</label>
-        <select name="frecuencia" style={{ ...fieldStyle, maxWidth: 220 }} defaultValue="SEMANAL">
-          <option value="DIARIO">Diario</option>
-          <option value="SEMANAL">Semanal</option>
-          <option value="MENSUAL">Mensual</option>
-        </select>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label style={labelStyle}>Frecuencia</label>
+          <select name="frecuencia" style={fieldStyle} defaultValue="SEMANAL">
+            <option value="DIARIO">Diario</option>
+            <option value="SEMANAL">Semanal (lunes)</option>
+            <option value="MENSUAL">Mensual (día 1)</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Formato del archivo</label>
+          <select name="formato" style={fieldStyle} defaultValue="EXCEL">
+            <option value="EXCEL">Excel</option>
+            <option value="PDF">PDF</option>
+          </select>
+        </div>
       </div>
 
       <button

@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
   await exigirPermisoModulo("B", "editar");
@@ -75,5 +76,6 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
     });
   }
 
+  invalidarCacheBI(["unidades"]);
   redirect(`/unidades/${numeroEconomico}`);
 }

@@ -7,6 +7,7 @@ import { puedeEditarCapacidadTanque, tienePermisoModulo, exigirPermisoModulo } f
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
 
@@ -36,6 +37,7 @@ export async function actualizarCapacidadTanque(formData: FormData): Promise<Res
   }
 
   revalidatePath(`/unidades/${numeroEconomico}`);
+  invalidarCacheBI(["unidades"]);
   return { ok: true };
 }
 
@@ -101,6 +103,7 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
 
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/unidades");
+  invalidarCacheBI(["unidades", "historico_proyecto"]);
   return { ok: true };
 }
 
@@ -152,6 +155,7 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
 
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/unidades");
+  invalidarCacheBI(["unidades", "historico_proyecto"]);
   return { ok: true };
 }
 
@@ -275,5 +279,6 @@ export async function actualizarUnidad(formData: FormData) {
 
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/unidades");
+  invalidarCacheBI(["unidades"]);
   redirect(`/unidades/${numeroEconomico}`);
 }

@@ -7,6 +7,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
@@ -107,6 +108,8 @@ export async function importarCombustible(filas: FilaMapeada[]): Promise<Resulta
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
     }
   }
+
+  if (resultado.creadas.length > 0) invalidarCacheBI(["combustible"]);
 
   const session = await auth();
   if (session?.user?.id) {

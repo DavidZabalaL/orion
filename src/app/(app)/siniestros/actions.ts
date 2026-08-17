@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 function hoy() {
   return new Date().toISOString().slice(0, 10);
@@ -59,6 +60,7 @@ export async function crearSiniestro(fd: FormData) {
 
   await logActivity({ userId, modulo: "siniestros", accion: "create", entidad: "Siniestro" });
   revalidatePath("/siniestros");
+  invalidarCacheBI(["siniestros"]);
   return { ok: true };
 }
 
@@ -79,6 +81,7 @@ export async function actualizarEstatusSiniestro(fd: FormData) {
 
   await logActivity({ userId, modulo: "siniestros", accion: "update", entidad: "Siniestro", entidadId: id, detalle: { estatus } });
   revalidatePath("/siniestros");
+  invalidarCacheBI(["siniestros"]);
   return { ok: true };
 }
 
@@ -111,5 +114,6 @@ export async function actualizarSiniestro(fd: FormData) {
 
   await logActivity({ userId, modulo: "siniestros", accion: "update", entidad: "Siniestro", entidadId: id });
   revalidatePath("/siniestros");
+  invalidarCacheBI(["siniestros"]);
   return { ok: true };
 }

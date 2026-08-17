@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type ResultadoSimple = { ok: boolean; error?: string };
 
@@ -132,5 +133,6 @@ export async function registrarConsumo(formData: FormData): Promise<ResultadoSim
 
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/inventario-insumos");
+  invalidarCacheBI(["inventario_insumos"]);
   return { ok: true };
 }

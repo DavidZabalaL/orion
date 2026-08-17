@@ -14,7 +14,7 @@ export function BiAgregarWidget({
   compacto = false,
 }: {
   /** Si se pasa, el formulario edita ese widget en vez de crear uno nuevo. */
-  valorInicial?: { label: string; combinacion: CombinacionBI };
+  valorInicial?: { label: string; combinacion: CombinacionBI; emiteFiltro?: boolean; escuchaFiltro?: boolean };
   onGuardar: (widget: Omit<WidgetDashboardBI, "id" | "layout">) => void;
   onCancelar: () => void;
   proyectosDisponibles: ProyectoDisponible[];
@@ -30,6 +30,8 @@ export function BiAgregarWidget({
     }
   );
   const [label, setLabel] = useState(valorInicial?.label ?? "");
+  const [emiteFiltro, setEmiteFiltro] = useState(valorInicial?.emiteFiltro ?? false);
+  const [escuchaFiltro, setEscuchaFiltro] = useState(valorInicial?.escuchaFiltro ?? false);
 
   const dataset = obtenerDataset(combinacion.datasetId)!;
   const etiquetaPreview = label.trim() || `${dataset.label} — ${dataset.campos.find((c) => c.id === combinacion.ejeX)?.label}`;
@@ -63,6 +65,8 @@ export function BiAgregarWidget({
       orden: combinacion.orden,
       filtros: combinacion.filtros,
       proyectoIds: combinacion.proyectoIds,
+      emiteFiltro: emiteFiltro || undefined,
+      escuchaFiltro: escuchaFiltro || undefined,
     });
   }
 
@@ -74,6 +78,18 @@ export function BiAgregarWidget({
       </div>
 
       <SelectoresCombinacion combinacion={combinacion} onChange={setCombinacion} proyectosDisponibles={proyectosDisponibles} compacto={compacto} />
+
+      <div className="flex flex-col gap-2">
+        <label style={labelStyle}>Interactividad (cross-filter)</label>
+        <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+          <input type="checkbox" checked={emiteFiltro} onChange={(e) => setEmiteFiltro(e.target.checked)} />
+          Al hacer clic en una categoría, filtra los demás widgets marcados &quot;escucha&quot;
+        </label>
+        <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+          <input type="checkbox" checked={escuchaFiltro} onChange={(e) => setEscuchaFiltro(e.target.checked)} />
+          Escucha el filtro de otros widgets marcados &quot;emite&quot;
+        </label>
+      </div>
 
       <div>
         <label style={labelStyle}>Vista previa</label>

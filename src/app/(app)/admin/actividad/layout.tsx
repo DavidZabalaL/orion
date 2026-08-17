@@ -32,6 +32,13 @@ export default async function ActividadLayout({ children }: { children: React.Re
         >
           Trazabilidad
         </Link>
+        <Link
+          href="/admin/actividad/reportes-bi"
+          className="rounded-md px-4 h-9 flex items-center"
+          style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+        >
+          Reportes BI
+        </Link>
       </div>
 
       {children}

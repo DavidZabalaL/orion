@@ -1,14 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
+import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
+import { AnalisisAvanzado } from "@/components/bi/analisis-avanzado";
+import { PreguntaNatural } from "@/components/bi/pregunta-natural";
+import { InsightBI } from "@/components/bi/insight-bi";
+import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 
-export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: ProyectoDisponible[] }) {
+export type MetricaDisponible = {
+  id: string;
+  nombre: string;
+  datasetId: string;
+  campoId: string;
+  agregacion: "conteo" | "suma" | "promedio";
+  filtrosBase: { campoId: string; valores: string[] }[];
+};
+
+export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: { proyectosDisponibles: ProyectoDisponible[]; metricasDisponibles?: MetricaDisponible[] }) {
   const [combinacion, setCombinacion] = useState<CombinacionBI>({
     datasetId: BI_DATASETS[0].id,
     ejeX: BI_DATASETS[0].campos[0].id,
@@ -18,11 +32,36 @@ export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: Pro
   });
   const [verTabla, setVerTabla] = useState(false);
 
+  useEffect(() => {
+    const clave = "bi-vio:explorador:general";
+    if (sessionStorage.getItem(clave)) return;
+    sessionStorage.setItem(clave, "1");
+    void registrarAccesoBI({ tipoRecurso: "explorador", accion: "vio" });
+  }, []);
+
   const dataset = obtenerDataset(combinacion.datasetId)!;
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
     setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, orden: s.orden });
+  }
+
+  // Aplicar una métrica guardada solo pre-llena dataset/ejeY/agregación/filtros
+  // base — el resto de los controles (ejeX, tipo de gráfica, filtros
+  // adicionales) queda libre. La métrica nunca ejecuta nada por su cuenta: el
+  // backend re-valida dataset/campoId contra el whitelist igual que cualquier
+  // otra combinación.
+  function aplicarMetrica(m: MetricaDisponible) {
+    const ds = obtenerDataset(m.datasetId)!;
+    const ejeXValido = ds.campos.some((c) => c.id === combinacion.ejeX && combinacion.datasetId === m.datasetId);
+    setCombinacion({
+      datasetId: m.datasetId,
+      ejeX: ejeXValido ? combinacion.ejeX : ds.campos[0].id,
+      ejeY: m.campoId,
+      agregacion: m.agregacion,
+      tipoGrafica: "barras",
+      filtros: m.filtrosBase.length > 0 ? m.filtrosBase : undefined,
+    });
   }
 
   const params = useMemo(
@@ -41,9 +80,16 @@ export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: Pro
   );
   const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
+  const graficaRef = useRef<HTMLDivElement>(null);
+
+  function aplicarInterpretacionNL(p: { datasetId: string; ejeX: string; ejeY: string; agregacion: "conteo" | "suma" | "promedio"; tipoGrafica: CombinacionBI["tipoGrafica"]; filtros?: CombinacionBI["filtros"] }) {
+    setCombinacion({ datasetId: p.datasetId, ejeX: p.ejeX, ejeY: p.ejeY, agregacion: p.agregacion, tipoGrafica: p.tipoGrafica, filtros: p.filtros });
+  }
 
   return (
     <div className="flex flex-col gap-5">
+      <PreguntaNatural onInterpretado={aplicarInterpretacionNL} />
+
       <div className="flex flex-wrap gap-2">
         {BI_COMBINACIONES_SUGERIDAS.map((s) => (
           <button
@@ -57,6 +103,25 @@ export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: Pro
           </button>
         ))}
       </div>
+
+      {metricasDisponibles.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            Métricas guardadas
+          </span>
+          {metricasDisponibles.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => aplicarMetrica(m)}
+              className="rounded-full px-3 py-1.5"
+              style={{ background: "var(--color-primary-subtle, var(--chip))", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", border: "1px solid var(--field-border)" }}
+            >
+              {m.nombre}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
         <SelectoresCombinacion combinacion={combinacion} onChange={setCombinacion} proyectosDisponibles={proyectosDisponibles} />
@@ -75,9 +140,12 @@ export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: Pro
               <Table2 size={13} /> {verTabla ? "Ver gráfica" : "Ver tabla"}
             </button>
           )}
+          {!cargando && !error && (
+            <ExportarMenu dataset={combinacion.datasetId} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={combinacion.proyectoIds} contenedorRef={graficaRef} tipoRecurso="explorador" />
+          )}
         </div>
 
-        <div className="mt-3" style={{ minHeight: 320 }}>
+        <div ref={graficaRef} className="mt-3" style={{ minHeight: 320 }}>
           {cargando ? (
             <div className="flex items-center justify-center p-10" style={{ color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               Cargando…
@@ -95,6 +163,19 @@ export function BiExplorer({ proyectosDisponibles }: { proyectosDisponibles: Pro
           )}
         </div>
       </div>
+
+      <InsightBI
+        dataset={combinacion.datasetId}
+        ejeX={combinacion.ejeX}
+        ejeY={combinacion.ejeY}
+        agregacion={combinacion.agregacion}
+        orden={combinacion.orden}
+        filtros={combinacion.filtros}
+        proyectoIds={combinacion.proyectoIds}
+        tieneDatos={!cargando && !error && datos.length > 0}
+      />
+
+      <AnalisisAvanzado datasetId={combinacion.datasetId} proyectoIds={combinacion.proyectoIds} filtros={combinacion.filtros} />
     </div>
   );
 }

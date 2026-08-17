@@ -6,6 +6,7 @@ import { parsearFechaFlexible } from "@/lib/import-tag";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
@@ -83,6 +84,8 @@ export async function importarTags(
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
     }
   }
+
+  if (resultado.creadas.length > 0) invalidarCacheBI(["peajes"]);
 
   const session = await auth();
   if (session?.user?.id) {

@@ -7,6 +7,7 @@ import { exigirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
+import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export async function crearProyecto(formData: FormData) {
   await exigirPermisoModulo("H", "editar");
@@ -44,6 +45,7 @@ export async function crearProyecto(formData: FormData) {
   }
 
   revalidatePath("/proyectos");
+  invalidarCacheBI(["proyectos"]);
   // El presupuesto por partida se carga aparte (opcional) justo después de crear el proyecto.
   redirect(`/proyectos/${proyecto.id}/presupuesto/importar`);
 }
@@ -85,6 +87,7 @@ export async function actualizarProyecto(formData: FormData): Promise<ResultadoA
 
   revalidatePath(`/proyectos/${id}`);
   revalidatePath("/proyectos");
+  invalidarCacheBI(["proyectos"]);
   return { ok: true };
 }
 
@@ -121,6 +124,7 @@ export async function eliminarProyecto(formData: FormData): Promise<ResultadoAcc
   }
 
   revalidatePath("/proyectos");
+  invalidarCacheBI(["proyectos"]);
   return { ok: true };
 }
 
@@ -153,6 +157,7 @@ export async function actualizarPresupuestoAprobado(formData: FormData) {
 
   revalidatePath(`/proyectos/${id}`);
   revalidatePath("/proyectos");
+  invalidarCacheBI(["proyectos"]);
 }
 
 export async function actualizarPresupuestoMensual(formData: FormData) {
@@ -190,4 +195,5 @@ export async function actualizarPresupuestoMensual(formData: FormData) {
 
   revalidatePath(`/proyectos/${proyectoId}`);
   revalidatePath("/proyectos");
+  invalidarCacheBI(["proyectos"]);
 }

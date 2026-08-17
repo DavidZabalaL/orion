@@ -95,6 +95,38 @@ function plantillaInvitacion({ nombre, rol, loginUrl }: { nombre: string; rol: s
 
 export type ResultadoEnvioCorreo = { enviado: boolean; error?: string };
 
+export async function enviarReporteBI({
+  destinatarios,
+  nombreReporte,
+  buffer,
+  nombreArchivo,
+  mime,
+}: {
+  destinatarios: string[];
+  nombreReporte: string;
+  buffer: Buffer;
+  nombreArchivo: string;
+  mime: string;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  }
+  if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      to: destinatarios.join(","),
+      subject: `Reporte programado — ${nombreReporte}`,
+      html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el reporte <strong>${nombreReporte}</strong>, generado automáticamente por Orión.</p>`,
+      attachments: [{ filename: nombreArchivo, content: buffer, contentType: mime }],
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
 export async function enviarInvitacion({
   correo,
   nombre,
