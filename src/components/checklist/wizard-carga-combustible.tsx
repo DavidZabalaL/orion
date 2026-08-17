@@ -106,7 +106,7 @@ export function WizardCargaCombustible({
   const [municipio, setMunicipio] = useState(MUNICIPIOS_POR_ZONA[ZONAS_CARGA[0]][0] ?? "");
   const [area, setArea] = useState<AreaCarga>(AREAS_CARGA[0]);
   const [responsable, setResponsable] = useState("");
-  const [tipoLicencia, setTipoLicencia] = useState(TIPOS_LICENCIA_CARGA[0]);
+  const [tipoLicencia, setTipoLicencia] = useState<string>(TIPOS_LICENCIA_CARGA[0]);
   // Foto de licencia — rastreada en estado porque está fuera del <form> final
   const [fotoLicenciaUrl, setFotoLicenciaUrl] = useState<string | null>(null);
   const [subiendoFotoLicencia, setSubiendoFotoLicencia] = useState(false);
@@ -116,7 +116,7 @@ export function WizardCargaCombustible({
   const [numeroEconomico, setNumeroEconomico] = useState("");
 
   // Fase carga
-  const [tipoCombustible, setTipoCombustible] = useState(TIPOS_COMBUSTIBLE_CARGA[0]);
+  const [tipoCombustible, setTipoCombustible] = useState<string>(TIPOS_COMBUSTIBLE_CARGA[0]);
   const [observaciones, setObservaciones] = useState("");
 
   const municipiosDisponibles = MUNICIPIOS_POR_ZONA[zona] ?? [];
