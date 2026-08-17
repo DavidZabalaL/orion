@@ -11,12 +11,19 @@ export const dynamic = "force-dynamic";
 
 function fmtFecha(d: Date | string) {
   return new Date(d).toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
     day: "2-digit",
     month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function blobProxy(url: string | null | undefined): string {
+  if (!url) return "";
+  if (!url.includes(".blob.vercel-storage.com")) return url;
+  return `/api/blob?url=${encodeURIComponent(url)}`;
 }
 
 function ColorChip({ value }: { value: string }) {
@@ -47,7 +54,8 @@ function ColorChip({ value }: { value: string }) {
 }
 
 function GaleriaFotos({ urls, titulo }: { urls: string[]; titulo?: string }) {
-  if (!urls.length) return null;
+  const validas = urls.filter(Boolean);
+  if (!validas.length) return null;
   return (
     <div className="flex flex-col gap-2">
       {titulo && (
@@ -56,11 +64,11 @@ function GaleriaFotos({ urls, titulo }: { urls: string[]; titulo?: string }) {
         </p>
       )}
       <div className="flex flex-wrap gap-3">
-        {urls.map((url, i) => (
-          <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+        {validas.map((url, i) => (
+          <a key={i} href={blobProxy(url)} target="_blank" rel="noopener noreferrer">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={url}
+              src={blobProxy(url)}
               alt={`foto ${i + 1}`}
               style={{ width: 120, height: 120, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }}
             />
@@ -141,7 +149,7 @@ function DetalleDiario({
                     {ok ? "OK" : "REVISAR"}
                   </span>
                   {fotoUrl && (
-                    <a href={fotoUrl} target="_blank" rel="noopener noreferrer" title="Ver foto">
+                    <a href={blobProxy(fotoUrl)} target="_blank" rel="noopener noreferrer" title="Ver foto">
                       <Camera size={16} color="var(--color-primary)" />
                     </a>
                   )}
@@ -297,10 +305,10 @@ function DetalleCargaCombustible({ respuestas }: { respuestas: Record<string, st
                     <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
                       {f.label}
                     </span>
-                    <a href={f.url!} target="_blank" rel="noopener noreferrer">
+                    <a href={blobProxy(f.url)} target="_blank" rel="noopener noreferrer">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={f.url!}
+                        src={blobProxy(f.url)}
                         alt={f.label}
                         style={{ width: 140, height: 140, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }}
                       />
