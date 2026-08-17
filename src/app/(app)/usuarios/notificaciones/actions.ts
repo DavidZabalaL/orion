@@ -65,3 +65,36 @@ export async function actualizarConfiguracionNotificaciones(formData: FormData) 
 
   revalidatePath("/usuarios/notificaciones");
 }
+
+export async function actualizarNotificacionRescateProyecto(formData: FormData) {
+  await exigirPermisoModulo("K", "editar");
+
+  const proyectoId = String(formData.get("proyectoId") ?? "");
+  if (!proyectoId) throw new Error("Selecciona un proyecto.");
+
+  const destinatarios = String(formData.get("destinatariosRescate") ?? "")
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean);
+
+  const session = await auth();
+
+  await prisma.configuracionNotificacionProyecto.upsert({
+    where: { proyectoId },
+    create: { proyectoId, destinatariosRescate: destinatarios, actualizadoPorId: session?.user?.id },
+    update: { destinatariosRescate: destinatarios, actualizadoPorId: session?.user?.id },
+  });
+
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "update",
+      entidad: "ConfiguracionNotificacionProyecto",
+      entidadId: proyectoId,
+      detalle: { destinatarios },
+    });
+  }
+
+  revalidatePath("/usuarios/notificaciones");
+}

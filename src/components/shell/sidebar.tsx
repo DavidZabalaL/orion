@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { GRUPOS, MODULOS } from "@/lib/modulos";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { GRUPOS, MODULOS, type Grupo } from "@/lib/modulos";
+import { X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { OrionIcon } from "@/components/brand/orion-icon";
 import { UserMenu } from "@/components/shell/user-menu";
 import packageJson from "../../../package.json";
 
 const CLAVE_COLAPSADO = "orion-sidebar-colapsado";
+const CLAVE_GRUPOS_COLAPSADOS = "orion-sidebar-grupos-colapsados";
 
 type Usuario = { name?: string | null; email?: string | null; rol?: string | null };
 
@@ -29,17 +30,34 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [colapsado, setColapsado] = useState(false);
+  const [gruposColapsados, setGruposColapsados] = useState<Set<Grupo>>(new Set());
 
   useEffect(() => {
     // Se lee después del montaje (no en el render) porque localStorage no existe en el servidor.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (localStorage.getItem(CLAVE_COLAPSADO) === "1") setColapsado(true);
+    try {
+      const guardados = JSON.parse(localStorage.getItem(CLAVE_GRUPOS_COLAPSADOS) ?? "[]");
+      if (Array.isArray(guardados)) setGruposColapsados(new Set(guardados));
+    } catch {
+      // localStorage corrupto o ausente: se queda con todos los grupos expandidos.
+    }
   }, []);
 
   function alternarColapso() {
     setColapsado((actual) => {
       const siguiente = !actual;
       localStorage.setItem(CLAVE_COLAPSADO, siguiente ? "1" : "0");
+      return siguiente;
+    });
+  }
+
+  function alternarGrupo(grupo: Grupo) {
+    setGruposColapsados((actual) => {
+      const siguiente = new Set(actual);
+      if (siguiente.has(grupo)) siguiente.delete(grupo);
+      else siguiente.add(grupo);
+      localStorage.setItem(CLAVE_GRUPOS_COLAPSADOS, JSON.stringify(Array.from(siguiente)));
       return siguiente;
     });
   }
@@ -80,15 +98,17 @@ export function Sidebar({
           className={clsx("flex items-center gap-2 shrink-0", colapsado ? "md:justify-center md:px-0 px-5" : "px-5")}
           style={{ height: "var(--header-height)" }}
         >
-          <OrionIcon size={32} />
-          <div className={clsx("leading-tight overflow-hidden", colapsado && "md:hidden")}>
-            <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
-              Orión
+          <Link href="/unidades" onClick={onClose} className={clsx("flex items-center gap-2 min-w-0", colapsado && "md:justify-center")}>
+            <OrionIcon size={32} />
+            <div className={clsx("leading-tight overflow-hidden", colapsado && "md:hidden")}>
+              <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
+                Orión
+              </div>
+              <div className="whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                Control Vehicular · Grupo Kabat
+              </div>
             </div>
-            <div className="whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              Control Vehicular · Grupo Kabat
-            </div>
-          </div>
+          </Link>
           <button
             onClick={onClose}
             className={clsx("md:hidden ml-auto flex items-center justify-center rounded-md", colapsado && "md:ml-0")}
@@ -103,14 +123,20 @@ export function Sidebar({
           {GRUPOS.map((grupo) => {
             const modulosDelGrupo = MODULOS.filter((m) => m.grupo === grupo && modulosVisibles.includes(m.id));
             if (modulosDelGrupo.length === 0) return null;
+            const grupoColapsado = !colapsado && gruposColapsados.has(grupo);
             return (
             <div key={grupo} className="mb-3">
-              <div
-                className={clsx("px-3 pb-1 pt-2 uppercase truncate", colapsado && "md:hidden")}
+              <button
+                type="button"
+                onClick={() => alternarGrupo(grupo)}
+                className={clsx("flex w-full items-center justify-between gap-1 px-3 pb-1 pt-2 uppercase truncate", colapsado && "md:hidden")}
                 style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", color: "var(--sidebar-text)", opacity: 0.6 }}
+                aria-expanded={!grupoColapsado}
               >
                 {grupo}
-              </div>
+                <ChevronDown size={12} className={clsx("transition-transform shrink-0", grupoColapsado && "-rotate-90")} />
+              </button>
+              {!grupoColapsado && (
               <div className="space-y-0.5">
                 {modulosDelGrupo.map((m) => {
                   const active = pathname === m.href || pathname.startsWith(m.href + "/");
@@ -154,6 +180,7 @@ export function Sidebar({
                   );
                 })}
               </div>
+              )}
             </div>
             );
           })}

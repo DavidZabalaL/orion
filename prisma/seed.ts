@@ -349,24 +349,6 @@ async function main() {
         estatus: "PAGADO",
       },
     });
-
-    // Auditoría diaria
-    const real = 1200 + i * 15;
-    const cv = real - (i % 4 === 0 ? 150 : 0);
-    await prisma.auditoria.create({
-      data: {
-        numeroEconomico: unidad.numeroEconomico,
-        fechaRevision: DIAS(-1),
-        revisorId: uCV.id,
-        categoriaGasto: "COMBUSTIBLE",
-        montoPptto: 1300,
-        montoReal: real,
-        montoCv: cv,
-        diferencia: real - cv,
-        tipoDiscrepancia: real !== cv ? "MONTO" : null,
-        estatus: real !== cv ? "ABIERTA" : "RESUELTA",
-      },
-    });
   }
 
   console.log(`Listo: ${proyectos.length} proyectos, ${operadores.length} operadores, ${unidades.length} unidades.`);

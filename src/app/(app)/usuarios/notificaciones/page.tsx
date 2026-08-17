@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { NotificacionesForm } from "@/components/usuarios/notificaciones-form";
+import { NotificacionesRescateProyectoForm } from "@/components/usuarios/notificaciones-rescate-proyecto-form";
 import { requerirPermisoModulo } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,19 @@ export default async function NotificacionesPage() {
       data: { destinatariosCorreo: [] },
     });
   }
+
+  const proyectos = await prisma.proyecto.findMany({
+    where: { estatus: "ACTIVO" },
+    select: { id: true, nombre: true, configuracionNotificacion: { select: { destinatariosRescate: true } } },
+    orderBy: { nombre: "asc" },
+  });
+  const proyectosConDestinatarios = proyectos.map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    destinatariosRescate: Array.isArray(p.configuracionNotificacion?.destinatariosRescate)
+      ? (p.configuracionNotificacion!.destinatariosRescate as string[])
+      : [],
+  }));
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-3xl">
@@ -51,6 +65,8 @@ export default async function NotificacionesPage() {
           destinatariosCorreo: config.destinatariosCorreo as string[],
         }}
       />
+
+      <NotificacionesRescateProyectoForm proyectos={proyectosConDestinatarios} />
     </div>
   );
 }

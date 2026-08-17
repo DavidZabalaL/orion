@@ -26,14 +26,23 @@ export default async function ConfiguracionRolesPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {roles.map((r) => (
-          <RolPermisosForm
-            key={r.id}
-            rol={{ id: r.id, nombre: r.nombre, permisos: r.permisos as Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> }}
-            modulos={MODULOS.map((m) => ({ id: m.id, label: m.label }))}
-            permisosEspeciales={PERMISOS_ESPECIALES}
-          />
+      <div className="flex flex-col gap-4">
+        {roles.map((r, i) => (
+          <details key={r.id} className="rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }} open={i === 0}>
+            <summary
+              className="cursor-pointer px-5 py-3"
+              style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}
+            >
+              {r.nombre} ▾
+            </summary>
+            <div className="px-5 pb-5">
+              <RolPermisosForm
+                rol={{ id: r.id, nombre: r.nombre, permisos: r.permisos as Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> }}
+                modulos={MODULOS.map((m) => ({ id: m.id, label: m.label, grupo: m.grupo }))}
+                permisosEspeciales={PERMISOS_ESPECIALES}
+              />
+            </div>
+          </details>
         ))}
       </div>
     </div>

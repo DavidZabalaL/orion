@@ -48,7 +48,7 @@ const TABS = [
   { id: "checklist", label: "Checklist" },
   { id: "operador", label: "Operador" },
   { id: "accidentes", label: "Accidentes" },
-  { id: "historico", label: "Hist. proyectos" },
+  { id: "historico", label: "Bitácora" },
   { id: "siniestros", label: "Siniestros" },
   { id: "insumos", label: "Insumos" },
 ] as const;
@@ -966,7 +966,7 @@ function TabHistorico({ historicos }: { historicos: Unidad[] }) {
     return (
       <EmptyState>
         <History size={20} className="mx-auto mb-2 opacity-40" />
-        Sin historial de proyectos registrado. El historial se genera automáticamente al reasignar la unidad a un proyecto.
+        Sin bitácora registrada. Se genera automáticamente al reasignar la unidad a un proyecto.
       </EmptyState>
     );
   return (

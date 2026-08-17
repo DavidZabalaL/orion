@@ -4,8 +4,8 @@ import { ChevronLeft, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Table, EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
-import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { obtenerResumenPresupuestoPorPartida } from "@/lib/presupuesto";
+import { PartidasTabla } from "@/components/proyectos/partidas-tabla";
 import { puedeCargarPresupuesto, requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
@@ -90,24 +90,7 @@ export default async function PresupuestoPorPartidaPage({
         <EmptyState>Sin presupuesto ni gasto registrado para {anio}.</EmptyState>
       ) : (
         <Table headers={["Partida", ...MESES_ABREV, "PTTO anual", "Real anual", "Diferencia"]} minWidth={1400}>
-          {resumen.partidas.map((p) => (
-            <tr key={p.categoria} style={{ borderBottom: "1px solid var(--field-border)" }}>
-              <td className="px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
-                {CATEGORIA_GASTO_LABEL[p.categoria]}
-              </td>
-              {p.meses.map((m) => (
-                <td key={m.mes} className="px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)" }}>
-                  <div style={{ color: m.diferencia < 0 ? "var(--color-status-escena)" : "var(--field-text)" }}>{fmtMoney(m.real)}</div>
-                  <div style={{ color: "var(--sidebar-text)" }}>{fmtMoney(m.presupuestado)}</div>
-                </td>
-              ))}
-              <td className="px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{fmtMoney(p.presupuestadoAnual)}</td>
-              <td className="px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{fmtMoney(p.realAnual)}</td>
-              <td className="px-3 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: p.diferenciaAnual < 0 ? "var(--color-status-escena)" : "var(--color-status-cerrado)" }}>
-                {fmtMoney(p.diferenciaAnual)}
-              </td>
-            </tr>
-          ))}
+          <PartidasTabla partidas={resumen.partidas} />
         </Table>
       )}
     </div>
