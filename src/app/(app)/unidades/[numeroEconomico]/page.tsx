@@ -26,7 +26,7 @@ export default async function FichaUnidadPage({
             documentos: { orderBy: { fechaVencimiento: "asc" } },
           },
         },
-        checklists: { where: { tipo: "DIARIO" }, orderBy: { fecha: "desc" }, take: 15 },
+        checklists: { orderBy: { fecha: "desc" }, take: 30 },
         gastos: { orderBy: { fecha: "desc" }, take: 50 },
         combustible: { orderBy: { fecha: "desc" }, take: 20 },
         tags: { orderBy: { fecha: "desc" }, take: 20 },

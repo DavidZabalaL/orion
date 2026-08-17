@@ -10,6 +10,7 @@ import { RenovarSeguroForm } from "@/components/seguros/renovar-seguro-form";
 import { SubirDocumentoSeguroForm } from "@/components/seguros/subir-documento-seguro-form";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { blobProxy } from "@/lib/blob";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
       </div>
 
       {seguro.documento && (
-        <a href={seguro.documento.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+        <a href={blobProxy(seguro.documento.url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
           Ver PDF de la póliza cargado →
         </a>
       )}

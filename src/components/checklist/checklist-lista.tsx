@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
+import { blobProxy } from "@/lib/blob";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
@@ -76,9 +77,9 @@ export function ChecklistLista({ checklists }: { checklists: ChecklistRow[] }) {
                         ))}
                       </div>
                       {c.evidencia && (
-                        <a href={c.evidencia.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                        <a href={blobProxy(c.evidencia.url)} target="_blank" rel="noopener noreferrer" className="shrink-0">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={c.evidencia.url} alt="Evidencia fotográfica del checklist" className="rounded-lg object-cover" style={{ width: 160, height: 160 }} />
+                          <img src={blobProxy(c.evidencia.url)} alt="Evidencia fotográfica del checklist" className="rounded-lg object-cover" style={{ width: 160, height: 160 }} />
                         </a>
                       )}
                     </div>

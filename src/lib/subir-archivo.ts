@@ -13,7 +13,7 @@ export async function subirArchivo(file: File, carpeta: string): Promise<{ url: 
   }
 
   const nombre = `${carpeta}/${crypto.randomUUID()}-${file.name}`;
-  const blob = await put(nombre, file, { access: "public", addRandomSuffix: false });
+  const blob = await put(nombre, file, { access: "private", addRandomSuffix: false });
   return { url: blob.url };
 }
 

@@ -10,6 +10,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { ZONAS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/checklist-carga-combustible";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
@@ -26,7 +27,7 @@ export async function subirFotoChecklist(
       return { ok: false, error: "Solo se permiten imágenes (JPG, PNG, WEBP, HEIC)." };
     }
     const nombre = `checklist/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
-    const blob = await put(nombre, file, { access: "public", addRandomSuffix: false });
+    const blob = await put(nombre, file, { access: "private", addRandomSuffix: false });
     return { ok: true, url: blob.url };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo subir la foto." };
@@ -202,5 +203,119 @@ export async function crearChecklistSemanal(formData: FormData): Promise<{ ok: t
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar el checklist semanal." };
+  }
+}
+
+/**
+ * Checklist de Carga de Combustible — 3 secciones:
+ * Generales (fecha, zona, municipio, área, responsable, licencia + foto)
+ * Vehículo (tipo, número económico, modelo)
+ * Carga (tipo combustible, fotos odómetro antes/después, evidencia bomba x2, ticket, observaciones, firma)
+ */
+export async function crearChecklistCargaCombustible(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await exigirPermisoModulo("A.1", "editar");
+
+    // Generales
+    const fecha = String(formData.get("gen_fecha") ?? "").trim();
+    const zona = String(formData.get("gen_zona") ?? "").trim();
+    const municipio = String(formData.get("gen_municipio") ?? "").trim();
+    const areaCatalogo = String(formData.get("gen_area") ?? "").trim();
+    const responsable = String(formData.get("gen_responsable") ?? "").trim();
+    const tipoLicencia = String(formData.get("gen_tipo_licencia") ?? "").trim();
+    const fotoLicencia = String(formData.get("gen_foto_licencia") ?? "").trim();
+
+    // Vehículo
+    const tipoVehiculo = String(formData.get("veh_tipo_vehiculo") ?? "").trim();
+    const numeroEconomico = String(formData.get("veh_numero_economico") ?? "").trim();
+    const modelo = String(formData.get("veh_modelo") ?? "").trim();
+
+    // Carga
+    const tipoCombustible = String(formData.get("carg_tipo_combustible") ?? "").trim();
+    const fotoOdometroAntes = String(formData.get("carg_foto_odometro_antes") ?? "").trim();
+    const fotoOdometroDespues = String(formData.get("carg_foto_odometro_despues") ?? "").trim();
+    const fotoEvidenciaBomba1 = String(formData.get("carg_foto_evidencia_bomba_1") ?? "").trim();
+    const fotoEvidenciaBomba2 = String(formData.get("carg_foto_evidencia_bomba_2") ?? "").trim();
+    const fotoTicket = String(formData.get("carg_foto_ticket") ?? "").trim();
+    const observaciones = String(formData.get("carg_observaciones") ?? "").trim();
+    const firmaResponsable = String(formData.get("carg_firma_responsable") ?? "").trim();
+
+    if (!fecha) return { ok: false, error: "La fecha es obligatoria." };
+    if (!zona || !(ZONAS_CARGA as readonly string[]).includes(zona))
+      return { ok: false, error: "Zona no válida." };
+    if (!municipio) return { ok: false, error: "El municipio es obligatorio." };
+    if (!areaCatalogo) return { ok: false, error: "El área es obligatoria." };
+    if (!responsable) return { ok: false, error: "El responsable es obligatorio." };
+    if (!tipoLicencia) return { ok: false, error: "El tipo de licencia es obligatorio." };
+    if (!fotoLicencia) return { ok: false, error: "La foto de licencia es obligatoria." };
+    if (!numeroEconomico) return { ok: false, error: "El número económico es obligatorio." };
+    if (!tipoCombustible || !(TIPOS_COMBUSTIBLE_CARGA as readonly string[]).includes(tipoCombustible))
+      return { ok: false, error: "Tipo de combustible no válido." };
+    if (!fotoOdometroAntes) return { ok: false, error: "La foto del odómetro antes es obligatoria." };
+    if (!fotoOdometroDespues) return { ok: false, error: "La foto del odómetro después es obligatoria." };
+    if (!fotoEvidenciaBomba1) return { ok: false, error: "La evidencia de bomba es obligatoria." };
+    if (!fotoTicket) return { ok: false, error: "La foto del ticket es obligatoria." };
+
+    const unidad = await prisma.unidad.findUnique({
+      where: { numeroEconomico },
+      select: { proyectoId: true },
+    });
+    if (!unidad) return { ok: false, error: "La unidad no existe." };
+
+    const permitidos = await proyectosPermitidosParaModulo("A.1");
+    if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId)))
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
+    const session = await auth();
+    if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };
+
+    const respuestas: Record<string, string> = {
+      fecha,
+      zona,
+      municipio,
+      area: areaCatalogo,
+      responsable,
+      tipo_licencia: tipoLicencia,
+      foto_licencia: fotoLicencia,
+      tipo_vehiculo: tipoVehiculo,
+      numero_economico: numeroEconomico,
+      modelo,
+      tipo_combustible: tipoCombustible,
+      foto_odometro_antes: fotoOdometroAntes,
+      foto_odometro_despues: fotoOdometroDespues,
+      foto_evidencia_bomba_1: fotoEvidenciaBomba1,
+      foto_ticket: fotoTicket,
+    };
+    if (fotoEvidenciaBomba2) respuestas.foto_evidencia_bomba_2 = fotoEvidenciaBomba2;
+    if (observaciones) respuestas.observaciones = observaciones;
+    if (firmaResponsable) respuestas.firma_responsable = firmaResponsable;
+
+    const checklist = await prisma.checklist.create({
+      data: {
+        numeroEconomico,
+        tipo: "CARGA_COMBUSTIBLE",
+        fecha: new Date(fecha),
+        puntosInspeccion: {},
+        respuestasSemanal: respuestas,
+        capturadoPorId: session.user.id,
+      },
+    });
+
+    await logActivity({
+      userId: session.user.id,
+      modulo: "checklist",
+      accion: "create",
+      entidad: "Checklist",
+      entidadId: checklist.id,
+      detalle: { numeroEconomico, tipo: "CARGA_COMBUSTIBLE", tipoCombustible },
+    });
+
+    revalidatePath("/checklist");
+    revalidatePath(`/unidades/${numeroEconomico}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar el checklist de carga de combustible." };
   }
 }

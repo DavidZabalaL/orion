@@ -33,6 +33,7 @@ import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilida
 import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-unidad";
 import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
+import { blobProxy } from "@/lib/blob";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -788,48 +789,120 @@ function TabGps({ posiciones }: { posiciones: Unidad[] }) {
   );
 }
 
+function ResumenChecklistDiario({ puntos }: { puntos: Record<string, string> }) {
+  const pares = Object.entries(puntos).filter(([k]) => !k.endsWith("_foto"));
+  const conFoto = pares.some(([k]) => puntos[`${k}_foto`]);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {pares.map(([k, v]) => (
+        <Badge
+          key={k}
+          label={`${k}: ${v}`}
+          color={v === "ok" ? "var(--color-status-cerrado)" : "var(--color-status-revision)"}
+          bg={v === "ok" ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)"}
+        />
+      ))}
+      {conFoto && (
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>📷</span>
+      )}
+    </div>
+  );
+}
+
+function ResumenChecklistSemanal({ respuestas }: { respuestas: Record<string, string> }) {
+  const valores = Object.entries(respuestas).filter(
+    ([k, v]) => v && !k.endsWith("Url") && !k.startsWith("gen_foto") && !k.startsWith("fotoLicencia")
+  );
+  const enMalEstado = valores.filter(([, v]) => v === "MAL ESTADO" || v === "MINIMO").length;
+  const sede = respuestas.oficinaSede ?? "—";
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{sede}</span>
+      {enMalEstado > 0 && (
+        <Badge
+          label={`${enMalEstado} alertas`}
+          color="var(--color-status-revision)"
+          bg="var(--status-revision-bg)"
+        />
+      )}
+    </div>
+  );
+}
+
+function ResumenCargaCombustible({ respuestas }: { respuestas: Record<string, string> }) {
+  return (
+    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+      {respuestas.tipo_combustible ?? "—"}
+      {respuestas.zona ? ` · ${respuestas.zona}` : ""}
+    </span>
+  );
+}
+
+function TipoBadge({ tipo }: { tipo: string }) {
+  if (tipo === "SEMANAL")
+    return <Badge label="Semanal" color="var(--sidebar-text-active)" bg="var(--chip)" />;
+  if (tipo === "CARGA_COMBUSTIBLE")
+    return <Badge label="Combustible" color="var(--color-status-revision)" bg="var(--status-revision-bg)" />;
+  return <Badge label="Diario" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />;
+}
+
 function TabChecklist({ checklists }: { checklists: Unidad[] }) {
   const [busqueda, setBusqueda] = useState("");
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
     if (!q) return checklists;
-    return checklists.filter((c) => fmtFecha(c.fecha).toUpperCase().includes(q));
+    return checklists.filter(
+      (c) =>
+        fmtFecha(c.fecha).toUpperCase().includes(q) ||
+        (c.tipo ?? "").toUpperCase().includes(q)
+    );
   }, [checklists, busqueda]);
 
   if (!checklists.length) return <EmptyState>Sin checklists capturados aún.</EmptyState>;
+
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar fecha…" />
-      <Table headers={["Fecha", "Odómetro", "Puntos de inspección"]}>
-      {filtrados.map((c) => (
-        <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td className="px-4 py-3" style={td}>{fmtFecha(c.fecha)}</td>
-          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{c.odometro} km</td>
-          <td className="px-4 py-3" style={td}>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(c.puntosInspeccion ?? {})
-                .filter(([k]) => !k.endsWith("_foto"))
-                .map(([k, v]) => {
-                  const fotoUrl = (c.puntosInspeccion as Record<string, string>)?.[`${k}_foto`];
-                  return (
-                    <span key={k} className="flex items-center gap-1">
-                      <Badge
-                        label={`${k}: ${v}`}
-                        color={v === "ok" ? "var(--color-status-cerrado)" : "var(--color-status-revision)"}
-                        bg={v === "ok" ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)"}
-                      />
-                      {fotoUrl && (
-                        <a href={fotoUrl as string} target="_blank" rel="noopener noreferrer" style={{ fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
-                          📷
-                        </a>
-                      )}
-                    </span>
-                  );
-                })}
-            </div>
-          </td>
-        </tr>
-      ))}
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar por fecha o tipo…" />
+      <Table headers={["Fecha", "Tipo", "Resumen", ""]}>
+        {filtrados.map((c) => {
+          const puntos = (c.puntosInspeccion ?? {}) as Record<string, string>;
+          const respuestas = (c.respuestasSemanal ?? {}) as Record<string, string>;
+          return (
+            <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <td className="px-4 py-3 whitespace-nowrap" style={td}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)" }}>
+                  {fmtFecha(c.fecha)}
+                </span>
+                {c.odometro != null && (
+                  <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                    {c.odometro.toLocaleString("es-MX")} km
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-3" style={td}>
+                <TipoBadge tipo={c.tipo ?? "DIARIO"} />
+              </td>
+              <td className="px-4 py-3" style={td}>
+                {c.tipo === "SEMANAL" ? (
+                  <ResumenChecklistSemanal respuestas={respuestas} />
+                ) : c.tipo === "CARGA_COMBUSTIBLE" ? (
+                  <ResumenCargaCombustible respuestas={respuestas} />
+                ) : (
+                  <ResumenChecklistDiario puntos={puntos} />
+                )}
+              </td>
+              <td className="px-4 py-3" style={td}>
+                <Link
+                  href={`/checklist/${c.id}`}
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                  style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)" }}
+                >
+                  Ver detalle
+                </Link>
+              </td>
+            </tr>
+          );
+        })}
       </Table>
     </div>
   );
@@ -856,7 +929,7 @@ function TabAccidentes({ accidentes, numeroEconomico, bloqueada }: { accidentes:
               <td className="px-4 py-3">
                 <div className="flex gap-2 flex-wrap">
                   {(a.evidencias ?? []).map((url: string, i: number) => (
-                    <a key={url} href={url} target="_blank" rel="noopener noreferrer"
+                    <a key={url} href={blobProxy(url)} target="_blank" rel="noopener noreferrer"
                       style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
                       Foto {i + 1}
                     </a>

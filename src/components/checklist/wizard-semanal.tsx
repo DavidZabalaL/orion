@@ -169,7 +169,7 @@ function SubirFoto({
     setSubiendo(true);
     setErrFoto(null);
     try {
-      const blob = await upload(file.name, file, { access: "public", handleUploadUrl: "/api/checklist-upload" });
+      const blob = await upload(file.name, file, { access: "private", handleUploadUrl: "/api/checklist-upload" });
       onUrl(blob.url);
     } catch (e) {
       setErrFoto(e instanceof Error ? e.message : "No se pudo subir la foto.");

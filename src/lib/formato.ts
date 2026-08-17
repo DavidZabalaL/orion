@@ -3,14 +3,16 @@ export function fmtMoney(v: unknown) {
   return n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 }
 
+const TZ = "America/Mexico_City";
+
 export function fmtFecha(v: string | Date | null | undefined) {
   if (!v) return "—";
-  return new Date(v).toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" });
+  return new Date(v).toLocaleDateString("es-MX", { timeZone: TZ, year: "numeric", month: "short", day: "2-digit" });
 }
 
 export function fmtFechaHora(v: string | Date | null | undefined) {
   if (!v) return "—";
-  return new Date(v).toLocaleString("es-MX", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return new Date(v).toLocaleString("es-MX", { timeZone: TZ, year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 export function diasPara(v: string | Date | null | undefined) {

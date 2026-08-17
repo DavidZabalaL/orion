@@ -16,6 +16,7 @@ import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { fmtFecha, diasPara } from "@/lib/formato";
 import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { FormCurso } from "@/components/operadores/form-curso";
+import { blobProxy } from "@/lib/blob";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Operador = any;
@@ -112,7 +113,7 @@ export function FichaOperador({ operador }: { operador: Operador }) {
           </div>
           {operador.licenciaDocumentoUrl && (
             <a
-              href={operador.licenciaDocumentoUrl}
+              href={blobProxy(operador.licenciaDocumentoUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-flex items-center gap-1 rounded-md px-3 h-8"
@@ -278,7 +279,7 @@ function TabSiniestros({ operador }: { operador: Operador }) {
               <td className="px-4 py-3">
                 <div className="flex gap-1 flex-wrap">
                   {(a.evidencias ?? []).map((url: string, i: number) => (
-                    <a key={url} href={url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
+                    <a key={url} href={blobProxy(url)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)" }}>
                       Foto {i + 1}
                     </a>
                   ))}
@@ -313,7 +314,7 @@ function TabCursos({ operador }: { operador: Operador }) {
               <td className="px-4 py-3" style={tdStyle}>{c.nombre}</td>
               <td className="px-4 py-3">
                 {c.evidenciaUrl ? (
-                  <a href={c.evidenciaUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                  <a href={blobProxy(c.evidenciaUrl)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
                     Ver constancia
                   </a>
                 ) : (
