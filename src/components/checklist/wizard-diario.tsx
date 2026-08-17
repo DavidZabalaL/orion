@@ -103,11 +103,14 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const [odometro, setOdometro] = useState("");
   const [horometro, setHorometro] = useState("");
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [fotoHorometroUrl, setFotoHorometroUrl] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [subiendoFotoHorometro, setSubiendoFotoHorometro] = useState(false);
   const [subiendoFotoPunto, setSubiendoFotoPunto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const fotoInputRef = useRef<HTMLInputElement>(null);
+  const fotoHorometroInputRef = useRef<HTMLInputElement>(null);
   const fotoPuntoInputRef = useRef<HTMLInputElement>(null);
   const puntoFotoActualRef = useRef<string | null>(null);
 
@@ -189,10 +192,35 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     // Para "revisar": no auto-avanzar; esperar foto opcional o botón continuar
   }
 
+  async function subirFotoHorometro(file: File | undefined) {
+    if (!file) return;
+    setSubiendoFotoHorometro(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await subirFotoChecklist(fd);
+      if (!result.ok) throw new Error(result.error);
+      setFotoHorometroUrl(result.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
+    } finally {
+      setSubiendoFotoHorometro(false);
+    }
+  }
+
   function enviar() {
     setError(null);
     if (!odometro || Number(odometro) <= 0) {
       setError("Ingresa una lectura de odómetro válida.");
+      return;
+    }
+    if (!fotoUrl) {
+      setError("La foto del odómetro es obligatoria.");
+      return;
+    }
+    if (esGrua && !fotoHorometroUrl) {
+      setError("La foto del horómetro es obligatoria para grúas.");
       return;
     }
     startTransition(async () => {
@@ -201,6 +229,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
       fd.set("odometro", odometro);
       if (esGrua && horometro) fd.set("horometro", horometro);
       fd.set("evidenciaUrl", fotoUrl ?? "");
+      if (esGrua && fotoHorometroUrl) fd.set("foto_horometro", fotoHorometroUrl);
       for (const [k, v] of Object.entries(estados)) fd.set(`punto_${k}`, v);
       for (const [k, url] of Object.entries(fotosPorPunto)) fd.set(`foto_${k}`, url);
       const res = await crearChecklist(fd);
@@ -626,54 +655,44 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
               </div>
             )}
 
-            {/* Foto evidencia (opcional en checklist diario) */}
-            <input
-              ref={fotoInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => subirFoto(e.target.files?.[0])}
-            />
-
-            {fotoUrl ? (
-              <div
-                className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-                style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}
-              >
-                <Camera size={15} color="#16a34a" className="shrink-0" />
-                <span
-                  className="flex-1 truncate"
-                  style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}
-                >
-                  Evidencia fotográfica adjuntada
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFotoUrl(null)}
-                  style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}
-                >
-                  <X size={14} />
+            {/* Foto odómetro — obligatoria */}
+            <input ref={fotoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => subirFoto(e.target.files?.[0])} />
+            <div>
+              <label style={labelStyle}>Foto del odómetro *</label>
+              {fotoUrl ? (
+                <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
+                  <Camera size={15} color="#16a34a" className="shrink-0" />
+                  <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+                  <button type="button" onClick={() => setFotoUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => fotoInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full" style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+                  {subiendoFoto ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                  {subiendoFoto ? "Subiendo…" : "Tomar foto del odómetro"}
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fotoInputRef.current?.click()}
-                className="flex items-center justify-center gap-2 rounded-xl w-full"
-                style={{
-                  height: 52,
-                  background: "var(--field-bg)",
-                  border: "1px dashed var(--field-border)",
-                  color: "var(--sidebar-text)",
-                  fontFamily: "var(--font-ui)",
-                  fontSize: "var(--text-sm)",
-                  cursor: "pointer",
-                }}
-              >
-                {subiendoFoto ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-                {subiendoFoto ? "Subiendo…" : "Foto de evidencia (opcional)"}
-              </button>
+              )}
+            </div>
+
+            {/* Foto horómetro — obligatoria para grúas */}
+            {esGrua && (
+              <>
+                <input ref={fotoHorometroInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => subirFotoHorometro(e.target.files?.[0])} />
+                <div>
+                  <label style={labelStyle}>Foto del horómetro *</label>
+                  {fotoHorometroUrl ? (
+                    <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
+                      <Camera size={15} color="#16a34a" className="shrink-0" />
+                      <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+                      <button type="button" onClick={() => setFotoHorometroUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => fotoHorometroInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full" style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+                      {subiendoFotoHorometro ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                      {subiendoFotoHorometro ? "Subiendo…" : "Tomar foto del horómetro"}
+                    </button>
+                  )}
+                </div>
+              </>
             )}
 
             {error && (
@@ -691,7 +710,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
             <button
               type="button"
               onClick={enviar}
-              disabled={pending || subiendoFoto || !odometro || Number(odometro) <= 0}
+              disabled={pending || subiendoFoto || subiendoFotoHorometro || !odometro || Number(odometro) <= 0 || !fotoUrl || (esGrua && !fotoHorometroUrl)}
               className="w-full rounded-xl h-12 font-semibold flex items-center justify-center gap-2 transition-colors"
               style={{
                 background:

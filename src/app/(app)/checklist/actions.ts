@@ -61,6 +61,8 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
       const fotoUrl = String(formData.get(`foto_${p.key}`) ?? "").trim();
       if (fotoUrl) puntosInspeccion[`${p.key}_foto`] = fotoUrl;
     }
+    const fotoHorometro = String(formData.get("foto_horometro") ?? "").trim();
+    if (fotoHorometro) puntosInspeccion["horometro_foto"] = fotoHorometro;
 
     const session = await auth();
     if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };

@@ -105,14 +105,15 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
 function DetalleDiario({
   puntos,
   evidenciaUrl,
+  odometro,
+  horometro,
 }: {
   puntos: Record<string, string>;
   evidenciaUrl?: string;
+  odometro?: number | null;
+  horometro?: number | null;
 }) {
-  const fotosExtra = PUNTOS_INSPECCION.flatMap((p) => {
-    const fotoUrl = puntos[`${p.key}_foto`];
-    return fotoUrl ? [{ label: p.label, url: fotoUrl }] : [];
-  });
+  const fotoHorometro = puntos["horometro_foto"];
 
   return (
     <>
@@ -120,56 +121,78 @@ function DetalleDiario({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {PUNTOS_INSPECCION.map((p) => {
             const estado = puntos[p.key] ?? "—";
-            const fotoUrl = puntos[`${p.key}_foto`];
+            const foto = puntos[`${p.key}_foto`];
             const ok = estado === "ok";
             return (
               <div
                 key={p.key}
-                className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"
+                className="flex flex-col rounded-lg overflow-hidden"
                 style={{ background: ok ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)" }}
               >
-                <div className="flex items-center gap-2">
-                  {ok ? (
-                    <CheckCircle2 size={18} color="var(--color-status-cerrado)" />
-                  ) : (
-                    <AlertTriangle size={18} color="var(--color-status-revision)" />
-                  )}
-                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: ok ? "var(--color-status-cerrado)" : "var(--color-status-revision)" }}>
-                    {p.label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    {ok ? (
+                      <CheckCircle2 size={18} color="var(--color-status-cerrado)" />
+                    ) : (
+                      <AlertTriangle size={18} color="var(--color-status-revision)" />
+                    )}
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: ok ? "var(--color-status-cerrado)" : "var(--color-status-revision)" }}>
+                      {p.label}
+                    </span>
+                  </div>
                   <span
                     className="rounded-full px-2 py-0.5 text-xs font-bold"
                     style={{ background: ok ? "var(--color-status-cerrado)" : "var(--color-status-revision)", color: "#fff", fontFamily: "var(--font-ui)" }}
                   >
                     {ok ? "OK" : "REVISAR"}
                   </span>
-                  {fotoUrl && (
-                    <a href={blobProxy(fotoUrl)} target="_blank" rel="noopener noreferrer" title="Ver foto">
-                      <Camera size={16} color="var(--color-primary)" />
-                    </a>
-                  )}
                 </div>
+                {foto && (
+                  <div className="px-4 pb-3">
+                    <a href={blobProxy(foto)} target="_blank" rel="noopener noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={blobProxy(foto)}
+                        alt={p.label}
+                        style={{ width: "100%", maxWidth: 200, height: 120, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid rgba(255,255,255,0.2)" }}
+                      />
+                    </a>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-        {fotosExtra.length > 0 && (
-          <div className="mt-2">
-            <GaleriaFotos
-              titulo="Fotos por punto de inspección"
-              urls={fotosExtra.map((f) => f.url)}
-            />
-          </div>
-        )}
       </SeccionCard>
 
-      {evidenciaUrl && (
-        <SeccionCard titulo="Evidencia fotográfica">
-          <GaleriaFotos urls={[evidenciaUrl]} />
-        </SeccionCard>
-      )}
+      <SeccionCard titulo="Lecturas y evidencia">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {odometro != null && (
+            <div className="flex flex-col gap-1">
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Odómetro</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{odometro.toLocaleString("es-MX")} km</span>
+              {evidenciaUrl && (
+                <a href={blobProxy(evidenciaUrl)} target="_blank" rel="noopener noreferrer" className="mt-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={blobProxy(evidenciaUrl)} alt="Foto odómetro" style={{ width: "100%", maxWidth: 120, height: 90, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }} />
+                </a>
+              )}
+            </div>
+          )}
+          {horometro != null && (
+            <div className="flex flex-col gap-1">
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Horómetro</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{horometro.toLocaleString("es-MX")} h</span>
+              {fotoHorometro && (
+                <a href={blobProxy(fotoHorometro)} target="_blank" rel="noopener noreferrer" className="mt-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={blobProxy(fotoHorometro)} alt="Foto horómetro" style={{ width: "100%", maxWidth: 120, height: 90, objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--field-border)" }} />
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </SeccionCard>
     </>
   );
 }
@@ -415,7 +438,7 @@ export default async function DetalleChecklistPage({
 
       {/* Detalle por tipo */}
       {checklist.tipo === "DIARIO" && (
-        <DetalleDiario puntos={puntos} evidenciaUrl={checklist.evidencia?.url} />
+        <DetalleDiario puntos={puntos} evidenciaUrl={checklist.evidencia?.url} odometro={checklist.odometro} horometro={checklist.horometro} />
       )}
       {checklist.tipo === "SEMANAL" && <DetalleSemanal respuestas={respuestas} />}
       {checklist.tipo === "CARGA_COMBUSTIBLE" && (
