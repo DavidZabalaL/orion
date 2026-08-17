@@ -177,25 +177,6 @@ enum TipoGeocerca {
   PAIS
 }
 
-enum CategoriaAuditoria {
-  COMBUSTIBLE
-  TAG
-  MANTENIMIENTO
-  OTRO
-}
-
-enum TipoDiscrepancia {
-  MONTO
-  UNIDAD_FALTANTE
-  DUPLICADO
-  OTRO
-}
-
-enum EstatusAuditoria {
-  ABIERTA
-  RESUELTA
-}
-
 enum AccionBitacora {
   CREAR
   EDITAR
@@ -276,7 +257,6 @@ model Usuario {
   bitacora                      BitacoraCambio[]
   checklists                    Checklist[]
   documentosVerificados         DocumentoOperador[]
-  auditorias                    Auditoria[]
   reportesProgramados           ReporteProgramado[]
   configuracionesNotificaciones ConfiguracionNotificaciones[]
   presupuestosPartidaCargados   PresupuestoPartida[]
@@ -442,7 +422,6 @@ model Unidad {
   posicionesGps      PosicionGPS[]
   huecosGps          HuecoSenalGPS[]
   mapeoTarjetas      MapeoTarjetaEconomico[]
-  auditorias         Auditoria[]
   placasHistorial    Placa[]
   accidentes         Accidente[]
   tickets            TicketRescate[]
@@ -787,27 +766,6 @@ model Geocerca {
 }
 
 // ───────────────────────── MÓDULO I — AUDITORÍA ─────────────────────────
-
-model Auditoria {
-  id               String             @id @default(cuid())
-  numeroEconomico  String
-  unidad           Unidad             @relation(fields: [numeroEconomico], references: [numeroEconomico])
-  fechaRevision    DateTime
-  revisorId        String
-  revisor          Usuario            @relation(fields: [revisorId], references: [id])
-  categoriaGasto   CategoriaAuditoria
-  montoPptto       Decimal            @db.Decimal(12, 2)
-  montoReal        Decimal            @db.Decimal(12, 2)
-  montoCv          Decimal            @db.Decimal(12, 2)
-  diferencia       Decimal            @db.Decimal(12, 2)
-  tipoDiscrepancia TipoDiscrepancia?
-  resolucion       String?
-  estatus          EstatusAuditoria   @default(ABIERTA)
-
-  createdAt DateTime @default(now())
-
-  @@index([numeroEconomico, fechaRevision])
-}
 
 // ───────────────────────── BITÁCORA ─────────────────────────
 

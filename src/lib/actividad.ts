@@ -42,7 +42,6 @@ const ENTIDAD_LABEL: Record<string, string> = {
   Proyecto: "un proyecto",
   PresupuestoMensual: "el presupuesto mensual",
   PresupuestoPartida: "presupuesto por partida",
-  Auditoria: "una discrepancia de auditoría",
   ReporteProgramado: "un reporte programado",
   VistaDashboardBI: "una vista de dashboard",
   Usuario: "un usuario",
@@ -50,6 +49,9 @@ const ENTIDAD_LABEL: Record<string, string> = {
   ConfiguracionNotificaciones: "la configuración de notificaciones",
   ConfiguracionWidgets: "la configuración de widgets",
   Operador: "un operador",
+  DocumentoOperador: "un documento de operador",
+  Accidente: "un accidente",
+  Siniestro: "un siniestro",
 };
 
 /** Frase legible de un evento, ej. "Actualizó una unidad" o "Inició sesión". */
