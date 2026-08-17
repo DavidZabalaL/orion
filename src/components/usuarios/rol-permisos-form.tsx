@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { actualizarPermisosRol, actualizarPermisoEspecial } from "@/app/(app)/usuarios/actions";
+import { GRUPOS, type Grupo } from "@/lib/modulos";
 import type { PermisoEspecial } from "@/lib/permisos";
 
 type Permiso = "ninguno" | "ver" | "editar" | "aprobar";
@@ -62,7 +63,7 @@ export function RolPermisosForm({
   permisosEspeciales = [],
 }: {
   rol: { id: string; nombre: string; permisos: Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> };
-  modulos: { id: string; label: string }[];
+  modulos: { id: string; label: string; grupo: Grupo }[];
   permisosEspeciales?: PermisoEspecial[];
 }) {
   const esGlobal = "*" in rol.permisos;
@@ -74,17 +75,12 @@ export function RolPermisosForm({
 
   if (esGlobal) {
     return (
-      <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{rol.nombre}</h3>
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Acceso global a todos los módulos (rol administrativo).</p>
-      </div>
+      <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Acceso global a todos los módulos (rol administrativo).</p>
     );
   }
 
   return (
     <form
-      className="rounded-xl p-5"
-      style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
       action={(formData) => {
         startTransition(async () => {
           await actualizarPermisosRol(formData);
@@ -96,37 +92,53 @@ export function RolPermisosForm({
       <input type="hidden" name="rolId" value={rol.id} />
       <input type="hidden" name="modulos" value={modulos.map((m) => m.id).join(",")} />
 
-      <div className="flex items-center justify-between mb-4">
-        <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{rol.nombre}</h3>
+      <div className="flex items-center justify-end mb-4">
         <button type="submit" disabled={pending} className="flex items-center gap-2 rounded-md px-3 h-8 disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}>
           {ok ? <><CheckCircle2 size={14} /> Guardado</> : pending ? "Guardando…" : "Guardar"}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-2">
-        {modulos.map((m) => (
-          <div key={m.id} className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ background: "var(--field-bg)" }}>
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{m.id} · {m.label}</span>
-            <input type="hidden" name={`permiso_${m.id}`} value={niveles[m.id]} />
-            <div className="flex gap-1">
-              {NIVELES.map((n) => (
-                <button
-                  key={n.value}
-                  type="button"
-                  onClick={() => setNiveles((s) => ({ ...s, [m.id]: n.value }))}
-                  className="rounded-full px-2.5 py-1"
-                  style={{
-                    fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600,
-                    background: niveles[m.id] === n.value ? n.bg : "transparent",
-                    color: niveles[m.id] === n.value ? n.color : "var(--sidebar-text)",
-                  }}
-                >
-                  {n.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-col gap-2">
+        {GRUPOS.map((grupo) => {
+          const modulosDelGrupo = modulos.filter((m) => m.grupo === grupo);
+          if (modulosDelGrupo.length === 0) return null;
+          const conAcceso = modulosDelGrupo.filter((m) => niveles[m.id] !== "ninguno").length;
+          return (
+            <details key={grupo} className="rounded-md" style={{ background: "var(--field-bg)" }}>
+              <summary
+                className="cursor-pointer px-3 py-2"
+                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--field-text)" }}
+              >
+                {grupo} ({conAcceso}/{modulosDelGrupo.length}) ▾
+              </summary>
+              <div className="grid grid-cols-1 gap-2 px-3 pb-3">
+                {modulosDelGrupo.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ background: "var(--panel-bg)" }}>
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{m.id} · {m.label}</span>
+                    <input type="hidden" name={`permiso_${m.id}`} value={niveles[m.id]} />
+                    <div className="flex gap-1">
+                      {NIVELES.map((n) => (
+                        <button
+                          key={n.value}
+                          type="button"
+                          onClick={() => setNiveles((s) => ({ ...s, [m.id]: n.value }))}
+                          className="rounded-full px-2.5 py-1"
+                          style={{
+                            fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600,
+                            background: niveles[m.id] === n.value ? n.bg : "transparent",
+                            color: niveles[m.id] === n.value ? n.color : "var(--sidebar-text)",
+                          }}
+                        >
+                          {n.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          );
+        })}
       </div>
 
       {permisosEspeciales.length > 0 && (
