@@ -80,12 +80,15 @@ export async function obtenerResumenPresupuestoAnual(proyectoId: string, anio: n
 }
 
 export type MesPartida = { mes: number; presupuestado: number; real: number; diferencia: number };
+export type GastoPorUnidad = { numeroEconomico: string; monto: number };
 export type PartidaResumen = {
   categoria: string;
   meses: MesPartida[];
   presupuestadoAnual: number;
   realAnual: number;
   diferenciaAnual: number;
+  /** Desglose del gasto REAL anual por unidad — vacío para VIATICOS_OPERACION (se reporta a nivel proyecto, sin unidad). */
+  porUnidad: GastoPorUnidad[];
 };
 export type ResumenPresupuestoPorPartida = {
   anio: number;
@@ -130,10 +133,10 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
 
   const [gastosPorUnidad, viaticos, combustible, tags] = await Promise.all([
     periodos.length === 0
-      ? ([] as { categoria: string; fecha: Date; costo: unknown }[])
+      ? ([] as { categoria: string; fecha: Date; costo: unknown; numeroEconomico: string | null }[])
       : prisma.gastoVehicular.findMany({
           where: { OR: periodos },
-          select: { categoria: true, fecha: true, costo: true },
+          select: { categoria: true, fecha: true, costo: true, numeroEconomico: true },
         }),
     prisma.gastoVehicular.findMany({
       where: { categoria: "VIATICOS_OPERACION", proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } },
@@ -141,11 +144,11 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
     }),
     prisma.combustible.findMany({
       where: { OR: orConProyectoReportante },
-      select: { fecha: true, costo: true },
+      select: { fecha: true, costo: true, numeroEconomico: true },
     }),
     prisma.tag.findMany({
       where: { OR: orConProyectoReportante },
-      select: { fecha: true, monto: true },
+      select: { fecha: true, monto: true, numeroEconomico: true },
     }),
   ]);
 
@@ -160,16 +163,44 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
   };
 
   const gastoPorCategoriaYMes = new Map<string, Map<number, number>>();
+  const gastoPorCategoriaYUnidad = new Map<string, Map<string, number>>();
   for (const g of gastosPorUnidad) {
     const mes = g.fecha.getUTCMonth() + 1;
     if (!gastoPorCategoriaYMes.has(g.categoria)) gastoPorCategoriaYMes.set(g.categoria, new Map());
     const mapaCategoria = gastoPorCategoriaYMes.get(g.categoria)!;
     mapaCategoria.set(mes, (mapaCategoria.get(mes) ?? 0) + Number(g.costo));
+
+    if (g.numeroEconomico) {
+      if (!gastoPorCategoriaYUnidad.has(g.categoria)) gastoPorCategoriaYUnidad.set(g.categoria, new Map());
+      const mapaUnidad = gastoPorCategoriaYUnidad.get(g.categoria)!;
+      mapaUnidad.set(g.numeroEconomico, (mapaUnidad.get(g.numeroEconomico) ?? 0) + Number(g.costo));
+    }
   }
+
+  const sumarPorUnidad = (filas: { numeroEconomico: string | null; costo?: unknown; monto?: unknown }[]) => {
+    const mapa = new Map<string, number>();
+    for (const f of filas) {
+      if (!f.numeroEconomico) continue;
+      const valor = Number(f.costo ?? f.monto ?? 0);
+      mapa.set(f.numeroEconomico, (mapa.get(f.numeroEconomico) ?? 0) + valor);
+    }
+    return mapa;
+  };
 
   const viaticosPorMes = sumarPorMes(viaticos);
   const combustiblePorMes = sumarPorMes(combustible);
   const tagPorMes = sumarPorMes(tags);
+  const combustiblePorUnidad = sumarPorUnidad(combustible);
+  const tagPorUnidad = sumarPorUnidad(tags);
+
+  const porUnidadDeCategoria = (categoria: string): GastoPorUnidad[] => {
+    const mapa =
+      categoria === "GASOLINA" ? combustiblePorUnidad : categoria === "CASETAS" ? tagPorUnidad : categoria === "VIATICOS_OPERACION" ? null : gastoPorCategoriaYUnidad.get(categoria) ?? null;
+    if (!mapa) return [];
+    return Array.from(mapa.entries())
+      .map(([numeroEconomico, monto]) => ({ numeroEconomico, monto }))
+      .sort((a, b) => b.monto - a.monto);
+  };
 
   const presupuestadoPorCategoriaYMes = new Map<string, Map<number, number>>();
   for (const p of presupuestosPartida) {
@@ -199,6 +230,7 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
       presupuestadoAnual: meses.reduce((acc, m) => acc + m.presupuestado, 0),
       realAnual: meses.reduce((acc, m) => acc + m.real, 0),
       diferenciaAnual: meses.reduce((acc, m) => acc + m.diferencia, 0),
+      porUnidad: porUnidadDeCategoria(categoria),
     };
   });
 
