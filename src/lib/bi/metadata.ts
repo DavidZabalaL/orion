@@ -512,7 +512,7 @@ export type CombinacionGuardable = {
   filtros?: FiltroGuardable[];
   /** Proyectos elegidos por quien arma el widget. Ausente = "Nacional" (todos los
    *  proyectos permitidos por su rol). SIEMPRE se intersecta en el servidor con
-   *  proyectosPermitidosParaModulo("J") — nunca se confía en este valor tal cual. */
+   *  proyectosPermitidosParaModulo("M") — nunca se confía en este valor tal cual. */
   proyectoIds?: string[];
   /** Cross-filter: al hacer clic en una categoría de este widget, emite un
    *  filtro de interacción (mismo mecanismo que `filtros` — un `Filtro` más

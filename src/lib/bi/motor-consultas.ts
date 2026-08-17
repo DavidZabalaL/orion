@@ -62,7 +62,7 @@ export type AlcanceProyecto = {
  * agrega SIEMPRE como condición WHERE, separada de `filtros`.
  */
 export async function resolverAlcanceProyecto(dataset: DatasetMeta, proyectoIdsElegidos: string[] | undefined): Promise<AlcanceProyecto> {
-  const permitidos = await proyectosPermitidosParaModulo("J");
+  const permitidos = await proyectosPermitidosParaModulo("M");
   let efectivos: string[] | null = permitidos;
   if (Array.isArray(proyectoIdsElegidos) && proyectoIdsElegidos.length > 0) {
     efectivos = permitidos === null ? proyectoIdsElegidos : proyectoIdsElegidos.filter((id) => permitidos.includes(id));
