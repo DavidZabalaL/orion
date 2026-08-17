@@ -38,14 +38,14 @@ export default async function AutorizacionCombustiblePage() {
       select: { proyectoId: true, montoPresupuestado: true },
     }),
     prisma.combustible.groupBy({
-      by: ["proyectoId"],
+      by: ["proyectoReportanteId"],
       _sum: { costo: true },
       where: {
         fecha: {
           gte: new Date(anio, mes - 1, 1),
           lt: new Date(anio, mes, 1),
         },
-        ...(permitidos !== null ? { proyectoId: { in: permitidos } } : {}),
+        ...(permitidos !== null ? { proyectoReportanteId: { in: permitidos } } : {}),
       },
     }),
     prisma.solicitudAutorizacionCombustible.findMany({
@@ -66,7 +66,7 @@ export default async function AutorizacionCombustiblePage() {
     partidas.map((p) => [p.proyectoId, Number(p.montoPresupuestado)])
   );
   const gastoPorProyecto = Object.fromEntries(
-    gastoReal.map((g) => [g.proyectoId, Number(g._sum.costo ?? 0)])
+    gastoReal.map((g) => [g.proyectoReportanteId, Number(g._sum.costo ?? 0)])
   );
 
   const resumenProyectos = proyectos.map((p) => ({
