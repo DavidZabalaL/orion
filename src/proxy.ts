@@ -31,6 +31,8 @@ export const config = {
   // que redirigiría cualquier request sin cookie a /iniciar-sesion antes de
   // llegar a la ruta. api/cron: mismo motivo — lo invoca Vercel Cron sin
   // cookie de sesión, autenticado con CRON_SECRET (ver
-  // src/app/api/cron/reportes-programados/route.ts).
-  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
+  // src/app/api/cron/reportes-programados/route.ts). invitacion: página
+  // pública donde un Operador sin correo institucional crea su contraseña
+  // con el token de un solo uso que recibió por correo (sin sesión previa).
+  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|invitacion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
 };

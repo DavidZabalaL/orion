@@ -196,6 +196,17 @@ enum EstatusUsuario {
   DESACTIVADO
 }
 
+/**
+ * Vía de inicio de sesión de un Usuario. MICROSOFT es el caso normal (cuenta
+ * corporativa de Entra ID). CORREO_PASSWORD es para Operadores sin correo
+ * institucional: entran con correo (personal) + contraseña propia, definida
+ * al aceptar la invitación en /invitacion/[token].
+ */
+enum MetodoAcceso {
+  MICROSOFT
+  CORREO_PASSWORD
+}
+
 enum FrecuenciaReporte {
   DIARIO
   SEMANAL
@@ -248,6 +259,12 @@ model Usuario {
    * botón "Cerrar sesión" del panel de Analítica de Uso y Trazabilidad.
    */
   sesionInvalidadaEn DateTime?
+  metodoAcceso       MetodoAcceso      @default(MICROSOFT)
+  /** Solo aplica con metodoAcceso = CORREO_PASSWORD (hash bcrypt). */
+  passwordHash       String?
+  /** Token de un solo uso para /invitacion/[token]; se limpia al aceptar. */
+  invitacionToken    String?           @unique
+  invitacionExpiraEn DateTime?
   proyectos          UsuarioProyecto[]
   operadorId         String?           @unique
   operador           Operador?         @relation(fields: [operadorId], references: [id])

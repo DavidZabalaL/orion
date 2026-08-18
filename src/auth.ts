@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Credentials from "next-auth/providers/credentials";
+import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { logActivity } from "@/lib/activity";
@@ -30,6 +31,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ? await prisma.usuario.findFirst({ where: { correo, estatus: { not: "DESACTIVADO" } } })
           : await prisma.usuario.findFirst({ where: { estatus: "ACTIVO" } });
         if (!usuario) return null;
+        return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
+      },
+    }),
+    // Ingreso para Operadores sin correo institucional: correo (personal) +
+    // contraseña propia, definida al aceptar la invitación en
+    // /invitacion/[token] (ver src/app/invitacion/actions.ts). Independiente
+    // del backdoor PREVIEW_LOGIN de arriba — valida contra el Usuario real.
+    Credentials({
+      id: "operador-credenciales",
+      name: "Operador",
+      credentials: { correo: {}, password: {} },
+      async authorize(credentials) {
+        const correo = (credentials.correo as string | undefined)?.trim().toLowerCase();
+        const password = credentials.password as string | undefined;
+        if (!correo || !password) return null;
+
+        const usuario = await prisma.usuario.findUnique({ where: { correo } });
+        if (!usuario || usuario.estatus !== "ACTIVO") return null;
+        if (usuario.metodoAcceso !== "CORREO_PASSWORD" || !usuario.passwordHash) return null;
+
+        const valido = await compare(password, usuario.passwordHash);
+        if (!valido) return null;
+
         return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
       },
     }),

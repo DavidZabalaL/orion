@@ -31,7 +31,7 @@ const labelStyle: React.CSSProperties = {
 type Estado =
   | { tipo: "idle" }
   | { tipo: "ok" }
-  | { tipo: "ok-sin-correo"; mensaje?: string };
+  | { tipo: "ok-sin-correo"; mensaje?: string; link?: string };
 
 export function InvitarUsuarioForm({
   roles,
@@ -44,6 +44,7 @@ export function InvitarUsuarioForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
+  const [sinCorreoInstitucional, setSinCorreoInstitucional] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
@@ -60,10 +61,11 @@ export function InvitarUsuarioForm({
             if (res.correoEnviado) {
               setEstado({ tipo: "ok" });
               formRef.current?.reset();
+              setSinCorreoInstitucional(false);
             } else {
-              setEstado({ tipo: "ok-sin-correo", mensaje: res.errorCorreo });
+              setEstado({ tipo: "ok-sin-correo", mensaje: res.errorCorreo, link: res.linkInvitacion });
             }
-            setTimeout(() => setEstado({ tipo: "idle" }), 6000);
+            setTimeout(() => setEstado({ tipo: "idle" }), res.linkInvitacion ? 60000 : 6000);
           });
         }}
       >
@@ -73,7 +75,16 @@ export function InvitarUsuarioForm({
             <input name="nombre" required style={fieldStyle} />
           </div>
           <div>
-            <CampoAyuda style={labelStyle} texto="Correo con el que iniciará sesión (debe ser su cuenta de Microsoft).">Correo *</CampoAyuda>
+            <CampoAyuda
+              style={labelStyle}
+              texto={
+                sinCorreoInstitucional
+                  ? "Correo personal del operador (o uno que él cree). Recibirá un enlace para crear su propia contraseña."
+                  : "Correo con el que iniciará sesión (debe ser su cuenta de Microsoft)."
+              }
+            >
+              Correo *
+            </CampoAyuda>
             <input name="correo" type="email" required style={fieldStyle} />
           </div>
           <div>
@@ -94,6 +105,18 @@ export function InvitarUsuarioForm({
             ))}
           </select>
         </div>
+        <label className="flex items-center gap-2 rounded-md px-3 py-2.5 w-fit" style={{ background: "var(--field-bg)", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            name="sinCorreoInstitucional"
+            value="1"
+            checked={sinCorreoInstitucional}
+            onChange={(e) => setSinCorreoInstitucional(e.target.checked)}
+          />
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+            No tiene correo institucional (entrará con correo personal + contraseña propia)
+          </span>
+        </label>
         <div>
           <label style={labelStyle}>Proyectos asignados</label>
           <div className="flex flex-wrap gap-3">
@@ -109,9 +132,17 @@ export function InvitarUsuarioForm({
         {estado.tipo === "ok-sin-correo" && (
           <div className="flex items-start gap-2 rounded-md px-3 py-2.5" style={{ background: "var(--status-revision-bg)" }}>
             <TriangleAlert size={15} color="var(--color-status-revision)" className="shrink-0 mt-0.5" />
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-revision)" }}>
-              El usuario se creó, pero no se pudo enviar el correo de invitación{estado.mensaje ? `: ${estado.mensaje}` : "."} Comparte el enlace de acceso manualmente.
-            </span>
+            <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-revision)" }}>
+              <span>
+                El usuario se creó, pero no se pudo enviar el correo de invitación{estado.mensaje ? `: ${estado.mensaje}` : "."}{" "}
+                {estado.link ? "Comparte este enlace manualmente:" : "Comparte el enlace de acceso manualmente."}
+              </span>
+              {estado.link && (
+                <div className="mt-1 break-all select-all" style={{ fontFamily: "var(--font-mono, monospace)", fontSize: "var(--text-xs)" }}>
+                  {estado.link}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -11,6 +11,7 @@ const ERROR_LABEL: Record<string, string> = {
   SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orión. Pide a un administrador que te invite desde Administración.",
   AccessDenied: "Acceso denegado. Verifica que estés usando tu cuenta de Grupo Kabat.",
   CredencialesInvalidas: "Usuario o contraseña incorrectos.",
+  CredencialesOperadorInvalidas: "Correo o contraseña incorrectos.",
 };
 
 const DESTACADOS = [
@@ -105,6 +106,60 @@ export default async function IniciarSesionPage({
                 Continuar con Microsoft
               </button>
             </form>
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1" style={{ background: "#e2e8f0" }} />
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>o</span>
+              <div className="h-px flex-1" style={{ background: "#e2e8f0" }} />
+            </div>
+
+            <details>
+              <summary
+                className="cursor-pointer"
+                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "#334155", listStyle: "none" }}
+              >
+                Ingreso operador
+              </summary>
+              <p className="mt-2 mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>
+                Para operadores sin correo institucional, con contraseña creada desde su invitación por correo.
+              </p>
+              <form
+                className="flex flex-col gap-3"
+                action={async (fd) => {
+                  "use server";
+                  try {
+                    await signIn("operador-credenciales", { correo: fd.get("correo"), password: fd.get("password"), redirectTo: "/unidades" });
+                  } catch (error) {
+                    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+                    redirect("/iniciar-sesion?error=CredencialesOperadorInvalidas");
+                  }
+                }}
+              >
+                <input
+                  name="correo"
+                  type="email"
+                  placeholder="Correo"
+                  autoComplete="email"
+                  required
+                  style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
+                />
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Contraseña"
+                  autoComplete="current-password"
+                  required
+                  style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
+                />
+                <button
+                  type="submit"
+                  className="h-10 rounded-md font-semibold"
+                  style={{ background: "#fff", color: "#0f1b2d", border: "1px solid #d7dee8", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}
+                >
+                  Entrar como operador
+                </button>
+              </form>
+            </details>
           </div>
 
           <p className="mt-6 text-center" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>

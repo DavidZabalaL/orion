@@ -1,13 +1,22 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { enviarInvitacion } from "@/lib/email";
+import { enviarInvitacion, enviarInvitacionOperador } from "@/lib/email";
 import { exigirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
 
-export type ResultadoInvitarUsuario = { id: string; correoEnviado: boolean; errorCorreo?: string };
+const VIGENCIA_INVITACION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+
+export type ResultadoInvitarUsuario = {
+  id: string;
+  correoEnviado: boolean;
+  errorCorreo?: string;
+  /** Solo con metodoAcceso=CORREO_PASSWORD: enlace de aceptación, para compartir a mano si el correo falla. */
+  linkInvitacion?: string;
+};
 
 export async function invitarUsuario(formData: FormData): Promise<ResultadoInvitarUsuario> {
   await exigirPermisoModulo("K", "editar");
@@ -17,10 +26,17 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
   const rolId = String(formData.get("rolId") ?? "");
   const operadorId = String(formData.get("operadorId") ?? "") || null;
   const proyectoIds = formData.getAll("proyectoIds").map(String);
+  // Marcado desde el formulario cuando el Operador no tiene correo institucional:
+  // entra con correo (personal) + contraseña propia en vez de cuenta Microsoft.
+  const sinCorreoInstitucional = formData.get("sinCorreoInstitucional") === "1";
 
   if (!nombre || !correo || !rolId) {
     throw new Error("Nombre, correo y rol son obligatorios.");
   }
+
+  const metodoAcceso = sinCorreoInstitucional ? "CORREO_PASSWORD" : "MICROSOFT";
+  const invitacionToken = sinCorreoInstitucional ? randomBytes(32).toString("hex") : null;
+  const invitacionExpiraEn = sinCorreoInstitucional ? new Date(Date.now() + VIGENCIA_INVITACION_MS) : null;
 
   const [usuario, rol] = await prisma.$transaction([
     prisma.usuario.create({
@@ -30,13 +46,18 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
         rolId,
         operadorId,
         estatus: "INVITADO",
+        metodoAcceso,
+        invitacionToken,
+        invitacionExpiraEn,
         proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
       },
     }),
     prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { nombre: true } }),
   ]);
 
-  const resultadoCorreo = await enviarInvitacion({ correo, nombre, rol: rol.nombre });
+  const resultadoCorreo = invitacionToken
+    ? await enviarInvitacionOperador({ correo, nombre, token: invitacionToken })
+    : await enviarInvitacion({ correo, nombre, rol: rol.nombre });
 
   const session = await auth();
   if (session?.user?.id) {
@@ -46,12 +67,17 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
       accion: "create",
       entidad: "Usuario",
       entidadId: usuario.id,
-      detalle: { nombre, correo, rol: rol.nombre },
+      detalle: { nombre, correo, rol: rol.nombre, metodoAcceso },
     });
   }
 
   revalidatePath("/usuarios");
-  return { id: usuario.id, correoEnviado: resultadoCorreo.enviado, errorCorreo: resultadoCorreo.error };
+  return {
+    id: usuario.id,
+    correoEnviado: resultadoCorreo.enviado,
+    errorCorreo: resultadoCorreo.error,
+    linkInvitacion: invitacionToken ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invitacion/${invitacionToken}` : undefined,
+  };
 }
 
 export async function alternarEstatusUsuario(formData: FormData) {
