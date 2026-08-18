@@ -64,6 +64,16 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
     const fotoHorometro = String(formData.get("foto_horometro") ?? "").trim();
     if (fotoHorometro) puntosInspeccion["horometro_foto"] = fotoHorometro;
 
+    // Collect extra section fields (generales, niveles, exterior, interior, seguridad)
+    const EXTRA_PREFIXES = ["gen_", "niv_", "ext_", "int_", "seg_"];
+    const respuestasExtra: Record<string, string> = {};
+    for (const [k, v] of formData.entries()) {
+      if (EXTRA_PREFIXES.some((pfx) => k.startsWith(pfx))) {
+        const val = String(v).trim();
+        if (val) respuestasExtra[k] = val;
+      }
+    }
+
     const session = await auth();
     if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };
 
@@ -84,6 +94,7 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
         puntosInspeccion,
         evidenciaId,
         capturadoPorId: session.user.id,
+        ...(Object.keys(respuestasExtra).length > 0 ? { respuestasSemanal: respuestasExtra } : {}),
       },
     });
 

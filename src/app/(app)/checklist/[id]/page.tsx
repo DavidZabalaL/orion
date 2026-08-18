@@ -40,8 +40,8 @@ function ColorChip({ value }: { value: string }) {
   const v = value?.toUpperCase() ?? "";
   let bg = "var(--chip)";
   let color = "var(--sidebar-text)";
-  if (["BUEN ESTADO", "MAXIMO", "Y", "OK"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
-  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
+  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
+  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
   else if (v === "MEDIO") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
   return (
     <span
@@ -130,16 +130,37 @@ function DetalleDiario({
   evidenciaUrl,
   odometro,
   horometro,
+  respuestasExtra = {},
 }: {
   puntos: Record<string, string>;
   evidenciaUrl?: string;
   odometro?: number | null;
   horometro?: number | null;
+  respuestasExtra?: Record<string, string>;
 }) {
   const fotoHorometro = puntos["horometro_foto"];
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Datos generales (nueva sección) */}
+      {(respuestasExtra["gen_zona"] || respuestasExtra["gen_municipio"]) && (
+        <Panel>
+          <SeccionTitulo titulo="Datos generales" />
+          {[
+            { label: "Zona", key: "gen_zona" },
+            { label: "Municipio", key: "gen_municipio" },
+            { label: "Área", key: "gen_area" },
+            { label: "Responsable", key: "gen_responsable" },
+            { label: "Tipo de licencia", key: "gen_tipo_licencia" },
+          ].filter((f) => respuestasExtra[f.key]).map((f) => (
+            <FilaItem key={f.key} label={f.label} badge={<ColorChip value={respuestasExtra[f.key]} />} />
+          ))}
+          {respuestasExtra["gen_foto_licencia"] && (
+            <FilaItem label="Foto de licencia" badge={null} foto={respuestasExtra["gen_foto_licencia"]} />
+          )}
+        </Panel>
+      )}
+
       {/* Puntos de inspección */}
       <Panel>
         <SeccionTitulo titulo="Puntos de inspección" />
@@ -164,6 +185,54 @@ function DetalleDiario({
           );
         })}
       </Panel>
+
+      {/* Niveles (nueva sección) */}
+      {(respuestasExtra["niv_luz_check"] || respuestasExtra["niv_nivel_combustible"]) && (
+        <Panel>
+          <SeccionTitulo titulo="Niveles" />
+          {respuestasExtra["niv_luz_check"] && (
+            <FilaItem label="Luz de check encendida" badge={<ColorChip value={respuestasExtra["niv_luz_check"]} />} foto={respuestasExtra["niv_evidencia_luz_check"]} />
+          )}
+          {respuestasExtra["niv_nivel_combustible"] && (
+            <FilaItem label="Nivel de combustible" badge={<ColorChip value={respuestasExtra["niv_nivel_combustible"]} />} foto={respuestasExtra["niv_evidencia_combustible"]} />
+          )}
+        </Panel>
+      )}
+
+      {/* Exterior (nueva sección) */}
+      {(respuestasExtra["ext_tiene_golpes"] || respuestasExtra["ext_parabrisas_espejos"] || respuestasExtra["ext_evidencia_frente"]) && (
+        <Panel>
+          <SeccionTitulo titulo="Exterior" />
+          {respuestasExtra["ext_tiene_golpes"] && (
+            <FilaItem label="¿Tiene golpes?" badge={<ColorChip value={respuestasExtra["ext_tiene_golpes"]} />} />
+          )}
+          {respuestasExtra["ext_parabrisas_espejos"] && (
+            <FilaItem label="Parabrisas y espejos" badge={<ColorChip value={respuestasExtra["ext_parabrisas_espejos"]} />} foto={respuestasExtra["ext_evidencia_parabrisas_espejos"]} />
+          )}
+          {[
+            { key: "ext_evidencia_frente", label: "Foto frente" },
+            { key: "ext_evidencia_lado_derecho", label: "Foto lado derecho" },
+            { key: "ext_evidencia_parte_trasera", label: "Foto parte trasera" },
+            { key: "ext_evidencia_lado_izquierdo", label: "Foto lado izquierdo" },
+            { key: "ext_brazo_grua", label: "Foto brazo de grúa" },
+          ].filter((f) => respuestasExtra[f.key]).map((f) => (
+            <FilaItem key={f.key} label={f.label} badge={null} foto={respuestasExtra[f.key]} />
+          ))}
+        </Panel>
+      )}
+
+      {/* Interior (nueva sección) */}
+      {(respuestasExtra["int_evidencia_tarjeta_circulacion"] || respuestasExtra["int_evidencia_tarjeta_combustible"]) && (
+        <Panel>
+          <SeccionTitulo titulo="Documentos en cabina" />
+          {respuestasExtra["int_evidencia_tarjeta_circulacion"] && (
+            <FilaItem label="Tarjeta de circulación" badge={null} foto={respuestasExtra["int_evidencia_tarjeta_circulacion"]} />
+          )}
+          {respuestasExtra["int_evidencia_tarjeta_combustible"] && (
+            <FilaItem label="Tarjeta de combustible" badge={null} foto={respuestasExtra["int_evidencia_tarjeta_combustible"]} />
+          )}
+        </Panel>
+      )}
 
       {/* Lecturas y evidencia */}
       {(odometro != null || horometro != null) && (
@@ -220,9 +289,47 @@ function DetalleDiario({
           </div>
         </Panel>
       )}
+
+      {/* Seguridad y equipamiento (nueva sección) */}
+      {(respuestasExtra["seg_llanta_refaccion"] || respuestasExtra["seg_gato"] || respuestasExtra["seg_cables_corriente"]) && (
+        <Panel>
+          <SeccionTitulo titulo="Seguridad y equipamiento" />
+          {[
+            { label: "Llanta de refacción", key: "seg_llanta_refaccion", fotoKey: "seg_evidencia_llanta_refaccion" },
+            { label: "Gato", key: "seg_gato", fotoKey: "seg_evidencia_gato" },
+            { label: "Cables de corriente", key: "seg_cables_corriente", fotoKey: "seg_evidencia_cables_corriente" },
+          ].filter((f) => respuestasExtra[f.key]).map((f) => (
+            <FilaItem key={f.key} label={f.label} badge={<ColorChip value={respuestasExtra[f.key]} />} foto={respuestasExtra[f.fotoKey] || undefined} />
+          ))}
+          {respuestasExtra["seg_observaciones"] && (
+            <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                Observaciones
+              </div>
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+                {respuestasExtra["seg_observaciones"]}
+              </p>
+            </div>
+          )}
+          {respuestasExtra["seg_firma_responsable"] && (
+            <div className="px-4 py-3 flex flex-col gap-2">
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Firma del responsable
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={respuestasExtra["seg_firma_responsable"]}
+                alt="Firma"
+                style={{ maxWidth: 260, height: 90, objectFit: "contain", background: "#fff", border: "1px solid var(--field-border)", borderRadius: 8, padding: 8 }}
+              />
+            </div>
+          )}
+        </Panel>
+      )}
     </div>
   );
 }
+
 
 // ─── Detalle Semanal ──────────────────────────────────────────────────────────
 
@@ -478,6 +585,7 @@ export default async function DetalleChecklistPage({
             evidenciaUrl={checklist.evidencia?.url}
             odometro={checklist.odometro}
             horometro={checklist.horometro}
+            respuestasExtra={respuestas}
           />
         )}
         {checklist.tipo === "SEMANAL" && <DetalleSemanal respuestas={respuestas} />}

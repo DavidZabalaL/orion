@@ -7,10 +7,12 @@ export function FirmaPad({
   name,
   label = "Firma del responsable",
   required = false,
+  onFirma,
 }: {
   name: string;
   label?: string;
   required?: boolean;
+  onFirma?: (dataUrl: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dataUrl, setDataUrl] = useState("");
@@ -19,6 +21,8 @@ export function FirmaPad({
   const lastX = useRef(0);
   const lastY = useRef(0);
   const hasTouched = useRef(false);
+  const onFirmaRef = useRef(onFirma);
+  onFirmaRef.current = onFirma;
 
   function toCanvasPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect();
@@ -77,6 +81,7 @@ export function FirmaPad({
         const url = canvas!.toDataURL("image/png");
         setDataUrl(url);
         setTieneFirma(true);
+        onFirmaRef.current?.(url);
       }
     }
 
@@ -106,6 +111,7 @@ export function FirmaPad({
     setDataUrl("");
     setTieneFirma(false);
     hasTouched.current = false;
+    onFirmaRef.current?.("");
   }
 
   return (
