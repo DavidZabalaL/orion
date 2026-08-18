@@ -17,7 +17,7 @@ export default async function UnidadesPage() {
   await requerirPermisoModulo("A");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
   const restriccionOperador = await unidadRestringidaParaOperador();
-  const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: restriccionOperador.numeroEconomico ?? "__ninguna__" } : {};
+  const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: { in: restriccionOperador.numerosEconomicos } } : {};
 
   const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([

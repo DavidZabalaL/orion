@@ -22,7 +22,7 @@ export default async function ChecklistPage() {
 
   const [unidades, proyectos, checklistsDiarios, checklistsSemanales, sinCapturaHoy] = await Promise.all([
     prisma.unidad.findMany({
-      where: { estatus: "ACTIVO", ...filtroProyecto },
+      where: { estatus: { not: "BAJA" }, ...filtroProyecto },
       select: {
         numeroEconomico: true,
         marca: true,
@@ -64,7 +64,7 @@ export default async function ChecklistPage() {
       orderBy: { fecha: "desc" },
     }),
     prisma.unidad.findMany({
-      where: { estatus: "ACTIVO", checklists: { none: { tipo: "DIARIO", fecha: { gte: inicioHoy } } }, ...filtroProyecto },
+      where: { estatus: { not: "BAJA" }, checklists: { none: { tipo: "DIARIO", fecha: { gte: inicioHoy } } }, ...filtroProyecto },
       select: { numeroEconomico: true },
     }),
   ]);

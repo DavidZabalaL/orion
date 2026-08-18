@@ -65,7 +65,7 @@ export default async function FichaUnidadPage({
   if (proyectosPermitidos !== null && (!unidad.proyectoId || !proyectosPermitidos.includes(unidad.proyectoId))) notFound();
 
   const restriccionOperador = await unidadRestringidaParaOperador();
-  if (restriccionOperador.esOperador && restriccionOperador.numeroEconomico !== numeroEconomico) notFound();
+  if (restriccionOperador.esOperador && !restriccionOperador.numerosEconomicos.includes(numeroEconomico)) notFound();
 
   const insumos = unidad.proyectoId
     ? await prisma.insumoInventario.findMany({

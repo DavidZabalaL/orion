@@ -171,6 +171,46 @@ export async function eliminarUsuario(formData: FormData): Promise<ResultadoElim
   }
 }
 
+export type ResultadoCrearRol = { id?: string; error?: string };
+
+export async function crearRol(formData: FormData): Promise<ResultadoCrearRol> {
+  await exigirPermisoModulo("K", "editar");
+
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const basadoEnRolId = String(formData.get("basadoEnRolId") ?? "") || null;
+
+  if (!nombre) return { error: "El nombre del rol es obligatorio." };
+
+  // Al basarse en un rol existente se copian sus permisos como punto de partida
+  // (ej. "Operador Senior" a partir de "Operador") — se ajustan después desde
+  // el formulario de permisos de este mismo rol, ya creado.
+  const permisosBase = basadoEnRolId
+    ? (await prisma.rol.findUnique({ where: { id: basadoEnRolId }, select: { permisos: true } }))?.permisos ?? {}
+    : {};
+
+  let rol;
+  try {
+    rol = await prisma.rol.create({ data: { nombre, permisos: permisosBase } });
+  } catch {
+    return { error: `Ya existe un rol llamado "${nombre}".` };
+  }
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "usuarios",
+      accion: "create",
+      entidad: "Rol",
+      entidadId: rol.id,
+      detalle: { nombre, basadoEnRolId },
+    });
+  }
+
+  revalidatePath("/usuarios/roles");
+  return { id: rol.id };
+}
+
 export async function actualizarPermisosRol(formData: FormData) {
   await exigirPermisoModulo("K", "editar");
 

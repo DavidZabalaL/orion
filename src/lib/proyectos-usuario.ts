@@ -43,11 +43,12 @@ export async function proyectosPermitidosParaModulo(moduloId: string): Promise<s
 }
 
 /**
- * El rol "Operador" solo puede ver, dentro del módulo A (Unidades), la unidad que
- * tiene resguardada — no el resto de la flota. Para cualquier otro rol no aplica
- * ninguna restricción adicional (el alcance por proyecto ya cubre esos casos).
+ * El rol "Operador" solo puede ver, dentro del módulo A (Unidades), las unidades
+ * que tiene resguardadas (puede ser responsable de varias a la vez) — no el
+ * resto de la flota. Para cualquier otro rol no aplica ninguna restricción
+ * adicional (el alcance por proyecto ya cubre esos casos).
  */
-export async function unidadRestringidaParaOperador(): Promise<{ esOperador: true; numeroEconomico: string | null } | { esOperador: false }> {
+export async function unidadRestringidaParaOperador(): Promise<{ esOperador: true; numerosEconomicos: string[] } | { esOperador: false }> {
   const session = await auth();
   if (!session?.user?.id || session.user.rol !== "Operador") return { esOperador: false };
 
@@ -55,7 +56,7 @@ export async function unidadRestringidaParaOperador(): Promise<{ esOperador: tru
     where: { id: session.user.id },
     select: { operador: { select: { unidadesResguardadas: { select: { numeroEconomico: true } } } } },
   });
-  return { esOperador: true, numeroEconomico: usuario?.operador?.unidadesResguardadas[0]?.numeroEconomico ?? null };
+  return { esOperador: true, numerosEconomicos: usuario?.operador?.unidadesResguardadas.map((u) => u.numeroEconomico) ?? [] };
 }
 
 /**
