@@ -319,6 +319,7 @@ model Documento {
   checklists               Checklist[]
   seguros                  Seguro[]
   unidadTarjetaCirculacion Unidad?             @relation("TarjetaCirculacion")
+  unidadTarjetaCombustible Unidad?             @relation("TarjetaCombustible")
 
   @@index([siniestroId])
 }
@@ -439,9 +440,11 @@ model Unidad {
   origenPlaca String
   tagIave     String?
 
-  numeroTarjetaCombustible String?
-  tarjetaCirculacionId     String?    @unique
-  tarjetaCirculacion       Documento? @relation("TarjetaCirculacion", fields: [tarjetaCirculacionId], references: [id])
+  numeroTarjetaCombustible   String?
+  tarjetaCombustibleId       String?    @unique
+  tarjetaCombustible         Documento? @relation("TarjetaCombustible", fields: [tarjetaCombustibleId], references: [id])
+  tarjetaCirculacionId       String?    @unique
+  tarjetaCirculacion         Documento? @relation("TarjetaCirculacion", fields: [tarjetaCirculacionId], references: [id])
 
   fechaAlta      DateTime    @default(now())
   fechaBaja      DateTime?

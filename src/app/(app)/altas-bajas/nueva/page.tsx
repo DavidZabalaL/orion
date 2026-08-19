@@ -178,6 +178,10 @@ export default async function AltaUnidadPage() {
             <CampoAyuda style={labelStyle} texto="Número de la tarjeta de combustible asignada a la unidad, si ya se tiene.">Número de tarjeta de combustible</CampoAyuda>
             <input name="numeroTarjetaCombustible" style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
+          <div>
+            <CampoAyuda style={labelStyle} texto="Foto o PDF de la tarjeta de combustible de la unidad, si ya se tiene.">Tarjeta de combustible (foto o PDF)</CampoAyuda>
+            <input name="tarjetaCombustible" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
+          </div>
         </Bloque>
 
         <div

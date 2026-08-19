@@ -55,10 +55,15 @@ export async function crearUnidad(formData: FormData) {
   if (dupSerie) throw new Error(`El número de serie ${numeroSerie} ya está registrado.`);
 
   const tarjetaCirculacionArchivo = formData.get("tarjetaCirculacion");
+  const tarjetaCombustibleArchivo = formData.get("tarjetaCombustible");
 
   const tarjetaCirculacion =
     tarjetaCirculacionArchivo instanceof File && tarjetaCirculacionArchivo.size > 0
       ? await crearDocumento(tarjetaCirculacionArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_circulacion" })
+      : null;
+  const tarjetaCombustible =
+    tarjetaCombustibleArchivo instanceof File && tarjetaCombustibleArchivo.size > 0
+      ? await crearDocumento(tarjetaCombustibleArchivo, { carpeta: "tarjetas", entidadRelacionada: "Unidad", entidadId: numeroEconomico, tipo: "tarjeta_combustible" })
       : null;
 
   await prisma.unidad.create({
@@ -82,6 +87,7 @@ export async function crearUnidad(formData: FormData) {
       tagIave,
       numeroTarjetaCombustible,
       tarjetaCirculacionId: tarjetaCirculacion?.id,
+      tarjetaCombustibleId: tarjetaCombustible?.id,
       placasHistorial: { create: { placa: placas } },
     },
   });

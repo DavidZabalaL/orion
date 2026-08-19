@@ -22,13 +22,16 @@ import { Panel, FilaItem } from "@/components/ui/documento-panel";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Operador = any;
 
-const LICENCIA_ORDEN = ["A", "B", "C", "D", "E"];
+// Solo existen dos tipos de licencia: A (autos, camionetas, motos) y B (solo grúas) —
+// debe coincidir con el enum TipoLicencia del schema y con el bloqueo real en
+// src/app/(app)/unidades/actions.ts (actualizarUnidad).
+const LICENCIA_ORDEN = ["A", "B"];
 const LICENCIA_REQUERIDA: Record<string, string> = {
   AUTO: "A",
   MOTO: "A",
-  CAMIONETA: "B",
-  GRUA: "C",
-  OTRO: "B",
+  CAMIONETA: "A",
+  GRUA: "B",
+  OTRO: "A",
 };
 
 const TIPO_LICENCIA_MANEJO_LABEL: Record<string, string> = {

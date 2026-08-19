@@ -121,12 +121,11 @@ export default async function AltaOperadorPage() {
           </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <CampoAyuda style={labelStyle} texto="Categoría de la licencia de conducir.">Tipo de licencia</CampoAyuda>
+              <CampoAyuda style={labelStyle} texto="Tipo A: autos, camionetas, motos. Tipo B: solo grúas.">Tipo de licencia</CampoAyuda>
               <select name="tipoLicencia" style={fieldStyle}>
                 <option value="">Seleccionar…</option>
-                {["A", "B", "C", "D", "E"].map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                <option value="A">A — Autos / camionetas / motos</option>
+                <option value="B">B — Solo grúas</option>
               </select>
             </div>
             <div>

@@ -21,6 +21,7 @@ export default async function FichaUnidadPage({
       where: { numeroEconomico },
       include: {
         proyecto: true,
+        tarjetaCombustible: { select: { url: true } },
         resguardante: {
           include: {
             documentos: { orderBy: { fechaVencimiento: "asc" } },

@@ -109,7 +109,7 @@ export const PERSONAL_POR_AREA: Record<AreaCarga, string[]> = {
   "DIRECCIÓN": [],
 };
 
-export const TIPOS_LICENCIA_CARGA = ["Tipo A", "Tipo B", "Tipo C", "Tipo D", "Tipo E"] as const;
+export const TIPOS_LICENCIA_CARGA = ["Tipo A", "Tipo B"] as const;
 
 export const TIPOS_COMBUSTIBLE_CARGA = ["GASOLINA REGULAR", "GASOLINA PREMIUM", "DIÉSEL"] as const;
 

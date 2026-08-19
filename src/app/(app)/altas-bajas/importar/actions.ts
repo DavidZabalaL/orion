@@ -110,6 +110,7 @@ export async function importarUnidades(
       propietario: propietario.valor as never,
       origenPlaca: String(fila.origenPlaca ?? "").trim(),
       tagIave: String(fila.tagIave ?? "").trim() || null,
+      numeroTarjetaCombustible: String(fila.numeroTarjetaCombustible ?? "").trim() || null,
     };
 
     try {

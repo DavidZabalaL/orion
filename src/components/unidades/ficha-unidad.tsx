@@ -473,7 +473,19 @@ function TabGeneral({ unidad, puedeEditarCapacidad, disponible }: { unidad: Unid
           <Field label="Propietario" value={unidad.propietario} />
           <Field label="Origen de placa" value={unidad.origenPlaca} />
           <Field label="Tag IAVE" value={unidad.tagIave ?? "—"} />
-          <Field label="Tarjeta de combustible" value={unidad.numeroTarjetaCombustible ?? "—"} />
+          <Field
+            label="Tarjeta de combustible"
+            value={
+              <span className="flex items-center gap-2">
+                {unidad.numeroTarjetaCombustible ?? "—"}
+                {unidad.tarjetaCombustible?.url && (
+                  <a href={blobProxy(unidad.tarjetaCombustible.url)} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", fontSize: "var(--text-sm)" }}>
+                    Ver documento
+                  </a>
+                )}
+              </span>
+            }
+          />
           <Field label="Fecha de alta" value={fmtFecha(unidad.fechaAlta)} />
         </div>
       </div>

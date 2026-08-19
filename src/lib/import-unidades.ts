@@ -16,6 +16,7 @@ export const CAMPOS_UNIDAD = [
   { key: "propietario", label: "Propietario (SYM/5 Star/Kabat)", requerido: false },
   { key: "origenPlaca", label: "Origen de placa (estado)", requerido: false },
   { key: "tagIave", label: "Tag IAVE", requerido: false },
+  { key: "numeroTarjetaCombustible", label: "N° de tarjeta de combustible", requerido: false },
 ] as const;
 
 export type CampoUnidadKey = (typeof CAMPOS_UNIDAD)[number]["key"];
