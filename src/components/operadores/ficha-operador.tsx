@@ -17,6 +17,7 @@ import { fmtFecha, diasPara } from "@/lib/formato";
 import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { FormCurso } from "@/components/operadores/form-curso";
 import { blobProxy } from "@/lib/blob";
+import { Panel, FilaItem } from "@/components/ui/documento-panel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Operador = any;
@@ -171,39 +172,45 @@ export function FichaOperador({ operador }: { operador: Operador }) {
         {operador.documentos.length === 0 ? (
           <EmptyState>Sin documentos capturados.</EmptyState>
         ) : (
-          <Table headers={["Documento", "Número", "Emisión", "Vencimiento", "Verificado", "Estado"]} minWidth={760}>
+          <Panel>
             {operador.documentos.map((d: Operador) => {
+              const esPermanente = d.tipoDocumento === "LICENCIA" && d.fechaVencimiento === null;
               const dias = diasPara(d.fechaVencimiento);
               const vencido = dias !== null && dias < 0;
               const porVencer = dias !== null && dias >= 0 && dias <= 60;
               return (
-                <tr key={d.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-4 py-3" style={tdStyle}>
-                    <div className="flex items-center gap-2">
-                      <FileBadge size={14} color="var(--sidebar-text)" />
-                      {TIPO_DOCUMENTO_LABEL[d.tipoDocumento] ?? d.tipoDocumento}
-                      {d.tipoLicencia && <span style={{ fontFamily: "var(--font-mono)", color: "var(--sidebar-text)" }}> (tipo {d.tipoLicencia})</span>}
+                <FilaItem
+                  key={d.id}
+                  label={
+                    <div className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-2" style={{ fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+                        <FileBadge size={14} color="var(--sidebar-text)" />
+                        {TIPO_DOCUMENTO_LABEL[d.tipoDocumento] ?? d.tipoDocumento}
+                        {d.tipoLicencia && <span style={{ fontFamily: "var(--font-mono)", color: "var(--sidebar-text)" }}> (tipo {d.tipoLicencia})</span>}
+                      </span>
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                        {d.numero ? <span style={{ fontFamily: "var(--font-mono)" }}>{d.numero}</span> : "Sin número"} · Emitido {fmtFecha(d.fechaEmision)} ·{" "}
+                        {esPermanente ? "Permanente" : d.fechaVencimiento ? `Vence ${fmtFecha(d.fechaVencimiento)}` : "Sin vigencia"} ·{" "}
+                        {d.verificado ? "Verificado" : "Pendiente de verificar"}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>{d.numero ?? "—"}</td>
-                  <td className="px-4 py-3" style={tdStyle}>{fmtFecha(d.fechaEmision)}</td>
-                  <td className="px-4 py-3" style={tdStyle}>{d.fechaVencimiento ? fmtFecha(d.fechaVencimiento) : "Sin vigencia"}</td>
-                  <td className="px-4 py-3">
-                    <Badge label={d.verificado ? "Verificado" : "Pendiente"} color={d.verificado ? "var(--color-status-cerrado)" : "var(--sidebar-text)"} bg={d.verificado ? "var(--status-cerrado-bg)" : "var(--chip)"} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {vencido ? (
+                  }
+                  badge={
+                    esPermanente ? (
+                      <Badge label="Permanente" color="var(--color-primary)" bg="var(--chip)" />
+                    ) : vencido ? (
                       <Badge label="Vencido" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
                     ) : porVencer ? (
                       <Badge label={`Vence en ${dias}d`} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
                     ) : (
                       <Badge label="Vigente" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
-                    )}
-                  </td>
-                </tr>
+                    )
+                  }
+                  foto={d.archivo?.url}
+                />
               );
             })}
-          </Table>
+          </Panel>
         )}
       </div>
 

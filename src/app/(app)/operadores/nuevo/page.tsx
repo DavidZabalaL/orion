@@ -6,6 +6,7 @@ import { TIPO_SANGRE_LABEL } from "@/lib/estatus-operador";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { LicenciaVigenciaCampo } from "@/components/operadores/licencia-vigencia-campo";
 
 export const dynamic = "force-dynamic";
 
@@ -137,12 +138,11 @@ export default async function AltaOperadorPage() {
               <input name="estadoEmisor" style={fieldStyle} />
             </div>
             <div>
-              <CampoAyuda style={labelStyle} texto="Fecha en que vence la licencia de conducir.">Fecha de vencimiento</CampoAyuda>
-              <input name="fechaVencimientoLicencia" type="date" style={fieldStyle} />
+              <LicenciaVigenciaCampo />
             </div>
             <div className="md:col-span-2">
-              <CampoAyuda style={labelStyle} texto="Archivo PDF de la licencia de conducir, si ya se tiene.">Licencia de conducir (PDF)</CampoAyuda>
-              <input name="archivoLicencia" type="file" accept="application/pdf" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
+              <CampoAyuda style={labelStyle} texto="Foto o PDF de la licencia de conducir, si ya se tiene.">Licencia de conducir (foto o PDF)</CampoAyuda>
+              <input name="archivoLicencia" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif" style={{ ...fieldStyle, height: "auto", padding: "8px 12px" }} />
             </div>
           </div>
           <p className="mt-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>

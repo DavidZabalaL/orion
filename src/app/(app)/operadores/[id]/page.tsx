@@ -16,7 +16,7 @@ export default async function FichaOperadorPage({ params }: { params: Promise<{ 
     where: { id },
     include: {
       proyecto: true,
-      documentos: { orderBy: { fechaVencimiento: "asc" } },
+      documentos: { orderBy: { fechaVencimiento: "asc" }, include: { archivo: { select: { url: true } } } },
       unidadesResguardadas: true,
       resguardos: {
         include: { unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, tipoVehiculo: true } } },

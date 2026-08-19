@@ -25,7 +25,8 @@ export async function crearOperador(formData: FormData) {
   const tipoLicencia = String(formData.get("tipoLicencia") ?? "") || null;
   const numeroLicencia = String(formData.get("numeroLicencia") ?? "").trim() || null;
   const estadoEmisor = String(formData.get("estadoEmisor") ?? "").trim() || null;
-  const fechaVencimientoLicencia = String(formData.get("fechaVencimientoLicencia") ?? "") || null;
+  const licenciaPermanente = formData.get("licenciaPermanente") === "1";
+  const fechaVencimientoLicencia = licenciaPermanente ? null : String(formData.get("fechaVencimientoLicencia") ?? "") || null;
   const archivoLicenciaFile = formData.get("archivoLicencia");
 
   if (!nombre || !curp) {
