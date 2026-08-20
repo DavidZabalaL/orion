@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
 import { esRolGlobal, exigirPermisoModulo } from "@/lib/permisos";
@@ -11,9 +10,14 @@ import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 export type ResultadoEliminarGasto = { ok: boolean; error?: string };
+export type ResultadoCrearGasto = { ok: boolean; error?: string; id?: string };
 
-export async function crearGasto(formData: FormData) {
-  await exigirPermisoModulo("C", "editar");
+export async function crearGasto(formData: FormData): Promise<ResultadoCrearGasto> {
+  try {
+    await exigirPermisoModulo("C", "editar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "").trim() || null;
   const proyectoReportanteId = String(formData.get("proyectoReportanteId") ?? "").trim() || null;
@@ -30,24 +34,24 @@ export async function crearGasto(formData: FormData) {
   const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
 
   if (!categoria || !fecha || !costo) {
-    throw new Error("Categoría, fecha y costo son obligatorios.");
+    return { ok: false, error: "Categoría, fecha y costo son obligatorios." };
   }
 
   const aplicaAUnidad = CATEGORIA_APLICA_A_UNIDAD[categoria] ?? true;
   if (aplicaAUnidad && !numeroEconomico) {
-    throw new Error("Selecciona la unidad.");
+    return { ok: false, error: "Selecciona la unidad." };
   }
   if (!aplicaAUnidad && !proyectoReportanteId) {
-    throw new Error("Selecciona el proyecto.");
+    return { ok: false, error: "Selecciona el proyecto." };
   }
 
   const permitidos = await proyectosPermitidosParaModulo("C");
   if (permitidos !== null) {
     if (aplicaAUnidad) {
       const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: numeroEconomico! }, select: { proyectoId: true } });
-      if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+      if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
     } else if (!permitidos.includes(proyectoReportanteId!)) {
-      throw new Error("No tienes permiso para realizar esta acción.");
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
     }
   }
 
@@ -84,7 +88,7 @@ export async function crearGasto(formData: FormData) {
   revalidatePath("/mantenimiento");
   invalidarCacheBI(["mantenimiento"]);
   if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
-  redirect("/mantenimiento");
+  return { ok: true, id: gasto.id };
 }
 
 export async function marcarRealizado(formData: FormData) {

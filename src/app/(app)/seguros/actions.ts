@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
@@ -12,8 +11,14 @@ import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
-export async function crearSeguro(formData: FormData) {
-  await exigirPermisoModulo("F", "editar");
+export type ResultadoCrearSeguro = { ok: boolean; error?: string; id?: string };
+
+export async function crearSeguro(formData: FormData): Promise<ResultadoCrearSeguro> {
+  try {
+    await exigirPermisoModulo("F", "editar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
   const aseguradora = String(formData.get("aseguradora") ?? "").trim();
@@ -24,13 +29,13 @@ export async function crearSeguro(formData: FormData) {
   const coberturasJson = String(formData.get("coberturasJson") ?? "[]");
 
   if (!numeroEconomico || !aseguradora || !numeroPoliza || !fechaInicio || !fechaVencimiento) {
-    throw new Error("Faltan campos obligatorios.");
+    return { ok: false, error: "Faltan campos obligatorios." };
   }
 
   const permitidos = await proyectosPermitidosParaModulo("F");
   if (permitidos !== null) {
     const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
-    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
   }
 
   let coberturas: CoberturaInput[] = [];
@@ -79,7 +84,7 @@ export async function crearSeguro(formData: FormData) {
   revalidatePath("/seguros");
   revalidatePath(`/unidades/${numeroEconomico}`);
   invalidarCacheBI(["seguros"]);
-  redirect(`/seguros/${seguro.id}`);
+  return { ok: true, id: seguro.id };
 }
 
 export async function renovarSeguro(formData: FormData) {

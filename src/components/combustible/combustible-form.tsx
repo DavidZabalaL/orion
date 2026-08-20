@@ -31,16 +31,26 @@ const labelStyle: React.CSSProperties = {
 
 type Estado = { tipo: "idle" } | { tipo: "ok" } | { tipo: "alerta" } | { tipo: "error"; mensaje: string };
 
-export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: string }[] }) {
+export function CombustibleForm({
+  unidades,
+  numeroEconomicoFijo,
+  onExito,
+}: {
+  unidades: { numeroEconomico: string }[];
+  numeroEconomicoFijo?: string;
+  onExito?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-      <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-        Captura manual de transacción
-      </h3>
+    <div className={numeroEconomicoFijo ? "" : "rounded-xl p-5"} style={numeroEconomicoFijo ? undefined : { background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+      {!numeroEconomicoFijo && (
+        <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+          Captura manual de transacción
+        </h3>
+      )}
       {estado.tipo === "error" && (
         <div className="flex items-start gap-2 rounded-md px-3 py-2.5 mb-4" style={{ background: "var(--status-escena-bg)" }}>
           <TriangleAlert size={15} color="var(--color-status-escena)" className="shrink-0 mt-0.5" />
@@ -66,18 +76,28 @@ export function CombustibleForm({ unidades }: { unidades: { numeroEconomico: str
               return;
             }
             if (res.alertaSobrellenado) {
+              // No se cierra el modal aquí a propósito: hay que dejar ver la alerta
+              // de sobrellenado antes de que el usuario decida cerrar.
               setEstado({ tipo: "alerta" });
             } else {
               setEstado({ tipo: "ok" });
               formRef.current?.reset();
               setTimeout(() => setEstado({ tipo: "idle" }), 2500);
+              onExito?.();
             }
           });
         }}
       >
         <div>
           <CampoAyuda style={labelStyle} texto="Unidad que recibió la carga de combustible.">Unidad *</CampoAyuda>
-          <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
+          {numeroEconomicoFijo ? (
+            <>
+              <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
+              <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
+            </>
+          ) : (
+            <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
+          )}
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó la carga.">Fecha *</CampoAyuda>

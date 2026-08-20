@@ -29,9 +29,100 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] }) {
+function CamposTag({
+  unidades,
+  numeroEconomicoFijo,
+}: {
+  unidades: { numeroEconomico: string }[];
+  numeroEconomicoFijo?: string;
+}) {
+  return (
+    <>
+      <div>
+        <CampoAyuda style={labelStyle} texto="Unidad relacionada, si ya se conoce.">Unidad {numeroEconomicoFijo ? "" : "(opcional)"}</CampoAyuda>
+        {numeroEconomicoFijo ? (
+          <>
+            <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
+            <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
+          </>
+        ) : (
+          <ComboboxUnidad name="numeroEconomico" unidades={unidades} placeholder="Sin asignar — buscar unidad…" style={fieldStyle} />
+        )}
+      </div>
+      <div>
+        <CampoAyuda style={labelStyle} texto="Fecha en la que ocurrió el cruce por caseta.">Fecha *</CampoAyuda>
+        <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
+      </div>
+      <div>
+        <CampoAyuda style={labelStyle} texto="Monto cobrado por el cruce.">Monto *</CampoAyuda>
+        <input name="monto" type="number" step="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+      </div>
+      <div>
+        <CampoAyuda style={labelStyle} texto="Nombre de la caseta donde se hizo el cruce.">Caseta</CampoAyuda>
+        <input name="caseta" style={fieldStyle} />
+      </div>
+      <div>
+        <CampoAyuda style={labelStyle} texto="Empresa que emitió el tag electrónico.">Proveedor *</CampoAyuda>
+        <select name="proveedorTag" required style={fieldStyle}>
+          <option value="IAVE">IAVE</option>
+          <option value="PASE">PASE</option>
+          <option value="TELEVIA">Televía</option>
+        </select>
+      </div>
+    </>
+  );
+}
+
+export function TagForm({
+  unidades,
+  numeroEconomicoFijo,
+  onExito,
+}: {
+  unidades: { numeroEconomico: string }[];
+  numeroEconomicoFijo?: string;
+  onExito?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [guardado, setGuardado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function enviar(formData: FormData) {
+    setError(null);
+    startTransition(async () => {
+      const res = await crearTag(formData);
+      if (!res.ok) {
+        setError(res.error ?? "No se pudo registrar la transacción.");
+        return;
+      }
+      if (onExito) {
+        onExito();
+        return;
+      }
+      setGuardado(true);
+      setTimeout(() => setGuardado(false), 2500);
+    });
+  }
+
+  // En la ficha de unidad se embebe dentro de un Modal (que ya es el "abrir/cerrar"),
+  // así que ahí no tiene sentido el acordeón <details> del panel general de TAG.
+  if (numeroEconomicoFijo) {
+    return (
+      <form className="flex flex-col gap-4" action={enviar}>
+        <div className="grid grid-cols-2 gap-4">
+          <CamposTag unidades={unidades} numeroEconomicoFijo={numeroEconomicoFijo} />
+        </div>
+        {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex items-center justify-center gap-2 rounded-md h-10 px-5 w-fit font-semibold disabled:opacity-60"
+          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+        >
+          {pending ? "Guardando…" : "Registrar"}
+        </button>
+      </form>
+    );
+  }
 
   return (
     <details className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -41,40 +132,8 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
       >
         Registrar una transacción manual
       </summary>
-      <form
-        className="grid grid-cols-2 gap-4 md:grid-cols-6 items-end mt-4"
-        action={(formData) => {
-          startTransition(async () => {
-            await crearTag(formData);
-            setGuardado(true);
-            setTimeout(() => setGuardado(false), 2500);
-          });
-        }}
-      >
-        <div>
-          <CampoAyuda style={labelStyle} texto="Unidad relacionada, si ya se conoce.">Unidad (opcional)</CampoAyuda>
-          <ComboboxUnidad name="numeroEconomico" unidades={unidades} placeholder="Sin asignar — buscar unidad…" style={fieldStyle} />
-        </div>
-        <div>
-          <CampoAyuda style={labelStyle} texto="Fecha en la que ocurrió el cruce por caseta.">Fecha *</CampoAyuda>
-          <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
-        </div>
-        <div>
-          <CampoAyuda style={labelStyle} texto="Monto cobrado por el cruce.">Monto *</CampoAyuda>
-          <input name="monto" type="number" step="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
-        </div>
-        <div>
-          <CampoAyuda style={labelStyle} texto="Nombre de la caseta donde se hizo el cruce.">Caseta</CampoAyuda>
-          <input name="caseta" style={fieldStyle} />
-        </div>
-        <div>
-          <CampoAyuda style={labelStyle} texto="Empresa que emitió el tag electrónico.">Proveedor *</CampoAyuda>
-          <select name="proveedorTag" required style={fieldStyle}>
-            <option value="IAVE">IAVE</option>
-            <option value="PASE">PASE</option>
-            <option value="TELEVIA">Televía</option>
-          </select>
-        </div>
+      <form className="grid grid-cols-2 gap-4 md:grid-cols-6 items-end mt-4" action={enviar}>
+        <CamposTag unidades={unidades} />
         <button
           type="submit"
           disabled={pending}
@@ -84,6 +143,7 @@ export function TagForm({ unidades }: { unidades: { numeroEconomico: string }[] 
           {guardado ? <><CheckCircle2 size={16} /> Guardado</> : pending ? "Guardando…" : "Registrar"}
         </button>
       </form>
+      {error && <p className="mt-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
     </details>
   );
 }
