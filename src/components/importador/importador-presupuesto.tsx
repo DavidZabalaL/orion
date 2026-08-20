@@ -48,39 +48,40 @@ export function ImportadorPresupuesto({ proyectoIdActual, volverHref }: { proyec
   function handleSubir(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      try {
-        const res = await previsualizarCargaPresupuesto(formData);
-        setPrevisualizacion(res);
-        setProyectoPorAlias(
-          Object.fromEntries(
-            res.proyectosDetectados.map((p) => [p.alias, p.proyectoIdSugerido ?? (p.alias ? "" : proyectoIdActual)])
-          )
-        );
-        setCategoriaPorTexto(
-          Object.fromEntries(res.partidasDetectadas.map((p) => [p.texto, p.categoriaSugerida ?? ""]))
-        );
-        setPaso("revisar");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo leer el archivo.");
+      const res = await previsualizarCargaPresupuesto(formData);
+      if (!res.ok) {
+        setError(res.error);
+        return;
       }
+      setPrevisualizacion(res.datos);
+      setProyectoPorAlias(
+        Object.fromEntries(
+          res.datos.proyectosDetectados.map((p) => [p.alias, p.proyectoIdSugerido ?? (p.alias ? "" : proyectoIdActual)])
+        )
+      );
+      setCategoriaPorTexto(
+        Object.fromEntries(res.datos.partidasDetectadas.map((p) => [p.texto, p.categoriaSugerida ?? ""]))
+      );
+      setPaso("revisar");
     });
   }
 
   function handleConfirmar() {
     if (!previsualizacion) return;
+    setError(null);
     startTransition(async () => {
-      try {
-        const res = await confirmarCargaPresupuesto(
-          previsualizacion.filas,
-          proyectoPorAlias,
-          categoriaPorTexto,
-          previsualizacion.archivoNombre
-        );
-        setResultado(res);
-        setPaso("resultado");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo confirmar la importación.");
+      const res = await confirmarCargaPresupuesto(
+        previsualizacion.filas,
+        proyectoPorAlias,
+        categoriaPorTexto,
+        previsualizacion.archivoNombre
+      );
+      if (!res.ok) {
+        setError(res.error);
+        return;
       }
+      setResultado(res.datos);
+      setPaso("resultado");
     });
   }
 
