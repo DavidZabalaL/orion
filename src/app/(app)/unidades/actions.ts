@@ -8,6 +8,8 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
+import { CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
 
@@ -130,6 +132,7 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
 
   const ahora = new Date();
   await prisma.unidad.update({ where: { numeroEconomico }, data: { disponibilidad, fechaCambioDisponibilidad: ahora } });
+  await registrarCambioDisponibilidad(numeroEconomico, disponibilidad, ahora);
 
   const session = await auth();
   if (session?.user?.id) {
@@ -281,4 +284,21 @@ export async function actualizarUnidad(formData: FormData) {
   revalidatePath("/unidades");
   invalidarCacheBI(["unidades"]);
   redirect(`/unidades/${numeroEconomico}`);
+}
+
+/**
+ * Preferencia personal: el usuario en sesión oculta (o vuelve a mostrar) la
+ * columna de SLA de disponibilidad para sí mismo — independiente de si su
+ * rol tiene el permiso especial "verSlaDisponibilidad" (eso decide si puede
+ * verla EN ABSOLUTO; esto solo decide si él, personalmente, quiere verla).
+ */
+export async function alternarOcultarSlaDisponibilidad(oculto: boolean): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) return;
+
+  await prisma.preferenciaUsuario.upsert({
+    where: { usuarioId_clave: { usuarioId: session.user.id, clave: CLAVE_OCULTAR_SLA_DISPONIBILIDAD } },
+    create: { usuarioId: session.user.id, clave: CLAVE_OCULTAR_SLA_DISPONIBILIDAD, valor: oculto },
+    update: { valor: oculto },
+  });
 }

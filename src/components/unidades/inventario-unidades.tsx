@@ -33,10 +33,14 @@ export function InventarioUnidades({
   rows,
   widgetsActivos,
   gastoHoy,
+  puedeVerSla = false,
+  slaOcultoInicial = false,
 }: {
   rows: UnidadRow[];
   widgetsActivos: WidgetActivo[];
   gastoHoy: number;
+  puedeVerSla?: boolean;
+  slaOcultoInicial?: boolean;
 }) {
   const { width, containerRef, mounted } = useContainerWidth();
   const [proyectosSeleccionados, setProyectosSeleccionados] = useState<string[]>([]);
@@ -126,6 +130,23 @@ export function InventarioUnidades({
       }
       return Array.from(mapa, ([label, value]) => ({ label, value }));
     };
+    // Promedio simple del % de SLA de cada unidad con datos, agrupado por
+    // proyecto — unidades sin historial (slaPorcentaje null) no cuentan ni
+    // a favor ni en contra del promedio.
+    const promediarSlaPorProyecto = (lista: UnidadRow[]) => {
+      const mapa = new Map<string, number[]>();
+      for (const r of lista) {
+        if (r.slaPorcentaje === null) continue;
+        const proyectoLabel = r.proyecto ?? "Sin proyecto";
+        const valores = mapa.get(proyectoLabel) ?? [];
+        valores.push(r.slaPorcentaje);
+        mapa.set(proyectoLabel, valores);
+      }
+      return Array.from(mapa, ([label, valores]) => ({
+        label,
+        value: Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10,
+      }));
+    };
 
     return {
       total,
@@ -138,6 +159,7 @@ export function InventarioUnidades({
       porTipo: contarPorTipo(rowsParaContar),
       porTipoNoDisponible: contarPorTipo(rowsParaContar.filter((r) => !r.disponibilidad)),
       porProyecto: contarPorProyecto(rows.filter((r) => r.estatus !== "BAJA")),
+      slaPorProyecto: promediarSlaPorProyecto(rows.filter((r) => r.estatus !== "BAJA")),
     };
   }, [rowsParaContar, rowsProyecto, rows, gastoHoy]);
 
@@ -234,7 +256,7 @@ export function InventarioUnidades({
                                   cursor: "pointer",
                                 }}
                               >
-                                {v.label}: <strong>{v.value}</strong>
+                                {v.label}: <strong>{w.id === "slaPorProyecto" ? `${v.value}%` : v.value}</strong>
                               </button>
                             );
                           })}
@@ -276,7 +298,7 @@ export function InventarioUnidades({
         </div>
       )}
 
-      <UnidadesTable rows={rowsFiltradas} />
+      <UnidadesTable rows={rowsFiltradas} puedeVerSla={puedeVerSla} slaOcultoInicial={slaOcultoInicial} />
     </div>
   );
 }

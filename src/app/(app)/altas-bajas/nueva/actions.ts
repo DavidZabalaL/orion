@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -91,6 +92,7 @@ export async function crearUnidad(formData: FormData) {
       placasHistorial: { create: { placa: placas } },
     },
   });
+  await registrarCambioDisponibilidad(numeroEconomico, true);
 
   const session = await auth();
   if (session?.user?.id) {

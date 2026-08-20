@@ -291,6 +291,7 @@ model Usuario {
   configuracionesNotificacionProyecto ConfiguracionNotificacionProyecto[]
   solicitudesCombustibleSolicitadas   SolicitudAutorizacionCombustible[] @relation("SolicitudCombustibleSolicitante")
   solicitudesCombustibleAprobadas     SolicitudAutorizacionCombustible[] @relation("SolicitudCombustibleAprobador")
+  preferencias                        PreferenciaUsuario[]
 }
 
 model UsuarioProyecto {
@@ -453,6 +454,7 @@ model Unidad {
 
   asignaciones       AsignacionOperador[]
   resguardos         Resguardo[]
+  historicoDisponibilidad HistoricoDisponibilidadUnidad[]
   checklists         Checklist[]
   gastos             GastoVehicular[]
   combustible        Combustible[]
@@ -576,6 +578,24 @@ model Resguardo {
 
   @@index([numeroEconomico])
   @@index([operadorId])
+}
+
+/**
+ * Historial de periodos encendido/apagado de una unidad — a diferencia de
+ * `Unidad.disponibilidad` (solo el estado actual), esta tabla permite
+ * calcular el % de disponibilidad (SLA) en cualquier rango de fechas: cada
+ * fila es un periodo con un `disponible` fijo; `hasta = null` es el periodo
+ * abierto (vigente). Ver src/lib/sla-disponibilidad.ts.
+ */
+model HistoricoDisponibilidadUnidad {
+  id              String    @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico], onDelete: Cascade)
+  disponible      Boolean
+  desde           DateTime
+  hasta           DateTime?
+
+  @@index([numeroEconomico])
 }
 
 // ───────────────────────── MÓDULO A.1 — CHECKLIST ─────────────────────────
@@ -1058,6 +1078,23 @@ model NotificacionLeida {
 
   @@unique([usuarioId, notificacionId])
   @@index([usuarioId])
+}
+
+/**
+ * Preferencias personales por usuario, genérico por `clave` (ej.
+ * "ocultar_columna_sla_disponibilidad") — independiente de los permisos de
+ * su rol: un usuario puede ocultar para sí mismo algo que su rol sí le
+ * permite ver (y viceversa el permiso de rol sigue siendo lo que decide si
+ * puede verlo en absoluto).
+ */
+model PreferenciaUsuario {
+  id        String  @id @default(cuid())
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  clave     String
+  valor     Json
+
+  @@unique([usuarioId, clave])
 }
 
 // ───────────────────────── MÓDULO S — SINIESTROS ─────────────────────────

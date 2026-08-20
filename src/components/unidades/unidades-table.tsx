@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Download, Plus, ChevronRight } from "lucide-react";
+import { Search, Download, Plus, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   ESTATUS_UNIDAD_LABEL,
@@ -13,6 +13,7 @@ import {
 import { fmtFecha } from "@/lib/formato";
 import { labelFuenteActividad, type FuenteActividad } from "@/lib/actividad-unidad";
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
+import { alternarOcultarSlaDisponibilidad } from "@/app/(app)/unidades/actions";
 
 export type UnidadRow = {
   numeroEconomico: string;
@@ -30,6 +31,8 @@ export type UnidadRow = {
   ultimoMantenimiento: string | null;
   proximoMantenimiento: string | null;
   semaforo: "verde" | "amarillo" | "rojo";
+  /** % de días activa desde que hay historial (null = aún sin historial). Ver src/lib/sla-disponibilidad.ts. */
+  slaPorcentaje: number | null;
 };
 
 const SEMAFORO_COLOR: Record<string, string> = {
@@ -44,8 +47,12 @@ const SEMAFORO_LABEL: Record<string, string> = {
   rojo: "Parada por daño, baja, mantenimiento o inactiva",
 };
 
-function exportarCsv(rows: UnidadRow[]) {
-  const headers = ["N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Días sin operar", "Resguardante", "Último mantenimiento", "Próximo mantenimiento"];
+function exportarCsv(rows: UnidadRow[], incluirSla: boolean) {
+  const headers = [
+    "N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Días sin operar",
+    ...(incluirSla ? ["SLA disponibilidad (%)"] : []),
+    "Resguardante", "Último mantenimiento", "Próximo mantenimiento",
+  ];
   const filas = rows.map((r) => [
     r.numeroEconomico,
     r.placas,
@@ -56,6 +63,7 @@ function exportarCsv(rows: UnidadRow[]) {
     estatusVisibleUnidad(r.estatus, r.disponibilidad).label,
     r.disponibilidad ? "Sí" : "No",
     String(r.diasSinOperar),
+    ...(incluirSla ? [r.slaPorcentaje !== null ? String(r.slaPorcentaje) : ""] : []),
     r.resguardante ?? "",
     fmtFecha(r.ultimoMantenimiento),
     fmtFecha(r.proximoMantenimiento),
@@ -83,11 +91,25 @@ const selectStyle: React.CSSProperties = {
 
 export function UnidadesTable({
   rows: rowsIniciales,
+  puedeVerSla = false,
+  slaOcultoInicial = false,
 }: {
   rows: UnidadRow[];
+  /** Su rol tiene el permiso especial "verSlaDisponibilidad" (ver src/lib/permisos.ts) — controla si existe la columna y su control de mostrar/ocultar. */
+  puedeVerSla?: boolean;
+  /** Preferencia personal guardada: el propio usuario decidió ocultarla para sí mismo aunque tenga permiso. */
+  slaOcultoInicial?: boolean;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(rowsIniciales);
+  const [slaOculto, setSlaOculto] = useState(slaOcultoInicial);
+  const mostrarColumnaSla = puedeVerSla && !slaOculto;
+
+  function alternarSla() {
+    const nuevo = !slaOculto;
+    setSlaOculto(nuevo);
+    alternarOcultarSlaDisponibilidad(nuevo);
+  }
   const [busqueda, setBusqueda] = useState("");
   const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
@@ -186,8 +208,19 @@ export function UnidadesTable({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {puedeVerSla && (
+            <button
+              onClick={alternarSla}
+              className="flex items-center gap-2 rounded-md px-3"
+              style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}
+              title={slaOculto ? "Solo tú la tienes oculta — tu rol sí tiene permiso para verla" : "Ocultar la columna de SLA solo para tu usuario"}
+            >
+              {slaOculto ? <EyeOff size={15} /> : <Eye size={15} />}
+              <span style={{ fontSize: "var(--text-base)" }}>{slaOculto ? "Mostrar SLA" : "Ocultar SLA"}</span>
+            </button>
+          )}
           <button
-            onClick={() => exportarCsv(filtradas)}
+            onClick={() => exportarCsv(filtradas, mostrarColumnaSla)}
             className="flex items-center gap-2 rounded-md px-3"
             style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}
           >
@@ -212,7 +245,11 @@ export function UnidadesTable({
         <table className="w-full min-w-[1140px] border-collapse">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-              {["", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar", "Resguardante", "Último manto.", "Próx. manto.", ""].map((h) => (
+              {[
+                "", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar",
+                ...(mostrarColumnaSla ? ["SLA disp."] : []),
+                "Resguardante", "Último manto.", "Próx. manto.", "",
+              ].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 whitespace-nowrap"
@@ -292,6 +329,15 @@ export function UnidadesTable({
                 >
                   {r.diasSinOperar}
                 </td>
+                {mostrarColumnaSla && (
+                  <td
+                    className="px-4 py-3"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: r.slaPorcentaje !== null && r.slaPorcentaje < 90 ? "var(--priority-alta)" : "var(--field-text)" }}
+                    title="% de días activa desde que se empezó a llevar este registro"
+                  >
+                    {r.slaPorcentaje !== null ? `${r.slaPorcentaje}%` : "—"}
+                  </td>
+                )}
                 <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>
                   {r.resguardante ?? "—"}
                 </td>
@@ -310,7 +356,7 @@ export function UnidadesTable({
             ))}
             {filtradas.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
+                <td colSpan={mostrarColumnaSla ? 14 : 13} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
                   No se encontraron unidades con los filtros aplicados.
                 </td>
               </tr>

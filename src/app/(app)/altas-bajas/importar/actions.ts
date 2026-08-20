@@ -14,6 +14,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
 
 export type { HojaParseada, ResultadoImportacion } from "@/lib/excel-parse";
 
@@ -121,9 +122,13 @@ export async function importarUnidades(
       }
       if (existente) {
         await prisma.unidad.update({ where: { numeroEconomico }, data });
+        if (existente.disponibilidad !== data.disponibilidad) {
+          await registrarCambioDisponibilidad(numeroEconomico, data.disponibilidad);
+        }
         resultado.actualizadas.push(numeroEconomico);
       } else {
         await prisma.unidad.create({ data: { numeroEconomico, ...data } });
+        await registrarCambioDisponibilidad(numeroEconomico, data.disponibilidad);
         resultado.creadas.push(numeroEconomico);
       }
     } catch (e) {

@@ -9,6 +9,7 @@ export type PermisoEspecial = { id: string; label: string };
 export const PERMISOS_ESPECIALES: PermisoEspecial[] = [
   { id: "capacidadTanque", label: "Editar capacidad de tanque (Inventario de Unidades)" },
   { id: "cargarPresupuesto", label: "Cargar / reemplazar presupuesto por partida (Proyectos)" },
+  { id: "verSlaDisponibilidad", label: "Ver SLA de disponibilidad por unidad (Inventario de Unidades)" },
 ];
 
 type PermisosJson = Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }>;
@@ -54,6 +55,15 @@ export async function puedeEditarCapacidadTanque(): Promise<boolean> {
 
 export async function puedeCargarPresupuesto(): Promise<boolean> {
   return tienePermisoEspecial("cargarPresupuesto");
+}
+
+/**
+ * Administrador (rol global "*") la tiene siempre, vía tienePermisoEspecial —
+ * para cualquier otro rol, solo si el Administrador se la otorga
+ * explícitamente desde /usuarios/roles.
+ */
+export async function puedeVerSlaDisponibilidad(): Promise<boolean> {
+  return tienePermisoEspecial("verSlaDisponibilidad");
 }
 
 // ── Permisos por módulo (ver / editar / aprobar) ──

@@ -11,6 +11,7 @@ export type DatosWidgetsUnidades = {
   porTipo: { label: string; value: number }[];
   porTipoNoDisponible: { label: string; value: number }[];
   porProyecto: { label: string; value: number }[];
+  slaPorProyecto: { label: string; value: number }[];
 };
 
 export type DefinicionWidget = {
@@ -30,6 +31,10 @@ export const CATALOGO_WIDGETS_UNIDADES: DefinicionWidget[] = [
   { id: "porTipo", labelDefault: "Unidades por tipo de vehículo", tipo: "desglose" },
   { id: "porTipoNoDisponible", labelDefault: "No disponibles por tipo de vehículo", tipo: "desglose" },
   { id: "porProyecto", labelDefault: "Unidades por proyecto", tipo: "desglose" },
+  // Visibilidad adicional restringida por el permiso especial "verSlaDisponibilidad"
+  // (ver src/lib/permisos.ts) — no todos los roles lo ven aunque el admin lo
+  // active aquí; se filtra aparte en src/app/(app)/unidades/page.tsx.
+  { id: "slaPorProyecto", labelDefault: "SLA de disponibilidad por proyecto (%)", tipo: "desglose" },
 ];
 
 export const WIDGETS_DEFAULT_UNIDADES = ["total", "activas", "disponibles", "noDisponibles", "bajas", "consignacionODireccion", "porTipo", "porTipoNoDisponible", "porProyecto"];
@@ -46,6 +51,7 @@ export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): nu
     case "porTipo": return datos.porTipo;
     case "porTipoNoDisponible": return datos.porTipoNoDisponible;
     case "porProyecto": return datos.porProyecto;
+    case "slaPorProyecto": return datos.slaPorProyecto;
     default: return 0;
   }
 }
