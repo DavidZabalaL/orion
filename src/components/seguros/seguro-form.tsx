@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { crearSeguro } from "@/app/(app)/seguros/actions";
 import { TIPO_COBERTURA_LABEL } from "@/lib/estatus";
@@ -32,14 +33,41 @@ const labelStyle: React.CSSProperties = {
 
 type Cobertura = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
-export function SeguroForm({ unidades, numeroEconomicoDefault }: { unidades: { numeroEconomico: string }[]; numeroEconomicoDefault?: string }) {
+export function SeguroForm({
+  unidades,
+  numeroEconomicoDefault,
+  numeroEconomicoFijo,
+  onExito,
+}: {
+  unidades: { numeroEconomico: string }[];
+  numeroEconomicoDefault?: string;
+  numeroEconomicoFijo?: string;
+  onExito?: (id: string) => void;
+}) {
   const [coberturas, setCoberturas] = useState<Cobertura[]>([
     { tipoCobertura: "RC_TERCEROS", sumaAsegurada: "3000000", deducible: "0" },
     { tipoCobertura: "DANOS_MATERIALES", sumaAsegurada: "350000", deducible: "5000" },
   ]);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   return (
-    <form action={crearSeguro} className="flex flex-col gap-6">
+    <form
+      className="flex flex-col gap-6"
+      action={(formData) => {
+        setError(null);
+        startTransition(async () => {
+          const res = await crearSeguro(formData);
+          if (!res.ok || !res.id) {
+            setError(res.error ?? "No se pudo guardar la póliza.");
+            return;
+          }
+          if (onExito) onExito(res.id);
+          else router.push(`/seguros/${res.id}`);
+        });
+      }}
+    >
       <input type="hidden" name="coberturasJson" value={JSON.stringify(coberturas)} />
 
       <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -49,7 +77,14 @@ export function SeguroForm({ unidades, numeroEconomicoDefault }: { unidades: { n
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <CampoAyuda style={labelStyle} texto="Unidad cubierta por esta póliza.">Número económico *</CampoAyuda>
-            <ComboboxUnidad name="numeroEconomico" unidades={unidades} defaultValue={numeroEconomicoDefault} required style={fieldStyle} />
+            {numeroEconomicoFijo ? (
+              <>
+                <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
+                <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
+              </>
+            ) : (
+              <ComboboxUnidad name="numeroEconomico" unidades={unidades} defaultValue={numeroEconomicoDefault} required style={fieldStyle} />
+            )}
           </div>
           <div>
             <CampoAyuda style={labelStyle} texto="Compañía que emite la póliza.">Aseguradora *</CampoAyuda>
@@ -135,9 +170,11 @@ export function SeguroForm({ unidades, numeroEconomicoDefault }: { unidades: { n
         </div>
       </div>
 
+      {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
+
       <div className="flex items-center gap-3">
-        <button type="submit" className="rounded-md px-5 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-          Guardar póliza
+        <button type="submit" disabled={pending} className="rounded-md px-5 h-10 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+          {pending ? "Guardando…" : "Guardar póliza"}
         </button>
       </div>
     </form>

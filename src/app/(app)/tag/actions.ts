@@ -8,8 +8,14 @@ import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
-export async function crearTag(formData: FormData) {
-  await exigirPermisoModulo("E", "editar");
+export type ResultadoCrearTag = { ok: boolean; error?: string };
+
+export async function crearTag(formData: FormData): Promise<ResultadoCrearTag> {
+  try {
+    await exigirPermisoModulo("E", "editar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const numeroEconomico = String(formData.get("numeroEconomico") ?? "") || null;
   const fecha = String(formData.get("fecha") ?? "");
@@ -18,13 +24,13 @@ export async function crearTag(formData: FormData) {
   const proveedorTag = String(formData.get("proveedorTag") ?? "");
 
   if (!fecha || !monto || !proveedorTag) {
-    throw new Error("Fecha, monto y proveedor son obligatorios.");
+    return { ok: false, error: "Fecha, monto y proveedor son obligatorios." };
   }
 
   const permitidos = await proyectosPermitidosParaModulo("E");
   if (permitidos !== null && numeroEconomico) {
     const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
-    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+    if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
   }
 
   const tag = await prisma.tag.create({
@@ -45,6 +51,8 @@ export async function crearTag(formData: FormData) {
 
   revalidatePath("/tag");
   invalidarCacheBI(["peajes"]);
+  if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
+  return { ok: true };
 }
 
 export async function conciliarTag(formData: FormData) {

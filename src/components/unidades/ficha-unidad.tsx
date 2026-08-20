@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   Gauge,
@@ -19,6 +20,7 @@ import {
   AlertTriangle,
   History,
   AlertOctagon,
+  Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,6 +36,11 @@ import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-uni
 import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
 import { blobProxy } from "@/lib/blob";
+import { Modal } from "@/components/ui/modal";
+import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
+import { CombustibleForm } from "@/components/combustible/combustible-form";
+import { TagForm } from "@/components/tag/tag-form";
+import { SeguroForm } from "@/components/seguros/seguro-form";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -191,6 +198,108 @@ function ReasignarProyectoButton({
       </button>
       {error && <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{error}</span>}
     </form>
+  );
+}
+
+function BotonAgregarModal({
+  label,
+  tituloModal,
+  children,
+}: {
+  label: string;
+  tituloModal: string;
+  children: (cerrar: () => void) => React.ReactNode;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="flex items-center gap-2 rounded-md px-3 h-9 font-semibold"
+        style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+      >
+        <Plus size={14} /> {label}
+      </button>
+      {abierto && (
+        <Modal title={tituloModal} onClose={() => setAbierto(false)}>
+          {children(() => setAbierto(false))}
+        </Modal>
+      )}
+    </>
+  );
+}
+
+function BotonAgregarMantenimiento({ numeroEconomico }: { numeroEconomico: string }) {
+  const router = useRouter();
+  return (
+    <BotonAgregarModal label="Agregar mantenimiento" tituloModal={`Nueva orden — ${numeroEconomico}`}>
+      {(cerrar) => (
+        <NuevaOrdenForm
+          unidades={[]}
+          proyectos={[]}
+          numeroEconomicoFijo={numeroEconomico}
+          onExito={() => {
+            cerrar();
+            router.refresh();
+          }}
+        />
+      )}
+    </BotonAgregarModal>
+  );
+}
+
+function BotonAgregarCombustible({ numeroEconomico }: { numeroEconomico: string }) {
+  const router = useRouter();
+  return (
+    <BotonAgregarModal label="Agregar carga" tituloModal={`Carga de combustible — ${numeroEconomico}`}>
+      {(cerrar) => (
+        <CombustibleForm
+          unidades={[]}
+          numeroEconomicoFijo={numeroEconomico}
+          onExito={() => {
+            cerrar();
+            router.refresh();
+          }}
+        />
+      )}
+    </BotonAgregarModal>
+  );
+}
+
+function BotonAgregarTag({ numeroEconomico }: { numeroEconomico: string }) {
+  const router = useRouter();
+  return (
+    <BotonAgregarModal label="Agregar transacción TAG" tituloModal={`Transacción TAG — ${numeroEconomico}`}>
+      {(cerrar) => (
+        <TagForm
+          unidades={[]}
+          numeroEconomicoFijo={numeroEconomico}
+          onExito={() => {
+            cerrar();
+            router.refresh();
+          }}
+        />
+      )}
+    </BotonAgregarModal>
+  );
+}
+
+function BotonAgregarSeguro({ numeroEconomico }: { numeroEconomico: string }) {
+  const router = useRouter();
+  return (
+    <BotonAgregarModal label="Agregar póliza" tituloModal={`Nueva póliza — ${numeroEconomico}`}>
+      {(cerrar) => (
+        <SeguroForm
+          unidades={[]}
+          numeroEconomicoFijo={numeroEconomico}
+          onExito={() => {
+            cerrar();
+            router.refresh();
+          }}
+        />
+      )}
+    </BotonAgregarModal>
   );
 }
 
@@ -366,10 +475,10 @@ export function FichaUnidad({
 
         <div className="pt-5">
           {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
-          {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} />}
+          {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} />}
-          {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} />}
-          {tab === "tag" && <TabTag registros={unidad.tags ?? []} />}
+          {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
@@ -541,7 +650,7 @@ function Table({ headers, children }: { headers: string[]; children: React.React
 
 const td: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" };
 
-function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
+function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numeroEconomico: string }) {
   const [busqueda, setBusqueda] = useState("");
   const gastosMantenimiento = useMemo(() => gastos.filter((g) => CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
   const filtrados = useMemo(() => {
@@ -556,10 +665,20 @@ function TabMantenimiento({ gastos }: { gastos: Unidad[] }) {
 
   const hoy = new Date();
 
-  if (!gastosMantenimiento.length) return <EmptyState>Sin órdenes de mantenimiento registradas.</EmptyState>;
+  if (!gastosMantenimiento.length) {
+    return (
+      <div className="flex flex-col gap-4">
+        <EmptyState>Sin órdenes de mantenimiento registradas.</EmptyState>
+        <div><BotonAgregarMantenimiento numeroEconomico={numeroEconomico} /></div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar tipo, descripción o fecha…" />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar tipo, descripción o fecha…" />
+        <BotonAgregarMantenimiento numeroEconomico={numeroEconomico} />
+      </div>
       <Table headers={["Fecha", "Tipo", "Descripción", "Ingreso taller", "Salida estimada", "Costo", "Estatus"]}>
         {filtrados.map((g) => {
           const excedido =
@@ -638,7 +757,7 @@ function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: Histo
   );
 }
 
-function TabCombustible({ registros }: { registros: Unidad[] }) {
+function TabCombustible({ registros, numeroEconomico }: { registros: Unidad[]; numeroEconomico: string }) {
   const [busqueda, setBusqueda] = useState("");
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
@@ -646,10 +765,20 @@ function TabCombustible({ registros }: { registros: Unidad[] }) {
     return registros.filter((r) => (r.estacion ?? "").toUpperCase().includes(q) || fmtFecha(r.fecha).toUpperCase().includes(q));
   }, [registros, busqueda]);
 
-  if (!registros.length) return <EmptyState>Sin cargas de combustible registradas.</EmptyState>;
+  if (!registros.length) {
+    return (
+      <div className="flex flex-col gap-4">
+        <EmptyState>Sin cargas de combustible registradas.</EmptyState>
+        <div><BotonAgregarCombustible numeroEconomico={numeroEconomico} /></div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar estación o fecha…" />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar estación o fecha…" />
+        <BotonAgregarCombustible numeroEconomico={numeroEconomico} />
+      </div>
       <Table headers={["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento", ""]}>
       {filtrados.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
@@ -669,7 +798,7 @@ function TabCombustible({ registros }: { registros: Unidad[] }) {
   );
 }
 
-function TabTag({ registros }: { registros: Unidad[] }) {
+function TabTag({ registros, numeroEconomico }: { registros: Unidad[]; numeroEconomico: string }) {
   const [busqueda, setBusqueda] = useState("");
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
@@ -681,10 +810,20 @@ function TabTag({ registros }: { registros: Unidad[] }) {
     );
   }, [registros, busqueda]);
 
-  if (!registros.length) return <EmptyState>Sin transacciones de TAG registradas.</EmptyState>;
+  if (!registros.length) {
+    return (
+      <div className="flex flex-col gap-4">
+        <EmptyState>Sin transacciones de TAG registradas.</EmptyState>
+        <div><BotonAgregarTag numeroEconomico={numeroEconomico} /></div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar caseta, proveedor o fecha…" />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar caseta, proveedor o fecha…" />
+        <BotonAgregarTag numeroEconomico={numeroEconomico} />
+      </div>
       <Table headers={["Fecha", "Caseta", "Monto", "Proveedor", "Conciliado"]}>
       {filtrados.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
@@ -707,18 +846,13 @@ function TabSeguro({ seguros, numeroEconomico }: { seguros: Unidad[]; numeroEcon
     return (
       <div className="flex flex-col gap-4">
         <EmptyState>Esta unidad no tiene póliza registrada — Módulo F.</EmptyState>
-        <Link
-          href={`/seguros/nueva?numeroEconomico=${numeroEconomico}`}
-          className="flex items-center gap-2 rounded-md px-4 h-10 w-fit"
-          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600 }}
-        >
-          <ShieldCheck size={16} /> Agregar póliza
-        </Link>
+        <div><BotonAgregarSeguro numeroEconomico={numeroEconomico} /></div>
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-5">
+      <div><BotonAgregarSeguro numeroEconomico={numeroEconomico} /></div>
       {seguros.map((s) => (
         <div key={s.id} className="rounded-xl p-5" style={panelStyle}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
