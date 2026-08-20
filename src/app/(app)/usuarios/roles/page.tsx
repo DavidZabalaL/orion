@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { MODULOS } from "@/lib/modulos";
 import { PERMISOS_ESPECIALES, requerirPermisoModulo } from "@/lib/permisos";
 import { RolPermisosForm } from "@/components/usuarios/rol-permisos-form";
-import { CrearRolForm } from "@/components/usuarios/crear-rol-form";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +25,6 @@ export default async function ConfiguracionRolesPage() {
           Permisos por módulo: ver / editar / aprobar / ninguno.
         </p>
       </div>
-
-      <CrearRolForm roles={roles.map((r) => ({ id: r.id, nombre: r.nombre }))} />
 
       <div className="flex flex-col gap-4">
         {roles.map((r, i) => (
