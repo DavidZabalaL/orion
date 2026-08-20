@@ -92,10 +92,10 @@ export function ImportadorPresupuesto({ proyectoIdActual, volverHref }: { proyec
           <Upload size={32} color="var(--color-primary)" />
           <div className="text-center">
             <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-              Sube el archivo &quot;PP y Gastos&quot; (.xlsx)
+              Sube el archivo de Control Vehicular (.xlsx)
             </div>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-              Solo se toma la columna PTTO de cada mes; el REAL se calcula en Orión.
+              Una hoja por proyecto (ej. &quot;TAMPS PPO&quot;). Solo se toma la columna PTTO de cada mes; el REAL se calcula en Orión.
             </p>
           </div>
           <div>
