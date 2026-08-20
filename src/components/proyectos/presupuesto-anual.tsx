@@ -32,6 +32,7 @@ function BarraProgreso({ valor, total }: { valor: number; total: number }) {
 function FilaMes({ proyectoId, anio, mes, asignado, gasto }: { proyectoId: string; anio: number; mes: number; asignado: number; gasto: number }) {
   const [pending, startTransition] = useTransition();
   const [ok, setOk] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const pct = asignado > 0 ? (gasto / asignado) * 100 : 0;
 
   return (
@@ -44,20 +45,30 @@ function FilaMes({ proyectoId, anio, mes, asignado, gasto }: { proyectoId: strin
           className="flex items-center gap-2"
           action={(formData) => {
             startTransition(async () => {
-              await actualizarPresupuestoMensual(formData);
-              setOk(true);
-              setTimeout(() => setOk(false), 1500);
+              const resultado = await actualizarPresupuestoMensual(formData);
+              if (resultado.ok) {
+                setError(null);
+                setOk(true);
+                setTimeout(() => setOk(false), 1500);
+              } else {
+                setError(resultado.error ?? "No se pudo guardar.");
+              }
             });
           }}
         >
           <input type="hidden" name="proyectoId" value={proyectoId} />
           <input type="hidden" name="anio" value={anio} />
           <input type="hidden" name="mes" value={mes} />
-          <input name="montoAsignado" type="number" step="0.01" defaultValue={asignado} style={inputStyle} />
+          <input name="montoAsignado" type="number" step="0.01" min={0} required defaultValue={asignado} style={inputStyle} />
           <button type="submit" disabled={pending} className="flex items-center justify-center rounded-md disabled:opacity-60" style={{ width: 28, height: 28, color: ok ? "var(--color-status-cerrado)" : "var(--sidebar-text)" }} aria-label="Guardar">
             <CheckCircle2 size={15} />
           </button>
         </form>
+        {error && (
+          <p className="mt-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+            {error}
+          </p>
+        )}
       </td>
       <td className="px-4 py-2.5" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: pct > 90 ? "var(--color-status-escena)" : "var(--field-text)" }}>
         {fmtMoney(gasto)}
@@ -72,6 +83,7 @@ function FilaMes({ proyectoId, anio, mes, asignado, gasto }: { proyectoId: strin
 export function PresupuestoAnual({ proyectoId, resumen }: { proyectoId: string; resumen: ResumenPresupuestoAnual }) {
   const [pending, startTransition] = useTransition();
   const [ok, setOk] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,18 +97,28 @@ export function PresupuestoAnual({ proyectoId, resumen }: { proyectoId: string; 
               className="flex items-center gap-2 mt-1"
               action={(formData) => {
                 startTransition(async () => {
-                  await actualizarPresupuestoAprobado(formData);
-                  setOk(true);
-                  setTimeout(() => setOk(false), 1500);
+                  const resultado = await actualizarPresupuestoAprobado(formData);
+                  if (resultado.ok) {
+                    setError(null);
+                    setOk(true);
+                    setTimeout(() => setOk(false), 1500);
+                  } else {
+                    setError(resultado.error ?? "No se pudo guardar.");
+                  }
                 });
               }}
             >
               <input type="hidden" name="id" value={proyectoId} />
-              <input name="presupuestoAprobadoAnual" type="number" step="0.01" defaultValue={resumen.presupuestoAprobadoAnual} style={{ ...inputStyle, width: 160, height: 36, fontSize: "var(--text-base)" }} />
+              <input name="presupuestoAprobadoAnual" type="number" step="0.01" min={0} required defaultValue={resumen.presupuestoAprobadoAnual} style={{ ...inputStyle, width: 160, height: 36, fontSize: "var(--text-base)" }} />
               <button type="submit" disabled={pending} className="flex items-center gap-1.5 rounded-md px-3 h-9 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
                 {ok ? <><CheckCircle2 size={14} /> Guardado</> : pending ? "Guardando…" : "Guardar"}
               </button>
             </form>
+            {error && (
+              <p className="mt-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+                {error}
+              </p>
+            )}
           </div>
 
           <div>

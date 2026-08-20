@@ -21,43 +21,52 @@ export type PrevisualizacionPresupuesto = {
   proyectosDisponibles: { id: string; nombre: string }[];
 };
 
-export async function previsualizarCargaPresupuesto(formData: FormData): Promise<PrevisualizacionPresupuesto> {
-  await exigirPermisoModulo("H", "editar");
-  if (!(await puedeCargarPresupuesto())) {
-    throw new Error("No tienes permiso para cargar presupuesto.");
+export type ResultadoPrevisualizacion = { ok: true; datos: PrevisualizacionPresupuesto } | { ok: false; error: string };
+
+export async function previsualizarCargaPresupuesto(formData: FormData): Promise<ResultadoPrevisualizacion> {
+  try {
+    await exigirPermisoModulo("H", "editar");
+    if (!(await puedeCargarPresupuesto())) {
+      return { ok: false, error: "No tienes permiso para cargar presupuesto." };
+    }
+
+    const archivo = formData.get("archivo");
+    const anio = parseInt(String(formData.get("anio") ?? ""), 10);
+    const filas = await parsearExcelPresupuesto(formData);
+
+    const proyectos = await prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO" },
+      select: { id: true, nombre: true, estadoRepublica: true },
+      orderBy: { nombre: "asc" },
+    });
+
+    const aliasUnicos = Array.from(new Set(filas.map((f) => f.proyectoExcel)));
+    const proyectosDetectados: GrupoProyectoDetectado[] = aliasUnicos.map((alias) => {
+      const proyectoId = resolverProyecto(alias, proyectos);
+      const proyecto = proyectos.find((p) => p.id === proyectoId);
+      return { alias, proyectoIdSugerido: proyectoId, nombreSugerido: proyecto?.nombre ?? null };
+    });
+
+    const partidasUnicas = Array.from(new Set(filas.map((f) => f.partidaExcel)));
+    const partidasDetectadas: GrupoPartidaDetectado[] = partidasUnicas.map((texto) => ({
+      texto,
+      categoriaSugerida: resolverCategoria(texto),
+    }));
+
+    return {
+      ok: true,
+      datos: {
+        archivoNombre: archivo instanceof File ? archivo.name : "archivo",
+        anio,
+        filas,
+        proyectosDetectados,
+        partidasDetectadas,
+        proyectosDisponibles: proyectos.map((p) => ({ id: p.id, nombre: p.nombre })),
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo leer el archivo." };
   }
-
-  const archivo = formData.get("archivo");
-  const anio = parseInt(String(formData.get("anio") ?? ""), 10);
-  const filas = await parsearExcelPresupuesto(formData);
-
-  const proyectos = await prisma.proyecto.findMany({
-    where: { estatus: "ACTIVO" },
-    select: { id: true, nombre: true, estadoRepublica: true },
-    orderBy: { nombre: "asc" },
-  });
-
-  const aliasUnicos = Array.from(new Set(filas.map((f) => f.proyectoExcel)));
-  const proyectosDetectados: GrupoProyectoDetectado[] = aliasUnicos.map((alias) => {
-    const proyectoId = resolverProyecto(alias, proyectos);
-    const proyecto = proyectos.find((p) => p.id === proyectoId);
-    return { alias, proyectoIdSugerido: proyectoId, nombreSugerido: proyecto?.nombre ?? null };
-  });
-
-  const partidasUnicas = Array.from(new Set(filas.map((f) => f.partidaExcel)));
-  const partidasDetectadas: GrupoPartidaDetectado[] = partidasUnicas.map((texto) => ({
-    texto,
-    categoriaSugerida: resolverCategoria(texto),
-  }));
-
-  return {
-    archivoNombre: archivo instanceof File ? archivo.name : "archivo",
-    anio,
-    filas,
-    proyectosDetectados,
-    partidasDetectadas,
-    proyectosDisponibles: proyectos.map((p) => ({ id: p.id, nombre: p.nombre })),
-  };
 }
 
 export type ResultadoImportacionPresupuesto = {
@@ -67,21 +76,38 @@ export type ResultadoImportacionPresupuesto = {
   omitidas: { motivo: string; cantidad: number }[];
 };
 
+export type ResultadoConfirmacion = { ok: true; datos: ResultadoImportacionPresupuesto } | { ok: false; error: string };
+
 export async function confirmarCargaPresupuesto(
   filas: FilaPresupuestoExcel[],
   proyectoPorAlias: Record<string, string>,
   categoriaPorTexto: Record<string, string>,
   archivoNombre: string
-): Promise<ResultadoImportacionPresupuesto> {
-  await exigirPermisoModulo("H", "editar");
-  if (!(await puedeCargarPresupuesto())) {
-    throw new Error("No tienes permiso para cargar presupuesto.");
+): Promise<ResultadoConfirmacion> {
+  try {
+    await exigirPermisoModulo("H", "editar");
+    if (!(await puedeCargarPresupuesto())) {
+      return { ok: false, error: "No tienes permiso para cargar presupuesto." };
+    }
+
+    const session = await auth();
+    const usuarioId = session?.user?.id;
+    if (!usuarioId) return { ok: false, error: "Sesión inválida." };
+
+    const resultado = await ejecutarImportacion(filas, proyectoPorAlias, categoriaPorTexto, archivoNombre, usuarioId);
+    return { ok: true, datos: resultado };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo confirmar la importación." };
   }
+}
 
-  const session = await auth();
-  const usuarioId = session?.user?.id;
-  if (!usuarioId) throw new Error("Sesión inválida.");
-
+async function ejecutarImportacion(
+  filas: FilaPresupuestoExcel[],
+  proyectoPorAlias: Record<string, string>,
+  categoriaPorTexto: Record<string, string>,
+  archivoNombre: string,
+  usuarioId: string
+): Promise<ResultadoImportacionPresupuesto> {
   const resultado: ResultadoImportacionPresupuesto = { creadas: 0, actualizadas: 0, sinCambio: 0, omitidas: [] };
   const motivosOmitidas = new Map<string, number>();
   const proyectosAfectados = new Set<string>();
