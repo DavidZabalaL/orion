@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { NOMBRE_MES, type SlaUnidad, type SlaMensual, type SlaMensualProyecto } from "@/lib/sla-disponibilidad-tipos";
+
+export { NOMBRE_MES, type SlaUnidad, type SlaMensual, type SlaMensualProyecto };
 
 const MS_POR_DIA = 86_400_000;
 
@@ -23,17 +26,8 @@ export async function registrarCambioDisponibilidad(numeroEconomico: string, dis
   await prisma.historicoDisponibilidadUnidad.create({ data: { numeroEconomico, disponible, desde: fecha } });
 }
 
-export type SlaUnidad = { diasActivo: number; diasInactivo: number; porcentaje: number | null };
-export type SlaMensual = SlaUnidad & { anio: number; mes: number };
-export type SlaMensualProyecto = { proyecto: string; anio: number; mes: number; porcentajePromedio: number; unidadesConDatos: number };
-
 type Periodo = { disponible: boolean; desde: Date; hasta: Date | null };
 type Rango = { desde: Date; hasta: Date };
-
-export const NOMBRE_MES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
 
 function inicioMes(anio: number, mes: number): Date {
   return new Date(anio, mes - 1, 1);

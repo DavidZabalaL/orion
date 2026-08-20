@@ -41,7 +41,7 @@ import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
-import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad";
+import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
