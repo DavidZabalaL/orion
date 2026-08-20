@@ -9,15 +9,21 @@ import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
-export async function crearProyecto(formData: FormData) {
-  await exigirPermisoModulo("H", "editar");
+export type ResultadoAccionProyecto = { ok: boolean; error?: string };
+
+export async function crearProyecto(formData: FormData): Promise<ResultadoAccionProyecto> {
+  try {
+    await exigirPermisoModulo("H", "editar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const nombre = String(formData.get("nombre") ?? "").trim();
   const estadoRepublica = String(formData.get("estadoRepublica") ?? "").trim();
   const fechaInicio = String(formData.get("fechaInicio") ?? "");
 
   if (!nombre || !estadoRepublica || !fechaInicio) {
-    throw new Error("Nombre, estado y fecha de inicio son obligatorios.");
+    return { ok: false, error: "Nombre, estado y fecha de inicio son obligatorios." };
   }
 
   const proyecto = await prisma.proyecto.create({
@@ -49,8 +55,6 @@ export async function crearProyecto(formData: FormData) {
   // El presupuesto por partida se carga aparte (opcional) justo después de crear el proyecto.
   redirect(`/proyectos/${proyecto.id}/presupuesto/importar`);
 }
-
-export type ResultadoAccionProyecto = { ok: boolean; error?: string };
 
 export async function actualizarProyecto(formData: FormData): Promise<ResultadoAccionProyecto> {
   if (!(await esRolGlobal())) return { ok: false, error: "Solo el Administrador puede editar proyectos." };
@@ -128,18 +132,24 @@ export async function eliminarProyecto(formData: FormData): Promise<ResultadoAcc
   return { ok: true };
 }
 
-export async function actualizarPresupuestoAprobado(formData: FormData) {
-  await exigirPermisoModulo("H", "aprobar");
+export async function actualizarPresupuestoAprobado(formData: FormData): Promise<ResultadoAccionProyecto> {
+  try {
+    await exigirPermisoModulo("H", "aprobar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const id = String(formData.get("id") ?? "");
   const presupuestoAprobadoAnual = parseFloat(String(formData.get("presupuestoAprobadoAnual") ?? ""));
 
   if (!id || isNaN(presupuestoAprobadoAnual) || presupuestoAprobadoAnual < 0) {
-    throw new Error("Monto inválido.");
+    return { ok: false, error: "Monto inválido." };
   }
 
   const permitidos = await proyectosPermitidosParaModulo("H");
-  if (permitidos !== null && !permitidos.includes(id)) throw new Error("No tienes permiso para realizar esta acción.");
+  if (permitidos !== null && !permitidos.includes(id)) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
 
   await prisma.proyecto.update({ where: { id }, data: { presupuestoAprobadoAnual } });
 
@@ -158,10 +168,15 @@ export async function actualizarPresupuestoAprobado(formData: FormData) {
   revalidatePath(`/proyectos/${id}`);
   revalidatePath("/proyectos");
   invalidarCacheBI(["proyectos"]);
+  return { ok: true };
 }
 
-export async function actualizarPresupuestoMensual(formData: FormData) {
-  await exigirPermisoModulo("H", "editar");
+export async function actualizarPresupuestoMensual(formData: FormData): Promise<ResultadoAccionProyecto> {
+  try {
+    await exigirPermisoModulo("H", "editar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const proyectoId = String(formData.get("proyectoId") ?? "");
   const anio = parseInt(String(formData.get("anio") ?? ""), 10);
@@ -169,11 +184,13 @@ export async function actualizarPresupuestoMensual(formData: FormData) {
   const montoAsignado = parseFloat(String(formData.get("montoAsignado") ?? ""));
 
   if (!proyectoId || !anio || !mes || isNaN(montoAsignado) || montoAsignado < 0) {
-    throw new Error("Datos inválidos.");
+    return { ok: false, error: "Datos inválidos." };
   }
 
   const permitidos = await proyectosPermitidosParaModulo("H");
-  if (permitidos !== null && !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+  if (permitidos !== null && !permitidos.includes(proyectoId)) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
 
   await prisma.presupuestoMensual.upsert({
     where: { proyectoId_anio_mes: { proyectoId, anio, mes } },
@@ -196,4 +213,5 @@ export async function actualizarPresupuestoMensual(formData: FormData) {
   revalidatePath(`/proyectos/${proyectoId}`);
   revalidatePath("/proyectos");
   invalidarCacheBI(["proyectos"]);
+  return { ok: true };
 }
