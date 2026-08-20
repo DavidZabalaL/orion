@@ -31,7 +31,7 @@ export type UnidadRow = {
   ultimoMantenimiento: string | null;
   proximoMantenimiento: string | null;
   semaforo: "verde" | "amarillo" | "rojo";
-  /** % de días activa desde que hay historial (null = aún sin historial). Ver src/lib/sla-disponibilidad.ts. */
+  /** % de días activa en el mes en curso, hasta hoy (null = aún sin historial). Ver src/lib/sla-disponibilidad.ts. */
   slaPorcentaje: number | null;
 };
 
@@ -50,7 +50,7 @@ const SEMAFORO_LABEL: Record<string, string> = {
 function exportarCsv(rows: UnidadRow[], incluirSla: boolean) {
   const headers = [
     "N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Días sin operar",
-    ...(incluirSla ? ["SLA disponibilidad (%)"] : []),
+    ...(incluirSla ? ["SLA disponibilidad mes en curso (%)"] : []),
     "Resguardante", "Último mantenimiento", "Próximo mantenimiento",
   ];
   const filas = rows.map((r) => [
@@ -247,7 +247,7 @@ export function UnidadesTable({
             <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
               {[
                 "", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar",
-                ...(mostrarColumnaSla ? ["SLA disp."] : []),
+                ...(mostrarColumnaSla ? ["SLA disp. (mes)"] : []),
                 "Resguardante", "Último manto.", "Próx. manto.", "",
               ].map((h) => (
                 <th
@@ -333,7 +333,7 @@ export function UnidadesTable({
                   <td
                     className="px-4 py-3"
                     style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: r.slaPorcentaje !== null && r.slaPorcentaje < 90 ? "var(--priority-alta)" : "var(--field-text)" }}
-                    title="% de días activa desde que se empezó a llevar este registro"
+                    title="% de días activa en el mes en curso, actualizado al día — para el histórico mes a mes ve la ficha de la unidad"
                   >
                     {r.slaPorcentaje !== null ? `${r.slaPorcentaje}%` : "—"}
                   </td>

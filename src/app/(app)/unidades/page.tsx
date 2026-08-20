@@ -8,7 +8,7 @@ import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorD
 import Link from "next/link";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
-import { calcularSlaPorUnidades } from "@/lib/sla-disponibilidad";
+import { calcularSlaMesActualPorUnidades } from "@/lib/sla-disponibilidad";
 import { preferenciaOcultaPorUsuario, CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +112,7 @@ export default async function UnidadesPage() {
   // El SLA solo se calcula si el rol tiene el permiso especial — evita el
   // query extra para quien nunca lo va a ver (Operador por defecto, etc.).
   if (puedeVerSla) {
-    const slaPorUnidad = await calcularSlaPorUnidades(unidades.map((u) => u.numeroEconomico));
+    const slaPorUnidad = await calcularSlaMesActualPorUnidades(unidades.map((u) => u.numeroEconomico));
     for (const row of rows) {
       row.slaPorcentaje = slaPorUnidad.get(row.numeroEconomico)?.porcentaje ?? null;
     }

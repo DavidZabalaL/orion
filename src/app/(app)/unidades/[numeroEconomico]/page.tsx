@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { puedeEditarCapacidadTanque, requerirPermisoModulo } from "@/lib/permisos";
+import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { FichaUnidad } from "@/components/unidades/ficha-unidad";
 import { obtenerAlertaPreventivaUnidad } from "@/lib/mantenimiento-preventivo";
+import { calcularSlaMensualPorUnidad } from "@/lib/sla-disponibilidad";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function FichaUnidadPage({
   const { numeroEconomico } = await params;
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
 
-  const [unidad, puedeEditarCapacidad, proyectos, alertaPreventiva] = await Promise.all([
+  const [unidad, puedeEditarCapacidad, proyectos, alertaPreventiva, puedeVerSla] = await Promise.all([
     prisma.unidad.findUnique({
       where: { numeroEconomico },
       include: {
@@ -60,6 +61,7 @@ export default async function FichaUnidadPage({
       select: { id: true, nombre: true },
     }),
     obtenerAlertaPreventivaUnidad(numeroEconomico),
+    puedeVerSlaDisponibilidad(),
   ]);
 
   if (!unidad) notFound();
@@ -76,8 +78,20 @@ export default async function FichaUnidadPage({
       })
     : [];
 
+  const slaMensual = puedeVerSla ? await calcularSlaMensualPorUnidad(numeroEconomico) : [];
+
   const serializado = JSON.parse(JSON.stringify(unidad));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
 
-  return <FichaUnidad unidad={serializado} puedeEditarCapacidad={puedeEditarCapacidad} proyectos={proyectos} alertaPreventiva={alertaPreventiva} insumos={insumosSerializados} />;
+  return (
+    <FichaUnidad
+      unidad={serializado}
+      puedeEditarCapacidad={puedeEditarCapacidad}
+      proyectos={proyectos}
+      alertaPreventiva={alertaPreventiva}
+      insumos={insumosSerializados}
+      puedeVerSla={puedeVerSla}
+      slaMensual={slaMensual}
+    />
+  );
 }

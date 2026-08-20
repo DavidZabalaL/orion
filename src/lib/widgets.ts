@@ -34,7 +34,7 @@ export const CATALOGO_WIDGETS_UNIDADES: DefinicionWidget[] = [
   // Visibilidad adicional restringida por el permiso especial "verSlaDisponibilidad"
   // (ver src/lib/permisos.ts) — no todos los roles lo ven aunque el admin lo
   // active aquí; se filtra aparte en src/app/(app)/unidades/page.tsx.
-  { id: "slaPorProyecto", labelDefault: "SLA de disponibilidad por proyecto (%)", tipo: "desglose" },
+  { id: "slaPorProyecto", labelDefault: "SLA de disponibilidad por proyecto — mes en curso (%)", tipo: "desglose" },
 ];
 
 export const WIDGETS_DEFAULT_UNIDADES = ["total", "activas", "disponibles", "noDisponibles", "bajas", "consignacionODireccion", "porTipo", "porTipoNoDisponible", "porProyecto"];

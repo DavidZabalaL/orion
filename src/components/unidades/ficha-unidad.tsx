@@ -41,6 +41,7 @@ import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
+import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -59,6 +60,7 @@ const TABS = [
   { id: "historico", label: "Bitácora" },
   { id: "siniestros", label: "Siniestros" },
   { id: "insumos", label: "Insumos" },
+  { id: "sla", label: "SLA de disponibilidad" },
 ] as const;
 
 const CATEGORIAS_MANTENIMIENTO = new Set(["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_CORRECTIVO"]);
@@ -309,12 +311,16 @@ export function FichaUnidad({
   proyectos,
   alertaPreventiva,
   insumos = [],
+  puedeVerSla = false,
+  slaMensual = [],
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
   proyectos: { id: string; nombre: string }[];
   alertaPreventiva: Unidad | null;
   insumos?: { id: string; nombre: string; unidad: string; existencias: string }[];
+  puedeVerSla?: boolean;
+  slaMensual?: SlaMensual[];
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -455,7 +461,7 @@ export function FichaUnidad({
       {/* Tabs */}
       <div>
         <div className="flex gap-1 overflow-x-auto border-b" style={{ borderColor: "var(--field-border)" }}>
-          {TABS.map((t) => (
+          {TABS.filter((t) => t.id !== "sla" || puedeVerSla).map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -494,6 +500,7 @@ export function FichaUnidad({
               bloqueada={!unidad.proyectoId}
             />
           )}
+          {tab === "sla" && puedeVerSla && <TabSla meses={slaMensual} />}
         </div>
       </div>
     </div>
@@ -1202,6 +1209,38 @@ function TabHistorico({ historicos }: { historicos: Unidad[] }) {
               ) : (
                 <Badge label="Terminado" color="var(--sidebar-text)" bg="var(--field-bg)" />
               )}
+            </td>
+          </tr>
+        ))}
+      </Table>
+    </div>
+  );
+}
+
+function TabSla({ meses }: { meses: SlaMensual[] }) {
+  if (!meses.length)
+    return (
+      <EmptyState>
+        <Gauge size={20} className="mx-auto mb-2 opacity-40" />
+        Aún no hay historial de disponibilidad para esta unidad.
+      </EmptyState>
+    );
+  return (
+    <div className="flex flex-col gap-3">
+      <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+        % de días activa cada mes. El mes en curso está parcial (se corta al día de hoy) — se cierra al terminar el mes.
+      </p>
+      <Table headers={["Mes", "Días activa", "Días inactiva", "% SLA"]}>
+        {meses.map((m, i) => (
+          <tr key={`${m.anio}-${m.mes}`} style={{ borderBottom: "1px solid var(--field-border)" }}>
+            <td className="px-4 py-3" style={{ ...td, fontWeight: 600 }}>
+              {NOMBRE_MES[m.mes - 1]} {m.anio}
+              {i === 0 && <span style={{ color: "var(--sidebar-text)", fontWeight: 400 }}> (en curso)</span>}
+            </td>
+            <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{m.diasActivo}</td>
+            <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{m.diasInactivo}</td>
+            <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: m.porcentaje !== null && m.porcentaje < 90 ? "var(--priority-alta)" : "var(--field-text)" }}>
+              {m.porcentaje !== null ? `${m.porcentaje}%` : "—"}
             </td>
           </tr>
         ))}
