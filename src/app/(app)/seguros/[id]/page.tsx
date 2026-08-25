@@ -8,7 +8,8 @@ import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
 import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE, TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { RenovarSeguroForm } from "@/components/seguros/renovar-seguro-form";
 import { SubirDocumentoSeguroForm } from "@/components/seguros/subir-documento-seguro-form";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { EditarSeguroForm } from "@/components/seguros/editar-seguro-form";
+import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { blobProxy } from "@/lib/blob";
 
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function FichaPolizaPage({ params }: { params: Promise<{ id: string }> }) {
   await requerirPermisoModulo("F");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
+  const esAdmin = await esRolGlobal();
 
   const { id } = await params;
 
@@ -97,6 +99,23 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
       <div className="flex flex-wrap gap-3">
         <RenovarSeguroForm id={seguro.id} />
         <SubirDocumentoSeguroForm id={seguro.id} tieneDocumento={!!seguro.documento} />
+        {esAdmin && (
+          <EditarSeguroForm
+            seguro={{
+              id: seguro.id,
+              aseguradora: seguro.aseguradora,
+              numeroPoliza: seguro.numeroPoliza,
+              fechaInicio: seguro.fechaInicio.toISOString().slice(0, 10),
+              fechaVencimiento: seguro.fechaVencimiento.toISOString().slice(0, 10),
+              costo: String(seguro.costo),
+              coberturas: seguro.coberturas.map((c) => ({
+                tipoCobertura: c.tipoCobertura,
+                sumaAsegurada: String(c.sumaAsegurada),
+                deducible: String(c.deducible),
+              })),
+            }}
+          />
+        )}
       </div>
     </div>
   );

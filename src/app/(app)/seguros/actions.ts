@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { exigirPermisoModulo } from "@/lib/permisos";
+import { exigirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { auth } from "@/auth";
@@ -127,6 +127,91 @@ export async function renovarSeguro(formData: FormData) {
   revalidatePath("/seguros");
   revalidatePath(`/unidades/${seguro.numeroEconomico}`);
   invalidarCacheBI(["seguros"]);
+}
+
+export type ResultadoEditarSeguro = { ok: boolean; error?: string };
+
+/** Edición completa de los datos de una póliza. Reservada al Administrador: a diferencia de renovarSeguro
+ * (que corrige solo vigencia/costo con el permiso normal de módulo), esto permite corregir cualquier campo
+ * capturado por error, incluida la aseguradora y el número de póliza. */
+export async function editarSeguro(formData: FormData): Promise<ResultadoEditarSeguro> {
+  if (!(await esRolGlobal())) {
+    return { ok: false, error: "Solo el Administrador puede editar los datos de una póliza." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const aseguradora = String(formData.get("aseguradora") ?? "").trim();
+  const numeroPoliza = String(formData.get("numeroPoliza") ?? "").trim();
+  const fechaInicio = String(formData.get("fechaInicio") ?? "");
+  const fechaVencimiento = String(formData.get("fechaVencimiento") ?? "");
+  const costo = parseFloat(String(formData.get("costo") ?? "0"));
+  const coberturasJson = String(formData.get("coberturasJson") ?? "[]");
+
+  if (!id || !aseguradora || !numeroPoliza || !fechaInicio || !fechaVencimiento) {
+    return { ok: false, error: "Faltan campos obligatorios." };
+  }
+
+  const anterior = await prisma.seguro.findUnique({ where: { id } });
+  if (!anterior) return { ok: false, error: "Póliza no encontrada." };
+
+  let coberturas: CoberturaInput[] = [];
+  try {
+    coberturas = JSON.parse(coberturasJson);
+  } catch {
+    coberturas = [];
+  }
+
+  const diasParaVencer = (new Date(fechaVencimiento).getTime() - Date.now()) / 86_400_000;
+  const estatus = diasParaVencer < 0 ? "VENCIDO" : diasParaVencer <= 30 ? "POR_VENCER" : "VIGENTE";
+
+  await prisma.seguro.update({
+    where: { id },
+    data: {
+      aseguradora,
+      numeroPoliza,
+      fechaInicio: new Date(fechaInicio),
+      fechaVencimiento: new Date(fechaVencimiento),
+      costo,
+      estatus,
+      coberturas: {
+        deleteMany: {},
+        create: coberturas
+          .filter((c) => c.tipoCobertura)
+          .map((c) => ({
+            tipoCobertura: c.tipoCobertura as never,
+            sumaAsegurada: parseFloat(c.sumaAsegurada || "0"),
+            deducible: parseFloat(c.deducible || "0"),
+          })),
+      },
+    },
+  });
+
+  const sesionEditar = await auth();
+  if (sesionEditar?.user?.id) {
+    await logActivity({
+      userId: sesionEditar.user.id,
+      modulo: "seguros",
+      accion: "update",
+      entidad: "Seguro",
+      entidadId: id,
+      detalle: {
+        antes: {
+          aseguradora: anterior.aseguradora,
+          numeroPoliza: anterior.numeroPoliza,
+          fechaInicio: anterior.fechaInicio.toISOString(),
+          fechaVencimiento: anterior.fechaVencimiento.toISOString(),
+          costo: Number(anterior.costo),
+        },
+        despues: { aseguradora, numeroPoliza, fechaInicio, fechaVencimiento, costo },
+      },
+    });
+  }
+
+  revalidatePath(`/seguros/${id}`);
+  revalidatePath("/seguros");
+  revalidatePath(`/unidades/${anterior.numeroEconomico}`);
+  invalidarCacheBI(["seguros"]);
+  return { ok: true };
 }
 
 export async function subirDocumentoSeguro(formData: FormData) {
