@@ -6,11 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
 function haceDias(dias: number) {
   return new Date(Date.now() - dias * 86_400_000);
+}
+
+/** Fin del día (23:59:59.999 hora de México) para el filtro "hasta". */
+function finDelDiaMx(fecha: string): Date {
+  return new Date(parseFechaLocalMx(fecha)!.getTime() + 24 * 60 * 60 * 1000 - 1);
 }
 
 const fieldStyle: React.CSSProperties = {
@@ -41,8 +47,8 @@ export default async function HistorialRecorridoPage({
   const economicosPermitidos = new Set(unidades.map((u) => u.numeroEconomico));
   const unidadSeleccionadaBruta = sp.unidad || unidades[0]?.numeroEconomico;
   const unidadSeleccionada = unidadSeleccionadaBruta && economicosPermitidos.has(unidadSeleccionadaBruta) ? unidadSeleccionadaBruta : undefined;
-  const desde = sp.desde ? new Date(sp.desde) : haceDias(7);
-  const hasta = sp.hasta ? new Date(sp.hasta) : haceDias(0);
+  const desde = sp.desde ? parseFechaLocalMx(sp.desde)! : haceDias(7);
+  const hasta = sp.hasta ? finDelDiaMx(sp.hasta) : haceDias(0);
 
   const posiciones = unidadSeleccionada
     ? await prisma.posicionGPS.findMany({

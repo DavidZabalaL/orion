@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export async function crearOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
@@ -76,7 +77,7 @@ export async function crearOperador(formData: FormData) {
         tipoLicencia: tipoLicencia as never,
         estadoEmisor,
         fechaEmision: new Date(),
-        fechaVencimiento: fechaVencimientoLicencia ? new Date(fechaVencimientoLicencia) : null,
+        fechaVencimiento: parseFechaLocalMx(fechaVencimientoLicencia),
         archivoId: archivoLicencia.id,
         verificado: false,
       },

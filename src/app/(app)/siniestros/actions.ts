@@ -6,6 +6,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 function hoy() {
   return new Date().toISOString().slice(0, 10);
@@ -42,7 +43,7 @@ export async function crearSiniestro(fd: FormData) {
       folio,
       numeroEconomico,
       operadorId: (fd.get("operadorId") as string) || null,
-      fecha: new Date(fecha),
+      fecha: parseFechaLocalMx(fecha)!,
       tipo: tipo as never,
       descripcion,
       ubicacion: (fd.get("ubicacion") as string) || null,

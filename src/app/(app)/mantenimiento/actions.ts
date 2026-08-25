@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export type ResultadoEliminarGasto = { ok: boolean; error?: string };
 export type ResultadoCrearGasto = { ok: boolean; error?: string; id?: string };
@@ -61,15 +62,15 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
       proyectoReportanteId: aplicaAUnidad ? null : proyectoReportanteId,
       categoria: categoria as never,
       descripcion,
-      fecha: new Date(fecha),
+      fecha: parseFechaLocalMx(fecha)!,
       costo,
       kmAlMomento,
       proveedor,
       sc,
       odc,
       estatus: estatus as never,
-      fechaIngresoTaller: fechaIngresoTaller ? new Date(fechaIngresoTaller) : null,
-      fechaEstimadaSalida: fechaEstimadaSalida ? new Date(fechaEstimadaSalida) : null,
+      fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
+      fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
     },
   });
 
@@ -171,13 +172,13 @@ export async function actualizarGasto(formData: FormData) {
       sc,
       odc,
       entradaSap,
-      fechaRequisicion: fechaRequisicion ? new Date(fechaRequisicion) : null,
-      fechaOdc: fechaOdc ? new Date(fechaOdc) : null,
-      fechaFactura: fechaFactura ? new Date(fechaFactura) : null,
-      fechaCxp: fechaCxp ? new Date(fechaCxp) : null,
-      fechaPago: fechaPago ? new Date(fechaPago) : null,
-      fechaIngresoTaller: fechaIngresoTaller ? new Date(fechaIngresoTaller) : null,
-      fechaEstimadaSalida: fechaEstimadaSalida ? new Date(fechaEstimadaSalida) : null,
+      fechaRequisicion: parseFechaLocalMx(fechaRequisicion),
+      fechaOdc: parseFechaLocalMx(fechaOdc),
+      fechaFactura: parseFechaLocalMx(fechaFactura),
+      fechaCxp: parseFechaLocalMx(fechaCxp),
+      fechaPago: parseFechaLocalMx(fechaPago),
+      fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
+      fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
       estatus: estatus as never,
     },
   });

@@ -8,6 +8,7 @@ import { crearDocumento } from "@/lib/subir-archivo";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 type CoberturaInput = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
 
@@ -45,7 +46,7 @@ export async function crearSeguro(formData: FormData): Promise<ResultadoCrearSeg
     coberturas = [];
   }
 
-  const diasParaVencer = (new Date(fechaVencimiento).getTime() - Date.now()) / 86_400_000;
+  const diasParaVencer = (parseFechaLocalMx(fechaVencimiento)!.getTime() - Date.now()) / 86_400_000;
   const estatus = diasParaVencer < 0 ? "VENCIDO" : diasParaVencer <= 30 ? "POR_VENCER" : "VIGENTE";
 
   const seguro = await prisma.seguro.create({
@@ -53,8 +54,8 @@ export async function crearSeguro(formData: FormData): Promise<ResultadoCrearSeg
       numeroEconomico,
       aseguradora,
       numeroPoliza,
-      fechaInicio: new Date(fechaInicio),
-      fechaVencimiento: new Date(fechaVencimiento),
+      fechaInicio: parseFechaLocalMx(fechaInicio)!,
+      fechaVencimiento: parseFechaLocalMx(fechaVencimiento)!,
       costo,
       estatus,
       coberturas: {
@@ -102,12 +103,12 @@ export async function renovarSeguro(formData: FormData) {
     if (!actual?.unidad.proyectoId || !permitidos.includes(actual.unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
   }
 
-  const diasParaVencer = (new Date(fechaVencimiento).getTime() - Date.now()) / 86_400_000;
+  const diasParaVencer = (parseFechaLocalMx(fechaVencimiento)!.getTime() - Date.now()) / 86_400_000;
   const estatus = diasParaVencer < 0 ? "VENCIDO" : diasParaVencer <= 30 ? "POR_VENCER" : "VIGENTE";
 
   const seguro = await prisma.seguro.update({
     where: { id },
-    data: { fechaVencimiento: new Date(fechaVencimiento), costo, estatus },
+    data: { fechaVencimiento: parseFechaLocalMx(fechaVencimiento)!, costo, estatus },
   });
 
   const sesionRenovar = await auth();

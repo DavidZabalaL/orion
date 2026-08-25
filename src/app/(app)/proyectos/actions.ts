@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export type ResultadoAccionProyecto = { ok: boolean; error?: string };
 
@@ -30,7 +31,7 @@ export async function crearProyecto(formData: FormData): Promise<ResultadoAccion
     data: {
       nombre,
       estadoRepublica,
-      fechaInicio: new Date(fechaInicio),
+      fechaInicio: parseFechaLocalMx(fechaInicio)!,
       estatus: "ACTIVO",
       presupuestoAprobadoAnual: 0,
       modulosActivos: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "L"],
@@ -74,7 +75,7 @@ export async function actualizarProyecto(formData: FormData): Promise<ResultadoA
 
   await prisma.proyecto.update({
     where: { id },
-    data: { nombre, estadoRepublica, fechaInicio: new Date(fechaInicio), estatus },
+    data: { nombre, estadoRepublica, fechaInicio: parseFechaLocalMx(fechaInicio)!, estatus },
   });
 
   const session = await auth();

@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
   await exigirPermisoModulo("B", "editar");
@@ -19,6 +20,7 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
   if (!motivoBaja || !fechaEfectiva) {
     throw new Error("Motivo y fecha efectiva son obligatorios.");
   }
+  const fechaEfectivaDate = parseFechaLocalMx(fechaEfectiva)!;
 
   const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico } });
   if (!unidad) throw new Error("Unidad no encontrada.");
@@ -33,7 +35,7 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
     orderBy: { fecha: "desc" },
     select: { fecha: true },
   });
-  if (ultimoGasto && new Date(fechaEfectiva) < ultimoGasto.fecha) {
+  if (ultimoGasto && fechaEfectivaDate < ultimoGasto.fecha) {
     throw new Error("La fecha efectiva no puede ser anterior al último registro de gasto.");
   }
 
@@ -42,9 +44,9 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
     data: {
       estatus: "BAJA",
       disponibilidad: false,
-      fechaCambioDisponibilidad: new Date(fechaEfectiva),
+      fechaCambioDisponibilidad: fechaEfectivaDate,
       proyectoId: null,
-      fechaBaja: new Date(fechaEfectiva),
+      fechaBaja: fechaEfectivaDate,
       motivoBaja: motivoBaja as never,
       comentarioBaja: comentario,
     },
@@ -52,10 +54,10 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
 
   await prisma.resguardo.updateMany({
     where: { numeroEconomico, fechaHasta: null },
-    data: { fechaHasta: new Date(fechaEfectiva) },
+    data: { fechaHasta: fechaEfectivaDate },
   });
 
-  await registrarCambioDisponibilidad(numeroEconomico, false, new Date(fechaEfectiva));
+  await registrarCambioDisponibilidad(numeroEconomico, false, fechaEfectivaDate);
 
   const session = await auth();
   if (session?.user?.id) {

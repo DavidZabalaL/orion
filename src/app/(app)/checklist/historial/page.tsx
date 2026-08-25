@@ -5,12 +5,13 @@ import { ChecklistHistorialLista } from "@/components/checklist/checklist-histor
 import { SelectorFechaChecklist } from "@/components/checklist/selector-fecha-checklist";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
 function rangoDelDia(fecha: string) {
-  const inicio = new Date(`${fecha}T00:00:00`);
-  const fin = new Date(`${fecha}T23:59:59.999`);
+  const inicio = parseFechaLocalMx(fecha)!;
+  const fin = new Date(inicio.getTime() + 24 * 60 * 60 * 1000 - 1);
   return { inicio, fin };
 }
 

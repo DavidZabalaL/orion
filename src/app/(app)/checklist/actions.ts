@@ -10,6 +10,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 import { ZONAS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/checklist-carga-combustible";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
@@ -194,7 +195,7 @@ export async function crearChecklistSemanal(formData: FormData): Promise<{ ok: t
       data: {
         numeroEconomico,
         tipo: "SEMANAL",
-        fecha: new Date(fechaStr),
+        fecha: parseFechaLocalMx(fechaStr)!,
         puntosInspeccion: {},
         respuestasSemanal: respuestas,
         capturadoPorId: session.user.id,
@@ -309,7 +310,7 @@ export async function crearChecklistCargaCombustible(
       data: {
         numeroEconomico,
         tipo: "CARGA_COMBUSTIBLE",
-        fecha: new Date(fecha),
+        fecha: parseFechaLocalMx(fecha)!,
         puntosInspeccion: {},
         respuestasSemanal: respuestas,
         capturadoPorId: session.user.id,

@@ -7,6 +7,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
 export type ResultadoEliminarCombustible = { ok: boolean; error?: string };
@@ -60,7 +61,7 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   const combustible = await prisma.combustible.create({
     data: {
       numeroEconomico,
-      fecha: new Date(fecha),
+      fecha: parseFechaLocalMx(fecha)!,
       litros,
       costo,
       kmActual,
@@ -109,7 +110,7 @@ export async function crearMapeoTarjeta(formData: FormData) {
   }
 
   const mapeo = await prisma.mapeoTarjetaEconomico.create({
-    data: { numeroTarjeta, numeroEconomico, proveedor, vigenciaDesde: new Date(vigenciaDesde) },
+    data: { numeroTarjeta, numeroEconomico, proveedor, vigenciaDesde: parseFechaLocalMx(vigenciaDesde)! },
   });
 
   const session = await auth();

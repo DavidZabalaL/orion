@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export async function registrarAccidente(
   formData: FormData
@@ -32,7 +33,7 @@ export async function registrarAccidente(
 
     const accidente = await prisma.accidente.create({
       data: {
-        fecha: new Date(fecha),
+        fecha: parseFechaLocalMx(fecha)!,
         tipo,
         descripcion,
         numeroEconomico,
@@ -82,14 +83,14 @@ export async function registrarCurso(
       data: {
         operadorId,
         nombre,
-        fecha: new Date(fecha),
+        fecha: parseFechaLocalMx(fecha)!,
         evidenciaUrl: evidenciaUrl || undefined,
       },
     });
 
     await prisma.operador.update({
       where: { id: operadorId },
-      data: { fechaUltimaCapacitacion: new Date(fecha) } as never,
+      data: { fechaUltimaCapacitacion: parseFechaLocalMx(fecha)! } as never,
     });
 
     await logActivity({

@@ -7,6 +7,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { parseFechaLocalMx } from "@/lib/timezone";
 
 export type ResultadoCrearTag = { ok: boolean; error?: string };
 
@@ -34,7 +35,7 @@ export async function crearTag(formData: FormData): Promise<ResultadoCrearTag> {
   }
 
   const tag = await prisma.tag.create({
-    data: { numeroEconomico, fecha: new Date(fecha), monto, caseta, proveedorTag: proveedorTag as never, conciliado: false },
+    data: { numeroEconomico, fecha: parseFechaLocalMx(fecha)!, monto, caseta, proveedorTag: proveedorTag as never, conciliado: false },
   });
 
   const session = await auth();
