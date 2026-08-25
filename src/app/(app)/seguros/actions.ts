@@ -161,7 +161,7 @@ export async function editarSeguro(formData: FormData): Promise<ResultadoEditarS
     coberturas = [];
   }
 
-  const diasParaVencer = (new Date(fechaVencimiento).getTime() - Date.now()) / 86_400_000;
+  const diasParaVencer = (parseFechaLocalMx(fechaVencimiento)!.getTime() - Date.now()) / 86_400_000;
   const estatus = diasParaVencer < 0 ? "VENCIDO" : diasParaVencer <= 30 ? "POR_VENCER" : "VIGENTE";
 
   await prisma.seguro.update({
@@ -169,8 +169,8 @@ export async function editarSeguro(formData: FormData): Promise<ResultadoEditarS
     data: {
       aseguradora,
       numeroPoliza,
-      fechaInicio: new Date(fechaInicio),
-      fechaVencimiento: new Date(fechaVencimiento),
+      fechaInicio: parseFechaLocalMx(fechaInicio)!,
+      fechaVencimiento: parseFechaLocalMx(fechaVencimiento)!,
       costo,
       estatus,
       coberturas: {
