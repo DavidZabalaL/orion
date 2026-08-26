@@ -313,6 +313,7 @@ export function FichaUnidad({
   insumos = [],
   puedeVerSla = false,
   slaMensual = [],
+  puedeVerPolizaSeguro = false,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -321,6 +322,7 @@ export function FichaUnidad({
   insumos?: { id: string; nombre: string; unidad: string; existencias: string }[];
   puedeVerSla?: boolean;
   slaMensual?: SlaMensual[];
+  puedeVerPolizaSeguro?: boolean;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -485,7 +487,7 @@ export function FichaUnidad({
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
-          {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
@@ -848,7 +850,7 @@ function TabTag({ registros, numeroEconomico }: { registros: Unidad[]; numeroEco
   );
 }
 
-function TabSeguro({ seguros, numeroEconomico }: { seguros: Unidad[]; numeroEconomico: string }) {
+function TabSeguro({ seguros, numeroEconomico, puedeVerPoliza }: { seguros: Unidad[]; numeroEconomico: string; puedeVerPoliza: boolean }) {
   if (!seguros.length) {
     return (
       <div className="flex flex-col gap-4">
@@ -860,43 +862,62 @@ function TabSeguro({ seguros, numeroEconomico }: { seguros: Unidad[]; numeroEcon
   return (
     <div className="flex flex-col gap-5">
       <div><BotonAgregarSeguro numeroEconomico={numeroEconomico} /></div>
+      {!puedeVerPoliza && (
+        <EmptyState>No tienes permiso para ver el detalle comercial de la póliza (aseguradora, costo, coberturas). Puedes renovarla o actualizar su documento sin verlo.</EmptyState>
+      )}
       {seguros.map((s) => (
         <div key={s.id} className="rounded-xl p-5" style={panelStyle}>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
+          {!puedeVerPoliza ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                {s.aseguradora} — {s.numeroPoliza}
+                Póliza {s.numeroPoliza}
               </div>
-              <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                Vigencia {fmtFecha(s.fechaInicio)} — {fmtFecha(s.fechaVencimiento)} · {fmtMoney(s.costo)}
+              <div className="flex items-center gap-3">
+                <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
+                <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                  Renovar / actualizar documento →
+                </Link>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
-              <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
-                Ver / editar →
-              </Link>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+                    {s.aseguradora} — {s.numeroPoliza}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+                    Vigencia {fmtFecha(s.fechaInicio)} — {fmtFecha(s.fechaVencimiento)} · {fmtMoney(s.costo)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
+                  <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                    Ver / editar →
+                  </Link>
+                </div>
+              </div>
 
-          <table className="w-full min-w-[560px] border-collapse">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["Cobertura", "Suma asegurada", "Deducible"].map((h) => (
-                  <th key={h} className="text-left px-3 py-2" style={labelStyle}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {s.coberturas.map((c: Unidad) => (
-                <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-3 py-2" style={td}>{c.tipoCobertura.replaceAll("_", " ")}</td>
-                  <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.sumaAsegurada) > 0 ? fmtMoney(c.sumaAsegurada) : "Amparada"}</td>
-                  <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.deducible) > 0 ? fmtMoney(c.deducible) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <table className="w-full min-w-[560px] border-collapse">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
+                    {["Cobertura", "Suma asegurada", "Deducible"].map((h) => (
+                      <th key={h} className="text-left px-3 py-2" style={labelStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.coberturas.map((c: Unidad) => (
+                    <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+                      <td className="px-3 py-2" style={td}>{c.tipoCobertura.replaceAll("_", " ")}</td>
+                      <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.sumaAsegurada) > 0 ? fmtMoney(c.sumaAsegurada) : "Amparada"}</td>
+                      <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.deducible) > 0 ? fmtMoney(c.deducible) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       ))}
     </div>

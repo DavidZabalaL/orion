@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { exigirPermisoModulo, esRolGlobal } from "@/lib/permisos";
+import { exigirPermisoModulo, puedeEditarPolizaCompletaSeguro } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { auth } from "@/auth";
@@ -27,23 +27,22 @@ export async function crearSeguro(formData: FormData): Promise<ResultadoCrearSeg
   const fechaInicio = String(formData.get("fechaInicio") ?? "");
   const fechaVencimiento = String(formData.get("fechaVencimiento") ?? "");
   const costo = parseFloat(String(formData.get("costo") ?? "0"));
-  const coberturasJson = String(formData.get("coberturasJson") ?? "[]");
+  const archivo = formData.get("archivo");
 
   if (!numeroEconomico || !aseguradora || !numeroPoliza || !fechaInicio || !fechaVencimiento) {
     return { ok: false, error: "Faltan campos obligatorios." };
+  }
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { ok: false, error: "Debes adjuntar el PDF de la póliza." };
+  }
+  if (archivo.type !== "application/pdf") {
+    return { ok: false, error: "El archivo debe ser un PDF." };
   }
 
   const permitidos = await proyectosPermitidosParaModulo("F");
   if (permitidos !== null) {
     const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
     if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
-  }
-
-  let coberturas: CoberturaInput[] = [];
-  try {
-    coberturas = JSON.parse(coberturasJson);
-  } catch {
-    coberturas = [];
   }
 
   const diasParaVencer = (parseFechaLocalMx(fechaVencimiento)!.getTime() - Date.now()) / 86_400_000;
@@ -58,17 +57,16 @@ export async function crearSeguro(formData: FormData): Promise<ResultadoCrearSeg
       fechaVencimiento: parseFechaLocalMx(fechaVencimiento)!,
       costo,
       estatus,
-      coberturas: {
-        create: coberturas
-          .filter((c) => c.tipoCobertura)
-          .map((c) => ({
-            tipoCobertura: c.tipoCobertura as never,
-            sumaAsegurada: parseFloat(c.sumaAsegurada || "0"),
-            deducible: parseFloat(c.deducible || "0"),
-          })),
-      },
     },
   });
+
+  const documento = await crearDocumento(archivo, {
+    carpeta: "polizas",
+    entidadRelacionada: "Seguro",
+    entidadId: seguro.id,
+    tipo: "poliza",
+  });
+  await prisma.seguro.update({ where: { id: seguro.id }, data: { documentoId: documento.id } });
 
   const sesionCrear = await auth();
   if (sesionCrear?.user?.id) {
@@ -131,12 +129,12 @@ export async function renovarSeguro(formData: FormData) {
 
 export type ResultadoEditarSeguro = { ok: boolean; error?: string };
 
-/** Edición completa de los datos de una póliza. Reservada al Administrador: a diferencia de renovarSeguro
- * (que corrige solo vigencia/costo con el permiso normal de módulo), esto permite corregir cualquier campo
- * capturado por error, incluida la aseguradora y el número de póliza. */
+/** Edición completa de los datos de una póliza. Reservada a Administrador y Jurídico: a diferencia
+ * de renovarSeguro (que corrige solo vigencia/costo con el permiso normal de módulo), esto permite
+ * corregir cualquier campo capturado por error, incluida la aseguradora y el número de póliza. */
 export async function editarSeguro(formData: FormData): Promise<ResultadoEditarSeguro> {
-  if (!(await esRolGlobal())) {
-    return { ok: false, error: "Solo el Administrador puede editar los datos de una póliza." };
+  if (!(await puedeEditarPolizaCompletaSeguro())) {
+    return { ok: false, error: "No tienes permiso para editar los datos de una póliza." };
   }
 
   const id = String(formData.get("id") ?? "");

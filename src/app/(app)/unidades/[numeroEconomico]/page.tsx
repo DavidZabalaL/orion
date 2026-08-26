@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad } from "@/lib/permisos";
+import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad, puedeVerPolizaSeguro } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { FichaUnidad } from "@/components/unidades/ficha-unidad";
 import { obtenerAlertaPreventivaUnidad } from "@/lib/mantenimiento-preventivo";
@@ -17,7 +17,7 @@ export default async function FichaUnidadPage({
   const { numeroEconomico } = await params;
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A");
 
-  const [unidad, puedeEditarCapacidad, proyectos, alertaPreventiva, puedeVerSla] = await Promise.all([
+  const [unidad, puedeEditarCapacidad, proyectos, alertaPreventiva, puedeVerSla, puedeVerPoliza] = await Promise.all([
     prisma.unidad.findUnique({
       where: { numeroEconomico },
       include: {
@@ -62,6 +62,7 @@ export default async function FichaUnidadPage({
     }),
     obtenerAlertaPreventivaUnidad(numeroEconomico),
     puedeVerSlaDisponibilidad(),
+    puedeVerPolizaSeguro(),
   ]);
 
   if (!unidad) notFound();
@@ -80,7 +81,23 @@ export default async function FichaUnidadPage({
 
   const slaMensual = puedeVerSla ? await calcularSlaMensualPorUnidad(numeroEconomico) : [];
 
-  const serializado = JSON.parse(JSON.stringify(unidad));
+  // FichaUnidad es un Client Component: cualquier campo que viaje en `unidad` llega al
+  // navegador aunque el JSX no lo pinte. Si el rol no puede ver el detalle comercial de la
+  // póliza, se recorta aquí (no solo se oculta en el render) para no filtrar aseguradora/costo/coberturas.
+  const unidadConSeguros = unidad as unknown as { seguros?: { id: string; numeroPoliza: string; estatus: string; fechaVencimiento: Date }[] };
+  const unidadParaCliente = puedeVerPoliza
+    ? unidad
+    : {
+        ...unidad,
+        seguros: (unidadConSeguros.seguros ?? []).map((s) => ({
+          id: s.id,
+          numeroPoliza: s.numeroPoliza,
+          estatus: s.estatus,
+          fechaVencimiento: s.fechaVencimiento,
+        })),
+      };
+
+  const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
 
   return (
@@ -92,6 +109,7 @@ export default async function FichaUnidadPage({
       insumos={insumosSerializados}
       puedeVerSla={puedeVerSla}
       slaMensual={slaMensual}
+      puedeVerPolizaSeguro={puedeVerPoliza}
     />
   );
 }
