@@ -9,7 +9,7 @@ import { ESTATUS_SEGURO_LABEL, ESTATUS_SEGURO_STYLE, TIPO_COBERTURA_LABEL } from
 import { RenovarSeguroForm } from "@/components/seguros/renovar-seguro-form";
 import { SubirDocumentoSeguroForm } from "@/components/seguros/subir-documento-seguro-form";
 import { EditarSeguroForm } from "@/components/seguros/editar-seguro-form";
-import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
+import { requerirPermisoModulo, puedeVerPolizaSeguro, puedeEditarPolizaCompletaSeguro, puedeDescargarPolizaSeguro } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { blobProxy } from "@/lib/blob";
 
@@ -18,7 +18,9 @@ export const dynamic = "force-dynamic";
 export default async function FichaPolizaPage({ params }: { params: Promise<{ id: string }> }) {
   await requerirPermisoModulo("F");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
-  const esAdmin = await esRolGlobal();
+  const puedeVerDetalle = await puedeVerPolizaSeguro();
+  const puedeEditarCompleto = await puedeEditarPolizaCompletaSeguro();
+  const puedeDescargar = await puedeDescargarPolizaSeguro();
 
   const { id } = await params;
 
@@ -33,6 +35,29 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
 
   if (!seguro) notFound();
   if (proyectosPermitidos !== null && (!seguro.unidad.proyectoId || !proyectosPermitidos.includes(seguro.unidad.proyectoId))) notFound();
+
+  if (!puedeVerDetalle) {
+    return (
+      <div className="flex flex-col gap-6 p-4 md:p-6 max-w-3xl">
+        <div>
+          <Link href={`/unidades/${seguro.unidad.numeroEconomico}`} className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+            <ChevronLeft size={15} /> Volver a la unidad
+          </Link>
+          <h1 className="mt-2 flex items-center gap-3 flex-wrap" style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+            Póliza {seguro.numeroPoliza}
+            <Badge label={ESTATUS_SEGURO_LABEL[seguro.estatus]} color={ESTATUS_SEGURO_STYLE[seguro.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[seguro.estatus]?.bg} />
+          </h1>
+        </div>
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          No tienes permiso para ver el detalle comercial de esta póliza (aseguradora, costo, coberturas). Puedes renovarla o actualizar su documento sin verlo.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <RenovarSeguroForm id={seguro.id} />
+          <SubirDocumentoSeguroForm id={seguro.id} tieneDocumento={!!seguro.documento} />
+        </div>
+      </div>
+    );
+  }
 
   const dias = diasPara(seguro.fechaVencimiento);
 
@@ -52,9 +77,11 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
             {" "}— {seguro.unidad.marca} {seguro.unidad.unidadModelo} · {seguro.unidad.placas}
           </p>
         </div>
-        <Link href={`/seguros/${seguro.id}/tarjeta`} className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-          <Printer size={16} /> Tarjeta de seguro (PDF)
-        </Link>
+        {puedeDescargar && (
+          <Link href={`/seguros/${seguro.id}/tarjeta`} className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <Printer size={16} /> Tarjeta de seguro (PDF)
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 rounded-xl p-5 md:grid-cols-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -90,16 +117,21 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
         </Table>
       </div>
 
-      {seguro.documento && (
+      {seguro.documento && puedeDescargar && (
         <a href={blobProxy(seguro.documento.url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
           Ver PDF de la póliza cargado →
         </a>
+      )}
+      {seguro.documento && !puedeDescargar && (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Solo Administrador, Dirección o Jurídico pueden descargar el PDF de la póliza.
+        </p>
       )}
 
       <div className="flex flex-wrap gap-3">
         <RenovarSeguroForm id={seguro.id} />
         <SubirDocumentoSeguroForm id={seguro.id} tieneDocumento={!!seguro.documento} />
-        {esAdmin && (
+        {puedeEditarCompleto && (
           <EditarSeguroForm
             seguro={{
               id: seguro.id,

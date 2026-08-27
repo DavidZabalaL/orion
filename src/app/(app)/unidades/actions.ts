@@ -10,6 +10,9 @@ import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
 import { CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
+import { crearDocumento } from "@/lib/subir-archivo";
+import { TIPOS_DOCUMENTO_UNIDAD, REQUIERE_ANIO } from "@/lib/catalogo-documentos-unidad";
+import type { TipoDocumentoUnidad } from "@/generated/prisma/enums";
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
 
@@ -159,6 +162,73 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/unidades");
   invalidarCacheBI(["unidades", "historico_proyecto"]);
+  return { ok: true };
+}
+
+export async function subirDocumentoUnidad(formData: FormData): Promise<ResultadoSimple> {
+  if (!(await tienePermisoModulo("A", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
+  const tipoDocumento = String(formData.get("tipoDocumento") ?? "") as TipoDocumentoUnidad;
+  const anioRaw = String(formData.get("anio") ?? "").trim();
+  const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
+  const archivo = formData.get("archivo");
+
+  if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
+  if (!TIPOS_DOCUMENTO_UNIDAD.includes(tipoDocumento)) return { ok: false, error: "Selecciona un concepto de documento válido." };
+  if (!(archivo instanceof File) || archivo.size === 0) return { ok: false, error: "Debes adjuntar un archivo." };
+
+  let anio: number | null = null;
+  if (REQUIERE_ANIO.has(tipoDocumento)) {
+    anio = parseInt(anioRaw, 10);
+    if (!anio || anio < 2000 || anio > 2100) return { ok: false, error: "Captura un año válido para este concepto." };
+  }
+
+  const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+  if (!unidad) return { ok: false, error: "La unidad no existe." };
+
+  const permitidos = await proyectosPermitidosParaModulo("A");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
+
+  const session = await auth();
+
+  let documento;
+  try {
+    documento = await crearDocumento(archivo, {
+      carpeta: "documentos-unidad",
+      entidadRelacionada: "DocumentoUnidad",
+      entidadId: numeroEconomico,
+      tipo: tipoDocumento,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo subir el archivo." };
+  }
+
+  await prisma.documentoUnidad.create({
+    data: {
+      numeroEconomico,
+      tipoDocumento,
+      anio,
+      descripcion,
+      archivoId: documento.id,
+      subidoPorId: session?.user?.id,
+    },
+  });
+
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "documentos",
+      accion: "create",
+      entidad: "DocumentoUnidad",
+      entidadId: numeroEconomico,
+      detalle: { tipoDocumento, anio },
+    });
+  }
+
+  revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true };
 }
 

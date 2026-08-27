@@ -58,6 +58,47 @@ export async function puedeCargarPresupuesto(): Promise<boolean> {
 }
 
 /**
+ * Ver el detalle de una póliza de seguro (aseguradora, costo, coberturas) es más sensible
+ * que el nivel "ver" genérico del módulo F: Control Vehicular la captura pero no debe
+ * consultarla después. Reservado a Administrador (vía esRolGlobal) y, por nombre de rol,
+ * a Dirección y Gerente administrativo — si alguno de esos roles se renombra desde
+ * /usuarios/roles, esta lista debe actualizarse.
+ */
+const ROLES_VER_POLIZA_SEGURO = ["Dirección", "Gerente administrativo", "Jurídico"];
+const ROLES_DESCARGAR_POLIZA_SEGURO = ["Dirección", "Jurídico"];
+/** Corregir cualquier campo de una póliza ya existente (aseguradora, número, fechas, costo,
+ * coberturas) — más allá de crear/renovar/subir documento, que ya cubre el permiso "editar"
+ * genérico del módulo F. */
+const ROLES_EDITAR_POLIZA_COMPLETA_SEGURO = ["Jurídico"];
+
+export async function puedeEditarPolizaCompletaSeguro(): Promise<boolean> {
+  if (await esRolGlobal()) return true;
+  const session = await auth();
+  return !!session?.user?.rol && ROLES_EDITAR_POLIZA_COMPLETA_SEGURO.includes(session.user.rol);
+}
+
+export async function puedeVerPolizaSeguro(): Promise<boolean> {
+  if (await esRolGlobal()) return true;
+  const session = await auth();
+  return !!session?.user?.rol && ROLES_VER_POLIZA_SEGURO.includes(session.user.rol);
+}
+
+/** Descargar el PDF cargado de la póliza (o su tarjeta imprimible) — más restrictivo que verla. */
+export async function puedeDescargarPolizaSeguro(): Promise<boolean> {
+  if (await esRolGlobal()) return true;
+  const session = await auth();
+  return !!session?.user?.rol && ROLES_DESCARGAR_POLIZA_SEGURO.includes(session.user.rol);
+}
+
+export async function requerirVerPolizaSeguro(): Promise<void> {
+  if (!(await puedeVerPolizaSeguro())) redirect("/sin-acceso");
+}
+
+export async function requerirDescargarPolizaSeguro(): Promise<void> {
+  if (!(await puedeDescargarPolizaSeguro())) redirect("/sin-acceso");
+}
+
+/**
  * Administrador (rol global "*") la tiene siempre, vía tienePermisoEspecial —
  * para cualquier otro rol, solo si el Administrador se la otorga
  * explícitamente desde /usuarios/roles.

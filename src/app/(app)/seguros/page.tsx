@@ -3,13 +3,13 @@ import { Plus, ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion } from "lucide-
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { PolizasLista } from "@/components/seguros/polizas-lista";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirVerPolizaSeguro } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
 export const dynamic = "force-dynamic";
 
 export default async function SegurosPage() {
-  await requerirPermisoModulo("F");
+  await requerirVerPolizaSeguro();
   const proyectosPermitidos = await proyectosPermitidosParaModulo("F");
   const filtroUnidad = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
 

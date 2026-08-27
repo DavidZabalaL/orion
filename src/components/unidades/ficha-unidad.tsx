@@ -41,6 +41,7 @@ import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
+import { DocumentosUnidad } from "@/components/unidades/documentos-unidad";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,6 +54,7 @@ const TABS = [
   { id: "combustible", label: "Combustible" },
   { id: "tag", label: "TAG" },
   { id: "seguro", label: "Seguro" },
+  { id: "documentos", label: "Documentos" },
   { id: "gps", label: "GPS" },
   { id: "checklist", label: "Checklist" },
   { id: "operador", label: "Operador" },
@@ -313,6 +315,7 @@ export function FichaUnidad({
   insumos = [],
   puedeVerSla = false,
   slaMensual = [],
+  puedeVerPolizaSeguro = false,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -321,6 +324,7 @@ export function FichaUnidad({
   insumos?: { id: string; nombre: string; unidad: string; existencias: string }[];
   puedeVerSla?: boolean;
   slaMensual?: SlaMensual[];
+  puedeVerPolizaSeguro?: boolean;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -482,10 +486,11 @@ export function FichaUnidad({
         <div className="pt-5">
           {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} />}
-          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} />}
+          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
-          {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
+          {tab === "documentos" && <DocumentosUnidad numeroEconomico={unidad.numeroEconomico} documentos={unidad.documentos ?? []} />}
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
@@ -719,17 +724,25 @@ function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numer
 
 type HistoricoProyecto = { fechaInicio: string; fechaFin: string | null; proyecto: { nombre: string } };
 
-function proyectoDeGasto(fecha: string, historicos: HistoricoProyecto[]): string {
-  const f = new Date(fecha).getTime();
+/**
+ * Un gasto guarda su proyecto vigente al crearse en `historicoProyectoId` (fuente confiable,
+ * no cambia si la unidad se reasigna después). Los gastos capturados antes de que ese campo
+ * existiera no lo tienen — para esos se reconstruye por fecha contra el historial de proyectos
+ * de la unidad, y si tampoco hay coincidencia (ej. fecha anterior al primer registro de
+ * historial), se asume el proyecto actual de la unidad en vez de dejarlo en blanco.
+ */
+function proyectoDeGasto(g: Unidad, historicos: HistoricoProyecto[], proyectoActual: string | null): string {
+  if (g.historicoProyecto?.proyecto?.nombre) return g.historicoProyecto.proyecto.nombre;
+  const f = new Date(g.fecha).getTime();
   const h = historicos.find((h) => {
     const inicio = new Date(h.fechaInicio).getTime();
     const fin = h.fechaFin ? new Date(h.fechaFin).getTime() : Infinity;
     return f >= inicio && f < fin;
   });
-  return h?.proyecto?.nombre ?? "—";
+  return h?.proyecto?.nombre ?? proyectoActual ?? "—";
 }
 
-function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: HistoricoProyecto[] }) {
+function TabGastos({ gastos, historicos, proyectoActual }: { gastos: Unidad[]; historicos: HistoricoProyecto[]; proyectoActual: string | null }) {
   const [busqueda, setBusqueda] = useState("");
   const gastosOtros = useMemo(() => gastos.filter((g) => !CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
   const filtrados = useMemo(() => {
@@ -739,9 +752,9 @@ function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: Histo
       g.categoria.toUpperCase().includes(q) ||
       fmtFecha(g.fecha).toUpperCase().includes(q) ||
       (g.descripcion ?? "").toUpperCase().includes(q) ||
-      proyectoDeGasto(g.fecha, historicos).toUpperCase().includes(q)
+      proyectoDeGasto(g, historicos, proyectoActual).toUpperCase().includes(q)
     );
-  }, [gastosOtros, busqueda, historicos]);
+  }, [gastosOtros, busqueda, historicos, proyectoActual]);
 
   if (!gastosOtros.length) return <EmptyState>Sin otros gastos vehiculares registrados.</EmptyState>;
   return (
@@ -751,7 +764,7 @@ function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: Histo
         {filtrados.map((g) => (
           <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
             <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(g.fecha)}</td>
-            <td className="px-4 py-3 whitespace-nowrap" style={td}>{proyectoDeGasto(g.fecha, historicos)}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{proyectoDeGasto(g, historicos, proyectoActual)}</td>
             <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.categoria.replaceAll("_", " ")}</td>
             <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
             <td className="px-4 py-3 whitespace-nowrap" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(g.costo)}</td>
@@ -848,7 +861,7 @@ function TabTag({ registros, numeroEconomico }: { registros: Unidad[]; numeroEco
   );
 }
 
-function TabSeguro({ seguros, numeroEconomico }: { seguros: Unidad[]; numeroEconomico: string }) {
+function TabSeguro({ seguros, numeroEconomico, puedeVerPoliza }: { seguros: Unidad[]; numeroEconomico: string; puedeVerPoliza: boolean }) {
   if (!seguros.length) {
     return (
       <div className="flex flex-col gap-4">
@@ -860,43 +873,62 @@ function TabSeguro({ seguros, numeroEconomico }: { seguros: Unidad[]; numeroEcon
   return (
     <div className="flex flex-col gap-5">
       <div><BotonAgregarSeguro numeroEconomico={numeroEconomico} /></div>
+      {!puedeVerPoliza && (
+        <EmptyState>No tienes permiso para ver el detalle comercial de la póliza (aseguradora, costo, coberturas). Puedes renovarla o actualizar su documento sin verlo.</EmptyState>
+      )}
       {seguros.map((s) => (
         <div key={s.id} className="rounded-xl p-5" style={panelStyle}>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
+          {!puedeVerPoliza ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                {s.aseguradora} — {s.numeroPoliza}
+                Póliza {s.numeroPoliza}
               </div>
-              <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                Vigencia {fmtFecha(s.fechaInicio)} — {fmtFecha(s.fechaVencimiento)} · {fmtMoney(s.costo)}
+              <div className="flex items-center gap-3">
+                <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
+                <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                  Renovar / actualizar documento →
+                </Link>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
-              <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
-                Ver / editar →
-              </Link>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+                    {s.aseguradora} — {s.numeroPoliza}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+                    Vigencia {fmtFecha(s.fechaInicio)} — {fmtFecha(s.fechaVencimiento)} · {fmtMoney(s.costo)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge label={s.estatus.replace("_", " ")} color={ESTATUS_SEGURO_STYLE[s.estatus]?.color} bg={ESTATUS_SEGURO_STYLE[s.estatus]?.bg} />
+                  <Link href={`/seguros/${s.id}`} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-primary)" }}>
+                    Ver / editar →
+                  </Link>
+                </div>
+              </div>
 
-          <table className="w-full min-w-[560px] border-collapse">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["Cobertura", "Suma asegurada", "Deducible"].map((h) => (
-                  <th key={h} className="text-left px-3 py-2" style={labelStyle}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {s.coberturas.map((c: Unidad) => (
-                <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  <td className="px-3 py-2" style={td}>{c.tipoCobertura.replaceAll("_", " ")}</td>
-                  <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.sumaAsegurada) > 0 ? fmtMoney(c.sumaAsegurada) : "Amparada"}</td>
-                  <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.deducible) > 0 ? fmtMoney(c.deducible) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <table className="w-full min-w-[560px] border-collapse">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
+                    {["Cobertura", "Suma asegurada", "Deducible"].map((h) => (
+                      <th key={h} className="text-left px-3 py-2" style={labelStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.coberturas.map((c: Unidad) => (
+                    <tr key={c.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+                      <td className="px-3 py-2" style={td}>{c.tipoCobertura.replaceAll("_", " ")}</td>
+                      <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.sumaAsegurada) > 0 ? fmtMoney(c.sumaAsegurada) : "Amparada"}</td>
+                      <td className="px-3 py-2" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(c.deducible) > 0 ? fmtMoney(c.deducible) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       ))}
     </div>

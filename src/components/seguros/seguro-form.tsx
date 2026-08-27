@@ -2,9 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
 import { crearSeguro } from "@/app/(app)/seguros/actions";
-import { TIPO_COBERTURA_LABEL } from "@/lib/estatus";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
@@ -31,8 +29,6 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-type Cobertura = { tipoCobertura: string; sumaAsegurada: string; deducible: string };
-
 export function SeguroForm({
   unidades,
   numeroEconomicoDefault,
@@ -44,10 +40,6 @@ export function SeguroForm({
   numeroEconomicoFijo?: string;
   onExito?: (id: string) => void;
 }) {
-  const [coberturas, setCoberturas] = useState<Cobertura[]>([
-    { tipoCobertura: "RC_TERCEROS", sumaAsegurada: "3000000", deducible: "0" },
-    { tipoCobertura: "DANOS_MATERIALES", sumaAsegurada: "350000", deducible: "5000" },
-  ]);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -64,12 +56,10 @@ export function SeguroForm({
             return;
           }
           if (onExito) onExito(res.id);
-          else router.push(`/seguros/${res.id}`);
+          else router.push(`/unidades/${String(formData.get("numeroEconomico"))}`);
         });
       }}
     >
-      <input type="hidden" name="coberturasJson" value={JSON.stringify(coberturas)} />
-
       <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
         <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Datos de la póliza
@@ -106,67 +96,10 @@ export function SeguroForm({
             <CampoAyuda style={labelStyle} texto="Fecha en que vence la vigencia de la póliza.">Fecha de vencimiento *</CampoAyuda>
             <input name="fechaVencimiento" type="date" required style={fieldStyle} />
           </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Coberturas
-          </h3>
-          <button
-            type="button"
-            onClick={() => setCoberturas((c) => [...c, { tipoCobertura: "ROBO_TOTAL", sumaAsegurada: "0", deducible: "0" }])}
-            className="flex items-center gap-1 rounded-md px-2.5 py-1"
-            style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
-          >
-            <Plus size={13} /> Agregar
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {coberturas.map((c, i) => (
-            <div key={i} className="grid grid-cols-1 gap-2 md:grid-cols-[2fr_1fr_1fr_auto] items-end">
-              <div>
-                {i === 0 && <label style={labelStyle}>Tipo de cobertura</label>}
-                <select
-                  value={c.tipoCobertura}
-                  onChange={(e) => setCoberturas((cs) => cs.map((x, xi) => xi === i ? { ...x, tipoCobertura: e.target.value } : x))}
-                  style={fieldStyle}
-                >
-                  {Object.entries(TIPO_COBERTURA_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                {i === 0 && <label style={labelStyle}>Suma asegurada</label>}
-                <input
-                  type="number"
-                  value={c.sumaAsegurada}
-                  onChange={(e) => setCoberturas((cs) => cs.map((x, xi) => xi === i ? { ...x, sumaAsegurada: e.target.value } : x))}
-                  style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }}
-                />
-              </div>
-              <div>
-                {i === 0 && <label style={labelStyle}>Deducible</label>}
-                <input
-                  type="number"
-                  value={c.deducible}
-                  onChange={(e) => setCoberturas((cs) => cs.map((x, xi) => xi === i ? { ...x, deducible: e.target.value } : x))}
-                  style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setCoberturas((cs) => cs.filter((_, xi) => xi !== i))}
-                className="flex items-center justify-center rounded-md"
-                style={{ height: "var(--h-md)", width: "var(--h-md)", color: "var(--color-status-escena)" }}
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
+          <div className="md:col-span-2">
+            <CampoAyuda style={labelStyle} texto="Documento oficial de la póliza emitido por la aseguradora, en PDF.">PDF de la póliza *</CampoAyuda>
+            <input name="archivo" type="file" accept="application/pdf" required style={{ ...fieldStyle, paddingTop: 8 }} />
+          </div>
         </div>
       </div>
 
