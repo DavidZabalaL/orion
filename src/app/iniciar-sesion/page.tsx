@@ -158,6 +158,13 @@ export default async function IniciarSesionPage({
                 >
                   Entrar como operador
                 </button>
+                <a
+                  href="/recuperar-contrasena"
+                  className="text-center"
+                  style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </a>
               </form>
             </details>
           </div>

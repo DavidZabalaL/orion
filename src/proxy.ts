@@ -34,5 +34,7 @@ export const config = {
   // src/app/api/cron/reportes-programados/route.ts). invitacion: página
   // pública donde un Operador sin correo institucional crea su contraseña
   // con el token de un solo uso que recibió por correo (sin sesión previa).
-  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|invitacion|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
+  // recuperar-contrasena: mismo caso, para restablecer una contraseña ya
+  // existente en vez de aceptar una invitación nueva.
+  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|invitacion|recuperar-contrasena|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
 };
