@@ -53,6 +53,10 @@ export default async function FichaUnidadPage({
           orderBy: { fecha: "desc" },
           take: 30,
         },
+        documentos: {
+          include: { archivo: true, subidoPor: { select: { nombre: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       } as never,
     }),
     puedeEditarCapacidadTanque(),

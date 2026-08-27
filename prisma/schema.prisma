@@ -73,6 +73,25 @@ enum EstatusDocumental {
   VENCIDO
 }
 
+enum TipoDocumentoUnidad {
+  FACTURA_VEHICULO
+  FACTURA_ELEVADOR
+  FACTURA_EXPORTACION
+  FACTURA_COMERCIAL
+  CARTA_FACTURA
+  PEDIMENTO
+  CERTIFICADO_MONTAJE
+  TARJETA_CIRCULACION
+  REFRENDO
+  DERECHOS_VEHICULARES
+  ORDEN_EMBARQUE
+  PROTOCOLO_ENTREGA
+  NOTA_ENTREGA
+  PEDIDO_COMPRA
+  ACTA_ENTREGA_DOCUMENTOS
+  OTRO
+}
+
 enum TipoDocumentoOperador {
   LICENCIA
   INE
@@ -274,6 +293,7 @@ model Usuario {
   bitacora                            BitacoraCambio[]
   checklists                          Checklist[]
   documentosVerificados               DocumentoOperador[]
+  documentosUnidadCargados            DocumentoUnidad[]
   reportesProgramados                 ReporteProgramado[]
   configuracionesNotificaciones       ConfiguracionNotificaciones[]
   presupuestosPartidaCargados         PresupuestoPartida[]
@@ -316,6 +336,7 @@ model Documento {
 
   operadoresFoto           Operador[]          @relation("OperadorFoto")
   documentosOperador       DocumentoOperador[]
+  documentosUnidad         DocumentoUnidad[]
   gastos                   GastoVehicular[]
   checklists               Checklist[]
   seguros                  Seguro[]
@@ -469,12 +490,32 @@ model Unidad {
   historicosProyecto UnidadHistoricoProyecto[]
   siniestros         Siniestro[]
   consumosInsumos    ConsumoInsumo[]
+  documentos         DocumentoUnidad[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([proyectoId])
   @@index([estatus])
+}
+
+model DocumentoUnidad {
+  id              String              @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad              @relation(fields: [numeroEconomico], references: [numeroEconomico], onDelete: Cascade)
+  tipoDocumento   TipoDocumentoUnidad
+  /// Solo aplica a conceptos recurrentes (Refrendo, Derechos vehiculares).
+  anio            Int?
+  descripcion     String?
+  archivoId       String
+  archivo         Documento           @relation(fields: [archivoId], references: [id])
+  subidoPorId     String?
+  subidoPor       Usuario?            @relation(fields: [subidoPorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([numeroEconomico])
+  @@index([tipoDocumento])
 }
 
 model Placa {

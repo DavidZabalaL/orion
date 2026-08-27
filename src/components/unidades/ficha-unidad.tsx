@@ -41,6 +41,7 @@ import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
+import { DocumentosUnidad } from "@/components/unidades/documentos-unidad";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,6 +54,7 @@ const TABS = [
   { id: "combustible", label: "Combustible" },
   { id: "tag", label: "TAG" },
   { id: "seguro", label: "Seguro" },
+  { id: "documentos", label: "Documentos" },
   { id: "gps", label: "GPS" },
   { id: "checklist", label: "Checklist" },
   { id: "operador", label: "Operador" },
@@ -488,6 +490,7 @@ export function FichaUnidad({
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
+          {tab === "documentos" && <DocumentosUnidad numeroEconomico={unidad.numeroEconomico} documentos={unidad.documentos ?? []} />}
           {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
