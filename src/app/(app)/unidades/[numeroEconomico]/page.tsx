@@ -29,7 +29,11 @@ export default async function FichaUnidadPage({
           },
         },
         checklists: { orderBy: { fecha: "desc" }, take: 30 },
-        gastos: { orderBy: { fecha: "desc" }, take: 50 },
+        gastos: {
+          orderBy: { fecha: "desc" },
+          take: 50,
+          include: { historicoProyecto: { include: { proyecto: { select: { nombre: true } } } } },
+        },
         combustible: { orderBy: { fecha: "desc" }, take: 20 },
         tags: { orderBy: { fecha: "desc" }, take: 20 },
         seguros: { include: { coberturas: true }, orderBy: { fechaVencimiento: "desc" } },

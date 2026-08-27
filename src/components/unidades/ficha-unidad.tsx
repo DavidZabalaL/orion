@@ -486,7 +486,7 @@ export function FichaUnidad({
         <div className="pt-5">
           {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} />}
-          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} />}
+          {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
@@ -724,17 +724,25 @@ function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numer
 
 type HistoricoProyecto = { fechaInicio: string; fechaFin: string | null; proyecto: { nombre: string } };
 
-function proyectoDeGasto(fecha: string, historicos: HistoricoProyecto[]): string {
-  const f = new Date(fecha).getTime();
+/**
+ * Un gasto guarda su proyecto vigente al crearse en `historicoProyectoId` (fuente confiable,
+ * no cambia si la unidad se reasigna después). Los gastos capturados antes de que ese campo
+ * existiera no lo tienen — para esos se reconstruye por fecha contra el historial de proyectos
+ * de la unidad, y si tampoco hay coincidencia (ej. fecha anterior al primer registro de
+ * historial), se asume el proyecto actual de la unidad en vez de dejarlo en blanco.
+ */
+function proyectoDeGasto(g: Unidad, historicos: HistoricoProyecto[], proyectoActual: string | null): string {
+  if (g.historicoProyecto?.proyecto?.nombre) return g.historicoProyecto.proyecto.nombre;
+  const f = new Date(g.fecha).getTime();
   const h = historicos.find((h) => {
     const inicio = new Date(h.fechaInicio).getTime();
     const fin = h.fechaFin ? new Date(h.fechaFin).getTime() : Infinity;
     return f >= inicio && f < fin;
   });
-  return h?.proyecto?.nombre ?? "—";
+  return h?.proyecto?.nombre ?? proyectoActual ?? "—";
 }
 
-function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: HistoricoProyecto[] }) {
+function TabGastos({ gastos, historicos, proyectoActual }: { gastos: Unidad[]; historicos: HistoricoProyecto[]; proyectoActual: string | null }) {
   const [busqueda, setBusqueda] = useState("");
   const gastosOtros = useMemo(() => gastos.filter((g) => !CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
   const filtrados = useMemo(() => {
@@ -744,9 +752,9 @@ function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: Histo
       g.categoria.toUpperCase().includes(q) ||
       fmtFecha(g.fecha).toUpperCase().includes(q) ||
       (g.descripcion ?? "").toUpperCase().includes(q) ||
-      proyectoDeGasto(g.fecha, historicos).toUpperCase().includes(q)
+      proyectoDeGasto(g, historicos, proyectoActual).toUpperCase().includes(q)
     );
-  }, [gastosOtros, busqueda, historicos]);
+  }, [gastosOtros, busqueda, historicos, proyectoActual]);
 
   if (!gastosOtros.length) return <EmptyState>Sin otros gastos vehiculares registrados.</EmptyState>;
   return (
@@ -756,7 +764,7 @@ function TabGastos({ gastos, historicos }: { gastos: Unidad[]; historicos: Histo
         {filtrados.map((g) => (
           <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
             <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(g.fecha)}</td>
-            <td className="px-4 py-3 whitespace-nowrap" style={td}>{proyectoDeGasto(g.fecha, historicos)}</td>
+            <td className="px-4 py-3 whitespace-nowrap" style={td}>{proyectoDeGasto(g, historicos, proyectoActual)}</td>
             <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.categoria.replaceAll("_", " ")}</td>
             <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
             <td className="px-4 py-3 whitespace-nowrap" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(g.costo)}</td>

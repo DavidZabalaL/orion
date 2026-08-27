@@ -90,6 +90,7 @@ export async function crearUnidad(formData: FormData) {
       tarjetaCirculacionId: tarjetaCirculacion?.id,
       tarjetaCombustibleId: tarjetaCombustible?.id,
       placasHistorial: { create: { placa: placas } },
+      historicosProyecto: { create: { proyectoId } },
     },
   });
   await registrarCambioDisponibilidad(numeroEconomico, true);

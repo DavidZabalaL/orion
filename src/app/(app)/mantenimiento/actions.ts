@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { CATEGORIA_APLICA_A_UNIDAD } from "@/lib/categorias-gasto";
+import { CATEGORIA_APLICA_A_UNIDAD, CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
+import type { GastoRow } from "@/components/mantenimiento/mantenimiento-lista";
 import { esRolGlobal, exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
@@ -46,20 +47,38 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
     return { ok: false, error: "Selecciona el proyecto." };
   }
 
+  let historicoProyectoId: string | null = null;
+
   const permitidos = await proyectosPermitidosParaModulo("C");
-  if (permitidos !== null) {
-    if (aplicaAUnidad) {
-      const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: numeroEconomico! }, select: { proyectoId: true } });
-      if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
-    } else if (!permitidos.includes(proyectoReportanteId!)) {
+  if (aplicaAUnidad) {
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: numeroEconomico! }, select: { proyectoId: true } });
+    if (permitidos !== null && (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId))) {
       return { ok: false, error: "No tienes permiso para realizar esta acción." };
     }
+
+    // El gasto se liga al periodo de proyecto vigente de la unidad (UnidadHistoricoProyecto),
+    // no solo a su proyectoId actual — así el historial no cambia de proyecto retroactivamente
+    // si la unidad se reasigna después. Si la unidad no tiene un periodo abierto (ej. unidades
+    // creadas antes de que esto existiera), se abre uno con su proyecto actual.
+    const historicoAbierto = await prisma.unidadHistoricoProyecto.findFirst({
+      where: { numeroEconomico: numeroEconomico!, fechaFin: null },
+      orderBy: { fechaInicio: "desc" },
+    });
+    if (historicoAbierto) {
+      historicoProyectoId = historicoAbierto.id;
+    } else if (unidad?.proyectoId) {
+      const creado = await prisma.unidadHistoricoProyecto.create({ data: { numeroEconomico: numeroEconomico!, proyectoId: unidad.proyectoId } });
+      historicoProyectoId = creado.id;
+    }
+  } else if (permitidos !== null && !permitidos.includes(proyectoReportanteId!)) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
   }
 
   const gasto = await prisma.gastoVehicular.create({
     data: {
       numeroEconomico: aplicaAUnidad ? numeroEconomico : null,
       proyectoReportanteId: aplicaAUnidad ? null : proyectoReportanteId,
+      historicoProyectoId,
       categoria: categoria as never,
       descripcion,
       fecha: parseFechaLocalMx(fecha)!,
@@ -90,6 +109,50 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   invalidarCacheBI(["mantenimiento"]);
   if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true, id: gasto.id };
+}
+
+/**
+ * El "Historial reciente" de /mantenimiento solo trae los 30 más recientes (para que la
+ * página cargue rápido) — por eso una orden con fecha antigua (ej. capturada tarde, con la
+ * fecha real del servicio) puede no aparecer ahí aunque sí exista. Esta búsqueda consulta
+ * el historial completo, no solo esos 30.
+ */
+export async function buscarHistorialGastos(query: string): Promise<GastoRow[]> {
+  await exigirPermisoModulo("C", "ver");
+
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const permitidos = await proyectosPermitidosParaModulo("C");
+  const filtroProyecto =
+    permitidos !== null
+      ? { OR: [{ unidad: { proyectoId: { in: permitidos } } }, { proyectoReportanteId: { in: permitidos } }] }
+      : {};
+
+  const categoriasCoincidentes = Object.entries(CATEGORIA_GASTO_LABEL)
+    .filter(([, label]) => label.toUpperCase().includes(q.toUpperCase()))
+    .map(([categoria]) => categoria);
+
+  const gastos = await prisma.gastoVehicular.findMany({
+    where: {
+      AND: [
+        filtroProyecto,
+        {
+          OR: [
+            { numeroEconomico: { contains: q, mode: "insensitive" } },
+            { descripcion: { contains: q, mode: "insensitive" } },
+            { proveedor: { contains: q, mode: "insensitive" } },
+            ...(categoriasCoincidentes.length ? [{ categoria: { in: categoriasCoincidentes as never } }] : []),
+          ],
+        },
+      ],
+    },
+    include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
+    orderBy: { fecha: "desc" },
+    take: 100,
+  });
+
+  return JSON.parse(JSON.stringify(gastos));
 }
 
 export async function marcarRealizado(formData: FormData) {

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CATEGORIA_GASTO_LABEL, ESTATUS_GASTO_LABEL, ESTATUS_GASTO_STYLE } from "@/lib/categorias-gasto";
 import { MarcarRealizadoButton } from "@/components/mantenimiento/marcar-realizado-button";
-import { actualizarGasto, eliminarGasto } from "@/app/(app)/mantenimiento/actions";
+import { actualizarGasto, eliminarGasto, buscarHistorialGastos } from "@/app/(app)/mantenimiento/actions";
 
 const HOY = new Date().toISOString().slice(0, 10);
 
@@ -381,16 +381,43 @@ export function PendientesLista({ pendientes, isAdmin = false }: { pendientes: G
 export function HistorialLista({ historial, isAdmin = false }: { historial: GastoRow[]; isAdmin?: boolean }) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [resultadosBusqueda, setResultadosBusqueda] = useState<GastoRow[] | null>(null);
+  const [buscando, startBusqueda] = useTransition();
 
+  // El historial recibido del servidor solo trae los 30 más recientes (la página debe
+  // cargar rápido). Filtrar esos 30 en el cliente no encuentra una orden vieja que sí
+  // existe — por eso, a partir de 2 caracteres, se busca en el historial completo en el
+  // servidor y esos resultados reemplazan a los 30 mientras haya texto en el buscador.
+  useEffect(() => {
+    const q = busqueda.trim();
+    if (q.length < 2) return;
+    const id = setTimeout(() => {
+      startBusqueda(async () => {
+        setResultadosBusqueda(await buscarHistorialGastos(q));
+      });
+    }, 300);
+    return () => clearTimeout(id);
+  }, [busqueda]);
+
+  const busquedaActiva = busqueda.trim().length >= 2;
   const filtrados = useMemo(() => {
+    if (busquedaActiva && resultadosBusqueda !== null) return resultadosBusqueda;
     const q = busqueda.trim().toUpperCase();
     if (!q) return historial;
     return historial.filter((g) => coincide(g, q));
-  }, [historial, busqueda]);
+  }, [historial, busqueda, resultadosBusqueda, busquedaActiva]);
 
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar unidad o categoría…" />
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar en todo el historial: unidad, proyecto, categoría, proveedor…" />
+      {!busqueda.trim() && (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+          Mostrando los 30 movimientos más recientes. Escribe para buscar en todo el historial.
+        </p>
+      )}
+      {buscando && (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>Buscando en todo el historial…</p>
+      )}
       {filtrados.length === 0 ? (
         <EmptyState>Sin gastos que coincidan.</EmptyState>
       ) : (
