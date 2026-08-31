@@ -80,6 +80,46 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
   };
 }
 
+export type ResultadoReenviarInvitacion = {
+  correoEnviado: boolean;
+  errorCorreo?: string;
+  linkInvitacion?: string;
+};
+
+export async function reenviarInvitacion(formData: FormData): Promise<ResultadoReenviarInvitacion> {
+  await exigirPermisoModulo("K", "editar");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("ID de usuario requerido.");
+
+  const usuario = await prisma.usuario.findUniqueOrThrow({
+    where: { id },
+    select: { nombre: true, correo: true, metodoAcceso: true, invitacionToken: true, invitacionExpiraEn: true, estatus: true },
+  });
+
+  let token = usuario.invitacionToken;
+  const VIGENCIA_MS = 7 * 24 * 60 * 60 * 1000;
+
+  if (usuario.metodoAcceso === "CORREO_PASSWORD") {
+    // Regenerar token siempre para que el enlace anterior quede inválido
+    token = randomBytes(32).toString("hex");
+    await prisma.usuario.update({
+      where: { id },
+      data: { invitacionToken: token, invitacionExpiraEn: new Date(Date.now() + VIGENCIA_MS) },
+    });
+  }
+
+  const resultado = token
+    ? await enviarInvitacionOperador({ correo: usuario.correo, nombre: usuario.nombre, token })
+    : await enviarInvitacion({ correo: usuario.correo, nombre: usuario.nombre, rol: "" });
+
+  return {
+    correoEnviado: resultado.enviado,
+    errorCorreo: resultado.error,
+    linkInvitacion: token ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invitacion/${token}` : undefined,
+  };
+}
+
 export async function alternarEstatusUsuario(formData: FormData) {
   await exigirPermisoModulo("K", "editar");
 

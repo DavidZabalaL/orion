@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, Trash2, TriangleAlert } from "lucide-react";
+import { Pencil, Trash2, TriangleAlert, Mail, Copy, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { alternarEstatusUsuario, actualizarUsuario, eliminarUsuario } from "@/app/(app)/usuarios/actions";
+import { alternarEstatusUsuario, actualizarUsuario, eliminarUsuario, reenviarInvitacion } from "@/app/(app)/usuarios/actions";
 
 type Usuario = {
   id: string;
@@ -46,7 +46,23 @@ export function UsuarioRow({
   const [pending, startTransition] = useTransition();
   const [modo, setModo] = useState<"ver" | "editar" | "confirmar-eliminar">("ver");
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+  const [reenvioEstado, setReenvioEstado] = useState<{ tipo: "ok" | "ok-sin-correo"; link?: string; error?: string } | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
   const style = ESTATUS_STYLE[u.estatus];
+
+  function handleReenviarInvitacion(fd: FormData) {
+    startTransition(async () => {
+      const res = await reenviarInvitacion(fd);
+      setReenvioEstado(res.correoEnviado ? { tipo: "ok" } : { tipo: "ok-sin-correo", link: res.linkInvitacion, error: res.errorCorreo });
+      setTimeout(() => setReenvioEstado(null), res.linkInvitacion ? 60000 : 6000);
+    });
+  }
+
+  function copiarLink(link: string) {
+    navigator.clipboard.writeText(link);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 2000);
+  }
 
   function handleEliminar(formData: FormData) {
     startTransition(async () => {
@@ -74,6 +90,14 @@ export function UsuarioRow({
         <Badge label={style.label} color={style.color} bg={style.bg} />
 
         <div className="flex flex-wrap items-center gap-2 ml-auto">
+          {u.estatus === "INVITADO" && (
+            <form action={handleReenviarInvitacion}>
+              <input type="hidden" name="id" value={u.id} />
+              <button type="submit" disabled={pending} className="flex items-center gap-1 rounded-md px-2.5 py-1.5 disabled:opacity-60" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}>
+                <Mail size={12} /> Reenviar invitación
+              </button>
+            </form>
+          )}
           <button
             onClick={() => setModo(modo === "editar" ? "ver" : "editar")}
             className="flex items-center gap-1 rounded-md px-2.5 py-1.5"
@@ -97,6 +121,40 @@ export function UsuarioRow({
           </button>
         </div>
       </div>
+
+      {reenvioEstado && (
+        <div className="flex items-start gap-2 rounded-md px-3 py-2.5 mt-3" style={{ background: reenvioEstado.tipo === "ok" ? "var(--status-ok-bg)" : "var(--status-revision-bg)" }}>
+          {reenvioEstado.tipo === "ok" ? (
+            <CheckCircle2 size={15} color="var(--color-status-ok)" className="shrink-0 mt-0.5" />
+          ) : (
+            <TriangleAlert size={15} color="var(--color-status-revision)" className="shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1 min-w-0" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: reenvioEstado.tipo === "ok" ? "var(--color-status-ok)" : "var(--color-status-revision)" }}>
+            {reenvioEstado.tipo === "ok" ? (
+              "Invitación reenviada exitosamente."
+            ) : (
+              <>
+                <span>No se pudo enviar el correo{reenvioEstado.error ? `: ${reenvioEstado.error}` : "."}</span>
+                {reenvioEstado.link && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="break-all select-all flex-1" style={{ fontFamily: "var(--font-mono, monospace)", fontSize: "var(--text-xs)", color: "var(--field-text)", background: "var(--field-bg)", borderRadius: 4, padding: "4px 8px" }}>
+                      {reenvioEstado.link}
+                    </span>
+                    <button
+                      onClick={() => copiarLink(reenvioEstado.link!)}
+                      className="flex items-center gap-1 rounded-md px-2.5 py-1.5 shrink-0"
+                      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                    >
+                      {linkCopiado ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+                      {linkCopiado ? "Copiado" : "Copiar"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {errorEliminar && (
         <div className="flex items-start gap-2 rounded-md px-3 py-2.5 mt-3" style={{ background: "var(--status-escena-bg)" }}>

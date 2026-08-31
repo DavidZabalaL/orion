@@ -489,6 +489,7 @@ model Unidad {
 
   asignaciones       AsignacionOperador[]
   resguardos         Resguardo[]
+  usoUnidades        BitacoraUsoUnidad[]
   historicoDisponibilidad HistoricoDisponibilidadUnidad[]
   checklists         Checklist[]
   gastos             GastoVehicular[]
@@ -576,6 +577,7 @@ model Operador {
   accidentes           Accidente[]
   cursos               CursoOperador[]
   siniestros           Siniestro[]          @relation("SiniestroOperador")
+  usoUnidades          BitacoraUsoUnidad[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -633,6 +635,24 @@ model Resguardo {
 
   @@index([numeroEconomico])
   @@index([operadorId])
+}
+
+/// Registro de cuándo un operador tomó y liberó una unidad en su turno diario.
+/// A diferencia de Resguardo (custodia a largo plazo), este modelo rastrea
+/// sesiones de uso dentro del día: hora de inicio y fin, permitiendo calcular
+/// el tiempo efectivo de operación por unidad y operador.
+model BitacoraUsoUnidad {
+  id              String    @id @default(cuid())
+  operadorId      String
+  operador        Operador  @relation(fields: [operadorId], references: [id])
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  inicio          DateTime  @default(now())
+  fin             DateTime?
+
+  @@index([operadorId])
+  @@index([numeroEconomico])
+  @@index([inicio])
 }
 
 /**
