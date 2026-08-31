@@ -18,11 +18,12 @@ import {
   Package,
   Siren,
   AlertOctagon,
+  KeyRound,
 } from "lucide-react";
 
-export type Grupo = "Flota" | "Operación y gasto" | "Geo" | "Gestión" | "Rescate y campo";
+export type Grupo = "Flota" | "Operación y gasto" | "Geo" | "Gestión" | "Rescate y campo" | "Mi turno";
 
-export const GRUPOS: Grupo[] = ["Flota", "Operación y gasto", "Rescate y campo", "Geo", "Gestión"];
+export const GRUPOS: Grupo[] = ["Mi turno", "Flota", "Operación y gasto", "Rescate y campo", "Geo", "Gestión"];
 
 export type Modulo = {
   id: string;
@@ -34,6 +35,7 @@ export type Modulo = {
 };
 
 export const MODULOS: Modulo[] = [
+  { id: "O", label: "Mi Turno", href: "/operador/turno", icon: KeyRound, descripcion: "Selección de unidad y bitácora diaria de uso para operadores", grupo: "Mi turno" },
   { id: "A", label: "Inventario de Unidades", href: "/unidades", icon: Car, descripcion: "Ficha única por número económico con vista consolidada", grupo: "Flota" },
   { id: "A.1", label: "Checklist", href: "/checklist", icon: ClipboardCheck, descripcion: "Inspección diaria (odómetro) y semanal (59 puntos)", grupo: "Flota" },
   { id: "B", label: "Alta / Baja", href: "/altas-bajas", icon: FilePlus2, descripcion: "Ciclo de vida de unidades", grupo: "Flota" },
