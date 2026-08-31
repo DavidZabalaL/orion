@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { X, Pencil, GripVertical, Table2 } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
 import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
+import { useRegisterExportable } from "@/components/dashboard/ExportRegistryContext";
 
 export function BiCard({
   label,
@@ -68,6 +69,19 @@ export function BiCard({
   const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = obtenerCampo(obtenerDataset(dataset)!, ejeX)?.label ?? ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
+  const idExportable = useId();
+
+  // Cada widget de "Mis dashboards" se registra para el exportador de
+  // resumen ejecutivo mientras está visible y con datos: los "contador"
+  // (un solo valor) se registran como KPI numérico, el resto como gráfica a
+  // rasterizar desde el mismo `graficaRef` que ya usa ExportarMenu.
+  useRegisterExportable(
+    cargando || error
+      ? null
+      : tipoGrafica === "contador"
+      ? { id: idExportable, type: "kpi", title: label, value: datos[0]?.valor }
+      : { id: idExportable, type: "chart", title: label, domRef: graficaRef }
+  );
 
   return (
     <div className="flex h-full flex-col rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
