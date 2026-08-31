@@ -50,7 +50,6 @@ export function EstatusFlotaModal({
   configInicial: ConfigEstatusFlotaProgramado;
   puedeEditar: boolean;
 }) {
-  const [general, setGeneral] = useState(configInicial.proyectoIds === null);
   const [seleccionados, setSeleccionados] = useState<string[]>(configInicial.proyectoIds ?? []);
   const [desde, setDesde] = useState(hoyISO(-7));
   const [hasta, setHasta] = useState(hoyISO());
@@ -67,16 +66,13 @@ export function EstatusFlotaModal({
     setSeleccionados((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
   }
 
-  const proyectoIds = general ? null : seleccionados;
-  const proyectoLabel = general
-    ? "General"
-    : proyectosDisponibles.filter((p) => seleccionados.includes(p.id)).map((p) => p.nombre).join(", ") || "Sin proyecto";
+  const todosSeleccionados = proyectosDisponibles.length > 0 && seleccionados.length === proyectosDisponibles.length;
 
   async function descargar() {
     setDescargando(true);
     setMensaje(null);
     try {
-      const res = await obtenerDatosEstatusFlota({ proyectoIds, desde, hasta, proyectoLabel });
+      const res = await obtenerDatosEstatusFlota({ proyectoIds: seleccionados, desde, hasta });
       if (!res.ok) {
         setMensaje({ tipo: "error", texto: res.error });
         return;
@@ -85,7 +81,14 @@ export function EstatusFlotaModal({
         import("@react-pdf/renderer"),
         import("./EstatusFlotaDocument"),
       ]);
-      const datos = { ...res.datos, desde: new Date(res.datos.desde), hasta: new Date(res.datos.hasta) };
+      const datos = {
+        ...res.datos,
+        desde: new Date(res.datos.desde),
+        hasta: new Date(res.datos.hasta),
+        seleccion: res.datos.seleccion ? { ...res.datos.seleccion, desde: new Date(res.datos.seleccion.desde), hasta: new Date(res.datos.seleccion.hasta) } : null,
+        porProyecto: res.datos.porProyecto.map((p) => ({ ...p, desde: new Date(p.desde), hasta: new Date(p.hasta) })),
+        general: { ...res.datos.general, desde: new Date(res.datos.general.desde), hasta: new Date(res.datos.general.hasta) },
+      };
       const blob = await pdf(<EstatusFlotaDocument datos={datos} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -109,7 +112,7 @@ export function EstatusFlotaModal({
     }
     setEnviando(true);
     setMensaje(null);
-    const res = await enviarEstatusFlotaAhora({ proyectoIds, desde, hasta, proyectoLabel, destinatarios: listaDestinatarios });
+    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios });
     setEnviando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }
@@ -120,7 +123,7 @@ export function EstatusFlotaModal({
     setMensaje(null);
     const res = await guardarProgramacionEstatusFlota({
       id: configInicial.id,
-      proyectoIds,
+      proyectoIds: seleccionados,
       hora: horaAutomatica,
       destinatarios: listaDestinatarios,
       activo: envioAutomaticoActivo,
@@ -143,21 +146,27 @@ export function EstatusFlotaModal({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
           <div>
-            <label style={labelStyle}>Proyectos</label>
-            <label className="flex items-center gap-2 mb-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
-              <input type="checkbox" checked={general} onChange={(e) => setGeneral(e.target.checked)} />
-              General (todos)
-            </label>
-            {!general && (
-              <div className="flex flex-col gap-1 pl-1 max-h-32 overflow-y-auto">
-                {proyectosDisponibles.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
-                    <input type="checkbox" checked={seleccionados.includes(p.id)} onChange={() => alternarProyecto(p.id)} />
-                    {p.nombre}
-                  </label>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center justify-between mb-1.5">
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Proyectos a desglosar (opcional)</label>
+              <button
+                type="button"
+                onClick={() => setSeleccionados(todosSeleccionados ? [] : proyectosDisponibles.map((p) => p.id))}
+                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer" }}
+              >
+                {todosSeleccionados ? "Quitar selección" : "Seleccionar todos"}
+              </button>
+            </div>
+            <div className="flex flex-col gap-1 pl-1 max-h-32 overflow-y-auto">
+              {proyectosDisponibles.map((p) => (
+                <label key={p.id} className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                  <input type="checkbox" checked={seleccionados.includes(p.id)} onChange={() => alternarProyecto(p.id)} />
+                  {p.nombre}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              El reporte siempre incluye el resumen general. Si eliges proyectos aquí, también incluye el resumen combinado de la selección y el desglose de cada uno.
+            </p>
           </div>
 
           <div className="flex gap-3">

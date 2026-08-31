@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_ESTATUS, LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
-import type { EstatusFlota } from "@/lib/reportes/estatus-flota";
+import type { EstatusFlota, EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 
 const NAVY = "#0f1b2d";
 const BLUE = "#2b7fff";
@@ -72,65 +72,82 @@ function Tabla({ filas, vacio }: { filas: { label: string; valor: string }[]; va
   );
 }
 
-/** Documento PDF del reporte "Estatus semanal de flota" — bloques fijos (SLA, disponibilidad, estatus, motivos, gastos), ver src/lib/reportes/estatus-flota.ts y EstatusFlotaModal. */
-export function EstatusFlotaDocument({ datos }: { datos: EstatusFlota }) {
+/** Una página del reporte para un alcance específico (general, selección combinada, o un proyecto individual). */
+function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
+  return (
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.headerEyebrow}>ORIÓN · CONTROL VEHICULAR — GRUPO KABAT</Text>
+        <Text style={styles.headerTitle}>Estatus de flota — {datos.proyectoLabel}</Text>
+        <View style={styles.headerMeta}>
+          <Text style={styles.headerBrand}>{fmtFechaPdf(datos.desde)} — {fmtFechaPdf(datos.hasta)}</Text>
+          <Text style={styles.headerDate}>Generado el {fmtFechaPdf(new Date())}</Text>
+        </View>
+      </View>
+      <View style={styles.accentBar} />
+
+      <View style={styles.body}>
+        <Text style={styles.sectionTitle}>Disponibilidad (SLA)</Text>
+        <View style={styles.kpiGrid}>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
+            <Text style={styles.kpiLabel}>SLA promedio del periodo</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{datos.unidadesDisponibles}</Text>
+            <Text style={styles.kpiLabel}>Unidades disponibles</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{datos.unidadesNoDisponibles}</Text>
+            <Text style={styles.kpiLabel}>Unidades no disponibles</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Estatus de la flota</Text>
+        <Tabla
+          vacio="Sin unidades en este alcance."
+          filas={datos.porEstatus.map((e) => ({ label: LABEL_ESTATUS[e.estatus], valor: String(e.cantidad) }))}
+        />
+
+        <Text style={styles.sectionTitle}>Motivos de indisponibilidad</Text>
+        <Tabla
+          vacio="Ninguna unidad no disponible en este alcance."
+          filas={datos.porMotivo.map((m) => ({
+            label: m.motivo === "SIN_MOTIVO" ? "Sin motivo registrado" : LABEL_MOTIVO[m.motivo],
+            valor: String(m.cantidad),
+          }))}
+        />
+
+        <Text style={styles.sectionTitle}>Gastos del periodo — {fmtMoneyPdf(datos.gastoTotal)}</Text>
+        <Tabla
+          vacio="Sin gastos registrados en el periodo."
+          filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: fmtMoneyPdf(g.monto) }))}
+        />
+      </View>
+
+      <View style={styles.footer} fixed>
+        <Text style={styles.footerText}>Orión · Control Vehicular — Grupo Kabat</Text>
+        <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+      </View>
+    </Page>
+  );
+}
+
+/**
+ * Documento PDF del reporte "Estatus semanal de flota" — una página por
+ * alcance: primero el resumen general (todos los proyectos permitidos), luego
+ * el resumen combinado de la selección (si se eligió algún proyecto), y
+ * después el desglose individual de cada proyecto seleccionado. Ver
+ * src/lib/reportes/estatus-flota.ts y EstatusFlotaModal.
+ */
+export function EstatusFlotaDocument({ datos }: { datos: EstatusFlotaReporte }) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.headerEyebrow}>ORIÓN · CONTROL VEHICULAR — GRUPO KABAT</Text>
-          <Text style={styles.headerTitle}>Estatus de flota — {datos.proyectoLabel}</Text>
-          <View style={styles.headerMeta}>
-            <Text style={styles.headerBrand}>{fmtFechaPdf(datos.desde)} — {fmtFechaPdf(datos.hasta)}</Text>
-            <Text style={styles.headerDate}>Generado el {fmtFechaPdf(new Date())}</Text>
-          </View>
-        </View>
-        <View style={styles.accentBar} />
-
-        <View style={styles.body}>
-          <Text style={styles.sectionTitle}>Disponibilidad (SLA)</Text>
-          <View style={styles.kpiGrid}>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiValue}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
-              <Text style={styles.kpiLabel}>SLA promedio del periodo</Text>
-            </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiValue}>{datos.unidadesDisponibles}</Text>
-              <Text style={styles.kpiLabel}>Unidades disponibles</Text>
-            </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiValue}>{datos.unidadesNoDisponibles}</Text>
-              <Text style={styles.kpiLabel}>Unidades no disponibles</Text>
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Estatus de la flota</Text>
-          <Tabla
-            vacio="Sin unidades en este alcance."
-            filas={datos.porEstatus.map((e) => ({ label: LABEL_ESTATUS[e.estatus], valor: String(e.cantidad) }))}
-          />
-
-          <Text style={styles.sectionTitle}>Motivos de indisponibilidad</Text>
-          <Tabla
-            vacio="Ninguna unidad no disponible en este alcance."
-            filas={datos.porMotivo.map((m) => ({
-              label: m.motivo === "SIN_MOTIVO" ? "Sin motivo registrado" : LABEL_MOTIVO[m.motivo],
-              valor: String(m.cantidad),
-            }))}
-          />
-
-          <Text style={styles.sectionTitle}>Gastos del periodo — {fmtMoneyPdf(datos.gastoTotal)}</Text>
-          <Tabla
-            vacio="Sin gastos registrados en el periodo."
-            filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: fmtMoneyPdf(g.monto) }))}
-          />
-        </View>
-
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Orión · Control Vehicular — Grupo Kabat</Text>
-          <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-        </View>
-      </Page>
+      <PaginaEstatus datos={datos.general} />
+      {datos.seleccion && <PaginaEstatus datos={datos.seleccion} />}
+      {datos.porProyecto.map((p, i) => (
+        <PaginaEstatus key={i} datos={p} />
+      ))}
     </Document>
   );
 }

@@ -90,18 +90,40 @@ export async function calcularEstatusFlota({
     ? Math.round((porcentajesConDatos.reduce((a, b) => a + b, 0) / porcentajesConDatos.length) * 10) / 10
     : null;
 
-  // Gastos del periodo — mismo patrón OR (unidad.proyectoId / proyectoReportanteId)
-  // que ya usa /tag para alcance por proyecto en un modelo con ambos campos.
+  // Gastos del periodo — combina las 3 fuentes reales de gasto vehicular:
+  // GastoVehicular (mantenimiento y demás categorías capturables), más
+  // Combustible.costo (cargas reales del Módulo D) y Tag.monto (peajes del
+  // Módulo E), que antes quedaban fuera por completo: CASETAS nunca se
+  // captura como GastoVehicular (su única fuente real es Tag), y GASOLINA ahí
+  // es una captura manual aparte de la carga real registrada en Combustible.
+  // Mismo patrón OR (unidad.proyectoId / proyectoReportanteId) que ya usan
+  // /tag y /combustible para alcance por proyecto en modelos con ambos campos.
   const filtroProyectoGasto = proyectoIds !== null
     ? { OR: [{ unidad: { proyectoId: { in: proyectoIds } } }, { proyectoReportanteId: { in: proyectoIds } }] }
     : {};
-  const gastosPorCategoria = await prisma.gastoVehicular.groupBy({
-    by: ["categoria"],
-    where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
-    _sum: { costo: true },
-  });
-  const gastoPorCategoria = gastosPorCategoria
-    .map((g) => ({ categoria: g.categoria, monto: Number(g._sum.costo ?? 0) }))
+  const [gastosPorCategoria, combustibleAgg, tagAgg] = await Promise.all([
+    prisma.gastoVehicular.groupBy({
+      by: ["categoria"],
+      where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { costo: true },
+    }),
+    prisma.combustible.aggregate({
+      where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { costo: true },
+    }),
+    prisma.tag.aggregate({
+      where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { monto: true },
+    }),
+  ]);
+
+  const gastoPorCategoriaMapa = new Map<CategoriaGasto, number>();
+  for (const g of gastosPorCategoria) gastoPorCategoriaMapa.set(g.categoria, Number(g._sum.costo ?? 0));
+  gastoPorCategoriaMapa.set("GASOLINA", (gastoPorCategoriaMapa.get("GASOLINA") ?? 0) + Number(combustibleAgg._sum.costo ?? 0));
+  gastoPorCategoriaMapa.set("CASETAS", (gastoPorCategoriaMapa.get("CASETAS") ?? 0) + Number(tagAgg._sum.monto ?? 0));
+
+  const gastoPorCategoria = Array.from(gastoPorCategoriaMapa, ([categoria, monto]) => ({ categoria, monto }))
+    .filter((g) => g.monto > 0)
     .sort((a, b) => b.monto - a.monto);
   const gastoTotal = gastoPorCategoria.reduce((acc, g) => acc + g.monto, 0);
 
@@ -118,4 +140,56 @@ export async function calcularEstatusFlota({
     gastoTotal,
     gastoPorCategoria,
   };
+}
+
+export type EstatusFlotaReporte = {
+  desde: Date;
+  hasta: Date;
+  /** Alcance completo permitido (todos los proyectos del usuario, o toda la flota sin restricción) — siempre presente, sin importar qué se haya seleccionado. */
+  general: EstatusFlota;
+  /** Combinado de los proyectos seleccionados — null si no se seleccionó ninguno (el reporte entonces solo trae `general`). */
+  seleccion: EstatusFlota | null;
+  /** Un bloque por cada proyecto seleccionado, mismo orden que se seleccionaron. */
+  porProyecto: EstatusFlota[];
+};
+
+/**
+ * Reporte completo de "Estatus semanal de flota": resumen general, resumen
+ * combinado de la selección y desglose individual por proyecto seleccionado —
+ * un único cálculo reutilizado tanto por la descarga/envío inmediato como por
+ * el envío automático programado (ver src/app/(app)/dashboards/actions.ts y
+ * src/lib/bi/motor-reportes.ts).
+ */
+export async function calcularEstatusFlotaReporte({
+  proyectoIdsPermitidos,
+  proyectoIdsSeleccionados,
+  desde,
+  hasta,
+}: {
+  /** null = sin restricción de proyecto (Administrador/rol global, o el cron sin sesión). */
+  proyectoIdsPermitidos: string[] | null;
+  proyectoIdsSeleccionados: string[] | null;
+  desde: Date;
+  hasta: Date;
+}): Promise<EstatusFlotaReporte> {
+  const seleccion = proyectoIdsSeleccionados ?? [];
+
+  const proyectos = seleccion.length > 0
+    ? await prisma.proyecto.findMany({ where: { id: { in: seleccion } }, select: { id: true, nombre: true } })
+    : [];
+  const nombrePorId = new Map(proyectos.map((p) => [p.id, p.nombre]));
+
+  const [general, seleccionCombinada, porProyecto] = await Promise.all([
+    calcularEstatusFlota({ proyectoIds: proyectoIdsPermitidos, desde, hasta, proyectoLabel: "General" }),
+    // Con exactamente 1 proyecto seleccionado, el combinado sería idéntico al
+    // desglose de ese único proyecto (solo con otro título) — se omite.
+    seleccion.length > 1
+      ? calcularEstatusFlota({ proyectoIds: seleccion, desde, hasta, proyectoLabel: `Selección (${seleccion.length} proyectos)` })
+      : Promise.resolve(null),
+    Promise.all(
+      seleccion.map((id) => calcularEstatusFlota({ proyectoIds: [id], desde, hasta, proyectoLabel: nombrePorId.get(id) ?? id }))
+    ),
+  ]);
+
+  return { desde, hasta, general, seleccion: seleccionCombinada, porProyecto };
 }

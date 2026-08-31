@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
-import { calcularEstatusFlota, type EstatusFlota } from "@/lib/reportes/estatus-flota";
+import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
 import { enviarReporteBI } from "@/lib/email";
 import {
@@ -198,30 +198,39 @@ export async function eliminarVistaDashboard(id: string): Promise<ResultadoVista
 export type ResultadoSimple = { ok: boolean; error?: string };
 
 /**
- * Alcance efectivo de proyectos para el reporte de Estatus de flota: mismo
- * criterio de autorización que ya rige toda la página de Dashboards (módulo
- * M) — si el usuario está limitado a ciertos proyectos, "General" para él
- * significa "todos los suyos", nunca la flota completa.
+ * Alcance completo permitido para el usuario actual (módulo M) — si está
+ * limitado a ciertos proyectos, es "todos los suyos"; si no, null (sin
+ * restricción). Se usa siempre para el bloque "general" del reporte, sin
+ * importar qué haya seleccionado.
  */
-async function resolverProyectoIds(proyectoIdsSolicitados: string[] | null): Promise<string[] | null> {
-  const permitidos = await proyectosPermitidosParaModulo("M");
+async function alcanceGeneralPermitido(): Promise<string[] | null> {
+  return proyectosPermitidosParaModulo("M");
+}
+
+/** Filtra la selección solicitada contra lo que el usuario tiene permitido — nunca se confía en lo que mande el cliente. */
+async function validarSeleccion(proyectoIdsSolicitados: string[], permitidos: string[] | null): Promise<string[]> {
   if (permitidos === null) return proyectoIdsSolicitados;
-  if (proyectoIdsSolicitados === null) return permitidos;
   return proyectoIdsSolicitados.filter((id) => permitidos.includes(id));
 }
 
-async function calcularConAlcance(input: { proyectoIds: string[] | null; desde: string; hasta: string; proyectoLabel: string }): Promise<EstatusFlota> {
-  const proyectoIds = await resolverProyectoIds(input.proyectoIds);
-  return calcularEstatusFlota({ proyectoIds, desde: new Date(input.desde), hasta: new Date(input.hasta), proyectoLabel: input.proyectoLabel });
+async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: string; hasta: string }): Promise<EstatusFlotaReporte> {
+  const permitidos = await alcanceGeneralPermitido();
+  const seleccionValidada = await validarSeleccion(input.proyectoIds, permitidos);
+  return calcularEstatusFlotaReporte({
+    proyectoIdsPermitidos: permitidos,
+    proyectoIdsSeleccionados: seleccionValidada,
+    desde: new Date(input.desde),
+    hasta: new Date(input.hasta),
+  });
 }
 
-export type ResultadoDatosEstatusFlota = { ok: true; datos: EstatusFlota } | { ok: false; error: string };
+export type ResultadoDatosEstatusFlota = { ok: true; datos: EstatusFlotaReporte } | { ok: false; error: string };
 
 /** Datos del reporte para armar el PDF en el cliente ("Descargar PDF"). */
-export async function obtenerDatosEstatusFlota(input: { proyectoIds: string[] | null; desde: string; hasta: string; proyectoLabel: string }): Promise<ResultadoDatosEstatusFlota> {
+export async function obtenerDatosEstatusFlota(input: { proyectoIds: string[]; desde: string; hasta: string }): Promise<ResultadoDatosEstatusFlota> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   try {
-    const datos = await calcularConAlcance(input);
+    const datos = await calcularReporteConAlcance(input);
     return { ok: true, datos: JSON.parse(JSON.stringify(datos)) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo calcular el reporte." };
@@ -230,22 +239,21 @@ export async function obtenerDatosEstatusFlota(input: { proyectoIds: string[] | 
 
 /** "Enviar por correo ahora" — genera el PDF server-side y lo envía de inmediato, sin pasar por la programación. */
 export async function enviarEstatusFlotaAhora(input: {
-  proyectoIds: string[] | null;
+  proyectoIds: string[];
   desde: string;
   hasta: string;
-  proyectoLabel: string;
   destinatarios: string[];
 }): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
 
   try {
-    const datos = await calcularConAlcance(input);
+    const datos = await calcularReporteConAlcance(input);
     const buffer = await generarEstatusFlotaBuffer(datos);
     const nombreArchivo = `estatus-flota-${input.hasta}.pdf`;
     const envio = await enviarReporteBI({
       destinatarios: input.destinatarios,
-      nombreReporte: `Estatus de flota — ${input.proyectoLabel}`,
+      nombreReporte: "Estatus de flota",
       buffer,
       nombreArchivo,
       mime: "application/pdf",
@@ -259,7 +267,7 @@ export async function enviarEstatusFlotaAhora(input: {
 
 export type ConfigEstatusFlotaProgramado = {
   id: string | null;
-  proyectoIds: string[] | null;
+  proyectoIds: string[];
   hora: string;
   destinatarios: string[];
   activo: boolean;
@@ -276,7 +284,7 @@ const TIPO_ESTATUS_FLOTA = "estatus_flota";
  */
 export async function guardarProgramacionEstatusFlota(input: {
   id: string | null;
-  proyectoIds: string[] | null;
+  proyectoIds: string[];
   hora: string;
   destinatarios: string[];
   activo: boolean;

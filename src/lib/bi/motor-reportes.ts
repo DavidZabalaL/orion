@@ -10,7 +10,7 @@ import { generarExcelReporte } from "@/lib/bi/excel-export";
 import { generarPdfReporte } from "@/lib/bi/pdf/reporte-tabla-pdf";
 import { enviarReporteBI } from "@/lib/email";
 import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
-import { calcularEstatusFlota } from "@/lib/reportes/estatus-flota";
+import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
 import { inicioDeHoyMx } from "@/lib/timezone";
 
@@ -40,20 +40,19 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
 
     if (reporte.tipo === TIPO_ESTATUS_FLOTA) {
       // Reporte de estatus de flota (ver src/lib/reportes/estatus-flota.ts):
-      // el alcance de proyectos lo elige quien configuró el envío en el
-      // Dashboard (filtrosJson), no se deriva de sus permisos como el resto
-      // de tipos — así "General" siempre significa lo mismo sin importar
-      // quién quedó como creadoPorId. Cubre la última semana corrida
+      // el "general" es siempre la flota completa sin restricción (no hay
+      // sesión en el cron, así que no se deriva de los permisos de
+      // creadoPorId); la selección de proyectos la elige quien configuró el
+      // envío en el Dashboard (filtrosJson). Cubre la última semana corrida
       // (lunes a lunes, mismo criterio que el cron para SEMANAL).
       const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null } | null;
-      proyectoIds = filtros?.proyectoIds ?? null;
+      proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = inicioDeHoyMx();
       const desde = new Date(hasta.getTime() - 7 * DIA_MS);
-      const proyectoLabel = proyectoIds === null ? "General" : `${proyectoIds.length} proyecto(s)`;
-      const datos = await calcularEstatusFlota({ proyectoIds, desde, hasta, proyectoLabel });
+      const datos = await calcularEstatusFlotaReporte({ proyectoIdsPermitidos: null, proyectoIdsSeleccionados: proyectoIds, desde, hasta });
       buffer = await generarEstatusFlotaBuffer(datos);
       nombreArchivo = `estatus-flota-${hasta.toISOString().slice(0, 10)}.pdf`;
-      totalRegistros = datos.totalUnidades;
+      totalRegistros = datos.general.totalUnidades;
     } else {
       proyectoIds = await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "J");
       const campos = Array.isArray(reporte.camposJson) ? (reporte.camposJson as unknown[]).filter((c): c is string => typeof c === "string") : [];

@@ -43,7 +43,7 @@ export default async function DashboardsPage({
   const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null } | null;
   const configEstatusFlota = {
     id: reporteEstatusFlota?.id ?? null,
-    proyectoIds: filtrosEstatusFlota?.proyectoIds ?? null,
+    proyectoIds: filtrosEstatusFlota?.proyectoIds ?? [],
     hora: reporteEstatusFlota?.hora ?? "08",
     destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
     activo: reporteEstatusFlota?.activo ?? false,
