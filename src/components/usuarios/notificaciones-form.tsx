@@ -21,6 +21,11 @@ type Config = {
   alertaDocumentoOperadorDiasPrevios: number[];
   alertaDocumentoOperadorActiva: boolean;
   alertaRecargaPresupuestoActiva: boolean;
+  alertaTagSinGpsActiva: boolean;
+  alertaTagSinGpsMinutos: number;
+  alertaCombustibleSinActividadActiva: boolean;
+  alertaDisponibleSinGpsDiasActiva: boolean;
+  alertaDisponibleSinGpsDias: number;
   destinatariosCorreo: string[];
 };
 
@@ -140,6 +145,20 @@ export function NotificacionesForm({ config }: { config: Config }) {
         <div>
           <label style={labelStyle}>Días de anticipación (separados por coma)</label>
           <input name="alertaDocumentoOperadorDiasPrevios" defaultValue={config.alertaDocumentoOperadorDiasPrevios.join(", ")} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+        </div>
+      </Bloque>
+
+      <Bloque titulo="Triangulación TAG / Combustible / GPS (Módulo E — reemplaza la conciliación manual)">
+        <Toggle name="alertaTagSinGpsActiva" defaultChecked={config.alertaTagSinGpsActiva} label="Alertar cargo de TAG sin GPS cercano" />
+        <div>
+          <label style={labelStyle}>Minutos de tolerancia alrededor del cargo</label>
+          <input name="alertaTagSinGpsMinutos" type="number" defaultValue={config.alertaTagSinGpsMinutos} style={{ ...fieldStyle, maxWidth: 160, fontFamily: "var(--font-mono)" }} />
+        </div>
+        <Toggle name="alertaCombustibleSinActividadActiva" defaultChecked={config.alertaCombustibleSinActividadActiva} label="Alertar carga de combustible sin GPS ni TAG ese día" />
+        <Toggle name="alertaDisponibleSinGpsDiasActiva" defaultChecked={config.alertaDisponibleSinGpsDiasActiva} label="Alertar unidad activa sin señal GPS" />
+        <div>
+          <label style={labelStyle}>Días sin señal antes de alertar</label>
+          <input name="alertaDisponibleSinGpsDias" type="number" defaultValue={config.alertaDisponibleSinGpsDias} style={{ ...fieldStyle, maxWidth: 160, fontFamily: "var(--font-mono)" }} />
         </div>
       </Bloque>
 

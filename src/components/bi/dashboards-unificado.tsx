@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sigma, LayoutGrid, Compass, Car, FileDown } from "lucide-react";
+import { Sigma, LayoutGrid, Compass, Car, FileDown, CalendarClock } from "lucide-react";
 import { BiDashboardEditor, type VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import { BiExplorer, type MetricaDisponible } from "@/components/bi/bi-explorer";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { InventarioResumenTab } from "@/components/dashboard/InventarioResumenTab";
 import { ExportRegistryProvider, useExportRegistry } from "@/components/dashboard/ExportRegistryContext";
 import { ExportSummaryModal } from "@/components/dashboard/ExportSummaryModal";
+import { EstatusFlotaModal } from "@/components/dashboard/EstatusFlotaModal";
+import type { ConfigEstatusFlotaProgramado } from "@/app/(app)/dashboards/actions";
 import type { UnidadRow } from "@/components/unidades/unidades-table";
 import type { WidgetActivo } from "@/lib/widgets";
 
@@ -43,6 +45,7 @@ export function DashboardsUnificado({
   metricasDisponibles,
   tabInicial,
   datosInventario,
+  configEstatusFlota,
 }: {
   vistas: VistaDashboard[];
   puedeEditar: boolean;
@@ -50,9 +53,11 @@ export function DashboardsUnificado({
   metricasDisponibles: MetricaDisponible[];
   tabInicial: TabId;
   datosInventario?: DatosInventarioTab;
+  configEstatusFlota: ConfigEstatusFlotaProgramado;
 }) {
   const [tab, setTab] = useState<TabId>(datosInventario ? tabInicial : tabInicial === "inventario" ? "propios" : tabInicial);
   const tabsVisibles = datosInventario ? TABS : TABS.filter((t) => t.id !== "inventario");
+  const [mostrarEstatusFlota, setMostrarEstatusFlota] = useState(false);
 
   return (
     <ExportRegistryProvider>
@@ -72,6 +77,14 @@ export function DashboardsUnificado({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <BotonExportar />
+            <button
+              onClick={() => setMostrarEstatusFlota(true)}
+              className="flex items-center gap-1.5 rounded-md px-3 py-2"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+              data-no-print
+            >
+              <CalendarClock size={14} /> Estatus semanal de flota
+            </button>
             {tab === "explorador" && (
               <Link
                 href="/reportes/metricas"
@@ -107,6 +120,15 @@ export function DashboardsUnificado({
         {tab === "propios" && <BiDashboardEditor vistas={vistas} puedeEditar={puedeEditar} proyectosDisponibles={proyectosDisponibles} />}
         {tab === "explorador" && <BiExplorer proyectosDisponibles={proyectosDisponibles} metricasDisponibles={metricasDisponibles} />}
         {tab === "inventario" && datosInventario && <InventarioResumenTab {...datosInventario} />}
+
+        {mostrarEstatusFlota && (
+          <EstatusFlotaModal
+            onClose={() => setMostrarEstatusFlota(false)}
+            proyectosDisponibles={proyectosDisponibles}
+            configInicial={configEstatusFlota}
+            puedeEditar={puedeEditar}
+          />
+        )}
       </div>
     </ExportRegistryProvider>
   );

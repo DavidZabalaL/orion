@@ -35,7 +35,7 @@ export async function crearProyecto(formData: FormData): Promise<ResultadoAccion
       estatus: "ACTIVO",
       presupuestoAprobadoAnual: 0,
       modulosActivos: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "L"],
-      procesosActivos: ["checklist_diario", "conciliacion_diaria"],
+      procesosActivos: ["checklist_diario"],
     },
   });
 

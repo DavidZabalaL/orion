@@ -12,6 +12,10 @@ export default async function GeneradorReportesPage() {
   await requerirPermisoModulo("J");
 
   const reportes = await prisma.reporteProgramado.findMany({
+    // "estatus_flota" se administra desde el Dashboard (ver EstatusFlotaModal),
+    // no aquí — su filtrosJson no es compatible con el builder genérico de
+    // campos/filtros de esta pantalla.
+    where: { tipo: { not: "estatus_flota" } },
     orderBy: { createdAt: "desc" },
     include: { creadoPor: { select: { nombre: true } } },
   });

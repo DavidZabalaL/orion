@@ -844,16 +844,13 @@ function TabTag({ registros, numeroEconomico }: { registros: Unidad[]; numeroEco
         <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar caseta, proveedor o fecha…" />
         <BotonAgregarTag numeroEconomico={numeroEconomico} />
       </div>
-      <Table headers={["Fecha", "Caseta", "Monto", "Proveedor", "Conciliado"]}>
+      <Table headers={["Fecha", "Caseta", "Monto", "Proveedor"]}>
       {filtrados.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
           <td className="px-4 py-3" style={td}>{r.caseta ?? "—"}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(r.monto)}</td>
           <td className="px-4 py-3" style={td}>{r.proveedorTag}</td>
-          <td className="px-4 py-3">
-            <Badge label={r.conciliado ? "Conciliado" : "Pendiente"} color={r.conciliado ? "var(--color-status-cerrado)" : "var(--color-status-revision)"} bg={r.conciliado ? "var(--status-cerrado-bg)" : "var(--status-revision-bg)"} />
-          </td>
         </tr>
       ))}
       </Table>

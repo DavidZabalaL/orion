@@ -27,7 +27,7 @@ export default async function DashboardsPage({
   const { tab } = await searchParams;
 
   const proyectosPermitidos = await proyectosPermitidosParaModulo("M");
-  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, puedeVerInventario] = await Promise.all([
+  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, puedeVerInventario, reporteEstatusFlota] = await Promise.all([
     prisma.vistaDashboardBI.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, nombre: true, widgets: true } }),
     tienePermisoModulo("M", "editar"),
     prisma.proyecto.findMany({
@@ -37,7 +37,17 @@ export default async function DashboardsPage({
     }),
     prisma.metricaBI.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
     tienePermisoModulo("A"),
+    prisma.reporteProgramado.findFirst({ where: { tipo: "estatus_flota" } }),
   ]);
+
+  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null } | null;
+  const configEstatusFlota = {
+    id: reporteEstatusFlota?.id ?? null,
+    proyectoIds: filtrosEstatusFlota?.proyectoIds ?? null,
+    hora: reporteEstatusFlota?.hora ?? "08",
+    destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
+    activo: reporteEstatusFlota?.activo ?? false,
+  };
 
   const vistas: VistaDashboard[] = vistasDb.map((v) => ({
     id: v.id,
@@ -63,6 +73,7 @@ export default async function DashboardsPage({
       metricasDisponibles={metricasDisponibles}
       tabInicial={tab === "explorador" ? "explorador" : tab === "inventario" ? "inventario" : "propios"}
       datosInventario={datosInventario}
+      configEstatusFlota={configEstatusFlota}
     />
   );
 }

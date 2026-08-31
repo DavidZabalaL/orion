@@ -39,7 +39,7 @@ export const MODULOS: Modulo[] = [
   { id: "B", label: "Alta / Baja", href: "/altas-bajas", icon: FilePlus2, descripcion: "Ciclo de vida de unidades", grupo: "Flota" },
   { id: "C", label: "Mantenimiento y Gastos", href: "/mantenimiento", icon: Wrench, descripcion: "12 categorías de gasto vehicular", grupo: "Operación y gasto" },
   { id: "D", label: "Combustible", href: "/combustible", icon: Fuel, descripcion: "Consumo, rendimiento y anomalías", grupo: "Operación y gasto" },
-  { id: "E", label: "TAG / Peajes", href: "/tag", icon: Ticket, descripcion: "Gasto de casetas y conciliación con GPS", grupo: "Operación y gasto" },
+  { id: "E", label: "TAG / Peajes", href: "/tag", icon: Ticket, descripcion: "Gasto de casetas por unidad", grupo: "Operación y gasto" },
   { id: "F", label: "Seguros + Coberturas", href: "/seguros", icon: ShieldCheck, descripcion: "Vigencias, vencimientos y coberturas", grupo: "Operación y gasto" },
   { id: "G", label: "Geolocalización", href: "/mapa", icon: MapPin, descripcion: "Posición, historial y geocercas (IntelliHub)", grupo: "Geo" },
   { id: "G.1", label: "Integridad de datos GPS", href: "/mapa/integridad", icon: Satellite, descripcion: "Filtro de lecturas imposibles y validación de km", grupo: "Geo" },

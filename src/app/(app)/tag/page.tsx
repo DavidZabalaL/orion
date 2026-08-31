@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
-import { Ticket, DollarSign, CheckCircle2, Inbox, Upload } from "lucide-react";
+import { Ticket, DollarSign, Inbox, Upload } from "lucide-react";
 import { TagForm } from "@/components/tag/tag-form";
 import { TagAcordeon, type GrupoTag } from "@/components/tag/tag-acordeon";
 import { TagPendienteRow } from "@/components/tag/tag-pendiente-row";
@@ -38,8 +38,6 @@ export default async function TagPage() {
     prisma.tag.aggregate({ where: filtroProyecto, _sum: { monto: true }, _count: { _all: true } }),
   ]);
 
-  const conciliadas = await prisma.tag.count({ where: { conciliado: true, ...filtroProyecto } });
-
   // Se agrupa por número económico para no perder la información en una sola
   // lista plana: cada unidad se ve resumida y se despliega bajo demanda.
   const gruposPorEconomico = new Map<string, GrupoTag>();
@@ -47,12 +45,11 @@ export default async function TagPage() {
     const numeroEconomico = t.numeroEconomico as string;
     let grupo = gruposPorEconomico.get(numeroEconomico);
     if (!grupo) {
-      grupo = { numeroEconomico, totalMonto: 0, totalTransacciones: 0, pendientesConciliar: 0, ultimaFecha: t.fecha.toISOString(), transacciones: [] };
+      grupo = { numeroEconomico, totalMonto: 0, totalTransacciones: 0, ultimaFecha: t.fecha.toISOString(), transacciones: [] };
       gruposPorEconomico.set(numeroEconomico, grupo);
     }
     grupo.totalMonto += Number(t.monto);
     grupo.totalTransacciones += 1;
-    if (!t.conciliado) grupo.pendientesConciliar += 1;
     grupo.transacciones.push(JSON.parse(JSON.stringify(t)));
   }
   const grupos = Array.from(gruposPorEconomico.values()).sort((a, b) => a.numeroEconomico.localeCompare(b.numeroEconomico));
@@ -65,7 +62,7 @@ export default async function TagPage() {
             TAG / Peajes
           </h1>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-            Gasto de casetas y conciliación cruzada con GPS.
+            Gasto de casetas por unidad.
           </p>
         </div>
         <Link href="/tag/importar" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
@@ -73,10 +70,9 @@ export default async function TagPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard label="Transacciones totales" value={agregados._count._all} icon={Ticket} accent="var(--color-primary)" />
         <StatCard label="Gasto acumulado" value={fmtMoney(agregados._sum.monto)} icon={DollarSign} accent="var(--color-status-cerrado)" />
-        <StatCard label="Conciliadas" value={conciliadas} icon={CheckCircle2} accent="var(--color-status-asignado)" />
         <StatCard label="Pendientes de asignar" value={pendientes.length} icon={Inbox} accent="var(--color-status-revision)" />
       </div>
 
@@ -108,7 +104,7 @@ export default async function TagPage() {
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Conciliación TAG por unidad
+          Transacciones TAG por unidad
         </h3>
         {grupos.length === 0 ? (
           <EmptyState>Sin transacciones asignadas.</EmptyState>

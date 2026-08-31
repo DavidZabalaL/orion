@@ -62,6 +62,11 @@ export default async function NotificacionesPage() {
           alertaDocumentoOperadorDiasPrevios: config.alertaDocumentoOperadorDiasPrevios,
           alertaDocumentoOperadorActiva: config.alertaDocumentoOperadorActiva,
           alertaRecargaPresupuestoActiva: config.alertaRecargaPresupuestoActiva,
+          alertaTagSinGpsActiva: config.alertaTagSinGpsActiva,
+          alertaTagSinGpsMinutos: config.alertaTagSinGpsMinutos,
+          alertaCombustibleSinActividadActiva: config.alertaCombustibleSinActividadActiva,
+          alertaDisponibleSinGpsDiasActiva: config.alertaDisponibleSinGpsDiasActiva,
+          alertaDisponibleSinGpsDias: config.alertaDisponibleSinGpsDias,
           destinatariosCorreo: config.destinatariosCorreo as string[],
         }}
       />

@@ -12,7 +12,9 @@ import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
 import { CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { TIPOS_DOCUMENTO_UNIDAD, REQUIERE_ANIO } from "@/lib/catalogo-documentos-unidad";
-import type { TipoDocumentoUnidad } from "@/generated/prisma/enums";
+import type { TipoDocumentoUnidad, MotivoIndisponibilidad } from "@/generated/prisma/enums";
+
+const MOTIVOS_INDISPONIBILIDAD: MotivoIndisponibilidad[] = ["MANTENIMIENTO", "SINIESTRO", "SIN_OPERADOR", "TRAMITE_DOCUMENTACION", "SIN_COMBUSTIBLE", "OTRO"];
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
 
@@ -124,6 +126,11 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
   const disponibilidad = String(formData.get("disponibilidad") ?? "") === "true";
   if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
 
+  const motivoRaw = String(formData.get("motivo") ?? "");
+  const motivo = MOTIVOS_INDISPONIBILIDAD.includes(motivoRaw as MotivoIndisponibilidad) ? (motivoRaw as MotivoIndisponibilidad) : null;
+  const motivoDetalle = String(formData.get("motivoDetalle") ?? "").trim().slice(0, 300) || null;
+  if (!disponibilidad && !motivo) return { ok: false, error: "Selecciona el motivo por el que la unidad no está disponible." };
+
   const anterior = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { disponibilidad: true, estatus: true, proyectoId: true } });
   if (!anterior) return { ok: false, error: "La unidad no existe." };
   if (anterior.estatus === "BAJA") return { ok: false, error: "Una unidad dada de baja no se puede encender ni apagar." };
@@ -134,8 +141,16 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
   }
 
   const ahora = new Date();
-  await prisma.unidad.update({ where: { numeroEconomico }, data: { disponibilidad, fechaCambioDisponibilidad: ahora } });
-  await registrarCambioDisponibilidad(numeroEconomico, disponibilidad, ahora);
+  await prisma.unidad.update({
+    where: { numeroEconomico },
+    data: {
+      disponibilidad,
+      fechaCambioDisponibilidad: ahora,
+      motivoIndisponibilidad: disponibilidad ? null : motivo,
+      motivoIndisponibilidadDetalle: disponibilidad ? null : motivoDetalle,
+    },
+  });
+  await registrarCambioDisponibilidad(numeroEconomico, disponibilidad, ahora, motivo, motivoDetalle);
 
   const session = await auth();
   if (session?.user?.id) {

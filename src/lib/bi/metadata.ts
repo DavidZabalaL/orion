@@ -234,7 +234,6 @@ export const BI_DATASETS: DatasetMeta[] = [
     tablasBase: ["Tag", "Proyecto"],
     campos: [
       { id: "proveedorTag", label: "Proveedor de TAG", tipo: "texto", expr: `t."proveedorTag"`, opciones: [{ valor: "IAVE", label: "IAVE" }, { valor: "PASE", label: "PASE" }, { valor: "TELEVIA", label: "Televía" }] },
-      { id: "conciliado", label: "Conciliación", tipo: "texto", expr: `CASE WHEN t."conciliado" THEN 'Conciliado' ELSE 'Pendiente' END`, opciones: [{ valor: "Conciliado", label: "Conciliado" }, { valor: "Pendiente", label: "Pendiente" }] },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `t."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `t."fecha"` },
@@ -550,7 +549,7 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Km oficial vs. rendimiento", dataset: "unidades", ejeX: "kmOficial", ejeY: "rendimientoPromedio", agregacion: "conteo", tipoGrafica: "dispersion" },
   { label: "Cargas de combustible por día", dataset: "combustible", ejeX: "dia", ejeY: "litros", agregacion: "suma", tipoGrafica: "calendario" },
   { label: "Distribución de costo por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "conteo", tipoGrafica: "caja" },
-  { label: "Peajes: conciliados vs. pendientes por proyecto", dataset: "peajes", ejeX: "proyecto", ejeY: "monto", agregacion: "suma", tipoGrafica: "piramide", ejeSplit: "conciliado" },
+  { label: "Peajes por proyecto y proveedor de TAG", dataset: "peajes", ejeX: "proyecto", ejeY: "monto", agregacion: "suma", tipoGrafica: "piramide", ejeSplit: "proveedorTag" },
   { label: "Unidades por estado (origen de placa)", dataset: "unidades", ejeX: "origenPlaca", ejeY: "origenPlaca", agregacion: "conteo", tipoGrafica: "mapa" },
 ];
 
