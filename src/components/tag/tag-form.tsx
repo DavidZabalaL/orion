@@ -6,6 +6,8 @@ import { CheckCircle2 } from "lucide-react";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 
+export type ProyectoOpcion = { id: string; nombre: string };
+
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
   border: "1px solid var(--field-border)",
@@ -31,24 +33,48 @@ const labelStyle: React.CSSProperties = {
 
 function CamposTag({
   unidades,
+  proyectos,
   numeroEconomicoFijo,
 }: {
   unidades: { numeroEconomico: string }[];
+  proyectos: ProyectoOpcion[];
   numeroEconomicoFijo?: string;
 }) {
+  const [aplicaAUnidad, setAplicaAUnidad] = useState(true);
+
   return (
     <>
-      <div>
-        <CampoAyuda style={labelStyle} texto="Unidad relacionada, si ya se conoce.">Unidad {numeroEconomicoFijo ? "" : "(opcional)"}</CampoAyuda>
-        {numeroEconomicoFijo ? (
-          <>
-            <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
-            <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
-          </>
-        ) : (
-          <ComboboxUnidad name="numeroEconomico" unidades={unidades} placeholder="Sin asignar — buscar unidad…" style={fieldStyle} />
-        )}
-      </div>
+      {numeroEconomicoFijo ? (
+        <div>
+          <CampoAyuda style={labelStyle} texto="Unidad a la que corresponde este cruce.">Unidad</CampoAyuda>
+          <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
+          <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
+        </div>
+      ) : (
+        <>
+          <div>
+            <CampoAyuda style={labelStyle} texto="Los gastos operativos que no corresponden a un económico específico se asignan directamente a un proyecto.">¿Aplica a una unidad? *</CampoAyuda>
+            <select value={aplicaAUnidad ? "SI" : "NO"} onChange={(e) => setAplicaAUnidad(e.target.value === "SI")} style={fieldStyle}>
+              <option value="SI">Sí, a una unidad</option>
+              <option value="NO">No, gasto operativo del proyecto</option>
+            </select>
+          </div>
+          {aplicaAUnidad ? (
+            <div>
+              <CampoAyuda style={labelStyle} texto="Unidad relacionada.">Unidad *</CampoAyuda>
+              <ComboboxUnidad name="numeroEconomico" unidades={unidades} required placeholder="Buscar unidad…" style={fieldStyle} />
+            </div>
+          ) : (
+            <div>
+              <CampoAyuda style={labelStyle} texto="Proyecto que reporta este gasto, ya que no se liga a una unidad.">Proyecto *</CampoAyuda>
+              <select name="proyectoReportanteId" required style={fieldStyle}>
+                <option value="">Seleccionar…</option>
+                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+            </div>
+          )}
+        </>
+      )}
       <div>
         <CampoAyuda style={labelStyle} texto="Fecha en la que ocurrió el cruce por caseta.">Fecha *</CampoAyuda>
         <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
@@ -75,10 +101,12 @@ function CamposTag({
 
 export function TagForm({
   unidades,
+  proyectos = [],
   numeroEconomicoFijo,
   onExito,
 }: {
   unidades: { numeroEconomico: string }[];
+  proyectos?: ProyectoOpcion[];
   numeroEconomicoFijo?: string;
   onExito?: () => void;
 }) {
@@ -109,7 +137,7 @@ export function TagForm({
     return (
       <form className="flex flex-col gap-4" action={enviar}>
         <div className="grid grid-cols-2 gap-4">
-          <CamposTag unidades={unidades} numeroEconomicoFijo={numeroEconomicoFijo} />
+          <CamposTag unidades={unidades} proyectos={proyectos} numeroEconomicoFijo={numeroEconomicoFijo} />
         </div>
         {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
         <button
@@ -133,7 +161,7 @@ export function TagForm({
         Registrar una transacción manual
       </summary>
       <form className="grid grid-cols-2 gap-4 md:grid-cols-6 items-end mt-4" action={enviar}>
-        <CamposTag unidades={unidades} />
+        <CamposTag unidades={unidades} proyectos={proyectos} />
         <button
           type="submit"
           disabled={pending}

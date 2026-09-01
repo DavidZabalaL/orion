@@ -50,6 +50,20 @@ export default async function SiniestrosPage() {
   const abiertos = siniestros.filter((s) => s.estatus === "ABIERTO" || s.estatus === "EN_PROCESO").length;
   const cerrados = siniestros.filter((s) => s.estatus === "CERRADO" || s.estatus === "CERRADO_SIN_INDEMNIZACION").length;
 
+  // Costos de arrastre/reparación: solo informativos (no forman parte del
+  // presupuesto del proyecto ni de GastoVehicular) — se muestran aquí para
+  // dar seguimiento histórico y del mes en curso.
+  const hoy = new Date();
+  const esMesActual = (fecha: Date) => fecha.getFullYear() === hoy.getFullYear() && fecha.getMonth() === hoy.getMonth();
+  const sumar = (lista: typeof siniestros, campo: "costoArrastre" | "costoReparacion") =>
+    lista.reduce((acc, s) => acc + (s[campo] ? Number(s[campo]) : 0), 0);
+  const costoArrastreHistorico = sumar(siniestros, "costoArrastre");
+  const costoReparacionHistorico = sumar(siniestros, "costoReparacion");
+  const siniestrosMes = siniestros.filter((s) => esMesActual(new Date(s.fecha)));
+  const costoArrastreMes = sumar(siniestrosMes, "costoArrastre");
+  const costoReparacionMes = sumar(siniestrosMes, "costoReparacion");
+  const fmtMoneda = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`;
+
   const rows = JSON.parse(JSON.stringify(siniestros));
 
   return (
@@ -80,6 +94,20 @@ export default async function SiniestrosPage() {
             <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#22c55e" }}>Cerrados</div>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { label: "Arrastre — mes en curso", valor: costoArrastreMes },
+          { label: "Reparación — mes en curso", valor: costoReparacionMes },
+          { label: "Arrastre — histórico", valor: costoArrastreHistorico },
+          { label: "Reparación — histórico", valor: costoReparacionHistorico },
+        ].map((c) => (
+          <div key={c.label} className="rounded-xl px-4 py-3" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>{fmtMoneda(c.valor)}</div>
+            <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{c.label}</div>
+          </div>
+        ))}
       </div>
 
       <SiniestrosTabla

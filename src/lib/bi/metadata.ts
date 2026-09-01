@@ -306,6 +306,8 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `s."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `s."fecha"` },
       { id: "estimacionDanos", label: "Estimación de daños", tipo: "numero", expr: `s."estimacionDanos"` },
+      { id: "costoArrastre", label: "Costo de arrastre", tipo: "numero", expr: `s."costoArrastre"` },
+      { id: "costoReparacion", label: "Costo de reparación", tipo: "numero", expr: `s."costoReparacion"` },
     ],
   },
   {

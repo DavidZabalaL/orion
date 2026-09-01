@@ -1203,6 +1203,9 @@ model Siniestro {
   danosTerceros          String?
   danosUnidad            String?
   estimacionDanos        Decimal?         @db.Decimal(12, 2)
+  huboArrastre           Boolean          @default(false)
+  costoArrastre          Decimal?         @db.Decimal(12, 2)
+  costoReparacion        Decimal?         @db.Decimal(12, 2)
   estatus                EstatusSiniestro @default(ABIERTO)
   evidencias             Documento[]
   reportadoPorId         String

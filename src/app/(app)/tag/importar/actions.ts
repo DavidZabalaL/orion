@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
 import { parsearFechaFlexible } from "@/lib/import-tag";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
@@ -17,7 +18,8 @@ export async function parsearExcelTag(formData: FormData) {
 
 export async function importarTags(
   filas: FilaMapeada[],
-  proveedorTag: string
+  proveedorTag: string,
+  proyectoFallbackId?: string | null
 ): Promise<ResultadoImportacion> {
   await exigirPermisoModulo("E", "editar");
 
@@ -25,6 +27,13 @@ export async function importarTags(
 
   if (!["IAVE", "PASE", "TELEVIA"].includes(proveedorTag)) {
     throw new Error("Selecciona un proveedor válido.");
+  }
+
+  if (proyectoFallbackId) {
+    const permitidos = await proyectosPermitidosParaModulo("E");
+    if (permitidos !== null && !permitidos.includes(proyectoFallbackId)) {
+      throw new Error("No tienes permiso para asignar al proyecto seleccionado.");
+    }
   }
 
   const unidades = await prisma.unidad.findMany({ select: { numeroEconomico: true } });
@@ -63,15 +72,20 @@ export async function importarTags(
     if (economicoBruto) {
       if (economicosValidos.has(economicoBruto)) {
         numeroEconomico = economicoBruto;
+      } else if (proyectoFallbackId) {
+        resultado.advertencias.push({ fila: numFila, mensaje: `Número económico "${economicoBruto}" no existe; se asignó al proyecto seleccionado como gasto operativo.` });
       } else {
         resultado.advertencias.push({ fila: numFila, mensaje: `Número económico "${economicoBruto}" no existe; quedará pendiente de asignar.` });
       }
+    } else if (proyectoFallbackId) {
+      resultado.advertencias.push({ fila: numFila, mensaje: "Sin número económico; se asignó al proyecto seleccionado como gasto operativo." });
     }
 
     try {
       await prisma.tag.create({
         data: {
           numeroEconomico,
+          proyectoReportanteId: numeroEconomico ? null : (proyectoFallbackId || null),
           fecha,
           monto,
           caseta,

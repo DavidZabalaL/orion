@@ -24,7 +24,15 @@ export type GrupoTag = {
   transacciones: TagTransaccion[];
 };
 
-export function TagAcordeon({ grupos }: { grupos: GrupoTag[] }) {
+export function TagAcordeon({
+  grupos,
+  unidades,
+  proyectos,
+}: {
+  grupos: GrupoTag[];
+  unidades: { numeroEconomico: string }[];
+  proyectos: { id: string; nombre: string }[];
+}) {
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
@@ -75,14 +83,14 @@ export function TagAcordeon({ grupos }: { grupos: GrupoTag[] }) {
                 <table className="w-full min-w-[640px] border-collapse">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                      {["Fecha", "Unidad", "Caseta", "Monto", "Proveedor"].map((h) => (
+                      {["Fecha", "Unidad", "Caseta", "Monto", "Proveedor", ""].map((h) => (
                         <th key={h} className="text-left px-4 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {g.transacciones.map((t) => (
-                      <TagRow key={t.id} tag={t} />
+                      <TagRow key={t.id} tag={t} unidades={unidades} proyectos={proyectos} />
                     ))}
                   </tbody>
                 </table>

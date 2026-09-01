@@ -44,6 +44,9 @@ type SiniestroRow = {
   danosTerceros: string | null;
   danosUnidad: string | null;
   estimacionDanos: string | null;
+  huboArrastre: boolean;
+  costoArrastre: string | null;
+  costoReparacion: string | null;
   estatus: string;
   unidad: { numeroEconomico: string; marca: string; unidadModelo: string; proyecto: { nombre: string } | null };
   operador: { id: string; nombre: string } | null;
@@ -86,6 +89,7 @@ function NuevoSiniestroForm({
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
+  const [huboArrastre, setHuboArrastre] = useState(false);
 
   return (
     <form
@@ -142,6 +146,23 @@ function NuevoSiniestroForm({
           <label style={labelStyle}>Estimación de daños ($)</label>
           <input name="estimacionDanos" type="number" step="0.01" min="0" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
         </div>
+        <div>
+          <label style={labelStyle}>¿Hubo arrastre? *</label>
+          <select name="huboArrastre" required style={{ ...inputStyle, height: 36 }}
+            onChange={(e) => setHuboArrastre(e.target.value === "SI")}>
+            <option value="NO">No</option>
+            <option value="SI">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Costo de arrastre ($)</label>
+          <input name="costoArrastre" type="number" step="0.01" min="0" disabled={!huboArrastre}
+            style={{ ...inputStyle, fontFamily: "var(--font-mono)", opacity: huboArrastre ? 1 : 0.5 }} />
+        </div>
+        <div>
+          <label style={labelStyle}>Costo de reparación ($)</label>
+          <input name="costoReparacion" type="number" step="0.01" min="0" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
+        </div>
       </div>
 
       <div>
@@ -195,6 +216,7 @@ function NuevoSiniestroForm({
 function SiniestroDetalle({ s, onClose }: { s: SiniestroRow; onClose: () => void }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
+  const [huboArrastre, setHuboArrastre] = useState(s.huboArrastre);
 
   return (
     <div className="flex flex-col gap-3 p-1">
@@ -214,7 +236,7 @@ function SiniestroDetalle({ s, onClose }: { s: SiniestroRow; onClose: () => void
       </div>
 
       <form
-        className="flex items-center gap-2 pt-2 border-t"
+        className="flex flex-col gap-3 pt-2 border-t"
         style={{ borderColor: "var(--field-border)" }}
         action={(fd) => {
           fd.set("id", s.id);
@@ -225,13 +247,45 @@ function SiniestroDetalle({ s, onClose }: { s: SiniestroRow; onClose: () => void
           });
         }}
       >
-        <select name="estatus" defaultValue={s.estatus} style={{ ...selectStyle, height: 32, fontSize: "var(--text-sm)" }}>
-          {ESTATUS_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <button type="submit" disabled={pending} className="rounded-md px-3 h-8 text-xs font-semibold disabled:opacity-60"
-          style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)" }}>
-          {pending ? "…" : "Actualizar estatus"}
-        </button>
+        <input type="hidden" name="aseguradora" value={s.aseguradora ?? ""} readOnly />
+        <input type="hidden" name="noSiniestroAseguradora" value={s.noSiniestroAseguradora ?? ""} readOnly />
+        <input type="hidden" name="noReporte" value={s.noReporte ?? ""} readOnly />
+        <input type="hidden" name="personasInvolucradas" value={s.personasInvolucradas ?? ""} readOnly />
+        <input type="hidden" name="danosTerceros" value={s.danosTerceros ?? ""} readOnly />
+        <input type="hidden" name="danosUnidad" value={s.danosUnidad ?? ""} readOnly />
+        <input type="hidden" name="estimacionDanos" value={s.estimacionDanos ?? ""} readOnly />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 items-end">
+          <div>
+            <label style={labelStyle}>Estatus</label>
+            <select name="estatus" defaultValue={s.estatus} style={{ ...selectStyle, width: "100%", height: 36 }}>
+              {ESTATUS_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>¿Hubo arrastre?</label>
+            <select name="huboArrastre" defaultValue={s.huboArrastre ? "SI" : "NO"} style={{ ...selectStyle, width: "100%", height: 36 }}
+              onChange={(e) => setHuboArrastre(e.target.value === "SI")}>
+              <option value="NO">No</option>
+              <option value="SI">Sí</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Costo de arrastre ($)</label>
+            <input name="costoArrastre" type="number" step="0.01" min="0" disabled={!huboArrastre}
+              defaultValue={s.costoArrastre ?? ""} style={{ ...inputStyle, fontFamily: "var(--font-mono)", opacity: huboArrastre ? 1 : 0.5 }} />
+          </div>
+          <div>
+            <label style={labelStyle}>Costo de reparación ($)</label>
+            <input name="costoReparacion" type="number" step="0.01" min="0" defaultValue={s.costoReparacion ?? ""}
+              style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
+          </div>
+        </div>
+        <div>
+          <button type="submit" disabled={pending} className="rounded-md px-3 h-8 text-xs font-semibold disabled:opacity-60"
+            style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)" }}>
+            {pending ? "…" : "Guardar cambios"}
+          </button>
+        </div>
       </form>
       {error && <p style={{ color: "#ef4444", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}>{error}</p>}
     </div>

@@ -19,22 +19,33 @@ export default async function TagPage() {
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
-  // Los realmente "pendientes de asignar" (sin unidad ni proyecto reportante) no
-  // tienen con qué comparar el alcance del usuario; quedan visibles para
-  // cualquiera con acceso al módulo (limitación documentada).
+  // Los peajes sin unidad y sin proyecto asignado (huérfanos) solo son
+  // visibles para usuarios sin restricción de proyecto (admins), que son
+  // quienes deben triarlos asignándoles una unidad o un proyecto operativo.
+  // Un usuario con proyectos asignados solo ve, dentro de "pendientes", los
+  // que ya quedaron ligados a alguno de sus propios proyectos.
   const filtroPendientes =
     proyectosPermitidos !== null
-      ? { numeroEconomico: null, OR: [{ proyectoReportanteId: null }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
+      ? { numeroEconomico: null, proyectoReportanteId: { in: proyectosPermitidos } }
       : { numeroEconomico: null };
 
-  const [unidades, transacciones, pendientes, agregados] = await Promise.all([
+  const [unidades, proyectos, transacciones, pendientes, agregados] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
       select: { numeroEconomico: true },
       orderBy: { numeroEconomico: "asc" },
     }),
+    prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    }),
     prisma.tag.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
-    prisma.tag.findMany({ where: filtroPendientes, orderBy: { fecha: "desc" } }),
+    prisma.tag.findMany({
+      where: filtroPendientes,
+      include: { proyectoReportante: { select: { nombre: true } } },
+      orderBy: { fecha: "desc" },
+    }),
     prisma.tag.aggregate({ where: filtroProyecto, _sum: { monto: true }, _count: { _all: true } }),
   ]);
 
@@ -76,7 +87,7 @@ export default async function TagPage() {
         <StatCard label="Pendientes de asignar" value={pendientes.length} icon={Inbox} accent="var(--color-status-revision)" />
       </div>
 
-      <TagForm unidades={unidades} />
+      <TagForm unidades={unidades} proyectos={proyectos} />
 
       {pendientes.length > 0 && (
         <div>
@@ -87,14 +98,14 @@ export default async function TagPage() {
             <table className="w-full min-w-[640px] border-collapse">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {["Fecha", "Caseta", "Monto", "Proveedor", "Asignar a"].map((h) => (
+                  {["Fecha", "Caseta", "Monto", "Proveedor", "Proyecto", "Asignar a"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {pendientes.map((p) => (
-                  <TagPendienteRow key={p.id} tag={JSON.parse(JSON.stringify(p))} unidades={unidades} />
+                  <TagPendienteRow key={p.id} tag={JSON.parse(JSON.stringify(p))} unidades={unidades} proyectos={proyectos} />
                 ))}
               </tbody>
             </table>
@@ -109,7 +120,7 @@ export default async function TagPage() {
         {grupos.length === 0 ? (
           <EmptyState>Sin transacciones asignadas.</EmptyState>
         ) : (
-          <TagAcordeon grupos={grupos} />
+          <TagAcordeon grupos={grupos} unidades={unidades} proyectos={proyectos} />
         )}
       </div>
     </div>
