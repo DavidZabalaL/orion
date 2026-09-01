@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { esRolGlobal } from "@/lib/permisos";
 
 async function resolverOperador() {
   const session = await auth();
@@ -148,4 +149,48 @@ export async function obtenerDatosTurno(): Promise<DatosTurno> {
       placas: u.placas,
     })),
   };
+}
+
+export type RegistroBitacoraAdmin = {
+  id: string;
+  operadorNombre: string;
+  proyectoNombre: string;
+  numeroEconomico: string;
+  marcaModelo: string;
+  inicio: Date;
+  fin: Date | null;
+};
+
+export type FiltrosBitacoraAdmin = {
+  proyectoId?: string;
+  desde: Date;
+  hasta: Date;
+};
+
+/** Consulta consolidada de toda la bitácora de uso de unidades, para el Administrador (no vinculado a un Operador). */
+export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Promise<RegistroBitacoraAdmin[]> {
+  if (!(await esRolGlobal())) throw new Error("No tienes permiso para consultar esta información.");
+
+  const registros = await prisma.bitacoraUsoUnidad.findMany({
+    where: {
+      inicio: { gte: filtros.desde, lte: filtros.hasta },
+      operador: filtros.proyectoId ? { proyectoId: filtros.proyectoId } : undefined,
+    },
+    include: {
+      operador: { select: { nombre: true, proyecto: { select: { nombre: true } } } },
+      unidad: { select: { marca: true, unidadModelo: true } },
+    },
+    orderBy: { inicio: "desc" },
+    take: 500,
+  });
+
+  return registros.map((r) => ({
+    id: r.id,
+    operadorNombre: r.operador.nombre,
+    proyectoNombre: r.operador.proyecto?.nombre ?? "Sin proyecto",
+    numeroEconomico: r.numeroEconomico,
+    marcaModelo: `${r.unidad.marca} ${r.unidad.unidadModelo}`,
+    inicio: r.inicio,
+    fin: r.fin,
+  }));
 }

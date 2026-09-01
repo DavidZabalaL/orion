@@ -35,7 +35,7 @@ export type Modulo = {
 };
 
 export const MODULOS: Modulo[] = [
-  { id: "O", label: "Mi Turno", href: "/operador/turno", icon: KeyRound, descripcion: "Selección de unidad y bitácora diaria de uso para operadores", grupo: "Mi turno" },
+  { id: "O", label: "Mi Turno", href: "/operador/turno", icon: KeyRound, descripcion: "Selección de unidad y bitácora diaria de uso para operadores; el Administrador consulta aquí el historial de todos", grupo: "Mi turno" },
   { id: "A", label: "Inventario de Unidades", href: "/unidades", icon: Car, descripcion: "Ficha única por número económico con vista consolidada", grupo: "Flota" },
   { id: "A.1", label: "Checklist", href: "/checklist", icon: ClipboardCheck, descripcion: "Inspección diaria (odómetro) y semanal (59 puntos)", grupo: "Flota" },
   { id: "B", label: "Alta / Baja", href: "/altas-bajas", icon: FilePlus2, descripcion: "Ciclo de vida de unidades", grupo: "Flota" },

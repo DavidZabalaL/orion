@@ -24,6 +24,11 @@ export default async function FichaOperadorPage({ params }: { params: Promise<{ 
       },
       accidentes: { orderBy: { fecha: "desc" } },
       cursos: { orderBy: { fecha: "desc" } },
+      usoUnidades: {
+        include: { unidad: { select: { marca: true, unidadModelo: true } } },
+        orderBy: { inicio: "desc" },
+        take: 200,
+      },
     } as never,
   });
 

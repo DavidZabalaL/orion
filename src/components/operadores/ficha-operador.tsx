@@ -13,7 +13,7 @@ import {
   TIPO_SANGRE_LABEL,
 } from "@/lib/estatus-operador";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
-import { fmtFecha, diasPara } from "@/lib/formato";
+import { fmtFecha, fmtFechaHora, diasPara } from "@/lib/formato";
 import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { FormCurso } from "@/components/operadores/form-curso";
 import { blobProxy } from "@/lib/blob";
@@ -43,8 +43,17 @@ const TABS = [
   { id: "historial", label: "Historial de resguardo" },
   { id: "siniestros", label: "Siniestros" },
   { id: "cursos", label: "Cursos" },
+  { id: "turno", label: "Mi Turno" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
+
+function duracionTurno(inicio: string | Date, fin: string | Date | null): string {
+  const ms = (fin ? new Date(fin) : new Date()).getTime() - new Date(inicio).getTime();
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 export function FichaOperador({ operador }: { operador: Operador }) {
   const [tab, setTab] = useState<TabId>("historial");
@@ -242,6 +251,7 @@ export function FichaOperador({ operador }: { operador: Operador }) {
           {tab === "historial" && <TabHistorial operador={operador} />}
           {tab === "siniestros" && <TabSiniestros operador={operador} />}
           {tab === "cursos" && <TabCursos operador={operador} />}
+          {tab === "turno" && <TabTurno operador={operador} />}
         </div>
       </div>
     </div>
@@ -301,6 +311,26 @@ function TabSiniestros({ operador }: { operador: Operador }) {
         </Table>
       )}
     </div>
+  );
+}
+
+function TabTurno({ operador }: { operador: Operador }) {
+  if (!operador.usoUnidades || operador.usoUnidades.length === 0) {
+    return <EmptyState>Sin registros de uso de unidades.</EmptyState>;
+  }
+  return (
+    <Table headers={["Unidad", "Inicio", "Fin", "Duración"]} minWidth={640}>
+      {operador.usoUnidades.map((r: Operador) => (
+        <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+          <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>
+            {r.numeroEconomico} <span style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>· {r.unidad.marca} {r.unidad.unidadModelo}</span>
+          </td>
+          <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{fmtFechaHora(r.inicio)}</td>
+          <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{r.fin ? fmtFechaHora(r.fin) : "Activo"}</td>
+          <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>{duracionTurno(r.inicio, r.fin)}</td>
+        </tr>
+      ))}
+    </Table>
   );
 }
 
