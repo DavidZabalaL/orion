@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
 import { BiChart } from "@/components/bi/bi-chart";
@@ -12,6 +12,7 @@ import { AnalisisAvanzado } from "@/components/bi/analisis-avanzado";
 import { PreguntaNatural } from "@/components/bi/pregunta-natural";
 import { InsightBI } from "@/components/bi/insight-bi";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
+import { useRegisterExportable } from "@/components/dashboard/ExportRegistryContext";
 
 export type MetricaDisponible = {
   id: string;
@@ -81,6 +82,17 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
+  const idExportable = useId();
+
+  // Igual que en BiCard: la combinación libre del explorador se registra
+  // para el exportador de resumen ejecutivo mientras tiene datos visibles.
+  useRegisterExportable(
+    cargando || error || verTabla
+      ? null
+      : combinacion.tipoGrafica === "contador"
+      ? { id: idExportable, type: "kpi", title: dataset.label, value: datos[0]?.valor }
+      : { id: idExportable, type: "chart", title: dataset.label, domRef: graficaRef }
+  );
 
   function aplicarInterpretacionNL(p: { datasetId: string; ejeX: string; ejeY: string; agregacion: "conteo" | "suma" | "promedio"; tipoGrafica: CombinacionBI["tipoGrafica"]; filtros?: CombinacionBI["filtros"] }) {
     setCombinacion({ datasetId: p.datasetId, ejeX: p.ejeX, ejeY: p.ejeY, agregacion: p.agregacion, tipoGrafica: p.tipoGrafica, filtros: p.filtros });

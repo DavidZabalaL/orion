@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { TagRow } from "@/components/tag/tag-row";
@@ -15,14 +14,12 @@ export type TagTransaccion = {
   caseta: string | null;
   monto: string;
   proveedorTag: string;
-  conciliado: boolean;
 };
 
 export type GrupoTag = {
   numeroEconomico: string;
   totalMonto: number;
   totalTransacciones: number;
-  pendientesConciliar: number;
   ultimaFecha: string;
   transacciones: TagTransaccion[];
 };
@@ -70,11 +67,6 @@ export function TagAcordeon({ grupos }: { grupos: GrupoTag[] }) {
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
                   {fmtMoney(g.totalMonto)}
                 </span>
-                {g.pendientesConciliar > 0 ? (
-                  <Badge label={`${g.pendientesConciliar} sin conciliar`} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
-                ) : (
-                  <Badge label="Todo conciliado" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
-                )}
               </div>
             </button>
 
@@ -83,7 +75,7 @@ export function TagAcordeon({ grupos }: { grupos: GrupoTag[] }) {
                 <table className="w-full min-w-[640px] border-collapse">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                      {["Fecha", "Unidad", "Caseta", "Monto", "Proveedor", "Conciliado", ""].map((h) => (
+                      {["Fecha", "Unidad", "Caseta", "Monto", "Proveedor"].map((h) => (
                         <th key={h} className="text-left px-4 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                       ))}
                     </tr>

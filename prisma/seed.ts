@@ -22,28 +22,28 @@ async function main() {
       permisos: { "*": { "*": true } },
     },
   });
+  const permisosCV = {
+    A: editar, "A.1": editar, B: editar, C: editar, D: editar, E: editar,
+    F: editar, G: editar, "G.1": editar, H: editar, I: editar, J: editar,
+    L: editar, M: editar, N: ver, R: ver, S: ver,
+  };
   const rolCV = await prisma.rol.upsert({
     where: { nombre: "Control Vehicular" },
-    update: {},
-    create: {
-      nombre: "Control Vehicular",
-      permisos: {
-        A: editar, "A.1": editar, B: editar, C: editar, D: editar, E: editar,
-        F: editar, G: editar, "G.1": editar, H: editar, I: editar, J: editar,
-        L: editar, M: editar,
-      },
-    },
+    update: { permisos: permisosCV },
+    create: { nombre: "Control Vehicular", permisos: permisosCV },
   });
+  // Gerente administrativo no tenía nada del módulo B (Alta/Baja) — junto con
+  // Control Vehicular, son los dos roles que deben ver todo lo referente a
+  // sus unidades en todos los paneles (Insumos, Rescate, Siniestros incluidos).
+  const permisosCoordinador = {
+    A: ver, "A.1": editar, B: ver, C: ver, D: editar, E: editar, F: ver,
+    G: ver, "G.1": ver, H: ver, I: ver, J: editar, L: ver, M: editar,
+    N: ver, R: ver, S: ver,
+  };
   const rolCoordinador = await prisma.rol.upsert({
     where: { nombre: "Gerente administrativo" },
-    update: {},
-    create: {
-      nombre: "Gerente administrativo",
-      permisos: {
-        A: ver, "A.1": editar, C: ver, D: editar, E: editar, F: ver,
-        G: ver, "G.1": ver, H: ver, I: ver, J: editar, L: ver, M: editar,
-      },
-    },
+    update: { permisos: permisosCoordinador },
+    create: { nombre: "Gerente administrativo", permisos: permisosCoordinador },
   });
   const rolDireccion = await prisma.rol.upsert({
     where: { nombre: "Dirección" },
@@ -124,7 +124,7 @@ async function main() {
         estatus: "ACTIVO",
         presupuestoAprobadoAnual: 540000,
         modulosActivos: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "L"],
-        procesosActivos: ["checklist_diario", "conciliacion_diaria"],
+        procesosActivos: ["checklist_diario"],
       },
     });
     proyectos.push(proyecto);
@@ -217,7 +217,7 @@ async function main() {
     { marca: "Toyota", unidad: "Hilux" },
     { marca: "Freightliner", unidad: "M2 106 (Grúa)" },
   ];
-  const estatusList = ["ACTIVO", "ACTIVO", "ACTIVO", "CONSIGNACION", "DIRECCION", "BAJA"] as const;
+  const estatusList = ["ACTIVO", "ACTIVO", "ACTIVO", "ACTIVO", "INACTIVO", "BAJA"] as const;
 
   const unidades = [];
   for (let i = 0; i < 20; i++) {
@@ -330,7 +330,6 @@ async function main() {
         caseta: "Caseta Cadereyta",
         proveedorTag: "IAVE",
         proyectoReportanteId: proyecto.id,
-        conciliado: i % 3 !== 0,
       },
     });
 

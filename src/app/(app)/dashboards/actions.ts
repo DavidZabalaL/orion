@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
+import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
+import { enviarReporteBI } from "@/lib/email";
 import {
   obtenerDataset,
   obtenerCampo,
@@ -183,4 +187,135 @@ export async function eliminarVistaDashboard(id: string): Promise<ResultadoVista
 
   revalidatePath("/dashboards");
   return { ok: true };
+}
+
+// ───────────────────────── Estatus semanal de flota ─────────────────────────
+// SLA/disponibilidad/estatus/motivos/gastos — descarga y envío inmediato o
+// programado desde el Dashboard (ver EstatusFlotaModal). No es un módulo
+// aparte: se administra desde aquí, aunque por debajo reutiliza el mismo
+// ReporteProgramado/motor de reportes que /reportes/generador.
+
+export type ResultadoSimple = { ok: boolean; error?: string };
+
+/**
+ * Alcance completo permitido para el usuario actual (módulo M) — si está
+ * limitado a ciertos proyectos, es "todos los suyos"; si no, null (sin
+ * restricción). Se usa siempre para el bloque "general" del reporte, sin
+ * importar qué haya seleccionado.
+ */
+async function alcanceGeneralPermitido(): Promise<string[] | null> {
+  return proyectosPermitidosParaModulo("M");
+}
+
+/** Filtra la selección solicitada contra lo que el usuario tiene permitido — nunca se confía en lo que mande el cliente. */
+async function validarSeleccion(proyectoIdsSolicitados: string[], permitidos: string[] | null): Promise<string[]> {
+  if (permitidos === null) return proyectoIdsSolicitados;
+  return proyectoIdsSolicitados.filter((id) => permitidos.includes(id));
+}
+
+async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: string; hasta: string }): Promise<EstatusFlotaReporte> {
+  const permitidos = await alcanceGeneralPermitido();
+  const seleccionValidada = await validarSeleccion(input.proyectoIds, permitidos);
+  return calcularEstatusFlotaReporte({
+    proyectoIdsPermitidos: permitidos,
+    proyectoIdsSeleccionados: seleccionValidada,
+    desde: new Date(input.desde),
+    hasta: new Date(input.hasta),
+  });
+}
+
+export type ResultadoDatosEstatusFlota = { ok: true; datos: EstatusFlotaReporte } | { ok: false; error: string };
+
+/** Datos del reporte para armar el PDF en el cliente ("Descargar PDF"). */
+export async function obtenerDatosEstatusFlota(input: { proyectoIds: string[]; desde: string; hasta: string }): Promise<ResultadoDatosEstatusFlota> {
+  if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
+  try {
+    const datos = await calcularReporteConAlcance(input);
+    return { ok: true, datos: JSON.parse(JSON.stringify(datos)) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo calcular el reporte." };
+  }
+}
+
+/** "Enviar por correo ahora" — genera el PDF server-side y lo envía de inmediato, sin pasar por la programación. */
+export async function enviarEstatusFlotaAhora(input: {
+  proyectoIds: string[];
+  desde: string;
+  hasta: string;
+  destinatarios: string[];
+}): Promise<ResultadoSimple> {
+  if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
+  if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
+
+  try {
+    const datos = await calcularReporteConAlcance(input);
+    const buffer = await generarEstatusFlotaBuffer(datos);
+    const nombreArchivo = `estatus-flota-${input.hasta}.pdf`;
+    const envio = await enviarReporteBI({
+      destinatarios: input.destinatarios,
+      nombreReporte: "Estatus de flota",
+      buffer,
+      nombreArchivo,
+      mime: "application/pdf",
+    });
+    if (!envio.enviado) return { ok: false, error: envio.error ?? "No se pudo enviar el correo." };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo generar el reporte." };
+  }
+}
+
+export type ConfigEstatusFlotaProgramado = {
+  id: string | null;
+  proyectoIds: string[];
+  hora: string;
+  destinatarios: string[];
+  activo: boolean;
+};
+
+const TIPO_ESTATUS_FLOTA = "estatus_flota";
+
+/**
+ * Envío automático semanal — un único ReporteProgramado (tipo "estatus_flota"),
+ * administrado desde este modal en vez de listarse en /reportes/generador
+ * (a pedido explícito: no debe verse como un módulo aparte). Corre los
+ * lunes, igual que cualquier otro reporte SEMANAL de la plataforma (ver
+ * src/app/api/cron/reportes-programados/route.ts) — ese cron no cambia.
+ */
+export async function guardarProgramacionEstatusFlota(input: {
+  id: string | null;
+  proyectoIds: string[];
+  hora: string;
+  destinatarios: string[];
+  activo: boolean;
+}): Promise<ResultadoSimple> {
+  const session = await auth();
+  if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
+    return { ok: false, error: "No tienes permiso para configurar el envío automático." };
+  }
+
+  const data = {
+    nombre: "Estatus semanal de flota",
+    tipo: TIPO_ESTATUS_FLOTA,
+    camposJson: [],
+    filtrosJson: { proyectoIds: input.proyectoIds },
+    destinatarios: input.destinatarios,
+    hora: input.hora,
+    frecuencia: "SEMANAL" as const,
+    formato: "PDF" as const,
+    activo: input.activo,
+    creadoPorId: session.user.id,
+  };
+
+  try {
+    if (input.id) {
+      await prisma.reporteProgramado.update({ where: { id: input.id }, data });
+    } else {
+      await prisma.reporteProgramado.create({ data });
+    }
+    revalidatePath("/dashboards");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar la programación." };
+  }
 }

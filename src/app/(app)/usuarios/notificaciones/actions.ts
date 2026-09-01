@@ -42,6 +42,12 @@ export async function actualizarConfiguracionNotificaciones(formData: FormData) 
 
     alertaRecargaPresupuestoActiva: formData.get("alertaRecargaPresupuestoActiva") === "on",
 
+    alertaTagSinGpsActiva: formData.get("alertaTagSinGpsActiva") === "on",
+    alertaTagSinGpsMinutos: parseInt(String(formData.get("alertaTagSinGpsMinutos") ?? "60"), 10),
+    alertaCombustibleSinActividadActiva: formData.get("alertaCombustibleSinActividadActiva") === "on",
+    alertaDisponibleSinGpsDiasActiva: formData.get("alertaDisponibleSinGpsDiasActiva") === "on",
+    alertaDisponibleSinGpsDias: parseInt(String(formData.get("alertaDisponibleSinGpsDias") ?? "3"), 10),
+
     destinatariosCorreo: String(formData.get("destinatariosCorreo") ?? "")
       .split(",")
       .map((d) => d.trim())

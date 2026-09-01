@@ -1,23 +1,21 @@
 export const ESTATUS_UNIDAD_LABEL: Record<string, string> = {
   ACTIVO: "Activo",
-  CONSIGNACION: "Consignación",
-  DIRECCION: "Dirección",
+  INACTIVO: "Inactivo",
   BAJA: "Baja",
 };
 
 export const ESTATUS_UNIDAD_STYLE: Record<string, { color: string; bg: string }> = {
   ACTIVO: { color: "var(--color-status-cerrado)", bg: "var(--status-cerrado-bg)" },
-  CONSIGNACION: { color: "var(--color-status-revision)", bg: "var(--status-revision-bg)" },
-  DIRECCION: { color: "var(--color-status-asignado)", bg: "var(--status-asignado-bg)" },
+  INACTIVO: { color: "var(--sidebar-text)", bg: "var(--chip)" },
   BAJA: { color: "var(--color-status-escena)", bg: "var(--status-escena-bg)" },
 };
 
 /**
  * Badge que se muestra para el estatus de una unidad — ligado al botón de
  * encendido/apagado: una unidad ACTIVO que se apaga (disponibilidad = false)
- * deja de mostrarse como "Activo" y pasa a "No disponible". Consignación,
- * Dirección y Baja no cambian con el switch (son estatus de ciclo de vida
- * aparte, no el operativo del día a día).
+ * deja de mostrarse como "Activo" y pasa a "No disponible". Inactivo y Baja
+ * no cambian con el switch (son estatus de ciclo de vida aparte, no el
+ * operativo del día a día).
  */
 export function estatusVisibleUnidad(estatus: string, disponibilidad: boolean): { label: string; color: string; bg: string } {
   if (estatus === "ACTIVO" && !disponibilidad) {

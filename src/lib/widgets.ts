@@ -6,7 +6,7 @@ export type DatosWidgetsUnidades = {
   disponibles: number;
   noDisponibles: number;
   bajas: number;
-  consignacionODireccion: number;
+  inactivas: number;
   gastoHoy: number;
   porTipo: { label: string; value: number }[];
   porTipoNoDisponible: { label: string; value: number }[];
@@ -26,7 +26,7 @@ export const CATALOGO_WIDGETS_UNIDADES: DefinicionWidget[] = [
   { id: "disponibles", labelDefault: "Disponibles hoy", tipo: "contador" },
   { id: "noDisponibles", labelDefault: "No disponibles hoy", tipo: "contador" },
   { id: "bajas", labelDefault: "Bajas", tipo: "contador" },
-  { id: "consignacionODireccion", labelDefault: "En consignación / dirección", tipo: "contador" },
+  { id: "inactivas", labelDefault: "Inactivas", tipo: "contador" },
   { id: "gastoHoy", labelDefault: "Gasto al día (hoy)", tipo: "contador" },
   { id: "porTipo", labelDefault: "Unidades por tipo de vehículo", tipo: "desglose" },
   { id: "porTipoNoDisponible", labelDefault: "No disponibles por tipo de vehículo", tipo: "desglose" },
@@ -37,7 +37,7 @@ export const CATALOGO_WIDGETS_UNIDADES: DefinicionWidget[] = [
   { id: "slaPorProyecto", labelDefault: "SLA de disponibilidad por proyecto — mes en curso (%)", tipo: "desglose" },
 ];
 
-export const WIDGETS_DEFAULT_UNIDADES = ["total", "activas", "disponibles", "noDisponibles", "bajas", "consignacionODireccion", "porTipo", "porTipoNoDisponible", "porProyecto"];
+export const WIDGETS_DEFAULT_UNIDADES = ["total", "activas", "disponibles", "noDisponibles", "bajas", "inactivas", "porTipo", "porTipoNoDisponible", "porProyecto"];
 
 export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): number | { label: string; value: number }[] {
   switch (id) {
@@ -46,7 +46,7 @@ export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): nu
     case "disponibles": return datos.disponibles;
     case "noDisponibles": return datos.noDisponibles;
     case "bajas": return datos.bajas;
-    case "consignacionODireccion": return datos.consignacionODireccion;
+    case "inactivas": return datos.inactivas;
     case "gastoHoy": return datos.gastoHoy;
     case "porTipo": return datos.porTipo;
     case "porTipoNoDisponible": return datos.porTipoNoDisponible;

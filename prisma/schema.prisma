@@ -29,8 +29,7 @@ enum TipoCombustible {
 
 enum EstatusUnidad {
   ACTIVO
-  CONSIGNACION
-  DIRECCION
+  INACTIVO
   BAJA
 }
 
@@ -40,6 +39,17 @@ enum MotivoBaja {
   FIN_VIDA_UTIL
   DEVOLUCION
   CONSIGNACION_CERRADA
+  OTRO
+}
+
+/// Motivo por el que una unidad se marca como no disponible (botón de
+/// encendido/apagado) — distinto de MotivoBaja, que es para baja definitiva.
+enum MotivoIndisponibilidad {
+  MANTENIMIENTO
+  SINIESTRO
+  SIN_OPERADOR
+  TRAMITE_DOCUMENTACION
+  SIN_COMBUSTIBLE
   OTRO
 }
 
@@ -452,6 +462,9 @@ model Unidad {
   /// Fecha del último cambio de `disponibilidad` (botón de encendido/apagado).
   /// Cuando está apagada, "días sin operar" se cuenta desde aquí.
   fechaCambioDisponibilidad DateTime?
+  /// Solo aplica mientras `disponibilidad = false` — se limpian al reactivar.
+  motivoIndisponibilidad       MotivoIndisponibilidad?
+  motivoIndisponibilidadDetalle String?
 
   resguardanteId String?
   resguardante   Operador? @relation("ResguardanteActual", fields: [resguardanteId], references: [id])
@@ -475,6 +488,7 @@ model Unidad {
 
   asignaciones       AsignacionOperador[]
   resguardos         Resguardo[]
+  usoUnidades        BitacoraUsoUnidad[]
   historicoDisponibilidad HistoricoDisponibilidadUnidad[]
   checklists         Checklist[]
   gastos             GastoVehicular[]
@@ -562,6 +576,7 @@ model Operador {
   accidentes           Accidente[]
   cursos               CursoOperador[]
   siniestros           Siniestro[]          @relation("SiniestroOperador")
+  usoUnidades          BitacoraUsoUnidad[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -621,6 +636,24 @@ model Resguardo {
   @@index([operadorId])
 }
 
+/// Registro de cuándo un operador tomó y liberó una unidad en su turno diario.
+/// A diferencia de Resguardo (custodia a largo plazo), este modelo rastrea
+/// sesiones de uso dentro del día: hora de inicio y fin, permitiendo calcular
+/// el tiempo efectivo de operación por unidad y operador.
+model BitacoraUsoUnidad {
+  id              String    @id @default(cuid())
+  operadorId      String
+  operador        Operador  @relation(fields: [operadorId], references: [id])
+  numeroEconomico String
+  unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  inicio          DateTime  @default(now())
+  fin             DateTime?
+
+  @@index([operadorId])
+  @@index([numeroEconomico])
+  @@index([inicio])
+}
+
 /**
  * Historial de periodos encendido/apagado de una unidad — a diferencia de
  * `Unidad.disponibilidad` (solo el estado actual), esta tabla permite
@@ -635,6 +668,11 @@ model HistoricoDisponibilidadUnidad {
   disponible      Boolean
   desde           DateTime
   hasta           DateTime?
+  /// Motivo al momento de pasar a no disponible (disponible = false) — permite
+  /// desglosar motivos de indisponibilidad de periodos pasados, no solo del
+  /// estado actual de Unidad.
+  motivo         MotivoIndisponibilidad?
+  motivoDetalle  String?
 
   @@index([numeroEconomico])
 }
@@ -773,7 +811,6 @@ model Tag {
   tarjetaIdmx          String?
   proyectoReportanteId String?
   proyectoReportante   Proyecto?    @relation(fields: [proyectoReportanteId], references: [id])
-  conciliado           Boolean      @default(false)
 
   createdAt DateTime @default(now())
 
@@ -960,6 +997,14 @@ model ConfiguracionNotificaciones {
 
   // Presupuesto por partida — recarga
   alertaRecargaPresupuestoActiva Boolean @default(true)
+
+  // Triangulación (reemplaza la conciliación manual de TAG) — cruce de
+  // combustible/TAG/GPS para detectar inconsistencias, ver src/lib/notificaciones.ts
+  alertaTagSinGpsActiva              Boolean @default(true)
+  alertaTagSinGpsMinutos             Int     @default(60)
+  alertaCombustibleSinActividadActiva Boolean @default(true)
+  alertaDisponibleSinGpsDiasActiva   Boolean @default(true)
+  alertaDisponibleSinGpsDias         Int     @default(3)
 
   destinatariosCorreo Json
 

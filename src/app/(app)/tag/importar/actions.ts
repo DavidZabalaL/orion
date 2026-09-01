@@ -76,7 +76,6 @@ export async function importarTags(
           monto,
           caseta,
           proveedorTag: proveedorTag as never,
-          conciliado: false,
         },
       });
       resultado.creadas.push(claveFila);

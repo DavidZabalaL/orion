@@ -6,13 +6,13 @@ import { crearChecklistCargaCombustible, subirFotoChecklist } from "@/app/(app)/
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { FirmaPad } from "@/components/checklist/firma-pad";
 import {
-  ZONAS_CARGA,
-  MUNICIPIOS_POR_ZONA,
+  ESTADOS_CARGA,
+  MUNICIPIOS_POR_ESTADO,
   AREAS_CARGA,
   PERSONAL_POR_AREA,
   TIPOS_LICENCIA_CARGA,
   TIPOS_COMBUSTIBLE_CARGA,
-  type ZonaCarga,
+  type EstadoCarga,
   type AreaCarga,
 } from "@/lib/checklist-carga-combustible";
 
@@ -102,8 +102,8 @@ export function WizardCargaCombustible({
 
   // Fase generales
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
-  const [zona, setZona] = useState<ZonaCarga>(ZONAS_CARGA[0]);
-  const [municipio, setMunicipio] = useState(MUNICIPIOS_POR_ZONA[ZONAS_CARGA[0]][0] ?? "");
+  const [zona, setZona] = useState<EstadoCarga>(ESTADOS_CARGA[0]);
+  const [municipio, setMunicipio] = useState(MUNICIPIOS_POR_ESTADO[ESTADOS_CARGA[0]][0] ?? "");
   const [area, setArea] = useState<AreaCarga>(AREAS_CARGA[0]);
   const [responsable, setResponsable] = useState("");
   const [tipoLicencia, setTipoLicencia] = useState<string>(TIPOS_LICENCIA_CARGA[0]);
@@ -119,7 +119,7 @@ export function WizardCargaCombustible({
   const [tipoCombustible, setTipoCombustible] = useState<string>(TIPOS_COMBUSTIBLE_CARGA[0]);
   const [observaciones, setObservaciones] = useState("");
 
-  const municipiosDisponibles = MUNICIPIOS_POR_ZONA[zona] ?? [];
+  const municipiosDisponibles = MUNICIPIOS_POR_ESTADO[zona] ?? [];
   const personalDisponible = PERSONAL_POR_AREA[area] ?? [];
 
   const unidadesFiltradas = useMemo(
@@ -132,9 +132,9 @@ export function WizardCargaCombustible({
     [unidades, numeroEconomico]
   );
 
-  function alCambiarZona(nuevaZona: ZonaCarga) {
+  function alCambiarZona(nuevaZona: EstadoCarga) {
     setZona(nuevaZona);
-    const munis = MUNICIPIOS_POR_ZONA[nuevaZona] ?? [];
+    const munis = MUNICIPIOS_POR_ESTADO[nuevaZona] ?? [];
     setMunicipio(munis[0] ?? "");
   }
 
@@ -271,9 +271,9 @@ export function WizardCargaCombustible({
             </div>
 
             <div>
-              <label style={labelStyle}>Zona *</label>
-              <select value={zona} onChange={(e) => alCambiarZona(e.target.value as ZonaCarga)} style={fieldStyle}>
-                {ZONAS_CARGA.map((z) => (
+              <label style={labelStyle}>Estado *</label>
+              <select value={zona} onChange={(e) => alCambiarZona(e.target.value as EstadoCarga)} style={fieldStyle}>
+                {ESTADOS_CARGA.map((z) => (
                   <option key={z} value={z}>{z}</option>
                 ))}
               </select>
@@ -286,7 +286,7 @@ export function WizardCargaCombustible({
                   <option key={m} value={m}>{m}</option>
                 ))}
                 {municipiosDisponibles.length === 0 && (
-                  <option value="">Selecciona una zona primero</option>
+                  <option value="">Selecciona un estado primero</option>
                 )}
               </select>
             </div>

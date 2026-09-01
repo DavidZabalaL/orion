@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NOMBRE_MES, type SlaUnidad, type SlaMensual, type SlaMensualProyecto } from "@/lib/sla-disponibilidad-tipos";
+import type { MotivoIndisponibilidad } from "@/generated/prisma/enums";
 
 export { NOMBRE_MES, type SlaUnidad, type SlaMensual, type SlaMensualProyecto };
 
@@ -10,9 +11,17 @@ const MS_POR_DIA = 86_400_000;
  * periodo abierto (si hay uno y su valor es distinto) y abre uno nuevo. Debe
  * llamarse en cada punto donde se escribe `Unidad.disponibilidad` (toggle
  * manual, baja, alta, importación) para que el SLA de disponibilidad tenga
- * cobertura completa.
+ * cobertura completa. `motivo`/`motivoDetalle` solo aplican cuando
+ * `disponible = false` — quedan en el periodo para poder desglosar motivos de
+ * indisponibilidad de rangos de fechas pasados (ver reporte de estatus de flota).
  */
-export async function registrarCambioDisponibilidad(numeroEconomico: string, disponible: boolean, fecha: Date = new Date()) {
+export async function registrarCambioDisponibilidad(
+  numeroEconomico: string,
+  disponible: boolean,
+  fecha: Date = new Date(),
+  motivo?: MotivoIndisponibilidad | null,
+  motivoDetalle?: string | null
+) {
   const abierto = await prisma.historicoDisponibilidadUnidad.findFirst({
     where: { numeroEconomico, hasta: null },
     orderBy: { desde: "desc" },
@@ -23,7 +32,9 @@ export async function registrarCambioDisponibilidad(numeroEconomico: string, dis
     await prisma.historicoDisponibilidadUnidad.update({ where: { id: abierto.id }, data: { hasta: fecha } });
   }
 
-  await prisma.historicoDisponibilidadUnidad.create({ data: { numeroEconomico, disponible, desde: fecha } });
+  await prisma.historicoDisponibilidadUnidad.create({
+    data: { numeroEconomico, disponible, desde: fecha, motivo: disponible ? null : motivo ?? null, motivoDetalle: disponible ? null : motivoDetalle ?? null },
+  });
 }
 
 type Periodo = { disponible: boolean; desde: Date; hasta: Date | null };
@@ -89,6 +100,22 @@ export async function calcularSlaMesActualPorUnidades(numerosEconomicos: string[
   if (numerosEconomicos.length === 0) return resultado;
 
   const rango = { desde: inicioMes(ahora.getFullYear(), ahora.getMonth() + 1), hasta: ahora };
+  const porUnidad = await obtenerPeriodosPorUnidad(numerosEconomicos);
+  for (const numeroEconomico of numerosEconomicos) {
+    resultado.set(numeroEconomico, calcularSlaEnRango(porUnidad.get(numeroEconomico) ?? [], rango));
+  }
+  return resultado;
+}
+
+/**
+ * Igual que calcularSlaMesActualPorUnidades pero para un rango de fechas
+ * arbitrario, en vez de estar atado al mes en curso — usado por el reporte
+ * de estatus de flota (periodo elegido libremente desde el Dashboard).
+ */
+export async function calcularSlaPorUnidadesEnRango(numerosEconomicos: string[], rango: { desde: Date; hasta: Date }): Promise<Map<string, SlaUnidad>> {
+  const resultado = new Map<string, SlaUnidad>();
+  if (numerosEconomicos.length === 0) return resultado;
+
   const porUnidad = await obtenerPeriodosPorUnidad(numerosEconomicos);
   for (const numeroEconomico of numerosEconomicos) {
     resultado.set(numeroEconomico, calcularSlaEnRango(porUnidad.get(numeroEconomico) ?? [], rango));

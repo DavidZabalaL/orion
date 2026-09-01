@@ -35,7 +35,7 @@ export async function crearTag(formData: FormData): Promise<ResultadoCrearTag> {
   }
 
   const tag = await prisma.tag.create({
-    data: { numeroEconomico, fecha: parseFechaLocalMx(fecha)!, monto, caseta, proveedorTag: proveedorTag as never, conciliado: false },
+    data: { numeroEconomico, fecha: parseFechaLocalMx(fecha)!, monto, caseta, proveedorTag: proveedorTag as never },
   });
 
   const session = await auth();
@@ -54,36 +54,6 @@ export async function crearTag(formData: FormData): Promise<ResultadoCrearTag> {
   invalidarCacheBI(["peajes"]);
   if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true };
-}
-
-export async function conciliarTag(formData: FormData) {
-  await exigirPermisoModulo("E", "aprobar");
-
-  const id = String(formData.get("id") ?? "");
-
-  const permitidos = await proyectosPermitidosParaModulo("E");
-  if (permitidos !== null) {
-    const tag = await prisma.tag.findUnique({ where: { id }, select: { proyectoReportanteId: true, unidad: { select: { proyectoId: true } } } });
-    const proyectoId = tag?.unidad?.proyectoId ?? tag?.proyectoReportanteId ?? null;
-    if (!proyectoId || !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
-  }
-
-  await prisma.tag.update({ where: { id }, data: { conciliado: true } });
-
-  const session = await auth();
-  if (session?.user?.id) {
-    await logActivity({
-      userId: session.user.id,
-      modulo: "tag",
-      accion: "update",
-      entidad: "Tag",
-      entidadId: id,
-      detalle: { campo: "conciliado", nuevo: true },
-    });
-  }
-
-  revalidatePath("/tag");
-  invalidarCacheBI(["peajes"]);
 }
 
 export async function asignarEconomicoTag(formData: FormData) {
