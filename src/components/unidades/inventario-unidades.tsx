@@ -3,7 +3,7 @@
 import "react-grid-layout/css/styles.css";
 
 import { useMemo, useState } from "react";
-import { Car, CheckCircle2, XCircle, Ban, ArrowLeftRight, Layers } from "lucide-react";
+import { Car, CheckCircle2, XCircle, Ban, PauseCircle, Layers } from "lucide-react";
 import { Responsive, useContainerWidth, type ResponsiveLayouts } from "react-grid-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
@@ -16,13 +16,13 @@ const COLS = { lg: COLS_WIDGETS, sm: 1 };
 const ICONO_WIDGET: Record<string, typeof Car> = {
   total: Layers,
   bajas: Ban,
-  consignacionODireccion: ArrowLeftRight,
+  inactivas: PauseCircle,
   activas: CheckCircle2,
   disponibles: CheckCircle2,
   noDisponibles: XCircle,
 };
 
-type CategoriaEstatus = "activas" | "bajas" | "transito";
+type CategoriaEstatus = "activas" | "bajas" | "inactivas";
 type Disponibilidad = "disponible" | "no_disponible";
 
 function tipoLabelDe(r: UnidadRow): string {
@@ -92,7 +92,7 @@ export function InventarioUnidades({
       if (disponibilidad === "no_disponible" && r.disponibilidad) return false;
       if (categoriaEstatus === "activas" && r.estatus !== "ACTIVO") return false;
       if (categoriaEstatus === "bajas" && r.estatus !== "BAJA") return false;
-      if (categoriaEstatus === "transito" && !(r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION")) return false;
+      if (categoriaEstatus === "inactivas" && r.estatus !== "INACTIVO") return false;
       return true;
     });
   }, [rows, proyectosSeleccionados, tiposSeleccionados, disponibilidad, categoriaEstatus]);
@@ -115,7 +115,7 @@ export function InventarioUnidades({
     const disponibles = rowsParaContar.filter((r) => r.disponibilidad).length;
     const noDisponibles = total - disponibles;
     const bajas = rowsProyecto.filter((r) => r.estatus === "BAJA").length;
-    const consignacionODireccion = rowsParaContar.filter((r) => r.estatus === "CONSIGNACION" || r.estatus === "DIRECCION").length;
+    const inactivas = rowsParaContar.filter((r) => r.estatus === "INACTIVO").length;
 
     const contarPorTipo = (lista: UnidadRow[]) => {
       const mapa = new Map<string, number>();
@@ -154,7 +154,7 @@ export function InventarioUnidades({
       disponibles,
       noDisponibles,
       bajas,
-      consignacionODireccion,
+      inactivas,
       gastoHoy,
       porTipo: contarPorTipo(rowsParaContar),
       porTipoNoDisponible: contarPorTipo(rowsParaContar.filter((r) => !r.disponibilidad)),
@@ -174,8 +174,8 @@ export function InventarioUnidades({
       case "bajas":
         alternarCategoriaEstatus("bajas");
         break;
-      case "consignacionODireccion":
-        alternarCategoriaEstatus("transito");
+      case "inactivas":
+        alternarCategoriaEstatus("inactivas");
         break;
       case "disponibles":
         alternarDisponibilidad("disponible");
@@ -192,7 +192,7 @@ export function InventarioUnidades({
     switch (id) {
       case "activas": return categoriaEstatus === "activas";
       case "bajas": return categoriaEstatus === "bajas";
-      case "consignacionODireccion": return categoriaEstatus === "transito";
+      case "inactivas": return categoriaEstatus === "inactivas";
       case "disponibles": return disponibilidad === "disponible";
       case "noDisponibles": return disponibilidad === "no_disponible";
       default: return false;

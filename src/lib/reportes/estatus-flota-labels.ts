@@ -8,8 +8,7 @@ import type { EstatusUnidad, MotivoIndisponibilidad } from "@/generated/prisma/e
 
 export const LABEL_ESTATUS: Record<EstatusUnidad, string> = {
   ACTIVO: "Activas",
-  CONSIGNACION: "En consignación",
-  DIRECCION: "En dirección",
+  INACTIVO: "Inactivas",
   BAJA: "Bajas",
 };
 

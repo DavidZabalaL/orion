@@ -217,7 +217,7 @@ async function main() {
     { marca: "Toyota", unidad: "Hilux" },
     { marca: "Freightliner", unidad: "M2 106 (Grúa)" },
   ];
-  const estatusList = ["ACTIVO", "ACTIVO", "ACTIVO", "CONSIGNACION", "DIRECCION", "BAJA"] as const;
+  const estatusList = ["ACTIVO", "ACTIVO", "ACTIVO", "ACTIVO", "INACTIVO", "BAJA"] as const;
 
   const unidades = [];
   for (let i = 0; i < 20; i++) {

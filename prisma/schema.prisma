@@ -29,8 +29,7 @@ enum TipoCombustible {
 
 enum EstatusUnidad {
   ACTIVO
-  CONSIGNACION
-  DIRECCION
+  INACTIVO
   BAJA
 }
 

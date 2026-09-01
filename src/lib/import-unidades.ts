@@ -11,7 +11,7 @@ export const CAMPOS_UNIDAD = [
   { key: "kmOficial", label: "Kilometraje", requerido: false },
   { key: "capacidadTanqueLitros", label: "Capacidad máxima de tanque (litros)", requerido: false },
   { key: "proyecto", label: "Proyecto", requerido: false },
-  { key: "estatus", label: "Estatus (Activo/Consignación/Dirección/Baja)", requerido: false },
+  { key: "estatus", label: "Estatus (Activo/Inactivo/Baja)", requerido: false },
   { key: "resguardante", label: "Resguardante (nombre del operador)", requerido: false },
   { key: "propietario", label: "Propietario (SYM/5 Star/Kabat)", requerido: false },
   { key: "origenPlaca", label: "Origen de placa (estado)", requerido: false },
@@ -37,8 +37,7 @@ const TIPO_COMBUSTIBLE_ALIAS: Record<string, string> = {
 
 const ESTATUS_ALIAS: Record<string, string> = {
   ACTIVO: "ACTIVO", ACTIVA: "ACTIVO",
-  CONSIGNACION: "CONSIGNACION", CONSIGNACIÓN: "CONSIGNACION",
-  DIRECCION: "DIRECCION", DIRECCIÓN: "DIRECCION",
+  INACTIVO: "INACTIVO", INACTIVA: "INACTIVO",
   BAJA: "BAJA",
 };
 
