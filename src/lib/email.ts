@@ -1,37 +1,50 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const EMAIL_FROM_DEFAULT = "Orión <orion@grupokabat.com>";
 
-function crearTransporte() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST ?? "smtp.office365.com",
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false,
-      minVersion: "TLSv1.2",
-    },
-    connectionTimeout: 20_000,
-    greetingTimeout: 20_000,
-    socketTimeout: 30_000,
-  });
+// Envío vía Resend, no SMTP: Office 365 empezó a rechazar en la entrega final
+// (no en la autenticación) los correos mandados por SMTP AUTH básico desde un
+// remitente @grupokabat.com hacia otro buzón del mismo tenant — una política
+// de "Direct Send"/anti-spoofing que Microsoft ha ido endureciendo, ajena por
+// completo al código. Resend evita el problema por diseño: envía desde su
+// propia infraestructura con DKIM/SPF del dominio verificado, sin pasar por
+// el flujo de correo de Office 365 en absoluto.
+type MensajeCorreo = {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: { filename: string; content: Buffer; contentType?: string }[];
+};
+
+function obtenerResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
 }
 
-async function enviarConReintento(mensaje: Parameters<ReturnType<typeof crearTransporte>["sendMail"]>[0], intentos = 3) {
-  const transporte = crearTransporte();
+async function enviarConReintento(mensaje: MensajeCorreo, intentos = 3) {
+  const resend = obtenerResend();
+  if (!resend) throw new Error("RESEND_API_KEY no configurado.");
+
   for (let intento = 1; intento <= intentos; intento++) {
-    try {
-      return await transporte.sendMail(mensaje);
-    } catch (e) {
-      const codigo = (e as { code?: string; responseCode?: number })?.code;
-      const esErrorAuth = codigo === "EAUTH" || (e as { responseCode?: number })?.responseCode === 535;
-      if (esErrorAuth || intento === intentos) throw e;
-      await new Promise((resolve) => setTimeout(resolve, intento * 1000));
+    const { error } = await resend.emails.send({
+      from: mensaje.from,
+      to: mensaje.to,
+      subject: mensaje.subject,
+      html: mensaje.html,
+      attachments: mensaje.attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+      })),
+    });
+    if (!error) return;
+    // Errores de configuración (dominio no verificado, API key inválida, etc.)
+    // no se resuelven reintentando — solo se reintenta ante fallas transitorias.
+    if (error.name === "validation_error" || error.name === "missing_api_key" || error.name === "invalid_api_key" || intento === intentos) {
+      throw new Error(error.message);
     }
+    await new Promise((resolve) => setTimeout(resolve, intento * 1000));
   }
 }
 
@@ -166,14 +179,14 @@ export async function enviarReporteBI({
   nombreArchivo: string;
   mime: string;
 }): Promise<ResultadoEnvioCorreo> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
   }
   if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
 
   try {
     await enviarConReintento({
-      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: destinatarios.join(","),
       subject: `Reporte programado — ${nombreReporte}`,
       html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el reporte <strong>${nombreReporte}</strong>, generado automáticamente por Orión.</p>`,
@@ -202,8 +215,8 @@ export async function enviarNotificacionTicketRescate({
   prioridad: string;
   ubicacion?: string | null;
 }): Promise<ResultadoEnvioCorreo> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
   }
   if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
 
@@ -212,7 +225,7 @@ export async function enviarNotificacionTicketRescate({
 
   try {
     await enviarConReintento({
-      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: destinatarios.join(","),
       subject: `Nuevo ticket de rescate ${folio} — ${numeroEconomico} (${prioridadLabel})`,
       html: `
@@ -302,15 +315,15 @@ export async function enviarRecuperacionContrasena({
   nombre: string;
   token: string;
 }): Promise<ResultadoEnvioCorreo> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
   }
 
   const aceptarUrl = `${SITE_URL}/invitacion/${token}`;
 
   try {
     await enviarConReintento({
-      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: correo,
       subject: "Restablece tu contraseña — Orión",
       html: plantillaRecuperacionContrasena({ nombre, aceptarUrl }),
@@ -330,15 +343,15 @@ export async function enviarInvitacionOperador({
   nombre: string;
   token: string;
 }): Promise<ResultadoEnvioCorreo> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
   }
 
   const aceptarUrl = `${SITE_URL}/invitacion/${token}`;
 
   try {
     await enviarConReintento({
-      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: correo,
       subject: "Te invitaron a Orión — Control Vehicular",
       html: plantillaInvitacionOperador({ nombre, aceptarUrl }),
@@ -358,15 +371,15 @@ export async function enviarInvitacion({
   nombre: string;
   rol: string;
 }): Promise<ResultadoEnvioCorreo> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return { enviado: false, error: "SMTP_USER/SMTP_PASS no configurados." };
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
   }
 
   const loginUrl = `${SITE_URL}/iniciar-sesion`;
 
   try {
     await enviarConReintento({
-      from: process.env.EMAIL_FROM ?? `Orión <${process.env.SMTP_USER}>`,
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: correo,
       subject: "Te invitaron a Orión — Control Vehicular",
       html: plantillaInvitacion({ nombre, rol, loginUrl }),
