@@ -1,5 +1,5 @@
 {
-  "buildCommand": "(npx prisma migrate deploy || (sleep 15 && npx prisma migrate deploy)) && next build",
+  "buildCommand": "(DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma migrate deploy || (sleep 15 && DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma migrate deploy)) && next build",
   "crons": [
     { "path": "/api/cron/reportes-programados", "schedule": "0 * * * *" }
   ]
