@@ -11,7 +11,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
-import { ZONAS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/checklist-carga-combustible";
+import { ESTADOS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/checklist-carga-combustible";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
@@ -257,8 +257,8 @@ export async function crearChecklistCargaCombustible(
     const firmaResponsable = String(formData.get("carg_firma_responsable") ?? "").trim();
 
     if (!fecha) return { ok: false, error: "La fecha es obligatoria." };
-    if (!zona || !(ZONAS_CARGA as readonly string[]).includes(zona))
-      return { ok: false, error: "Zona no válida." };
+    if (!zona || !(ESTADOS_CARGA as readonly string[]).includes(zona))
+      return { ok: false, error: "Estado no válido." };
     if (!municipio) return { ok: false, error: "El municipio es obligatorio." };
     if (!areaCatalogo) return { ok: false, error: "El área es obligatoria." };
     if (!responsable) return { ok: false, error: "El responsable es obligatorio." };

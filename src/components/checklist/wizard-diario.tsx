@@ -5,7 +5,7 @@ import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
 import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
-import { ZONAS_CARGA, MUNICIPIOS_POR_ZONA, AREAS_CARGA, PERSONAL_POR_AREA } from "@/lib/checklist-carga-combustible";
+import { ESTADOS_CARGA, MUNICIPIOS_POR_ESTADO, AREAS_CARGA, PERSONAL_POR_AREA } from "@/lib/checklist-carga-combustible";
 import { FirmaPad } from "@/components/checklist/firma-pad";
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
   const zona = respuestasExtra["gen_zona"] ?? "";
   const area = respuestasExtra["gen_area"] ?? "";
-  const municipiosDisponibles = zona ? ((MUNICIPIOS_POR_ZONA as Record<string, string[]>)[zona] ?? []) : [];
+  const municipiosDisponibles = zona ? ((MUNICIPIOS_POR_ESTADO as Record<string, string[]>)[zona] ?? []) : [];
   const personalDisponible = area ? ((PERSONAL_POR_AREA as Record<string, string[]>)[area] ?? []) : [];
 
   const total = ITEMS_INSPECCION.length;
@@ -268,7 +268,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   // ─── Validations ─────────────────────────────────────────────────────────
 
   function validarGenerales(): string | null {
-    if (!zona) return "Selecciona una zona.";
+    if (!zona) return "Selecciona un estado.";
     if (!respuestasExtra["gen_municipio"]) return "Selecciona un municipio.";
     if (!area) return "Selecciona un área.";
     if (!respuestasExtra["gen_responsable"]) return "Selecciona un responsable.";
@@ -532,10 +532,10 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
             <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>Datos generales</h3>
 
             <div>
-              <label style={labelStyle}>Zona *</label>
+              <label style={labelStyle}>Estado *</label>
               <select value={zona} onChange={(e) => setRespuestasExtra((p) => ({ ...p, gen_zona: e.target.value, gen_municipio: "" }))} style={fieldStyle} className="rounded-md">
-                <option value="">Selecciona una zona</option>
-                {(ZONAS_CARGA as readonly string[]).map((z) => <option key={z} value={z}>{z}</option>)}
+                <option value="">Selecciona un estado</option>
+                {(ESTADOS_CARGA as readonly string[]).map((z) => <option key={z} value={z}>{z}</option>)}
               </select>
             </div>
 

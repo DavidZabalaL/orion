@@ -78,7 +78,7 @@ function DetalleDiario({
         <Panel>
           <SeccionTitulo titulo="Datos generales" />
           {[
-            { label: "Zona", key: "gen_zona" },
+            { label: "Estado", key: "gen_zona" },
             { label: "Municipio", key: "gen_municipio" },
             { label: "Área", key: "gen_area" },
             { label: "Responsable", key: "gen_responsable" },
