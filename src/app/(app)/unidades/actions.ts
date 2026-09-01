@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
+import { registrarCambioResguardante } from "@/lib/resguardo";
 import { CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { TIPOS_DOCUMENTO_UNIDAD, REQUIERE_ANIO } from "@/lib/catalogo-documentos-unidad";
@@ -333,6 +334,10 @@ export async function actualizarUnidad(formData: FormData) {
         data: { numeroEconomico, proyectoId, fechaInicio: ahoraActualizar },
       });
     }
+  }
+
+  if (anterior.resguardanteId !== resguardanteId) {
+    await registrarCambioResguardante(numeroEconomico, resguardanteId, ahoraActualizar, "Reasignación desde edición de unidad");
   }
 
   if (anterior.placas !== placas) {

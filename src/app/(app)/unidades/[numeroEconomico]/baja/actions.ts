@@ -8,6 +8,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
+import { registrarCambioResguardante } from "@/lib/resguardo";
 import { parseFechaLocalMx } from "@/lib/timezone";
 
 export async function darDeBaja(numeroEconomico: string, formData: FormData) {
@@ -52,10 +53,7 @@ export async function darDeBaja(numeroEconomico: string, formData: FormData) {
     },
   });
 
-  await prisma.resguardo.updateMany({
-    where: { numeroEconomico, fechaHasta: null },
-    data: { fechaHasta: fechaEfectivaDate },
-  });
+  await registrarCambioResguardante(numeroEconomico, null, fechaEfectivaDate, "Baja de unidad");
 
   await registrarCambioDisponibilidad(numeroEconomico, false, fechaEfectivaDate);
 

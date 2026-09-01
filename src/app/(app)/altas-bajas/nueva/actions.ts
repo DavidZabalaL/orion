@@ -9,6 +9,7 @@ import { crearDocumento } from "@/lib/subir-archivo";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { registrarCambioDisponibilidad } from "@/lib/sla-disponibilidad";
+import { registrarCambioResguardante } from "@/lib/resguardo";
 
 function normalizarEconomico(v: string) {
   return v.trim().toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -94,6 +95,7 @@ export async function crearUnidad(formData: FormData) {
     },
   });
   await registrarCambioDisponibilidad(numeroEconomico, true);
+  await registrarCambioResguardante(numeroEconomico, resguardanteId, undefined, "Alta de unidad");
 
   const session = await auth();
   if (session?.user?.id) {
