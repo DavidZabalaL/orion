@@ -231,7 +231,7 @@ function OrdenDetalle({ g, isAdmin }: { g: GastoRow; isAdmin: boolean }) {
         </div>
         <div>
           <label style={labelStyle}>Ingreso taller</label>
-          <input name="fechaIngresoTaller" type="date" max={HOY} defaultValue={soloFecha(g.fechaIngresoTaller)} style={fieldStyle} />
+          <input name="fechaIngresoTaller" type="date" defaultValue={soloFecha(g.fechaIngresoTaller)} style={fieldStyle} />
         </div>
         <div>
           <label style={labelStyle}>Salida estimada taller</label>

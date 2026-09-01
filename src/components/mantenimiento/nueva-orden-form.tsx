@@ -43,7 +43,6 @@ export function NuevaOrdenForm({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const hoy = new Date().toISOString().slice(0, 10);
 
   return (
     <form
@@ -68,8 +67,8 @@ export function NuevaOrdenForm({
           <input name="descripcion" style={fieldStyle} />
         </div>
         <div>
-          <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó o se programó el gasto.">Fecha *</CampoAyuda>
-          <input name="fecha" type="date" required max={hoy} style={fieldStyle} />
+          <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó o se programó el gasto. A diferencia de otros módulos, aquí sí se puede agendar a futuro.">Fecha *</CampoAyuda>
+          <input name="fecha" type="date" required style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Monto total del gasto en pesos mexicanos.">Costo (MXN) *</CampoAyuda>
@@ -101,8 +100,8 @@ export function NuevaOrdenForm({
           </select>
         </div>
         <div>
-          <CampoAyuda style={labelStyle} texto="Fecha en que la unidad entró al taller. Se usa para el temporizador de tiempo en taller.">Fecha ingreso taller</CampoAyuda>
-          <input name="fechaIngresoTaller" type="date" max={hoy} style={fieldStyle} />
+          <CampoAyuda style={labelStyle} texto="Fecha en que la unidad entró (o entrará) al taller. Se usa para el temporizador de tiempo en taller.">Fecha ingreso taller</CampoAyuda>
+          <input name="fechaIngresoTaller" type="date" style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha estimada de entrega del taller. Si se supera, se genera alerta.">Fecha estimada de salida</CampoAyuda>
