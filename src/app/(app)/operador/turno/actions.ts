@@ -122,10 +122,9 @@ export async function obtenerDatosTurno(): Promise<DatosTurno> {
 
   let proyectosIds: string[] | null;
   if ("operadorId" in identidad) {
-    // Mismo comportamiento de siempre para un Operador real: sin proyecto
-    // asignado (campo opcional) no se filtra, ve todas las unidades
-    // disponibles — null aquí, no [] (que significaría "ninguna").
-    proyectosIds = usuario.operador?.proyectoId ? [usuario.operador.proyectoId] : null;
+    // El operador solo puede tomar unidades de su propio proyecto asignado
+    // — sin proyecto asignado, no ve ninguna (nunca "todas por defecto").
+    proyectosIds = usuario.operador?.proyectoId ? [usuario.operador.proyectoId] : [];
   } else {
     if (!(await tienePermisoModulo("O", "editar"))) throw new Error("No tienes permiso para tomar unidades.");
     proyectosIds = await proyectosPermitidosParaModulo("O");
