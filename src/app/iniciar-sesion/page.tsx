@@ -12,6 +12,7 @@ const ERROR_LABEL: Record<string, string> = {
   AccessDenied: "Acceso denegado. Verifica que estés usando tu cuenta de Grupo Kabat.",
   CredencialesInvalidas: "Usuario o contraseña incorrectos.",
   CredencialesOperadorInvalidas: "Correo o contraseña incorrectos.",
+  ErrorTemporal: "Tuvimos un problema temporal para completar tu inicio de sesión. Intenta de nuevo en unos segundos.",
 };
 
 const DESTACADOS = [
