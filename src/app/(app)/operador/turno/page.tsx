@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenerDatosTurno, obtenerBitacoraUsoTodos } from "./actions";
 import { PanelTurnoOperador } from "@/components/operadores/panel-turno-operador";
-import { esRolGlobal } from "@/lib/permisos";
+import { tienePermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeMesMx, parseFechaLocalMx } from "@/lib/timezone";
 import { fmtFechaHora } from "@/lib/formato";
 import { Table, EmptyState, tdStyle } from "@/components/ui/table";
@@ -58,15 +59,21 @@ export default async function PageTurnoOperador({
     );
   }
 
-  if (!(await esRolGlobal())) redirect("/sin-acceso");
+  if (!(await tienePermisoModulo("O"))) redirect("/sin-acceso");
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("O");
 
   const { proyectoId, desde: desdeParam, hasta: hastaParam } = await searchParams;
   const desde = parseFechaLocalMx(desdeParam) ?? inicioDeMesMx();
   const hasta = parseFechaLocalMx(hastaParam) ?? new Date();
 
   const [proyectos, registros] = await Promise.all([
-    prisma.proyecto.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
-    obtenerBitacoraUsoTodos({ proyectoId: proyectoId || undefined, desde, hasta }),
+    prisma.proyecto.findMany({
+      where: proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {},
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    }),
+    obtenerBitacoraUsoTodos({ proyectoId: proyectoId || undefined, proyectosPermitidos, desde, hasta }),
   ]);
 
   return (

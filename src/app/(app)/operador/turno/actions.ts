@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { esRolGlobal } from "@/lib/permisos";
+import { tienePermisoModulo } from "@/lib/permisos";
 
 async function resolverOperador() {
   const session = await auth();
@@ -163,18 +163,32 @@ export type RegistroBitacoraAdmin = {
 
 export type FiltrosBitacoraAdmin = {
   proyectoId?: string;
+  /** Proyectos a los que el usuario tiene acceso para el módulo "O" — null = sin restricción (rol global). */
+  proyectosPermitidos: string[] | null;
   desde: Date;
   hasta: Date;
 };
 
-/** Consulta consolidada de toda la bitácora de uso de unidades, para el Administrador (no vinculado a un Operador). */
+/** Consulta consolidada de toda la bitácora de uso de unidades, para quien tenga permiso de ver el módulo "O" pero no sea un Operador. */
 export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Promise<RegistroBitacoraAdmin[]> {
-  if (!(await esRolGlobal())) throw new Error("No tienes permiso para consultar esta información.");
+  if (!(await tienePermisoModulo("O"))) throw new Error("No tienes permiso para consultar esta información.");
+
+  // Intersección entre el proyecto elegido en el filtro y los proyectos a los
+  // que el usuario tiene acceso — si elige uno fuera de su alcance, no ve nada
+  // (en vez de ignorar la restricción de proyecto).
+  const proyectosIds =
+    filtros.proyectosPermitidos === null
+      ? filtros.proyectoId
+        ? [filtros.proyectoId]
+        : null
+      : filtros.proyectoId
+        ? filtros.proyectosPermitidos.filter((id) => id === filtros.proyectoId)
+        : filtros.proyectosPermitidos;
 
   const registros = await prisma.bitacoraUsoUnidad.findMany({
     where: {
       inicio: { gte: filtros.desde, lte: filtros.hasta },
-      operador: filtros.proyectoId ? { proyectoId: filtros.proyectoId } : undefined,
+      operador: proyectosIds ? { proyectoId: { in: proyectosIds } } : undefined,
     },
     include: {
       operador: { select: { nombre: true, proyecto: { select: { nombre: true } } } },
