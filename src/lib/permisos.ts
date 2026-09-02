@@ -99,6 +99,21 @@ export async function requerirDescargarPolizaSeguro(): Promise<void> {
 }
 
 /**
+ * Forzar el cierre de una sesión de "Mi Turno" que tomó OTRA persona (ej. un
+ * operador que en ese momento no puede liberarla él mismo) — más sensible que
+ * solo consultar la bitácora, por eso no basta con el "editar" genérico del
+ * módulo O (que "Control Vehicular" también tiene, pero sin esta facultad).
+ * Reservado a Gerente administrativo además del rol global.
+ */
+const ROLES_LIBERAR_UNIDAD_AJENA = ["Gerente administrativo"];
+
+export async function puedeLiberarUnidadAjena(): Promise<boolean> {
+  if (await esRolGlobal()) return true;
+  const session = await auth();
+  return !!session?.user?.rol && ROLES_LIBERAR_UNIDAD_AJENA.includes(session.user.rol);
+}
+
+/**
  * Administrador (rol global "*") la tiene siempre, vía tienePermisoEspecial —
  * para cualquier otro rol, solo si el Administrador se la otorga
  * explícitamente desde /usuarios/roles.

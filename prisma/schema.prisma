@@ -322,6 +322,7 @@ model Usuario {
   solicitudesCombustibleSolicitadas   SolicitudAutorizacionCombustible[] @relation("SolicitudCombustibleSolicitante")
   solicitudesCombustibleAprobadas     SolicitudAutorizacionCombustible[] @relation("SolicitudCombustibleAprobador")
   preferencias                        PreferenciaUsuario[]
+  usosUnidad                          BitacoraUsoUnidad[]
 }
 
 model UsuarioProyecto {
@@ -640,16 +641,27 @@ model Resguardo {
 /// A diferencia de Resguardo (custodia a largo plazo), este modelo rastrea
 /// sesiones de uso dentro del día: hora de inicio y fin, permitiendo calcular
 /// el tiempo efectivo de operación por unidad y operador.
+/**
+ * Exactamente uno de `operadorId`/`usuarioId` va lleno (impuesto por un CHECK
+ * en la migración): un Operador real la toma en su turno normal, o un
+ * Usuario administrativo sin Operador vinculado (ej. Control Vehicular,
+ * Gerente administrativo) la toma de forma excepcional — ambos casos quedan
+ * documentados con el nombre real de quien la tomó. El proyecto de cada fila
+ * se deriva siempre de `unidad.proyecto`, nunca de la persona.
+ */
 model BitacoraUsoUnidad {
   id              String    @id @default(cuid())
-  operadorId      String
-  operador        Operador  @relation(fields: [operadorId], references: [id])
+  operadorId      String?
+  operador        Operador? @relation(fields: [operadorId], references: [id])
+  usuarioId       String?
+  usuario         Usuario?  @relation(fields: [usuarioId], references: [id])
   numeroEconomico String
   unidad          Unidad    @relation(fields: [numeroEconomico], references: [numeroEconomico])
   inicio          DateTime  @default(now())
   fin             DateTime?
 
   @@index([operadorId])
+  @@index([usuarioId])
   @@index([numeroEconomico])
   @@index([inicio])
 }

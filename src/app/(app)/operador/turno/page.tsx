@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenerDatosTurno, obtenerBitacoraUsoTodos } from "./actions";
 import { PanelTurnoOperador } from "@/components/operadores/panel-turno-operador";
-import { tienePermisoModulo } from "@/lib/permisos";
+import { BotonLiberarUnidadAjena } from "@/components/operadores/boton-liberar-unidad-ajena";
+import { tienePermisoModulo, puedeLiberarUnidadAjena } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeMesMx, parseFechaLocalMx } from "@/lib/timezone";
 import { fmtFechaHora } from "@/lib/formato";
@@ -34,117 +35,130 @@ export default async function PageTurnoOperador({
     select: { operadorId: true, operador: { select: { nombre: true } } },
   });
 
-  if (usuario?.operadorId) {
-    const datos = await obtenerDatosTurno();
-    return (
-      <div className="p-6 max-w-2xl mx-auto flex flex-col gap-6">
+  const [puedeTomarPropia, puedeConsultarTodos] = await Promise.all([
+    usuario?.operadorId ? Promise.resolve(true) : tienePermisoModulo("O", "editar"),
+    tienePermisoModulo("O"),
+  ]);
+
+  if (!puedeTomarPropia && !puedeConsultarTodos) redirect("/sin-acceso");
+
+  const datosTurno = puedeTomarPropia ? await obtenerDatosTurno() : null;
+
+  let seccionConsulta = null;
+  if (puedeConsultarTodos) {
+    const proyectosPermitidos = await proyectosPermitidosParaModulo("O");
+    const { proyectoId, desde: desdeParam, hasta: hastaParam } = await searchParams;
+    const desde = parseFechaLocalMx(desdeParam) ?? inicioDeMesMx();
+    const hasta = parseFechaLocalMx(hastaParam) ?? new Date();
+
+    const [proyectos, registros, puedeLiberar] = await Promise.all([
+      prisma.proyecto.findMany({
+        where: proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {},
+        select: { id: true, nombre: true },
+        orderBy: { nombre: "asc" },
+      }),
+      obtenerBitacoraUsoTodos({ proyectoId: proyectoId || undefined, proyectosPermitidos, desde, hasta }),
+      puedeLiberarUnidadAjena(),
+    ]);
+
+    seccionConsulta = (
+      <div className="flex flex-col gap-4">
         <div>
-          <h1
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-2xl)",
-              fontWeight: 700,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Mi Turno
-          </h1>
-          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)", marginTop: 4 }}>
-            {usuario.operador?.nombre} · {new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            Bitácora de uso de unidades
+          </h2>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+            Consulta de qué unidad tomó cada persona, cuándo y por cuánto tiempo.
           </p>
         </div>
 
-        <PanelTurnoOperador datos={datos} />
+        <form className="flex flex-wrap items-end gap-2" data-no-print>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Proyecto</label>
+            <select
+              name="proyectoId"
+              defaultValue={proyectoId ?? ""}
+              className="rounded-md px-3"
+              style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <option value="">Todos los proyectos</option>
+              {proyectos.map((p) => (
+                <option key={p.id} value={p.id}>{p.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Desde</label>
+            <input
+              type="date"
+              name="desde"
+              defaultValue={desdeParam ?? desde.toISOString().slice(0, 10)}
+              className="rounded-md px-3"
+              style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Hasta</label>
+            <input
+              type="date"
+              name="hasta"
+              defaultValue={hastaParam ?? hasta.toISOString().slice(0, 10)}
+              className="rounded-md px-3"
+              style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            />
+          </div>
+          <button type="submit" className="rounded-md px-5 h-9 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            Filtrar
+          </button>
+        </form>
+
+        {registros.length === 0 ? (
+          <EmptyState>Sin registros de uso de unidades en el rango elegido.</EmptyState>
+        ) : (
+          <Table headers={["Proyecto", "Tomado por", "Unidad", "Inicio", "Fin", "Duración", ...(puedeLiberar ? [""] : [])]} minWidth={puedeLiberar ? 1020 : 900}>
+            {registros.map((r) => (
+              <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+                <td className="px-4 py-3" style={tdStyle}>{r.proyectoNombre}</td>
+                <td className="px-4 py-3" style={tdStyle}>{r.tomadoPor}</td>
+                <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>
+                  {r.numeroEconomico} <span style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>· {r.marcaModelo}</span>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{fmtFechaHora(r.inicio)}</td>
+                <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{r.fin ? fmtFechaHora(r.fin) : "Activo"}</td>
+                <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>{duracionTexto(r.inicio, r.fin)}</td>
+                {puedeLiberar && (
+                  <td className="px-4 py-3">
+                    {!r.fin && <BotonLiberarUnidadAjena id={r.id} />}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </Table>
+        )}
       </div>
     );
   }
 
-  if (!(await tienePermisoModulo("O"))) redirect("/sin-acceso");
-
-  const proyectosPermitidos = await proyectosPermitidosParaModulo("O");
-
-  const { proyectoId, desde: desdeParam, hasta: hastaParam } = await searchParams;
-  const desde = parseFechaLocalMx(desdeParam) ?? inicioDeMesMx();
-  const hasta = parseFechaLocalMx(hastaParam) ?? new Date();
-
-  const [proyectos, registros] = await Promise.all([
-    prisma.proyecto.findMany({
-      where: proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {},
-      select: { id: true, nombre: true },
-      orderBy: { nombre: "asc" },
-    }),
-    obtenerBitacoraUsoTodos({ proyectoId: proyectoId || undefined, proyectosPermitidos, desde, hasta }),
-  ]);
-
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="p-6 flex flex-col gap-8" style={{ maxWidth: puedeConsultarTodos ? undefined : 640, margin: puedeConsultarTodos ? undefined : "0 auto" }}>
       <div>
-        <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-          Mi Turno — Bitácora de uso de unidades
+        <h1
+          style={{
+            fontFamily: "var(--font)",
+            fontSize: "var(--text-2xl)",
+            fontWeight: 700,
+            color: "var(--sidebar-text-active)",
+          }}
+        >
+          Mi Turno
         </h1>
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Consulta de qué unidad tomó cada operador, cuándo y por cuánto tiempo.
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)", marginTop: 4 }}>
+          {usuario?.operador?.nombre ?? session.user.name} · {new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-2" data-no-print>
-        <div>
-          <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Proyecto</label>
-          <select
-            name="proyectoId"
-            defaultValue={proyectoId ?? ""}
-            className="rounded-md px-3"
-            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-          >
-            <option value="">Todos los proyectos</option>
-            {proyectos.map((p) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Desde</label>
-          <input
-            type="date"
-            name="desde"
-            defaultValue={desdeParam ?? desde.toISOString().slice(0, 10)}
-            className="rounded-md px-3"
-            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-          />
-        </div>
-        <div>
-          <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Hasta</label>
-          <input
-            type="date"
-            name="hasta"
-            defaultValue={hastaParam ?? hasta.toISOString().slice(0, 10)}
-            className="rounded-md px-3"
-            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-          />
-        </div>
-        <button type="submit" className="rounded-md px-5 h-9 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-          Filtrar
-        </button>
-      </form>
-
-      {registros.length === 0 ? (
-        <EmptyState>Sin registros de uso de unidades en el rango elegido.</EmptyState>
-      ) : (
-        <Table headers={["Proyecto", "Operador", "Unidad", "Inicio", "Fin", "Duración"]} minWidth={900}>
-          {registros.map((r) => (
-            <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
-              <td className="px-4 py-3" style={tdStyle}>{r.proyectoNombre}</td>
-              <td className="px-4 py-3" style={tdStyle}>{r.operadorNombre}</td>
-              <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>
-                {r.numeroEconomico} <span style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>· {r.marcaModelo}</span>
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{fmtFechaHora(r.inicio)}</td>
-              <td className="px-4 py-3 whitespace-nowrap" style={tdStyle}>{r.fin ? fmtFechaHora(r.fin) : "Activo"}</td>
-              <td className="px-4 py-3" style={{ ...tdStyle, fontFamily: "var(--font-mono)" }}>{duracionTexto(r.inicio, r.fin)}</td>
-            </tr>
-          ))}
-        </Table>
-      )}
+      {datosTurno && <PanelTurnoOperador datos={datosTurno} />}
+      {seccionConsulta}
     </div>
   );
 }
