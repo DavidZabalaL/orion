@@ -116,7 +116,14 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
         where: { numeroEconomico, kmActual: { lt: kmActual } },
         orderBy: { kmActual: "desc" },
       });
-      rendimientoCalculado = anterior?.kmActual != null ? (kmActual - anterior.kmActual) / litros : null;
+      const rendimientoCrudo = anterior?.kmActual != null ? (kmActual - anterior.kmActual) / litros : null;
+      // rendimientoCalculado es Decimal(6,2) — un salto de kilometraje mal
+      // capturado en el archivo (típico: un dígito de más/de menos en KM IN/KM
+      // FIN de una carga anterior) puede dar un rendimiento absurdo que no
+      // cabe en la columna y tumbaría la fila completa, perdiendo un gasto
+      // real por un dato derivado poco confiable. Se descarta el cálculo (no
+      // el gasto) cuando se sale de un rango físicamente razonable.
+      rendimientoCalculado = rendimientoCrudo !== null && Math.abs(rendimientoCrudo) < 9999.99 ? rendimientoCrudo : null;
 
       if (capacidadTanqueLitros) {
         const litrosConsumidosEstimados =
@@ -124,8 +131,9 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
         const nivelAntes = anterior?.nivelEstimadoDespues != null
           ? Math.max(0, Math.min(Number(anterior.nivelEstimadoDespues), capacidadTanqueLitros) - litrosConsumidosEstimados)
           : 0;
-        nivelEstimadoDespues = nivelAntes + litros;
-        alertaSobrellenado = nivelEstimadoDespues > capacidadTanqueLitros;
+        const nivelCrudo = nivelAntes + litros;
+        nivelEstimadoDespues = Math.abs(nivelCrudo) < 9999.99 ? nivelCrudo : null;
+        alertaSobrellenado = nivelEstimadoDespues !== null && nivelEstimadoDespues > capacidadTanqueLitros;
         if (alertaSobrellenado) {
           resultado.advertencias.push({ fila: numFila, mensaje: `${numeroEconomico}: la carga excede la capacidad máxima registrada de tanque.` });
         }
