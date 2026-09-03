@@ -33,15 +33,18 @@ type Estado = { tipo: "idle" } | { tipo: "ok" } | { tipo: "alerta" } | { tipo: "
 
 export function CombustibleForm({
   unidades,
+  proyectos = [],
   numeroEconomicoFijo,
   onExito,
 }: {
   unidades: { numeroEconomico: string }[];
+  proyectos?: { id: string; nombre: string }[];
   numeroEconomicoFijo?: string;
   onExito?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
+  const [aplicaAUnidad, setAplicaAUnidad] = useState(true);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
@@ -88,17 +91,37 @@ export function CombustibleForm({
           });
         }}
       >
-        <div>
-          <CampoAyuda style={labelStyle} texto="Unidad que recibió la carga de combustible.">Unidad *</CampoAyuda>
-          {numeroEconomicoFijo ? (
-            <>
-              <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
-              <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
-            </>
-          ) : (
-            <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
-          )}
-        </div>
+        {numeroEconomicoFijo ? (
+          <div>
+            <CampoAyuda style={labelStyle} texto="Unidad que recibió la carga de combustible.">Unidad *</CampoAyuda>
+            <input type="hidden" name="numeroEconomico" value={numeroEconomicoFijo} />
+            <div style={{ ...fieldStyle, display: "flex", alignItems: "center", fontFamily: "var(--font-mono)" }}>{numeroEconomicoFijo}</div>
+          </div>
+        ) : (
+          <>
+            <div>
+              <CampoAyuda style={labelStyle} texto="Los gastos operativos que no corresponden a un económico específico se asignan directamente a un proyecto.">¿Aplica a una unidad? *</CampoAyuda>
+              <select value={aplicaAUnidad ? "SI" : "NO"} onChange={(e) => setAplicaAUnidad(e.target.value === "SI")} style={fieldStyle}>
+                <option value="SI">Sí, a una unidad</option>
+                <option value="NO">No, gasto operativo del proyecto</option>
+              </select>
+            </div>
+            {aplicaAUnidad ? (
+              <div>
+                <CampoAyuda style={labelStyle} texto="Unidad que recibió la carga de combustible.">Unidad *</CampoAyuda>
+                <ComboboxUnidad name="numeroEconomico" unidades={unidades} required style={fieldStyle} />
+              </div>
+            ) : (
+              <div>
+                <CampoAyuda style={labelStyle} texto="Proyecto que reporta este gasto, ya que no se liga a una unidad.">Proyecto *</CampoAyuda>
+                <select name="proyectoReportanteId" required style={fieldStyle}>
+                  <option value="">Seleccionar…</option>
+                  {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                </select>
+              </div>
+            )}
+          </>
+        )}
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó la carga.">Fecha *</CampoAyuda>
           <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
@@ -111,10 +134,12 @@ export function CombustibleForm({
           <CampoAyuda style={labelStyle} texto="Monto total pagado por la carga.">Costo *</CampoAyuda>
           <input name="costo" type="number" step="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
-        <div>
-          <CampoAyuda style={labelStyle} texto="Kilometraje de la unidad al momento de la carga.">Kilometraje *</CampoAyuda>
-          <input name="kmActual" type="number" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
-        </div>
+        {(numeroEconomicoFijo || aplicaAUnidad) && (
+          <div>
+            <CampoAyuda style={labelStyle} texto="Kilometraje de la unidad al momento de la carga.">Kilometraje *</CampoAyuda>
+            <input name="kmActual" type="number" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+          </div>
+        )}
         <div className="col-span-2 md:col-span-4">
           <CampoAyuda style={labelStyle} texto="Gasolinera o estación donde se cargó combustible.">Estación</CampoAyuda>
           <input name="estacion" style={fieldStyle} />

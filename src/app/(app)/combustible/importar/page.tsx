@@ -2,9 +2,17 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ImportadorCombustible } from "@/components/importador/importador-combustible";
 import { requerirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { prisma } from "@/lib/prisma";
 
 export default async function ImportarCombustiblePage() {
   await requerirPermisoModulo("D", "editar");
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("D");
+  const proyectos = await prisma.proyecto.findMany({
+    where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-5xl">
@@ -20,7 +28,7 @@ export default async function ImportarCombustiblePage() {
         </p>
       </div>
 
-      <ImportadorCombustible />
+      <ImportadorCombustible proyectos={proyectos} />
     </div>
   );
 }

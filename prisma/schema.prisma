@@ -777,12 +777,15 @@ model ConfiguracionProveedorCombustible {
 
 model Combustible {
   id                   String                             @id @default(cuid())
-  numeroEconomico      String
-  unidad               Unidad                             @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  // Nulo cuando la carga no corresponde a un económico (gasto operativo del
+  // proyecto) — se reporta directo a proyectoReportanteId, igual que en Tag.
+  numeroEconomico      String?
+  unidad               Unidad?                            @relation(fields: [numeroEconomico], references: [numeroEconomico])
   fecha                DateTime
   litros               Decimal                            @db.Decimal(10, 2)
   costo                Decimal                            @db.Decimal(12, 2)
-  kmActual             Int
+  // Nulo cuando no hay unidad (no aplica el cálculo de rendimiento/nivel de tanque).
+  kmActual             Int?
   estacion             String?
   rfcEstacion          String?
   proyectoReportanteId String?

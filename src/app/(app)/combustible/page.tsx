@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/table";
 import { fmtMoney } from "@/lib/formato";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { CombustibleAcordeon, type GrupoCombustible } from "@/components/combustible/combustible-acordeon";
+import { CombustiblePendienteRow } from "@/components/combustible/combustible-pendiente-row";
 import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
@@ -19,14 +20,31 @@ export default async function CombustiblePage() {
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
+  // Las cargas sin unidad y sin proyecto (huérfanas) solo son visibles para
+  // usuarios sin restricción de proyecto (admins), que son quienes deben
+  // triarlas asignándoles una unidad o un proyecto operativo.
+  const filtroPendientes =
+    proyectosPermitidos !== null
+      ? { numeroEconomico: null, proyectoReportanteId: { in: proyectosPermitidos } }
+      : { numeroEconomico: null };
 
-  const [unidades, transacciones, agregados] = await Promise.all([
+  const [unidades, proyectos, transacciones, pendientes, agregados] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
       select: { numeroEconomico: true },
       orderBy: { numeroEconomico: "asc" },
     }),
-    prisma.combustible.findMany({ where: filtroProyecto, orderBy: { fecha: "desc" } }),
+    prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    }),
+    prisma.combustible.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
+    prisma.combustible.findMany({
+      where: filtroPendientes,
+      include: { proyectoReportante: { select: { nombre: true } } },
+      orderBy: { fecha: "desc" },
+    }),
     prisma.combustible.aggregate({ where: filtroProyecto, _sum: { litros: true, costo: true }, _avg: { rendimientoCalculado: true } }),
   ]);
 
@@ -43,10 +61,11 @@ export default async function CombustiblePage() {
   // despliega bajo demanda.
   const gruposPorEconomico = new Map<string, GrupoCombustible>();
   for (const t of transacciones) {
-    let grupo = gruposPorEconomico.get(t.numeroEconomico);
+    const numeroEconomico = t.numeroEconomico as string;
+    let grupo = gruposPorEconomico.get(numeroEconomico);
     if (!grupo) {
-      grupo = { numeroEconomico: t.numeroEconomico, totalLitros: 0, totalCosto: 0, rendimientoPromedio: null, ultimaFecha: t.fecha.toISOString(), alertasPendientes: 0, transacciones: [] };
-      gruposPorEconomico.set(t.numeroEconomico, grupo);
+      grupo = { numeroEconomico, totalLitros: 0, totalCosto: 0, rendimientoPromedio: null, ultimaFecha: t.fecha.toISOString(), alertasPendientes: 0, transacciones: [] };
+      gruposPorEconomico.set(numeroEconomico, grupo);
     }
     grupo.totalLitros += Number(t.litros);
     grupo.totalCosto += Number(t.costo);
@@ -92,7 +111,31 @@ export default async function CombustiblePage() {
         <StatCard label="Unidades con carga" value={rendimientoPorUnidad.length} icon={Fuel} accent="var(--color-status-asignado)" />
       </div>
 
-      <CombustibleForm unidades={unidades} />
+      <CombustibleForm unidades={unidades} proyectos={proyectos} />
+
+      {pendientes.length > 0 && (
+        <div>
+          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-status-revision)" }}>
+            Pendientes de asignar económico
+          </h3>
+          <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+            <table className="w-full min-w-[640px] border-collapse">
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
+                  {["Fecha", "Litros", "Costo", "Estación", "Proyecto", "Asignar a"].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pendientes.map((p) => (
+                  <CombustiblePendienteRow key={p.id} registro={JSON.parse(JSON.stringify(p))} unidades={unidades} proyectos={proyectos} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

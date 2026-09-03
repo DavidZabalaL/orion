@@ -15,16 +15,42 @@ export type ResultadoEliminarCombustible = { ok: boolean; error?: string };
 export async function crearCombustible(formData: FormData): Promise<ResultadoCrearCombustible> {
   if (!(await tienePermisoModulo("D", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
 
-  const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "") || null;
+  const proyectoReportanteId = numeroEconomico ? null : String(formData.get("proyectoReportanteId") ?? "") || null;
   const fecha = String(formData.get("fecha") ?? "");
   const litros = parseFloat(String(formData.get("litros") ?? "0"));
   const costo = parseFloat(String(formData.get("costo") ?? "0"));
-  const kmActual = parseInt(String(formData.get("kmActual") ?? "0"), 10);
   const estacion = String(formData.get("estacion") ?? "").trim() || null;
 
-  if (!numeroEconomico || !fecha || !litros || !costo || !kmActual) {
+  if (!fecha || !litros || !costo) {
     return { ok: false, error: "Faltan campos obligatorios." };
   }
+  if (!numeroEconomico && !proyectoReportanteId) {
+    return { ok: false, error: "Selecciona una unidad o un proyecto (para gastos operativos sin económico)." };
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("D");
+
+  // Gasto operativo sin unidad: no aplica capacidad de tanque, km ni el
+  // cálculo de rendimiento/nivel estimado (solo tienen sentido por unidad).
+  if (!numeroEconomico) {
+    if (permitidos !== null && !permitidos.includes(proyectoReportanteId!)) {
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
+    }
+    const combustible = await prisma.combustible.create({
+      data: { proyectoReportanteId, fecha: parseFechaLocalMx(fecha)!, litros, costo, estacion, fuente: "MANUAL" },
+    });
+    const session = await auth();
+    if (session?.user?.id) {
+      await logActivity({ userId: session.user.id, modulo: "combustible", accion: "create", entidad: "Combustible", entidadId: combustible.id, detalle: { proyectoReportanteId, litros, costo } });
+    }
+    revalidatePath("/combustible");
+    invalidarCacheBI(["combustible"]);
+    return { ok: true };
+  }
+
+  const kmActual = parseInt(String(formData.get("kmActual") ?? "0"), 10);
+  if (!kmActual) return { ok: false, error: "El kilometraje es obligatorio." };
 
   const unidad = await prisma.unidad.findUnique({
     where: { numeroEconomico },
@@ -32,7 +58,6 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   });
   if (!unidad) return { ok: false, error: "La unidad no existe." };
 
-  const permitidos = await proyectosPermitidosParaModulo("D");
   if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
     return { ok: false, error: "No tienes permiso para realizar esta acción." };
   }
@@ -45,11 +70,11 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
     where: { numeroEconomico, kmActual: { lt: kmActual } },
     orderBy: { kmActual: "desc" },
   });
-  const rendimientoCalculado = anterior ? (kmActual - anterior.kmActual) / litros : null;
+  const rendimientoCalculado = anterior?.kmActual != null ? (kmActual - anterior.kmActual) / litros : null;
 
   const rendimientoPromedio = unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null;
   const litrosConsumidosEstimados =
-    anterior && rendimientoPromedio && kmActual > anterior.kmActual
+    anterior?.kmActual != null && rendimientoPromedio && kmActual > anterior.kmActual
       ? (kmActual - anterior.kmActual) / rendimientoPromedio
       : 0;
   const nivelAntes = anterior?.nivelEstimadoDespues != null
@@ -89,6 +114,43 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   invalidarCacheBI(["combustible"]);
   revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true, alertaSobrellenado };
+}
+
+export async function asignarEconomicoCombustible(formData: FormData) {
+  await exigirPermisoModulo("D", "editar");
+
+  const id = String(formData.get("id") ?? "");
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "") || null;
+  const proyectoReportanteId = numeroEconomico ? null : String(formData.get("proyectoReportanteId") ?? "") || null;
+  if (!numeroEconomico && !proyectoReportanteId) throw new Error("Selecciona una unidad o un proyecto.");
+
+  const permitidos = await proyectosPermitidosParaModulo("D");
+  if (permitidos !== null) {
+    if (numeroEconomico) {
+      const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+      if (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+    } else if (proyectoReportanteId && !permitidos.includes(proyectoReportanteId)) {
+      throw new Error("No tienes permiso para realizar esta acción.");
+    }
+  }
+
+  await prisma.combustible.update({ where: { id }, data: { numeroEconomico, proyectoReportanteId } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "combustible",
+      accion: "update",
+      entidad: "Combustible",
+      entidadId: id,
+      detalle: numeroEconomico ? { campo: "numeroEconomico", nuevo: numeroEconomico } : { campo: "proyectoReportanteId", nuevo: proyectoReportanteId },
+    });
+  }
+
+  revalidatePath("/combustible");
+  invalidarCacheBI(["combustible"]);
+  if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
 }
 
 export async function crearMapeoTarjeta(formData: FormData) {
@@ -167,6 +229,6 @@ export async function eliminarCombustible(formData: FormData): Promise<Resultado
 
   revalidatePath("/combustible");
   invalidarCacheBI(["combustible"]);
-  revalidatePath(`/unidades/${registro.numeroEconomico}`);
+  if (registro.numeroEconomico) revalidatePath(`/unidades/${registro.numeroEconomico}`);
   return { ok: true };
 }
