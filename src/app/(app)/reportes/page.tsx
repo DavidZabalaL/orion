@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Car, Wallet, ShieldAlert, Wrench, IdCard, Settings2, LayoutDashboard, Gauge } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
@@ -15,6 +16,10 @@ function en(dias: number) {
 }
 
 export default async function ReportesPage() {
+  // Módulo J retirado del menú a pedido explícito — bloqueado también por URL
+  // directa. El motor de reportes programados sigue vivo (lo usa Estatus
+  // semanal de flota en Dashboards); solo se ocultan estas pantallas propias.
+  redirect("/sin-acceso");
   await requerirPermisoModulo("J");
   const accesoDashboards = await tienePermisoModulo("M");
   const accesoSla = await puedeVerSlaDisponibilidad();
@@ -36,7 +41,7 @@ export default async function ReportesPage() {
     prisma.gastoVehicular.count({ where: { estatus: "PROGRAMADO", fecha: { lte: en(15) }, ...filtroUnidadRelacion } }),
     prisma.seguro.count({ where: { fechaVencimiento: { lte: en(30) }, estatus: { in: ["VIGENTE", "POR_VENCER"] }, ...filtroUnidadRelacion } }),
     prisma.documentoOperador.count({ where: { fechaVencimiento: { lte: en(60) }, operador: { estatus: "ACTIVO", ...filtroProyecto } } }),
-    prisma.proyecto.findMany({ where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) }, select: { id: true, nombre: true, presupuestoAprobadoAnual: true } }),
+    prisma.proyecto.findMany({ where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos as string[] } } : {}) }, select: { id: true, nombre: true, presupuestoAprobadoAnual: true } }),
   ]);
 
   const resumenesPresupuesto = await Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual)));

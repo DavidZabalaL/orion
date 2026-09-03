@@ -9,6 +9,8 @@ import { Table, EmptyState, tdStyle } from "@/components/ui/table";
 export const dynamic = "force-dynamic";
 
 export default async function ReporteSlaPage() {
+  // Módulo J retirado del menú a pedido explícito — bloqueado también por URL directa.
+  redirect("/sin-acceso");
   await requerirPermisoModulo("J");
   if (!(await puedeVerSlaDisponibilidad())) redirect("/sin-acceso");
 
