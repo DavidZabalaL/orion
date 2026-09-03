@@ -80,10 +80,12 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
     }
 
     const numeroEconomico = unidad ? numeroEconomicoNormalizado : null;
-    const kmActual = unidad && !isNaN(kmActualBruto) && kmActualBruto > 0 ? kmActualBruto : null;
+    // Algunas tarjetas (unidades "Corporativo") no traen kilometraje en el
+    // reporte del proveedor — se guarda igual, sin cálculo de rendimiento ni
+    // nivel de tanque (el bloque de abajo ya lo omite solo cuando falta).
+    const kmActual = !isNaN(kmActualBruto) && kmActualBruto > 0 ? kmActualBruto : null;
     if (unidad && !kmActual) {
-      resultado.omitidas.push({ fila: numFila, motivo: `Falta el kilometraje, obligatorio para una carga con unidad ("${numeroEconomico}").` });
-      continue;
+      resultado.advertencias.push({ fila: numFila, mensaje: `${numeroEconomico}: sin kilometraje en el archivo; se guardó sin rendimiento ni nivel de tanque.` });
     }
 
     // `fecha` no lleva hora (el importador no captura hora ni tarjeta, solo el

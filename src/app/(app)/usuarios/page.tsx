@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Shield, FolderCog, BellRing, ChevronRight, LayoutGrid } from "lucide-react";
+import { Users, Shield, FolderCog, BellRing, ChevronRight, LayoutGrid, UserCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { InvitarUsuarioForm } from "@/components/usuarios/invitar-usuario-form";
@@ -14,6 +14,7 @@ const SECCIONES = [
   { href: "/usuarios/proyectos", icon: FolderCog, titulo: "Módulos por proyecto", descripcion: "Activar o desactivar módulos" },
   { href: "/usuarios/notificaciones", icon: BellRing, titulo: "Notificaciones", descripcion: "Umbrales de alertas por módulo" },
   { href: "/usuarios/widgets", icon: LayoutGrid, titulo: "Widgets del resumen", descripcion: "Qué recuadros se muestran arriba de cada listado" },
+  { href: "/usuarios/padron", icon: UserCheck, titulo: "Padrón de personal", descripcion: "Valida el autorregistro de Operadores en /registro-operador" },
 ];
 
 function SeccionCard({ href, icon: Icon, titulo, descripcion, actual }: (typeof SECCIONES)[number]) {
