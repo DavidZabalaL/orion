@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ChecklistLista } from "@/components/checklist/checklist-lista";
 import { ChecklistSemanalLista } from "@/components/checklist/checklist-semanal-lista";
 import { ChecklistCargaCombustibleLista } from "@/components/checklist/checklist-carga-combustible-lista";
+import { ChecklistReporteFallaLista } from "@/components/checklist/checklist-reporte-falla-lista";
 import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
@@ -21,7 +22,7 @@ export default async function ChecklistPage() {
   const inicioHoy = inicioDeHoy();
   const fechaHoraActual = new Date().toISOString();
 
-  const [unidades, proyectos, checklistsDiarios, checklistsSemanales, checklistsCombustible, sinCapturaHoy] = await Promise.all([
+  const [unidades, proyectos, checklistsDiarios, checklistsSemanales, checklistsCombustible, checklistsReporteFalla, sinCapturaHoy] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...filtroProyecto },
       select: {
@@ -67,6 +68,18 @@ export default async function ChecklistPage() {
     prisma.checklist.findMany({
       where: {
         tipo: "CARGA_COMBUSTIBLE",
+        fecha: { gte: inicioHoy },
+        ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}),
+      },
+      include: {
+        unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
+        capturadoPor: { select: { nombre: true } },
+      },
+      orderBy: { fecha: "desc" },
+    }),
+    prisma.checklist.findMany({
+      where: {
+        tipo: "REPORTE_FALLA",
         fecha: { gte: inicioHoy },
         ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}),
       },
@@ -189,6 +202,21 @@ export default async function ChecklistPage() {
             Checklists de carga de combustible de hoy ({checklistsCombustible.length})
           </h3>
           <ChecklistCargaCombustibleLista checklists={JSON.parse(JSON.stringify(checklistsCombustible))} />
+        </div>
+
+        <div>
+          <h3
+            className="mb-3"
+            style={{
+              fontFamily: "var(--font)",
+              fontSize: "var(--text-lg)",
+              fontWeight: 600,
+              color: "var(--sidebar-text-active)",
+            }}
+          >
+            Reportes de falla de hoy ({checklistsReporteFalla.length})
+          </h3>
+          <ChecklistReporteFallaLista checklists={JSON.parse(JSON.stringify(checklistsReporteFalla))} />
         </div>
       </div>
     </div>

@@ -695,6 +695,7 @@ enum TipoChecklist {
   DIARIO
   SEMANAL
   CARGA_COMBUSTIBLE
+  REPORTE_FALLA
 }
 
 model Checklist {

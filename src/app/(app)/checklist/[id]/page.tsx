@@ -6,6 +6,7 @@ import { requerirPermisoModulo } from "@/lib/permisos";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
+import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { blobProxy } from "@/lib/blob";
 import { PrintButton } from "@/components/checklist/print-button";
 import { SeccionTitulo, FilaItem, Panel } from "@/components/ui/documento-panel";
@@ -411,6 +412,64 @@ function DetalleCargaCombustible({ respuestas }: { respuestas: Record<string, st
   );
 }
 
+function DetalleReporteFalla({ respuestas }: { respuestas: Record<string, string> }) {
+  return (
+    <div className="flex flex-col gap-5">
+      {SECCIONES_REPORTE_FALLA.map((seccion) => {
+        const textoCampos = seccion.campos
+          .map((c) => ({ label: c.label, value: respuestas[c.key] }))
+          .filter((c) => c.value);
+        const fotoCampos = seccion.fotos
+          .map((f) => ({ label: f.label, url: respuestas[f.key] }))
+          .filter((f) => f.url);
+
+        if (!textoCampos.length && !fotoCampos.length) return null;
+
+        return (
+          <Panel key={seccion.key}>
+            <SeccionTitulo titulo={seccion.titulo} />
+            {textoCampos.map((c) => (
+              <FilaItem
+                key={c.label}
+                label={c.label}
+                badge={
+                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", fontWeight: 500 }}>
+                    {c.value}
+                  </span>
+                }
+              />
+            ))}
+            {fotoCampos.length > 0 && (
+              <div className="px-5 py-4" style={{ borderTop: "1px solid var(--field-border)" }}>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+                  Fotos
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  {fotoCampos.map((f) => (
+                    <div key={f.label} className="flex flex-col gap-1.5 items-center">
+                      <a href={blobProxy(f.url!)} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={blobProxy(f.url!)}
+                          alt={f.label}
+                          style={{ width: 110, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--field-border)" }}
+                        />
+                      </a>
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center", maxWidth: 110 }}>
+                        {f.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Panel>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function DetalleChecklistPage({
@@ -437,14 +496,18 @@ export default async function DetalleChecklistPage({
       ? "Diario"
       : checklist.tipo === "SEMANAL"
         ? "Semanal"
-        : "Carga de Combustible";
+        : checklist.tipo === "CARGA_COMBUSTIBLE"
+          ? "Carga de Combustible"
+          : "Reporte de Falla";
 
   const tipoBadgeColor =
     checklist.tipo === "DIARIO"
       ? { bg: "var(--status-cerrado-bg)", color: "var(--color-status-cerrado)" }
       : checklist.tipo === "SEMANAL"
         ? { bg: "var(--chip)", color: "var(--sidebar-text-active)" }
-        : { bg: "var(--status-revision-bg)", color: "var(--color-status-revision)" };
+        : checklist.tipo === "CARGA_COMBUSTIBLE"
+          ? { bg: "var(--status-revision-bg)", color: "var(--color-status-revision)" }
+          : { bg: "var(--status-escena-bg, #fef2f2)", color: "var(--color-status-escena)" };
 
   const puntos = (checklist.puntosInspeccion ?? {}) as Record<string, string>;
   const respuestas = (checklist.respuestasSemanal ?? {}) as Record<string, string>;
@@ -521,6 +584,7 @@ export default async function DetalleChecklistPage({
         )}
         {checklist.tipo === "SEMANAL" && <DetalleSemanal respuestas={respuestas} />}
         {checklist.tipo === "CARGA_COMBUSTIBLE" && <DetalleCargaCombustible respuestas={respuestas} />}
+        {checklist.tipo === "REPORTE_FALLA" && <DetalleReporteFalla respuestas={respuestas} />}
       </div>
     </>
   );

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ClipboardCheck, Fuel } from "lucide-react";
+import { ArrowRight, ClipboardCheck, Fuel, AlertTriangle } from "lucide-react";
 import { WizardDiario } from "@/components/checklist/wizard-diario";
 import { WizardSemanal } from "@/components/checklist/wizard-semanal";
 import { WizardCargaCombustible } from "@/components/checklist/wizard-carga-combustible";
+import { WizardReporteFalla } from "@/components/checklist/wizard-reporte-falla";
 
 type UnidadWizard = {
   numeroEconomico: string;
@@ -25,7 +26,7 @@ type Props = {
 
 export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual }: Props) {
   const router = useRouter();
-  const [activo, setActivo] = useState<null | "diario" | "semanal" | "carga_combustible">(null);
+  const [activo, setActivo] = useState<null | "diario" | "semanal" | "carga_combustible" | "reporte_falla">(null);
 
   function alTerminar() {
     setActivo(null);
@@ -68,8 +69,18 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
     );
   }
 
+  if (activo === "reporte_falla") {
+    return (
+      <WizardReporteFalla
+        unidades={unidades}
+        onTerminar={alTerminar}
+        onCancelar={() => setActivo(null)}
+      />
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <TarjetaIniciar
         titulo="Checklist Diario"
         descripcion="Odómetro, 6 puntos de inspección y evidencia fotográfica. Reemplaza el formulario de Fast Field."
@@ -87,6 +98,12 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         descripcion="Registro de carga con zona, responsable, vehículo, evidencia fotográfica y firma digital."
         onClick={() => setActivo("carga_combustible")}
         icono={<Fuel size={28} color="var(--color-status-revision)" />}
+      />
+      <TarjetaIniciar
+        titulo="Reporte de Falla"
+        descripcion="Reporta una falla del vehículo — notifica de inmediato al Gerente administrativo del proyecto."
+        onClick={() => setActivo("reporte_falla")}
+        icono={<AlertTriangle size={28} color="var(--color-status-escena)" />}
       />
     </div>
   );

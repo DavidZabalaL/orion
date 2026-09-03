@@ -248,6 +248,57 @@ export async function enviarNotificacionTicketRescate({
   }
 }
 
+/**
+ * Checklist "Reporte de falla de vehículo" (ver src/lib/checklist-reporte-falla.ts):
+ * notifica de inmediato, sin pasar por el motor de umbrales configurables, al
+ * Gerente administrativo del proyecto de la unidad — el destinatario se
+ * resuelve dinámicamente por rol + asignación de proyecto, no de una lista
+ * configurada a mano (a diferencia del ticket de rescate de arriba).
+ */
+export async function enviarNotificacionReporteFalla({
+  destinatarios,
+  numeroEconomico,
+  tipoFalla,
+  departamento,
+  descripcion,
+}: {
+  destinatarios: string[];
+  numeroEconomico: string;
+  tipoFalla: string;
+  departamento: string;
+  descripcion?: string | null;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
+  }
+  if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
+
+  const urlUnidad = `${SITE_URL}/unidades/${numeroEconomico}`;
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
+      to: destinatarios.join(","),
+      subject: `Reporte de falla — ${numeroEconomico} (${tipoFalla})`,
+      html: `
+        <div style="font-family:sans-serif;font-size:14px;color:#334155;">
+          <p>Se reportó una falla de vehículo:</p>
+          <ul>
+            <li><strong>Unidad:</strong> ${numeroEconomico}</li>
+            <li><strong>Tipo de falla:</strong> ${tipoFalla}</li>
+            <li><strong>Departamento:</strong> ${departamento}</li>
+            ${descripcion ? `<li><strong>Descripción:</strong> ${descripcion}</li>` : ""}
+          </ul>
+          <p><a href="${urlUnidad}">Ver la unidad en Orión</a></p>
+        </div>
+      `,
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
 function plantillaRecuperacionContrasena({ nombre, aceptarUrl }: { nombre: string; aceptarUrl: string }) {
   return `
 <!DOCTYPE html>

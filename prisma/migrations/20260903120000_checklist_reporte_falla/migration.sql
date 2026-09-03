@@ -1,0 +1,2 @@
+-- Add REPORTE_FALLA to TipoChecklist enum
+ALTER TYPE "TipoChecklist" ADD VALUE IF NOT EXISTS 'REPORTE_FALLA';
