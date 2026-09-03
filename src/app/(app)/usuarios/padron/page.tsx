@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { PadronForm } from "@/components/usuarios/padron-form";
+import { CopiarEnlaceRegistro } from "@/components/usuarios/copiar-enlace-registro";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export default async function PadronPersonalPage() {
           te mande una versión actualizada — la carga anterior se reemplaza por completo.
         </p>
       </div>
+
+      <CopiarEnlaceRegistro />
 
       <div className="grid grid-cols-2 gap-4">
         <StatCard label="Personas en el padrón" value={total} icon={Users} accent="var(--color-primary)" />
