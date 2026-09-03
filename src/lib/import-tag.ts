@@ -12,8 +12,11 @@ export type CampoTagKey = (typeof CAMPOS_TAG)[number]["key"];
 const OFFSET_MX_HORAS = 6;
 
 const ISO = /^(\d{4})-(\d{1,2})-(\d{1,2})/;
-const DDMMYYYY = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/;
-const DMYY = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2})$/;
+// Sin anclar el final ($): varios reportes (Efectivale, PASE) traen la hora
+// pegada después en la misma celda ("7/4/26 9:28", "25/12/2026 14:30") — el
+// \b evita que un año de más dígitos matchee de más.
+const DDMMYYYY = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/;
+const DMYY = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2})\b/;
 
 /** Medianoche de esa fecha EN MÉXICO, expresada como el instante UTC correspondiente
  * (mismo criterio que parseFechaLocalMx en src/lib/timezone.ts) — nunca `new Date(anio,mes,dia)`
