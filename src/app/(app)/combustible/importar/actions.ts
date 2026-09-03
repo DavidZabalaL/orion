@@ -58,9 +58,16 @@ export async function importarCombustible(filas: FilaMapeada[]): Promise<Resulta
       continue;
     }
 
-    const duplicada = await prisma.combustible.findFirst({ where: { numeroEconomico, fecha, litros, costo } });
+    // `fecha` no lleva hora (el importador no captura hora ni tarjeta, solo el
+    // día) y dos cargas reales distintas de la misma unidad el mismo día
+    // pueden coincidir en litros/costo (ej. una dotación fija diaria cargada
+    // con tarjetas distintas). Por eso se exige también que coincida el
+    // kilometraje: una re-importación accidental de la misma fila siempre
+    // trae el mismo km; dos cargas reales distintas casi nunca, porque la
+    // unidad se mueve entre una carga y otra.
+    const duplicada = await prisma.combustible.findFirst({ where: { numeroEconomico, fecha, litros, costo, kmActual } });
     if (duplicada) {
-      resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma unidad, fecha, litros y costo ya existente)." });
+      resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma unidad, fecha, litros, costo y kilometraje ya existente)." });
       continue;
     }
 
