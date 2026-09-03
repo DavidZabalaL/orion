@@ -150,9 +150,12 @@ export const BI_DATASETS: DatasetMeta[] = [
   {
     id: "mantenimiento",
     label: "Mantenimiento y gastos",
-    from: `"GastoVehicular" g LEFT JOIN "Proyecto" p ON p.id = g."proyectoReportanteId"`,
-    proyectoScopeExpr: `g."proyectoReportanteId"`,
-    tablasBase: ["GastoVehicular", "Proyecto"],
+    // El proyecto de un gasto puede venir de la unidad (u."proyectoId") o,
+    // si no aplica a una unidad (ej. viáticos de operación), directo de
+    // proyectoReportanteId — se combinan con COALESCE para no perder ninguno.
+    from: `"GastoVehicular" g LEFT JOIN "Unidad" u ON u."numeroEconomico" = g."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u."proyectoId", g."proyectoReportanteId")`,
+    proyectoScopeExpr: `COALESCE(u."proyectoId", g."proyectoReportanteId")`,
+    tablasBase: ["GastoVehicular", "Unidad", "Proyecto"],
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `g."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `g."estatus"`, opciones: opcionesDe(ESTATUS_GASTO_LABEL) },
@@ -166,8 +169,10 @@ export const BI_DATASETS: DatasetMeta[] = [
   {
     id: "combustible",
     label: "Combustible",
-    from: `"Combustible" c LEFT JOIN "Proyecto" p ON p.id = c."proyectoReportanteId" LEFT JOIN "Unidad" u3 ON u3."numeroEconomico" = c."numeroEconomico"`,
-    proyectoScopeExpr: `c."proyectoReportanteId"`,
+    // Igual que en mantenimiento: el proyecto viene de la unidad o, si la
+    // carga no tiene unidad (gasto operativo), de proyectoReportanteId.
+    from: `"Combustible" c LEFT JOIN "Unidad" u3 ON u3."numeroEconomico" = c."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u3."proyectoId", c."proyectoReportanteId")`,
+    proyectoScopeExpr: `COALESCE(u3."proyectoId", c."proyectoReportanteId")`,
     tablasBase: ["Combustible", "Proyecto", "Unidad"],
     cohorteConfig: {
       campoOrigenExpr: `u3."fechaAlta"`,
@@ -229,9 +234,11 @@ export const BI_DATASETS: DatasetMeta[] = [
   {
     id: "peajes",
     label: "TAG / Peajes",
-    from: `"Tag" t LEFT JOIN "Proyecto" p ON p.id = t."proyectoReportanteId"`,
-    proyectoScopeExpr: `t."proyectoReportanteId"`,
-    tablasBase: ["Tag", "Proyecto"],
+    // Igual que en mantenimiento/combustible: el proyecto viene de la unidad
+    // o, si el peaje no tiene unidad (gasto operativo), de proyectoReportanteId.
+    from: `"Tag" t LEFT JOIN "Unidad" u ON u."numeroEconomico" = t."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u."proyectoId", t."proyectoReportanteId")`,
+    proyectoScopeExpr: `COALESCE(u."proyectoId", t."proyectoReportanteId")`,
+    tablasBase: ["Tag", "Unidad", "Proyecto"],
     campos: [
       { id: "proveedorTag", label: "Proveedor de TAG", tipo: "texto", expr: `t."proveedorTag"`, opciones: [{ valor: "IAVE", label: "IAVE" }, { valor: "PASE", label: "PASE" }, { valor: "TELEVIA", label: "Televía" }] },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },

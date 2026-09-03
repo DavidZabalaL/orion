@@ -55,16 +55,20 @@ export default async function FichaProyectoPage({
     numeroEconomico: h.numeroEconomico,
     fecha: { gte: h.fechaInicio, ...(h.fechaFin ? { lt: h.fechaFin } : {}) },
   }));
+  // Gastos reportados directo al proyecto (sin unidad, ej. el "comodín" de
+  // Peajes/Combustible/Mantenimiento) — se suman siempre, sin depender de
+  // que el proyecto tenga historial de unidades.
+  const condiciones = [...condHistorico, { proyectoReportanteId: proyecto.id }];
 
   const [gastos, combustible, tags, resumenPresupuestoAnual, resumenPorPartida, esAdmin] = await Promise.all([
-    modulosActivos.has("C") && condHistorico.length > 0
-      ? prisma.gastoVehicular.aggregate({ where: { OR: condHistorico }, _sum: { costo: true } })
+    modulosActivos.has("C")
+      ? prisma.gastoVehicular.aggregate({ where: { OR: condiciones }, _sum: { costo: true } })
       : null,
-    modulosActivos.has("D") && condHistorico.length > 0
-      ? prisma.combustible.aggregate({ where: { OR: condHistorico }, _sum: { costo: true } })
+    modulosActivos.has("D")
+      ? prisma.combustible.aggregate({ where: { OR: condiciones }, _sum: { costo: true } })
       : null,
-    modulosActivos.has("E") && condHistorico.length > 0
-      ? prisma.tag.aggregate({ where: { OR: condHistorico }, _sum: { monto: true } })
+    modulosActivos.has("E")
+      ? prisma.tag.aggregate({ where: { OR: condiciones }, _sum: { monto: true } })
       : null,
     obtenerResumenPresupuestoAnual(proyecto.id, anioActual),
     obtenerResumenPresupuestoPorPartida(proyecto.id, anioActual),

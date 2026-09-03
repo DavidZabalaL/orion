@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/table";
-import { fmtMoney } from "@/lib/formato";
-import { Ticket, DollarSign, Inbox, Upload } from "lucide-react";
-import { TagForm } from "@/components/tag/tag-form";
-import { TagAcordeon, type GrupoTag } from "@/components/tag/tag-acordeon";
-import { TagPendienteRow } from "@/components/tag/tag-pendiente-row";
+import { Upload } from "lucide-react";
+import { TagPanel } from "@/components/tag/tag-panel";
+import type { GrupoTag } from "@/components/tag/tag-acordeon";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
@@ -19,15 +15,11 @@ export default async function TagPage() {
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
-  // Los peajes sin unidad y sin proyecto asignado (huérfanos) solo son
-  // visibles para usuarios sin restricción de proyecto (admins), que son
-  // quienes deben triarlos asignándoles una unidad o un proyecto operativo.
-  // Un usuario con proyectos asignados solo ve, dentro de "pendientes", los
-  // que ya quedaron ligados a alguno de sus propios proyectos.
-  const filtroPendientes =
-    proyectosPermitidos !== null
-      ? { numeroEconomico: null, proyectoReportanteId: { in: proyectosPermitidos } }
-      : { numeroEconomico: null };
+  // "Pendiente" es únicamente lo que no tiene NI unidad NI proyecto — en
+  // cuanto se le asigna cualquiera de los dos, desaparece de esta bandeja
+  // (ya cuenta como gasto de ese proyecto). Un huérfano no tiene con qué
+  // comparar el alcance de un usuario con proyectos asignados, así que solo
+  // los usuarios sin restricción de proyecto (admins) los ven, para triarlos.
 
   const [unidades, proyectos, transacciones, pendientes, agregados] = await Promise.all([
     prisma.unidad.findMany({
@@ -41,11 +33,13 @@ export default async function TagPage() {
       orderBy: { nombre: "asc" },
     }),
     prisma.tag.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
-    prisma.tag.findMany({
-      where: filtroPendientes,
-      include: { proyectoReportante: { select: { nombre: true } } },
-      orderBy: { fecha: "desc" },
-    }),
+    proyectosPermitidos !== null
+      ? []
+      : prisma.tag.findMany({
+          where: { numeroEconomico: null, proyectoReportanteId: null },
+          include: { proyectoReportante: { select: { nombre: true } } },
+          orderBy: { fecha: "desc" },
+        }),
     prisma.tag.aggregate({ where: filtroProyecto, _sum: { monto: true }, _count: { _all: true } }),
   ]);
 
@@ -81,48 +75,14 @@ export default async function TagPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Transacciones totales" value={agregados._count._all} icon={Ticket} accent="var(--color-primary)" />
-        <StatCard label="Gasto acumulado" value={fmtMoney(agregados._sum.monto)} icon={DollarSign} accent="var(--color-status-cerrado)" />
-        <StatCard label="Pendientes de asignar" value={pendientes.length} icon={Inbox} accent="var(--color-status-revision)" />
-      </div>
-
-      <TagForm unidades={unidades} proyectos={proyectos} />
-
-      {pendientes.length > 0 && (
-        <div>
-          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-status-revision)" }}>
-            Pendientes de asignar económico
-          </h3>
-          <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {["Fecha", "Caseta", "Monto", "Proveedor", "Proyecto", "Asignar a"].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pendientes.map((p) => (
-                  <TagPendienteRow key={p.id} tag={JSON.parse(JSON.stringify(p))} unidades={unidades} proyectos={proyectos} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      <div>
-        <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Transacciones TAG por unidad
-        </h3>
-        {grupos.length === 0 ? (
-          <EmptyState>Sin transacciones asignadas.</EmptyState>
-        ) : (
-          <TagAcordeon grupos={grupos} unidades={unidades} proyectos={proyectos} />
-        )}
-      </div>
+      <TagPanel
+        unidades={unidades}
+        proyectos={proyectos}
+        grupos={grupos}
+        pendientes={JSON.parse(JSON.stringify(pendientes))}
+        totalTransacciones={agregados._count._all}
+        gastoAcumulado={JSON.parse(JSON.stringify(agregados._sum.monto))}
+      />
     </div>
   );
 }
