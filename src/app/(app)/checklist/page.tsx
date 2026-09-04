@@ -9,6 +9,7 @@ import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
+import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
 
 export const dynamic = "force-dynamic";
 
@@ -98,24 +99,38 @@ export default async function ChecklistPage() {
   // Quién tiene activa cada unidad en "Mi Turno" ahora mismo — se autocompleta
   // como responsable del checklist en vez de un catálogo de personal por área
   // (ver WizardDiario), porque quien hace el checklist es quien tomó la unidad,
-  // no un dato administrativo aparte.
-  const sesionesAbiertas = await prisma.bitacoraUsoUnidad.findMany({
-    where: { numeroEconomico: { in: unidades.map((u) => u.numeroEconomico) }, fin: null },
-    include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
-  });
+  // no un dato administrativo aparte. Solo esa misma persona puede completar
+  // su checklist (se revalida server-side en crearChecklist).
+  const [sesionesAbiertas, identidadPropia] = await Promise.all([
+    prisma.bitacoraUsoUnidad.findMany({
+      where: { numeroEconomico: { in: unidades.map((u) => u.numeroEconomico) }, fin: null },
+      include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
+    }),
+    resolverIdentidadTurno(),
+  ]);
   const responsablePorUnidad = new Map(
-    sesionesAbiertas.map((s) => [s.numeroEconomico, s.operador?.nombre ?? s.usuario?.nombre ?? null])
+    sesionesAbiertas.map((s) => [
+      s.numeroEconomico,
+      {
+        nombre: s.operador?.nombre ?? s.usuario?.nombre ?? null,
+        esUnoMismo: mismaIdentidad(identidadPropia, { operadorId: s.operadorId, usuarioId: s.usuarioId }),
+      },
+    ])
   );
 
-  const unidadesWizard = unidades.map((u) => ({
-    numeroEconomico: u.numeroEconomico,
-    marca: u.marca,
-    unidadModelo: u.unidadModelo,
-    tipoVehiculo: u.tipoVehiculo,
-    proyectoId: u.proyectoId,
-    proyectoNombre: u.proyecto?.nombre ?? null,
-    responsableActivo: responsablePorUnidad.get(u.numeroEconomico) ?? null,
-  }));
+  const unidadesWizard = unidades.map((u) => {
+    const responsable = responsablePorUnidad.get(u.numeroEconomico) ?? null;
+    return {
+      numeroEconomico: u.numeroEconomico,
+      marca: u.marca,
+      unidadModelo: u.unidadModelo,
+      tipoVehiculo: u.tipoVehiculo,
+      proyectoId: u.proyectoId,
+      proyectoNombre: u.proyecto?.nombre ?? null,
+      responsableActivo: responsable?.nombre ?? null,
+      esResponsableActual: responsable?.esUnoMismo ?? false,
+    };
+  });
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6" style={{ maxWidth: 960 }}>

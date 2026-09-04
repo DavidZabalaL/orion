@@ -14,6 +14,7 @@ import { parseFechaLocalMx } from "@/lib/timezone";
 import { ESTADOS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/checklist-carga-combustible";
 import { DEPARTAMENTOS_FALLA, TIPOS_FALLA, MAX_FOTOS_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { enviarNotificacionReporteFalla } from "@/lib/email";
+import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
@@ -60,14 +61,22 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
 
     // El "responsable" del checklist diario se resuelve aquí, en el servidor
     // —nunca se confía en el que mande el navegador— a partir de quien tenga
-    // la unidad tomada activamente en "Mi Turno" en este momento.
+    // la unidad tomada activamente en "Mi Turno" en este momento. Solo esa
+    // misma persona puede completar el checklist de esa unidad — si Libia
+    // tiene la G5-002 tomada, solo Libia (con su propia sesión) puede hacer
+    // el checklist de la G5-002, no cualquier otra cuenta con permiso de módulo.
     const sesionActiva = await prisma.bitacoraUsoUnidad.findFirst({
       where: { numeroEconomico, fin: null },
       include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
     });
     const responsable = sesionActiva?.operador?.nombre ?? sesionActiva?.usuario?.nombre ?? null;
-    if (!responsable) {
+    if (!sesionActiva || !responsable) {
       return { ok: false, error: 'Esta unidad no tiene un responsable activo. Debe tomarse primero desde "Mi Turno".' };
+    }
+
+    const identidadPropia = await resolverIdentidadTurno();
+    if (!mismaIdentidad(identidadPropia, { operadorId: sesionActiva.operadorId, usuarioId: sesionActiva.usuarioId })) {
+      return { ok: false, error: `Esta unidad la tiene tomada ${responsable}. Solo esa persona puede completar su checklist.` };
     }
 
     const puntosInspeccion: Record<string, string> = {};

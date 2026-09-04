@@ -16,6 +16,7 @@ type UnidadWizard = {
   proyectoId: string | null;
   proyectoNombre: string | null;
   responsableActivo: string | null;
+  esResponsableActual: boolean;
 };
 
 type Props = {

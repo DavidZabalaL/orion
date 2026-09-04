@@ -19,6 +19,8 @@ type UnidadWizard = {
   proyectoNombre: string | null;
   /** Quién tiene la unidad tomada activamente en "Mi Turno" ahora mismo — null si nadie. */
   responsableActivo: string | null;
+  /** true si quien tiene la unidad tomada es la persona en sesión actual. */
+  esResponsableActual: boolean;
 };
 
 type Props = {
@@ -167,6 +169,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const area = respuestasExtra["gen_area"] ?? "";
   const municipiosDisponibles = zona ? ((MUNICIPIOS_POR_ESTADO as Record<string, string[]>)[zona] ?? []) : [];
   const responsableActivo = unidadSel?.responsableActivo ?? null;
+  const puedeCompletarla = !!unidadSel && unidadSel.esResponsableActual;
 
   const total = ITEMS_INSPECCION.length;
   const guiaItem = ITEMS_INSPECCION[idx];
@@ -274,6 +277,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     if (!respuestasExtra["gen_municipio"]) return "Selecciona un municipio.";
     if (!area) return "Selecciona un área.";
     if (!responsableActivo) return "Esta unidad no tiene un responsable activo — debe tomarse primero desde \"Mi Turno\".";
+    if (!puedeCompletarla) return `Esta unidad la tiene tomada ${responsableActivo}. Solo esa persona puede completar este checklist.`;
     if (!respuestasExtra["gen_tipo_licencia"]) return "Indica el tipo de licencia.";
     if (!fotosExtra["gen_foto_licencia"]) return "La foto de licencia es obligatoria.";
     return null;
@@ -514,11 +518,18 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
               </div>
             )}
 
+            {unidadSel && unidadSel.responsableActivo && !unidadSel.esResponsableActual && (
+              <div className="rounded-md px-4 py-3" style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+                Esta unidad la tiene tomada <strong>{unidadSel.responsableActivo}</strong>. Solo esa persona puede completar este checklist.
+              </div>
+            )}
+
             {error && <p style={errorStyle}>{error}</p>}
 
             <button type="button" onClick={() => {
               if (!numeroEconomico) { setError("Selecciona un número económico."); return; }
               if (!unidadSel?.responsableActivo) { setError("Esta unidad no tiene un responsable activo. Tómala primero desde \"Mi Turno\"."); return; }
+              if (!unidadSel.esResponsableActual) { setError(`Esta unidad la tiene tomada ${unidadSel.responsableActivo}. Solo esa persona puede completar este checklist.`); return; }
               setError(null);
               setFase("generales");
             }} className="w-full rounded-xl h-12 font-semibold transition-colors"

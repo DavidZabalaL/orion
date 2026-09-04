@@ -1,37 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo, puedeLiberarUnidadAjena } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
-
-/**
- * Quién es "yo" para efectos de tomar/liberar una unidad: un Operador real
- * en su turno normal, o —si el rol tiene "editar" en el módulo O pero la
- * cuenta no está vinculada a ningún Operador (ej. Control Vehicular, Gerente
- * administrativo)— la propia cuenta de Usuario, de forma excepcional.
- */
-type Identidad = { operadorId: string } | { usuarioId: string };
-
-async function resolverIdentidad(): Promise<Identidad> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Sin sesión.");
-
-  const usuario = await prisma.usuario.findUnique({
-    where: { id: session.user.id },
-    select: { operadorId: true },
-  });
-  if (usuario?.operadorId) return { operadorId: usuario.operadorId };
-
-  if (!(await tienePermisoModulo("O", "editar"))) throw new Error("No tienes permiso para tomar o liberar unidades.");
-  return { usuarioId: session.user.id };
-}
+import { resolverIdentidadTurno as resolverIdentidad } from "@/lib/identidad-turno";
 
 /** Abre una nueva sesión de uso para la unidad indicada.
  *  Si ya se tiene una sesión abierta con otra unidad, la cierra primero. */
 export async function tomarUnidad(numeroEconomico: string) {
   const identidad = await resolverIdentidad();
+  if (!identidad) throw new Error("No tienes permiso para tomar o liberar unidades.");
 
   const ahora = new Date();
 
@@ -71,6 +50,7 @@ export async function tomarUnidad(numeroEconomico: string) {
 /** Cierra la sesión de uso activa propia (libera la unidad). */
 export async function liberarUnidad() {
   const identidad = await resolverIdentidad();
+  if (!identidad) throw new Error("No tienes permiso para tomar o liberar unidades.");
 
   await prisma.bitacoraUsoUnidad.updateMany({
     where: { ...identidad, fin: null },
@@ -121,29 +101,16 @@ export type DatosTurno = {
 
 /** Datos del panel de "tomar/liberar unidad" propio — para un Operador real o, de forma excepcional, para un Usuario con "editar" en el módulo O. */
 export async function obtenerDatosTurno(): Promise<DatosTurno> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Sin sesión.");
-
-  const usuario = await prisma.usuario.findUnique({
-    where: { id: session.user.id },
-    select: {
-      operadorId: true,
-      operador: { select: { proyectoId: true } },
-    },
-  });
-  if (!usuario) throw new Error("Usuario no encontrado.");
-
-  const identidad: Identidad = usuario.operadorId
-    ? { operadorId: usuario.operadorId }
-    : { usuarioId: session.user.id };
+  const identidad = await resolverIdentidad();
+  if (!identidad) throw new Error("No tienes permiso para tomar unidades.");
 
   let proyectosIds: string[] | null;
   if ("operadorId" in identidad) {
     // El operador solo puede tomar unidades de su propio proyecto asignado
     // — sin proyecto asignado, no ve ninguna (nunca "todas por defecto").
-    proyectosIds = usuario.operador?.proyectoId ? [usuario.operador.proyectoId] : [];
+    const operador = await prisma.operador.findUnique({ where: { id: identidad.operadorId }, select: { proyectoId: true } });
+    proyectosIds = operador?.proyectoId ? [operador.proyectoId] : [];
   } else {
-    if (!(await tienePermisoModulo("O", "editar"))) throw new Error("No tienes permiso para tomar unidades.");
     proyectosIds = await proyectosPermitidosParaModulo("O");
   }
 
