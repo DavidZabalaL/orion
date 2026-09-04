@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { subirFotoChecklist } from "@/app/(app)/checklist/actions";
+import { comprimirImagen } from "@/lib/comprimir-imagen";
 
 export function CampoFotoSemanal({
   name,
@@ -32,7 +33,7 @@ export function CampoFotoSemanal({
     setError(null);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await comprimirImagen(file));
       const result = await subirFotoChecklist(fd);
       if (!result.ok) throw new Error(result.error);
       setUrl(result.url);

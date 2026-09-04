@@ -5,6 +5,7 @@ import { ChevronLeft, CheckCircle2, Loader2, Camera } from "lucide-react";
 import { crearChecklistCargaCombustible, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { FirmaPad } from "@/components/checklist/firma-pad";
+import { comprimirImagen } from "@/lib/comprimir-imagen";
 import {
   ESTADOS_CARGA,
   MUNICIPIOS_POR_ESTADO,
@@ -149,7 +150,7 @@ export function WizardCargaCombustible({
     setError(null);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await comprimirImagen(file));
       const result = await subirFotoChecklist(fd);
       if (!result.ok) throw new Error(result.error);
       setFotoLicenciaUrl(result.url);

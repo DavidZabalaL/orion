@@ -6,6 +6,7 @@ import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/action
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { ESTADOS_CARGA, MUNICIPIOS_POR_ESTADO, AREAS_CARGA } from "@/lib/checklist-carga-combustible";
+import { comprimirImagen } from "@/lib/comprimir-imagen";
 import { FirmaPad } from "@/components/checklist/firma-pad";
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
@@ -189,7 +190,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     setError(null);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await comprimirImagen(file));
       const r = await subirFotoChecklist(fd);
       if (!r.ok) throw new Error(r.error);
       setFotosExtra((p) => ({ ...p, [key]: r.url }));
@@ -213,7 +214,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     setError(null);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await comprimirImagen(file));
       const r = await subirFotoChecklist(fd);
       if (!r.ok) throw new Error(r.error);
       setFotosPorPunto((p) => ({ ...p, [key]: r.url }));
@@ -230,7 +231,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     setError(null);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await comprimirImagen(file));
       const r = await subirFotoChecklist(fd);
       if (!r.ok) throw new Error(r.error);
       setFotoUrl(r.url);
@@ -247,7 +248,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     setError(null);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await comprimirImagen(file));
       const r = await subirFotoChecklist(fd);
       if (!r.ok) throw new Error(r.error);
       setFotoHorometroUrl(r.url);
