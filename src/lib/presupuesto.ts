@@ -44,14 +44,17 @@ export async function obtenerResumenPresupuestoAnual(proyectoId: string, anio: n
   ]);
 
   const periodos = condicionesPorPeriodo(historicos, inicio, fin);
+  // Gastos reportados directo al proyecto (sin pasar por una unidad, ej.
+  // el "comodín" de Peajes/Combustible/Mantenimiento) — se suman siempre,
+  // aunque el proyecto no tenga unidades con historial en el periodo.
+  const condProyectoReportante = { proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } };
+  const condiciones = [...periodos, condProyectoReportante];
 
-  const [gastos, combustible, tags] = periodos.length === 0
-    ? [[], [], []]
-    : await Promise.all([
-        prisma.gastoVehicular.findMany({ where: { OR: periodos }, select: { fecha: true, costo: true } }),
-        prisma.combustible.findMany({ where: { OR: periodos }, select: { fecha: true, costo: true } }),
-        prisma.tag.findMany({ where: { OR: periodos }, select: { fecha: true, monto: true } }),
-      ]);
+  const [gastos, combustible, tags] = await Promise.all([
+    prisma.gastoVehicular.findMany({ where: { OR: condiciones }, select: { fecha: true, costo: true } }),
+    prisma.combustible.findMany({ where: { OR: condiciones }, select: { fecha: true, costo: true } }),
+    prisma.tag.findMany({ where: { OR: condiciones }, select: { fecha: true, monto: true } }),
+  ]);
 
   const gastoPorMes = new Map<number, number>();
   for (const g of [...gastos, ...combustible]) {

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
-import { parsearFechaFlexible } from "@/lib/import-tag";
+import { parsearFechaFlexible, agregarHora } from "@/lib/import-tag";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
@@ -41,28 +41,35 @@ export async function importarTags(
 
   const existentes = await prisma.tag.findMany({
     where: { proveedorTag: proveedorTag as never },
-    select: { fecha: true, monto: true, caseta: true },
+    select: { fecha: true, monto: true, caseta: true, tarjetaIdmx: true },
   });
-  const clave = (fecha: Date, monto: number, caseta: string | null) =>
-    `${fecha.toISOString().slice(0, 10)}|${monto.toFixed(2)}|${(caseta ?? "").trim().toUpperCase()}`;
-  const vistos = new Set(existentes.map((e) => clave(e.fecha, Number(e.monto), e.caseta)));
+  // Antes solo comparaba fecha+monto+caseta, sin hora ni tarjeta — dos cruces
+  // reales y distintos el mismo día por la misma caseta con el mismo importe
+  // (frecuente: casetas cobran una tarifa fija) se colapsaban en uno solo. Con
+  // hora capturada, `fecha` ya trae la hora exacta del cruce (ver agregarHora
+  // más abajo); se agrega también la tarjeta IDMX cuando el archivo la trae.
+  const clave = (fecha: Date, monto: number, caseta: string | null, tarjetaIdmx: string | null) =>
+    `${fecha.toISOString()}|${monto.toFixed(2)}|${(caseta ?? "").trim().toUpperCase()}|${(tarjetaIdmx ?? "").trim().toUpperCase()}`;
+  const vistos = new Set(existentes.map((e) => clave(e.fecha, Number(e.monto), e.caseta, e.tarjetaIdmx)));
 
   for (let i = 0; i < filas.length; i++) {
     const fila = filas[i];
     const numFila = i + 2;
 
-    const fecha = parsearFechaFlexible(fila.fecha ?? "");
+    const fechaBase = parsearFechaFlexible(fila.fecha ?? "");
+    const fecha = fechaBase ? agregarHora(fechaBase, fila.hora) : null;
     const monto = parseFloat(String(fila.monto ?? "").replace(/[^0-9.-]/g, ""));
     const caseta = String(fila.caseta ?? "").trim() || null;
+    const tarjetaIdmx = String(fila.tarjetaIdmx ?? "").trim() || null;
 
     if (!fecha || isNaN(monto) || monto <= 0) {
       resultado.omitidas.push({ fila: numFila, motivo: "Fecha o monto inválidos/faltantes." });
       continue;
     }
 
-    const claveFila = clave(fecha, monto, caseta);
+    const claveFila = clave(fecha, monto, caseta, tarjetaIdmx);
     if (vistos.has(claveFila)) {
-      resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma fecha, monto y caseta ya existente)." });
+      resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma fecha, hora, monto, caseta y tarjeta ya existente)." });
       continue;
     }
     vistos.add(claveFila);
@@ -89,6 +96,7 @@ export async function importarTags(
           fecha,
           monto,
           caseta,
+          tarjetaIdmx,
           proveedorTag: proveedorTag as never,
         },
       });

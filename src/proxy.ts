@@ -35,6 +35,8 @@ export const config = {
   // pública donde un Operador sin correo institucional crea su contraseña
   // con el token de un solo uso que recibió por correo (sin sesión previa).
   // recuperar-contrasena: mismo caso, para restablecer una contraseña ya
-  // existente en vez de aceptar una invitación nueva.
-  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|invitacion|recuperar-contrasena|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
+  // existente en vez de aceptar una invitación nueva. registro-operador:
+  // autorregistro de Operadores validado contra el padrón de personal activo
+  // (ver src/app/registro-operador) — tampoco hay sesión previa.
+  matcher: ["/((?!api/auth|api/exec|api/cron|iniciar-sesion|invitacion|recuperar-contrasena|registro-operador|_next/static|_next/image|favicon.ico|icon\\.png|icon\\.svg).*)"],
 };

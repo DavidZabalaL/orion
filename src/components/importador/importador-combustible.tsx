@@ -23,13 +23,14 @@ const panelStyle: React.CSSProperties = { background: "var(--panel-bg)", boxShad
 
 type Paso = "subir" | "mapear" | "confirmar" | "resultado";
 
-export function ImportadorCombustible() {
+export function ImportadorCombustible({ proyectos }: { proyectos: { id: string; nombre: string }[] }) {
   const [paso, setPaso] = useState<Paso>("subir");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [hojas, setHojas] = useState<HojaParseada[]>([]);
   const [hojaIdx, setHojaIdx] = useState(0);
+  const [proyectoFallbackId, setProyectoFallbackId] = useState("");
   const [mapeo, setMapeo] = useState<Record<CampoCombustibleKey, number | null>>(
     Object.fromEntries(CAMPOS_COMBUSTIBLE.map((c) => [c.key, null])) as Record<CampoCombustibleKey, number | null>
   );
@@ -78,7 +79,7 @@ export function ImportadorCombustible() {
 
   function handleImportar() {
     startTransition(async () => {
-      const res = await importarCombustible(filasMapeadas);
+      const res = await importarCombustible(filasMapeadas, proyectoFallbackId || undefined);
       setResultado(res);
       setPaso("resultado");
     });
@@ -199,10 +200,22 @@ export function ImportadorCombustible() {
 
       {paso === "confirmar" && (
         <div className="flex flex-col gap-5">
-          <div className="rounded-xl p-5" style={panelStyle}>
+          <div className="rounded-xl p-5 flex flex-col gap-4" style={panelStyle}>
             <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--field-text)" }}>
               Estás por importar <strong>{filasMapeadas.length}</strong> transacciones de combustible desde la hoja <strong>{hoja?.nombre}</strong>.
-              Las filas con número económico no reconocido o duplicadas (misma unidad, fecha, litros y costo) se omiten automáticamente.
+              Las filas duplicadas (misma unidad, fecha, litros, costo y kilometraje) se omiten automáticamente.
+            </div>
+            <div>
+              <label className="block mb-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
+                Proyecto para las filas sin número económico reconocido (opcional)
+              </label>
+              <select value={proyectoFallbackId} onChange={(e) => setProyectoFallbackId(e.target.value)} style={{ ...fieldStyle, minWidth: 280 }}>
+                <option value="">No asignar — dejar en Pendientes de asignar</option>
+                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+              <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                Útil para gastos operativos del proyecto que no corresponden a un económico específico. Si no seleccionas nada, esas filas quedarán en la bandeja de <strong>Pendientes de asignar</strong>.
+              </p>
             </div>
           </div>
           <div className="flex gap-3">

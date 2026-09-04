@@ -13,7 +13,7 @@ export type CombustibleTransaccion = {
   fecha: string;
   litros: string;
   costo: string;
-  kmActual: number;
+  kmActual: number | null;
   estacion: string | null;
   rendimientoCalculado: string | null;
   alertaSobrellenado: boolean;

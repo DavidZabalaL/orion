@@ -695,6 +695,7 @@ enum TipoChecklist {
   DIARIO
   SEMANAL
   CARGA_COMBUSTIBLE
+  REPORTE_FALLA
 }
 
 model Checklist {
@@ -776,12 +777,15 @@ model ConfiguracionProveedorCombustible {
 
 model Combustible {
   id                   String                             @id @default(cuid())
-  numeroEconomico      String
-  unidad               Unidad                             @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  // Nulo cuando la carga no corresponde a un económico (gasto operativo del
+  // proyecto) — se reporta directo a proyectoReportanteId, igual que en Tag.
+  numeroEconomico      String?
+  unidad               Unidad?                            @relation(fields: [numeroEconomico], references: [numeroEconomico])
   fecha                DateTime
   litros               Decimal                            @db.Decimal(10, 2)
   costo                Decimal                            @db.Decimal(12, 2)
-  kmActual             Int
+  // Nulo cuando no hay unidad (no aplica el cálculo de rendimiento/nivel de tanque).
+  kmActual             Int?
   estacion             String?
   rfcEstacion          String?
   proyectoReportanteId String?
@@ -1430,4 +1434,38 @@ model SolicitudAutorizacionCombustible {
   @@index([proyectoId])
   @@index([estatus])
   @@index([createdAt])
+}
+
+// ───────────────────────── AUTORREGISTRO DE OPERADORES ─────────────────────────
+
+/// Padrón de personal activo (RH) contra el que se valida la identidad de un
+/// Operador al autoregistrarse — evita altas de gente ajena a la organización.
+/// Se reemplaza por completo cada vez que administración sube un archivo
+/// nuevo (ver actualizarPadronPersonal), no se acumula histórico de bajas.
+model PersonalActivo {
+  id              String   @id @default(cuid())
+  nombreCompleto  String
+  empresa         String
+  lugarDeTrabajo  String
+  curp            String   @unique
+  rfc             String?
+  nss             String?
+  telefono        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([curp])
+}
+
+/// Bitácora de intentos de autorregistro (éxito o no) para frenar fuerza
+/// bruta sobre CURP/nombre — no existe otro mecanismo de rate-limit en la
+/// plataforma para rutas públicas, así que este control vive en la propia tabla.
+model IntentoRegistroOperador {
+  id        String   @id @default(cuid())
+  curp      String
+  exitoso   Boolean
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([curp, createdAt])
 }

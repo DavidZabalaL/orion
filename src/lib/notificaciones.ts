@@ -164,12 +164,15 @@ export async function obtenerNotificaciones(usuarioId: string): Promise<Notifica
   }
 
   if (config.alertaCombustibleSinActividadActiva) {
-    const cargas = await prisma.combustible.findMany({
-      where: { fecha: { gte: desde7dias } },
+    const cargasBrutas = await prisma.combustible.findMany({
+      where: { fecha: { gte: desde7dias }, numeroEconomico: { not: null } },
       orderBy: { fecha: "desc" },
       take: 30,
       select: { id: true, numeroEconomico: true, fecha: true, litros: true, estacion: true },
     });
+    // Las cargas sin unidad (gasto operativo de proyecto) no tienen con qué
+    // triangular actividad GPS/TAG — se excluyen antes, no aquí.
+    const cargas = cargasBrutas as (Omit<(typeof cargasBrutas)[number], "numeroEconomico"> & { numeroEconomico: string })[];
     if (cargas.length > 0) {
       const economicos = Array.from(new Set(cargas.map((c) => c.numeroEconomico)));
       const [posiciones, tags] = await Promise.all([

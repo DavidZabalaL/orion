@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ReporteBuilder } from "@/components/reportes/reporte-builder";
@@ -9,6 +10,10 @@ import { requerirPermisoModulo } from "@/lib/permisos";
 export const dynamic = "force-dynamic";
 
 export default async function GeneradorReportesPage() {
+  // Módulo J retirado del menú a pedido explícito — bloqueado también por URL
+  // directa. El motor de reportes programados sigue vivo (lo usa Estatus
+  // semanal de flota en Dashboards); solo se oculta este generador genérico.
+  redirect("/sin-acceso");
   await requerirPermisoModulo("J");
 
   const reportes = await prisma.reporteProgramado.findMany({

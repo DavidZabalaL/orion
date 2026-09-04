@@ -248,6 +248,57 @@ export async function enviarNotificacionTicketRescate({
   }
 }
 
+/**
+ * Checklist "Reporte de falla de vehículo" (ver src/lib/checklist-reporte-falla.ts):
+ * notifica de inmediato, sin pasar por el motor de umbrales configurables, al
+ * Gerente administrativo del proyecto de la unidad — el destinatario se
+ * resuelve dinámicamente por rol + asignación de proyecto, no de una lista
+ * configurada a mano (a diferencia del ticket de rescate de arriba).
+ */
+export async function enviarNotificacionReporteFalla({
+  destinatarios,
+  numeroEconomico,
+  tipoFalla,
+  departamento,
+  descripcion,
+}: {
+  destinatarios: string[];
+  numeroEconomico: string;
+  tipoFalla: string;
+  departamento: string;
+  descripcion?: string | null;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
+  }
+  if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
+
+  const urlUnidad = `${SITE_URL}/unidades/${numeroEconomico}`;
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
+      to: destinatarios.join(","),
+      subject: `Reporte de falla — ${numeroEconomico} (${tipoFalla})`,
+      html: `
+        <div style="font-family:sans-serif;font-size:14px;color:#334155;">
+          <p>Se reportó una falla de vehículo:</p>
+          <ul>
+            <li><strong>Unidad:</strong> ${numeroEconomico}</li>
+            <li><strong>Tipo de falla:</strong> ${tipoFalla}</li>
+            <li><strong>Departamento:</strong> ${departamento}</li>
+            ${descripcion ? `<li><strong>Descripción:</strong> ${descripcion}</li>` : ""}
+          </ul>
+          <p><a href="${urlUnidad}">Ver la unidad en Orión</a></p>
+        </div>
+      `,
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
 function plantillaRecuperacionContrasena({ nombre, aceptarUrl }: { nombre: string; aceptarUrl: string }) {
   return `
 <!DOCTYPE html>
@@ -355,6 +406,84 @@ export async function enviarInvitacionOperador({
       to: correo,
       subject: "Te invitaron a Orión — Control Vehicular",
       html: plantillaInvitacionOperador({ nombre, aceptarUrl }),
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
+function plantillaBienvenidaOperador({ nombre, loginUrl }: { nombre: string; loginUrl: string }) {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+  <body style="margin:0; padding:0; background:#f4f6f9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9; padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#0b1a30; border-radius:16px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 24px 32px; text-align:center;">
+                <div style="font-family:Georgia,serif; font-size:28px; font-weight:800; color:#ffffff; letter-spacing:0.5px;">Orión</div>
+                <div style="font-size:13px; color:rgba(255,255,255,0.55); margin-top:4px;">Control Vehicular · Grupo Kabat</div>
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; margin-top:16px; box-shadow:0 8px 32px rgba(15,40,120,0.08);">
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${nombre}` : ""} 👋</h1>
+                <p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#334155;">
+                  Tu cuenta de <strong>Orión</strong> ya está activa. Si tú creaste esta cuenta, ya puedes iniciar sesión con el correo y la contraseña que registraste.
+                </p>
+                <p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#334155;">
+                  Si tú <strong>no</strong> creaste esta cuenta, contacta de inmediato a Recursos Humanos o a tu administrador.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="border-radius:8px; background:#2b7fff;">
+                      <a href="${loginUrl}" style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none;">
+                        Iniciar sesión
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%;">
+            <tr>
+              <td style="padding:20px 8px; text-align:center; font-size:11px; color:#94a3b8;">
+                Plataforma interna — acceso restringido al equipo de Grupo Kabat.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+export async function enviarBienvenidaOperador({
+  correo,
+  nombre,
+}: {
+  correo: string;
+  nombre: string;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
+  }
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
+      to: correo,
+      subject: "Tu cuenta de Orión ya está activa",
+      html: plantillaBienvenidaOperador({ nombre, loginUrl: `${SITE_URL}/iniciar-sesion` }),
     });
     return { enviado: true };
   } catch (e) {

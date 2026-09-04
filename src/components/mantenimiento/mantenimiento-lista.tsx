@@ -115,7 +115,8 @@ function VerOrdenButton({ abierto, onClick }: { abierto: boolean; onClick: () =>
   );
 }
 
-function OrdenDetalle({ g, isAdmin }: { g: GastoRow; isAdmin: boolean }) {
+function OrdenDetalle({ g, isAdmin, onGuardado }: { g: GastoRow; isAdmin: boolean; onGuardado?: () => void }) {
+  const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -124,7 +125,15 @@ function OrdenDetalle({ g, isAdmin }: { g: GastoRow; isAdmin: boolean }) {
       <div className="flex flex-col gap-3">
         {g.fechaIngresoTaller && (
           <div className="flex items-center gap-3 flex-wrap">
-            <TimerTaller ingreso={g.fechaIngresoTaller} estimada={g.fechaEstimadaSalida} />
+            {/* El temporizador ("X días — VENCIDA") solo aplica a órdenes
+                todavía abiertas (PROGRAMADO) — una orden ya REALIZADO/PAGADO/
+                CANCELADO puede tener fechas de taller perfectamente correctas
+                pero muy en el pasado (captura tardía de un servicio ya
+                terminado); mostrarlo ahí es una falsa alarma, no un problema
+                real de taller. Las fechas en sí siempre se muestran. */}
+            {g.estatus === "PROGRAMADO" && (
+              <TimerTaller ingreso={g.fechaIngresoTaller} estimada={g.fechaEstimadaSalida} />
+            )}
             <Detalle label="Ingreso taller" value={fmtFecha(g.fechaIngresoTaller)} />
             <Detalle label="Salida estimada" value={g.fechaEstimadaSalida ? fmtFecha(g.fechaEstimadaSalida) : null} />
           </div>
@@ -164,6 +173,18 @@ function OrdenDetalle({ g, isAdmin }: { g: GastoRow; isAdmin: boolean }) {
         startTransition(async () => {
           await actualizarGasto(formData);
           setEditando(false);
+          // Sin esto, la fila colapsaba mostrando los datos con los que se
+          // cargó la página (los `defaultValue` de un input no controlado
+          // nunca se releen tras el submit) — el guardado sí llegaba a la
+          // base, pero parecía que los campos recién editados se habían
+          // perdido. Muy notorio al editar dos órdenes seguidas que
+          // comparten OC: la primera se veía bien porque para entonces ya
+          // hubo alguna otra navegación que refrescó la página.
+          router.refresh();
+          // Con una búsqueda de historial completo activa, la lista viene de
+          // `resultadosBusqueda` (un snapshot ya resuelto), no de las props
+          // que sí actualiza router.refresh() — el padre debe volver a pedirlo.
+          onGuardado?.();
         });
       }}
     >
@@ -399,6 +420,18 @@ export function HistorialLista({ historial, isAdmin = false }: { historial: Gast
     return () => clearTimeout(id);
   }, [busqueda]);
 
+  // Al guardar la edición de una orden, `router.refresh()` (en OrdenDetalle) solo
+  // actualiza las props de servidor — si hay una búsqueda activa, la lista se sigue
+  // pintando desde `resultadosBusqueda` (un snapshot ya resuelto de antes de editar),
+  // así que hay que volver a pedirlo explícitamente o el cambio no se ve en pantalla.
+  function alGuardarOrden() {
+    const q = busqueda.trim();
+    if (q.length < 2) return;
+    startBusqueda(async () => {
+      setResultadosBusqueda(await buscarHistorialGastos(q));
+    });
+  }
+
   const busquedaActiva = busqueda.trim().length >= 2;
   const filtrados = useMemo(() => {
     if (busquedaActiva && resultadosBusqueda !== null) return resultadosBusqueda;
@@ -439,7 +472,7 @@ export function HistorialLista({ historial, isAdmin = false }: { historial: Gast
               {expandido === g.id && (
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                    <OrdenDetalle g={g} isAdmin={isAdmin} />
+                    <OrdenDetalle g={g} isAdmin={isAdmin} onGuardado={alGuardarOrden} />
                   </td>
                 </tr>
               )}

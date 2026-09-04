@@ -4,10 +4,12 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BotonCerrarSesion } from "@/components/actividad/boton-cerrar-sesion";
+import { FiltrosActividad } from "@/components/admin/filtros-actividad";
 import {
   obtenerKpisAdopcion,
   obtenerTablaUltimaActividad,
   obtenerRolesConActividad,
+  obtenerProyectosConActividad,
   obtenerSerieActividadDiaria,
   MODULO_ACTIVIDAD_LABEL,
 } from "@/lib/actividad";
@@ -20,17 +22,26 @@ function fmtFecha(d: Date | null): string {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: ZONA_HORARIA_MX }).format(d);
 }
 
+function comoArreglo(v: string | string[] | undefined): string[] {
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
 export default async function AdopcionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ rolId?: string; modulo?: string }>;
+  searchParams: Promise<{ rolId?: string | string[]; modulo?: string | string[]; proyectoId?: string | string[] }>;
 }) {
-  const { rolId, modulo } = await searchParams;
+  const params = await searchParams;
+  const rolIds = comoArreglo(params.rolId);
+  const modulos = comoArreglo(params.modulo);
+  const proyectoIds = comoArreglo(params.proyectoId);
 
-  const [kpis, tabla, roles, serie] = await Promise.all([
+  const [kpis, tabla, roles, proyectos, serie] = await Promise.all([
     obtenerKpisAdopcion(),
-    obtenerTablaUltimaActividad({ rolId, modulo }),
+    obtenerTablaUltimaActividad({ rolIds, modulos, proyectoIds }),
     obtenerRolesConActividad(),
+    obtenerProyectosConActividad(),
     obtenerSerieActividadDiaria(30),
   ]);
 
@@ -62,33 +73,11 @@ export default async function AdopcionPage({
           Da clic en un usuario para ver el detalle completo de todo lo que ha hecho en la plataforma.
         </p>
 
-        <form className="mb-3 flex flex-wrap gap-3" data-no-print>
-          <select
-            name="rolId"
-            defaultValue={rolId ?? ""}
-            className="rounded-md px-3"
-            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-          >
-            <option value="">Todos los roles</option>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>{r.nombre}</option>
-            ))}
-          </select>
-          <select
-            name="modulo"
-            defaultValue={modulo ?? ""}
-            className="rounded-md px-3"
-            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-          >
-            <option value="">Todos los módulos</option>
-            {Object.entries(MODULO_ACTIVIDAD_LABEL).map(([id, label]) => (
-              <option key={id} value={id}>{label}</option>
-            ))}
-          </select>
-          <button type="submit" className="rounded-md px-5 h-9 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-            Filtrar
-          </button>
-        </form>
+        <FiltrosActividad
+          roles={roles.map((r) => ({ value: r.id, label: r.nombre }))}
+          modulos={Object.entries(MODULO_ACTIVIDAD_LABEL).map(([id, label]) => ({ value: id, label }))}
+          proyectos={proyectos.map((p) => ({ value: p.id, label: p.nombre }))}
+        />
 
         {tabla.length === 0 ? (
           <EmptyState>Sin usuarios que coincidan.</EmptyState>

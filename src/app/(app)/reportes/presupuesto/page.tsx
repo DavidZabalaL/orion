@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Table, EmptyState } from "@/components/ui/table";
@@ -17,13 +18,16 @@ export default async function ReportePresupuestoPage({
 }: {
   searchParams: Promise<{ anio?: string; proyecto?: string }>;
 }) {
+  // Módulo J retirado del menú a pedido explícito — bloqueado también por URL directa.
+  redirect("/sin-acceso");
   await requerirPermisoModulo("J");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("J");
   const { anio: anioParam, proyecto: proyectoParam } = await searchParams;
   const anio = parseInt(anioParam ?? "", 10) || new Date().getFullYear();
 
+  const filtroId: { id?: { in: string[] } } = proyectosPermitidos !== null ? { id: { in: proyectosPermitidos as string[] } } : {};
   const proyectos = await prisma.proyecto.findMany({
-    where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+    where: { estatus: "ACTIVO", ...filtroId },
     select: { id: true, nombre: true },
     orderBy: { nombre: "asc" },
   });

@@ -102,15 +102,19 @@ export type FilaUltimaActividad = {
   sesionInvalidadaEn: Date | null;
 };
 
-export async function obtenerTablaUltimaActividad(filtros: { rolId?: string; modulo?: string }): Promise<FilaUltimaActividad[]> {
+export async function obtenerTablaUltimaActividad(filtros: { rolIds?: string[]; modulos?: string[]; proyectoIds?: string[] }): Promise<FilaUltimaActividad[]> {
   const usuarios = await prisma.usuario.findMany({
-    where: { estatus: "ACTIVO", ...(filtros.rolId ? { rolId: filtros.rolId } : {}) },
+    where: {
+      estatus: "ACTIVO",
+      ...(filtros.rolIds?.length ? { rolId: { in: filtros.rolIds } } : {}),
+      ...(filtros.proyectoIds?.length ? { proyectos: { some: { proyectoId: { in: filtros.proyectoIds } } } } : {}),
+    },
     select: { id: true, nombre: true, correo: true, sesionInvalidadaEn: true, rol: { select: { nombre: true } } },
   });
 
   const ultimas = await prisma.activityLog.groupBy({
     by: ["userId"],
-    where: filtros.modulo ? { modulo: filtros.modulo } : undefined,
+    where: filtros.modulos?.length ? { modulo: { in: filtros.modulos } } : undefined,
     _max: { createdAt: true },
   });
   const ultimaPorUsuario = new Map(ultimas.map((u) => [u.userId, u._max.createdAt]));
@@ -129,6 +133,10 @@ export async function obtenerTablaUltimaActividad(filtros: { rolId?: string; mod
 
 export async function obtenerRolesConActividad(): Promise<{ id: string; nombre: string }[]> {
   return prisma.rol.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
+}
+
+export async function obtenerProyectosConActividad(): Promise<{ id: string; nombre: string }[]> {
+  return prisma.proyecto.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
 }
 
 export type EventoActividadUsuario = {

@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { CreditCard, Fuel, Gauge, DollarSign, Upload } from "lucide-react";
+import { CreditCard, Fuel, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/table";
-import { fmtMoney } from "@/lib/formato";
-import { CombustibleForm } from "@/components/combustible/combustible-form";
-import { CombustibleAcordeon, type GrupoCombustible } from "@/components/combustible/combustible-acordeon";
+import { CombustiblePanel } from "@/components/combustible/combustible-panel";
+import type { GrupoCombustible } from "@/components/combustible/combustible-acordeon";
 import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
@@ -19,14 +16,30 @@ export default async function CombustiblePage() {
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
+  // "Pendiente" es únicamente lo que no tiene NI unidad NI proyecto — en
+  // cuanto se le asigna cualquiera de los dos, desaparece de esta bandeja
+  // (ya cuenta como gasto de ese proyecto). Solo los usuarios sin
+  // restricción de proyecto (admins) las ven, para triarlas.
 
-  const [unidades, transacciones, agregados] = await Promise.all([
+  const [unidades, proyectos, transacciones, pendientes, agregados] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
       select: { numeroEconomico: true },
       orderBy: { numeroEconomico: "asc" },
     }),
-    prisma.combustible.findMany({ where: filtroProyecto, orderBy: { fecha: "desc" } }),
+    prisma.proyecto.findMany({
+      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    }),
+    prisma.combustible.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
+    proyectosPermitidos !== null
+      ? []
+      : prisma.combustible.findMany({
+          where: { numeroEconomico: null, proyectoReportanteId: null },
+          include: { proyectoReportante: { select: { nombre: true } } },
+          orderBy: { fecha: "desc" },
+        }),
     prisma.combustible.aggregate({ where: filtroProyecto, _sum: { litros: true, costo: true }, _avg: { rendimientoCalculado: true } }),
   ]);
 
@@ -43,10 +56,11 @@ export default async function CombustiblePage() {
   // despliega bajo demanda.
   const gruposPorEconomico = new Map<string, GrupoCombustible>();
   for (const t of transacciones) {
-    let grupo = gruposPorEconomico.get(t.numeroEconomico);
+    const numeroEconomico = t.numeroEconomico as string;
+    let grupo = gruposPorEconomico.get(numeroEconomico);
     if (!grupo) {
-      grupo = { numeroEconomico: t.numeroEconomico, totalLitros: 0, totalCosto: 0, rendimientoPromedio: null, ultimaFecha: t.fecha.toISOString(), alertasPendientes: 0, transacciones: [] };
-      gruposPorEconomico.set(t.numeroEconomico, grupo);
+      grupo = { numeroEconomico, totalLitros: 0, totalCosto: 0, rendimientoPromedio: null, ultimaFecha: t.fecha.toISOString(), alertasPendientes: 0, transacciones: [] };
+      gruposPorEconomico.set(numeroEconomico, grupo);
     }
     grupo.totalLitros += Number(t.litros);
     grupo.totalCosto += Number(t.costo);
@@ -85,49 +99,17 @@ export default async function CombustiblePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Litros acumulados" value={`${Number(agregados._sum.litros ?? 0).toLocaleString("es-MX")} L`} icon={Fuel} accent="var(--color-primary)" />
-        <StatCard label="Gasto acumulado" value={fmtMoney(agregados._sum.costo)} icon={DollarSign} accent="var(--color-status-cerrado)" />
-        <StatCard label="Rendimiento promedio flota" value={`${Number(agregados._avg.rendimientoCalculado ?? 0).toFixed(1)} km/L`} icon={Gauge} accent="var(--color-status-revision)" />
-        <StatCard label="Unidades con carga" value={rendimientoPorUnidad.length} icon={Fuel} accent="var(--color-status-asignado)" />
-      </div>
-
-      <CombustibleForm unidades={unidades} />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Transacciones por unidad
-          </h3>
-          {grupos.length === 0 ? (
-            <EmptyState>Sin transacciones registradas.</EmptyState>
-          ) : (
-            <CombustibleAcordeon grupos={grupos} isAdmin={isAdmin} />
-          )}
-        </div>
-
-        <div>
-          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Rendimiento por unidad
-          </h3>
-          <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-            {rendimientoPorUnidad.length === 0 ? (
-              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin datos aún.</p>
-            ) : (
-              rendimientoPorUnidad.map((r) => (
-                <div key={r.numeroEconomico} className="flex items-center justify-between">
-                  <Link href={`/unidades/${r.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                    {r.numeroEconomico}
-                  </Link>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                    {r._avg.rendimientoCalculado ? `${Number(r._avg.rendimientoCalculado).toFixed(1)} km/L` : "—"}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      <CombustiblePanel
+        unidades={unidades}
+        proyectos={proyectos}
+        grupos={grupos}
+        pendientes={JSON.parse(JSON.stringify(pendientes))}
+        rendimientoPorUnidad={JSON.parse(JSON.stringify(rendimientoPorUnidad))}
+        litrosAcumulados={Number(agregados._sum.litros ?? 0)}
+        gastoAcumulado={JSON.parse(JSON.stringify(agregados._sum.costo))}
+        rendimientoPromedioFlota={Number(agregados._avg.rendimientoCalculado ?? 0)}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

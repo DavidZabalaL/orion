@@ -12,6 +12,8 @@ import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
 import { ESTADOS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/checklist-carga-combustible";
+import { DEPARTAMENTOS_FALLA, TIPOS_FALLA, MAX_FOTOS_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
+import { enviarNotificacionReporteFalla } from "@/lib/email";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
@@ -345,5 +347,118 @@ export async function crearChecklistCargaCombustible(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar el checklist de carga de combustible." };
+  }
+}
+
+/**
+ * Checklist "Reporte de falla de vehículo" (ver src/lib/checklist-reporte-falla.ts).
+ * A diferencia de los otros tres tipos, al crearse dispara de inmediato un
+ * correo al Gerente administrativo del proyecto de la unidad — resuelto
+ * dinámicamente por rol + asignación de proyecto (no una lista configurada a
+ * mano). El envío nunca debe tumbar la creación del reporte si falla.
+ */
+export async function crearChecklistReporteFalla(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await exigirPermisoModulo("A.1", "editar");
+
+    const numeroEconomico = String(formData.get("numeroEconomico") ?? "").trim();
+    const kilometraje = parseInt(String(formData.get("kilometraje") ?? ""), 10);
+    const fecha = String(formData.get("fecha") ?? "").trim();
+    const hora = String(formData.get("hora") ?? "").trim();
+    const nombreConductor = String(formData.get("nombreConductor") ?? "").trim();
+    const departamento = String(formData.get("departamento") ?? "").trim();
+    const tipoFalla = String(formData.get("tipoFalla") ?? "").trim();
+    const descripcionFalla = String(formData.get("descripcionFalla") ?? "").trim();
+    const observaciones = String(formData.get("observaciones") ?? "").trim();
+
+    if (!numeroEconomico) return { ok: false, error: "El número económico es obligatorio." };
+    if (!kilometraje) return { ok: false, error: "El kilometraje actual es obligatorio." };
+    if (!fecha) return { ok: false, error: "La fecha del reporte es obligatoria." };
+    if (!departamento || !(DEPARTAMENTOS_FALLA as readonly string[]).includes(departamento))
+      return { ok: false, error: "Selecciona un departamento válido." };
+    if (!tipoFalla || !(TIPOS_FALLA as readonly string[]).includes(tipoFalla))
+      return { ok: false, error: "Selecciona un tipo de falla válido." };
+
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+    if (!unidad) return { ok: false, error: "La unidad no existe." };
+
+    const permitidos = await proyectosPermitidosParaModulo("A.1");
+    if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId)))
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
+    const session = await auth();
+    if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };
+
+    const fechaReporte = parseFechaLocalMx(fecha)!;
+    if (hora) {
+      const [hh, mm] = hora.split(":").map((n) => parseInt(n, 10));
+      if (!Number.isNaN(hh)) fechaReporte.setHours(hh, Number.isNaN(mm) ? 0 : mm, 0, 0);
+    }
+
+    const respuestas: Record<string, string> = {
+      kilometraje: String(kilometraje),
+      departamento,
+      tipo_falla: tipoFalla,
+    };
+    if (nombreConductor) respuestas.nombre_conductor = nombreConductor;
+    if (descripcionFalla) respuestas.descripcion_falla = descripcionFalla;
+    if (observaciones) respuestas.observaciones = observaciones;
+    for (let i = 1; i <= MAX_FOTOS_REPORTE_FALLA; i++) {
+      const url = String(formData.get(`foto_${i}`) ?? "").trim();
+      if (url) respuestas[`foto_${i}`] = url;
+    }
+
+    const checklist = await prisma.checklist.create({
+      data: {
+        numeroEconomico,
+        tipo: "REPORTE_FALLA",
+        fecha: fechaReporte,
+        puntosInspeccion: {},
+        respuestasSemanal: respuestas,
+        capturadoPorId: session.user.id,
+      },
+    });
+
+    await logActivity({
+      userId: session.user.id,
+      modulo: "checklist",
+      accion: "create",
+      entidad: "Checklist",
+      entidadId: checklist.id,
+      detalle: { numeroEconomico, tipo: "REPORTE_FALLA", tipoFalla },
+    });
+
+    revalidatePath("/checklist");
+    invalidarCacheBI(["checklist"]);
+    revalidatePath(`/unidades/${numeroEconomico}`);
+
+    if (unidad.proyectoId) {
+      try {
+        const gerentes = await prisma.usuario.findMany({
+          where: {
+            estatus: "ACTIVO",
+            rol: { nombre: "Gerente administrativo" },
+            proyectos: { some: { proyectoId: unidad.proyectoId } },
+          },
+          select: { correo: true },
+        });
+        const destinatarios = gerentes.map((g) => g.correo);
+        if (destinatarios.length > 0) {
+          await enviarNotificacionReporteFalla({
+            destinatarios,
+            numeroEconomico,
+            tipoFalla,
+            departamento,
+            descripcion: descripcionFalla || null,
+          });
+        }
+      } catch (error) {
+        console.error("Error al enviar notificación de reporte de falla", error);
+      }
+    }
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar el reporte de falla." };
   }
 }

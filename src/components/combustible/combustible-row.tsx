@@ -12,7 +12,7 @@ type Combustible = {
   fecha: string;
   litros: string;
   costo: string;
-  kmActual: number;
+  kmActual: number | null;
   estacion: string | null;
   rendimientoCalculado: string | null;
   alertaSobrellenado: boolean;
@@ -45,7 +45,7 @@ export function CombustibleRow({ registro: r, isAdmin = false }: { registro: Com
         <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(r.litros).toFixed(1)} L</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(r.costo)}</td>
-        <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual}</td>
+        <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual ?? "—"}</td>
         <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.rendimientoCalculado ? `${Number(r.rendimientoCalculado).toFixed(1)} km/L` : "—"}</td>
         <td className="px-4 py-3">
