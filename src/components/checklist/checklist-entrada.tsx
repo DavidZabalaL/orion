@@ -14,6 +14,7 @@ type UnidadWizard = {
   tipoVehiculo: string;
   proyectoId: string | null;
   proyectoNombre: string | null;
+  responsableActivo: string | null;
 };
 
 type Props = {

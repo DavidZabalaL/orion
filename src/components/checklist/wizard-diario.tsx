@@ -5,7 +5,7 @@ import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
 import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
-import { ESTADOS_CARGA, MUNICIPIOS_POR_ESTADO, AREAS_CARGA, PERSONAL_POR_AREA } from "@/lib/checklist-carga-combustible";
+import { ESTADOS_CARGA, MUNICIPIOS_POR_ESTADO, AREAS_CARGA } from "@/lib/checklist-carga-combustible";
 import { FirmaPad } from "@/components/checklist/firma-pad";
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
@@ -17,6 +17,8 @@ type UnidadWizard = {
   tipoVehiculo: string;
   proyectoId: string | null;
   proyectoNombre: string | null;
+  /** Quién tiene la unidad tomada activamente en "Mi Turno" ahora mismo — null si nadie. */
+  responsableActivo: string | null;
 };
 
 type Props = {
@@ -164,7 +166,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const zona = respuestasExtra["gen_zona"] ?? "";
   const area = respuestasExtra["gen_area"] ?? "";
   const municipiosDisponibles = zona ? ((MUNICIPIOS_POR_ESTADO as Record<string, string[]>)[zona] ?? []) : [];
-  const personalDisponible = area ? ((PERSONAL_POR_AREA as Record<string, string[]>)[area] ?? []) : [];
+  const responsableActivo = unidadSel?.responsableActivo ?? null;
 
   const total = ITEMS_INSPECCION.length;
   const guiaItem = ITEMS_INSPECCION[idx];
@@ -271,7 +273,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     if (!zona) return "Selecciona un estado.";
     if (!respuestasExtra["gen_municipio"]) return "Selecciona un municipio.";
     if (!area) return "Selecciona un área.";
-    if (!respuestasExtra["gen_responsable"]) return "Selecciona un responsable.";
+    if (!responsableActivo) return "Esta unidad no tiene un responsable activo — debe tomarse primero desde \"Mi Turno\".";
     if (!respuestasExtra["gen_tipo_licencia"]) return "Indica el tipo de licencia.";
     if (!fotosExtra["gen_foto_licencia"]) return "La foto de licencia es obligatoria.";
     return null;
@@ -330,6 +332,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     startTransition(async () => {
       const fd = new FormData();
       fd.set("numeroEconomico", numeroEconomico);
+      fd.set("gen_responsable", responsableActivo ?? "");
       fd.set("odometro", odometro);
       if (esGrua && horometro) fd.set("horometro", horometro);
       fd.set("evidenciaUrl", fotoUrl ?? "");
@@ -505,10 +508,17 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
               </div>
             )}
 
+            {unidadSel && !unidadSel.responsableActivo && (
+              <div className="rounded-md px-4 py-3" style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+                Esta unidad no tiene un responsable activo. Debe tomarse primero desde &quot;Mi Turno&quot; antes de hacer el checklist.
+              </div>
+            )}
+
             {error && <p style={errorStyle}>{error}</p>}
 
             <button type="button" onClick={() => {
               if (!numeroEconomico) { setError("Selecciona un número económico."); return; }
+              if (!unidadSel?.responsableActivo) { setError("Esta unidad no tiene un responsable activo. Tómala primero desde \"Mi Turno\"."); return; }
               setError(null);
               setFase("generales");
             }} className="w-full rounded-xl h-12 font-semibold transition-colors"
@@ -550,7 +560,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
             <div>
               <label style={labelStyle}>Área *</label>
-              <select value={area} onChange={(e) => setRespuestasExtra((p) => ({ ...p, gen_area: e.target.value, gen_responsable: "" }))} style={fieldStyle} className="rounded-md">
+              <select value={area} onChange={(e) => setRespuestasExtra((p) => ({ ...p, gen_area: e.target.value }))} style={fieldStyle} className="rounded-md">
                 <option value="">Selecciona un área</option>
                 {(AREAS_CARGA as readonly string[]).map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
@@ -558,11 +568,15 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
             <div>
               <label style={labelStyle}>Responsable *</label>
-              <select value={respuestasExtra["gen_responsable"] ?? ""} onChange={(e) => setRespuestasExtra((p) => ({ ...p, gen_responsable: e.target.value }))}
-                style={{ ...fieldStyle, opacity: !area ? 0.5 : 1 }} className="rounded-md" disabled={!area}>
-                <option value="">Selecciona un responsable</option>
-                {personalDisponible.map((per) => <option key={per} value={per}>{per}</option>)}
-              </select>
+              {responsableActivo ? (
+                <div className="flex items-center px-3 rounded-md" style={{ ...fieldStyle, opacity: 0.85, cursor: "default" }}>
+                  {responsableActivo}
+                </div>
+              ) : (
+                <div className="rounded-md px-3 py-2.5" style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+                  Esta unidad no tiene un responsable activo. Debe tomarse primero desde &quot;Mi Turno&quot;.
+                </div>
+              )}
             </div>
 
             {rRadio("gen_tipo_licencia", "Tipo de licencia", ["CON VIGENCIA", "SIN VIGENCIA"])}

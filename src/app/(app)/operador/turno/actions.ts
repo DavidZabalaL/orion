@@ -35,18 +35,35 @@ export async function tomarUnidad(numeroEconomico: string) {
 
   const ahora = new Date();
 
-  await prisma.$transaction(async (tx) => {
-    // Cerrar cualquier sesión abierta propia
-    await tx.bitacoraUsoUnidad.updateMany({
-      where: { ...identidad, fin: null },
-      data: { fin: ahora },
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Nadie más debe tenerla tomada ahora mismo — una unidad es un objeto
+      // físico, solo una persona puede tenerla a la vez (ver también el índice
+      // único parcial en la migración, que blinda esto ante condiciones de carrera).
+      const yaOcupada = await tx.bitacoraUsoUnidad.findFirst({
+        where: { numeroEconomico, fin: null, NOT: identidad },
+        include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
+      });
+      if (yaOcupada) {
+        throw new Error(`Esta unidad ya está tomada por ${yaOcupada.operador?.nombre ?? yaOcupada.usuario?.nombre ?? "otra persona"}.`);
+      }
 
-    // Abrir nueva sesión
-    await tx.bitacoraUsoUnidad.create({
-      data: { ...identidad, numeroEconomico, inicio: ahora },
+      // Cerrar cualquier sesión abierta propia
+      await tx.bitacoraUsoUnidad.updateMany({
+        where: { ...identidad, fin: null },
+        data: { fin: ahora },
+      });
+
+      // Abrir nueva sesión
+      await tx.bitacoraUsoUnidad.create({
+        data: { ...identidad, numeroEconomico, inicio: ahora },
+      });
     });
-  });
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("Esta unidad ya está tomada")) throw e;
+    // Violación del índice único parcial (carrera real entre dos "tomar" simultáneos).
+    throw new Error("Esta unidad acaba de ser tomada por otra persona. Actualiza la página e intenta de nuevo.");
+  }
 
   revalidatePath("/operador/turno");
 }

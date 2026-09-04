@@ -56,6 +56,18 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
         return { ok: false, error: "No tienes permiso para realizar esta acción." };
     }
 
+    // El "responsable" del checklist diario se resuelve aquí, en el servidor
+    // —nunca se confía en el que mande el navegador— a partir de quien tenga
+    // la unidad tomada activamente en "Mi Turno" en este momento.
+    const sesionActiva = await prisma.bitacoraUsoUnidad.findFirst({
+      where: { numeroEconomico, fin: null },
+      include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
+    });
+    const responsable = sesionActiva?.operador?.nombre ?? sesionActiva?.usuario?.nombre ?? null;
+    if (!responsable) {
+      return { ok: false, error: 'Esta unidad no tiene un responsable activo. Debe tomarse primero desde "Mi Turno".' };
+    }
+
     const puntosInspeccion: Record<string, string> = {};
     for (const p of PUNTOS_INSPECCION) {
       puntosInspeccion[p.key] = String(formData.get(`punto_${p.key}`) ?? "ok");
@@ -74,6 +86,8 @@ export async function crearChecklist(formData: FormData): Promise<{ ok: true } |
         if (val) respuestasExtra[k] = val;
       }
     }
+    // Se sobreescribe con el valor resuelto en el servidor, nunca con lo que haya mandado el navegador.
+    respuestasExtra["gen_responsable"] = responsable;
 
     const session = await auth();
     if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };

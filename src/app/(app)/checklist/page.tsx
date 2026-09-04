@@ -82,6 +82,18 @@ export default async function ChecklistPage() {
     }),
   ]);
 
+  // Quién tiene activa cada unidad en "Mi Turno" ahora mismo — se autocompleta
+  // como responsable del checklist en vez de un catálogo de personal por área
+  // (ver WizardDiario), porque quien hace el checklist es quien tomó la unidad,
+  // no un dato administrativo aparte.
+  const sesionesAbiertas = await prisma.bitacoraUsoUnidad.findMany({
+    where: { numeroEconomico: { in: unidades.map((u) => u.numeroEconomico) }, fin: null },
+    include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
+  });
+  const responsablePorUnidad = new Map(
+    sesionesAbiertas.map((s) => [s.numeroEconomico, s.operador?.nombre ?? s.usuario?.nombre ?? null])
+  );
+
   const unidadesWizard = unidades.map((u) => ({
     numeroEconomico: u.numeroEconomico,
     marca: u.marca,
@@ -89,6 +101,7 @@ export default async function ChecklistPage() {
     tipoVehiculo: u.tipoVehiculo,
     proyectoId: u.proyectoId,
     proyectoNombre: u.proyecto?.nombre ?? null,
+    responsableActivo: responsablePorUnidad.get(u.numeroEconomico) ?? null,
   }));
 
   return (
