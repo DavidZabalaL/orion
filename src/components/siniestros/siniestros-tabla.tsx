@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo } from "react";
 import { Plus, X, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { fmtFecha } from "@/lib/formato";
 import { crearSiniestro, actualizarSiniestro } from "@/app/(app)/siniestros/actions";
 
 const TIPOS = [
@@ -376,7 +377,7 @@ export function SiniestrosTabla({
                       {s.numeroEconomico}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
-                      {new Date(s.fecha).toLocaleDateString("es-MX")}
+                      {fmtFecha(s.fecha)}
                     </td>
                     <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
                       {tipoLabel[s.tipo] ?? s.tipo}
