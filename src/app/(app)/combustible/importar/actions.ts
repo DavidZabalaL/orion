@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
 import { parsearFechaFlexible } from "@/lib/import-tag";
@@ -97,7 +98,13 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
     // unidad se mueve entre una carga y otra. Para filas sin unidad no hay
     // encadenamiento de kilometraje con qué comparar, así que no se deduplican.
     if (numeroEconomico) {
-      const duplicada = await prisma.combustible.findFirst({ where: { numeroEconomico, fecha, litros, costo, kmActual } });
+      // Prisma no compara correctamente columnas Decimal cuando el filtro se
+      // pasa como number nativo de JS (bug reproducido con litros/costo vía
+      // findFirst): hay que envolverlos en Prisma.Decimal para que el
+      // adaptador los serialice igual que el valor guardado en la columna.
+      const duplicada = await prisma.combustible.findFirst({
+        where: { numeroEconomico, fecha, litros: new Prisma.Decimal(litros), costo: new Prisma.Decimal(costo), kmActual },
+      });
       if (duplicada) {
         resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma unidad, fecha, litros, costo y kilometraje ya existente)." });
         continue;
