@@ -271,6 +271,8 @@ export type ConfigEstatusFlotaProgramado = {
   hora: string;
   /** Día de la semana: 0 = domingo … 6 = sábado (getUTCDay, hora México). */
   diaSemana: number;
+  /** Ventana de datos que cubre cada envío, en días hacia atrás (ej. 7, 15, 30, 60, 90). */
+  periodoDias: number;
   destinatarios: string[];
   activo: boolean;
 };
@@ -284,11 +286,14 @@ const TIPO_ESTATUS_FLOTA = "estatus_flota";
  * la semana configurado, igual que cualquier otro reporte SEMANAL de la
  * plataforma (ver src/app/api/cron/reportes-programados/route.ts).
  */
+const PERIODOS_DIAS_VALIDOS = [7, 15, 30, 60, 90];
+
 export async function guardarProgramacionEstatusFlota(input: {
   id: string | null;
   proyectoIds: string[];
   hora: string;
   diaSemana: number;
+  periodoDias: number;
   destinatarios: string[];
   activo: boolean;
 }): Promise<ResultadoSimple> {
@@ -300,6 +305,9 @@ export async function guardarProgramacionEstatusFlota(input: {
   if (!Number.isInteger(input.diaSemana) || input.diaSemana < 0 || input.diaSemana > 6) {
     return { ok: false, error: "Día de la semana inválido." };
   }
+  if (!PERIODOS_DIAS_VALIDOS.includes(input.periodoDias)) {
+    return { ok: false, error: "Periodo de datos inválido." };
+  }
 
   const data = {
     nombre: "Estatus semanal de flota",
@@ -309,6 +317,7 @@ export async function guardarProgramacionEstatusFlota(input: {
     destinatarios: input.destinatarios,
     hora: input.hora,
     diaSemana: input.diaSemana,
+    periodoDias: input.periodoDias,
     frecuencia: "SEMANAL" as const,
     formato: "PDF" as const,
     activo: input.activo,

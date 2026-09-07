@@ -43,12 +43,12 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // el "general" es siempre la flota completa sin restricción (no hay
       // sesión en el cron, así que no se deriva de los permisos de
       // creadoPorId); la selección de proyectos la elige quien configuró el
-      // envío en el Dashboard (filtrosJson). Cubre la última semana corrida
-      // (lunes a lunes, mismo criterio que el cron para SEMANAL).
+      // envío en el Dashboard (filtrosJson). Cubre periodoDias hacia atrás
+      // desde hoy (configurable en el modal, ej. últimos 7/30/90 días).
       const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = inicioDeHoyMx();
-      const desde = new Date(hasta.getTime() - 7 * DIA_MS);
+      const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS);
       const datos = await calcularEstatusFlotaReporte({ proyectoIdsPermitidos: null, proyectoIdsSeleccionados: proyectoIds, desde, hasta });
       buffer = await generarEstatusFlotaBuffer(datos);
       nombreArchivo = `estatus-flota-${hasta.toISOString().slice(0, 10)}.pdf`;

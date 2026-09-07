@@ -27,6 +27,14 @@ const DIAS_SEMANA = [
   { value: 6, label: "Sábado" },
 ];
 
+const PERIODOS_DIAS = [
+  { value: 7, label: "Últimos 7 días" },
+  { value: 15, label: "Últimos 15 días" },
+  { value: 30, label: "Últimos 30 días" },
+  { value: 60, label: "Últimos 60 días" },
+  { value: 90, label: "Últimos 90 días" },
+];
+
 const fieldStyle: React.CSSProperties = {
   border: "1px solid var(--field-border)",
   fontFamily: "var(--font-ui)",
@@ -66,6 +74,7 @@ export function EstatusFlotaModal({
   const [destinatarios, setDestinatarios] = useState(configInicial.destinatarios.join(", "));
   const [horaAutomatica, setHoraAutomatica] = useState(configInicial.hora);
   const [diaSemanaAutomatico, setDiaSemanaAutomatico] = useState(configInicial.diaSemana);
+  const [periodoDiasAutomatico, setPeriodoDiasAutomatico] = useState(configInicial.periodoDias);
   const [envioAutomaticoActivo, setEnvioAutomaticoActivo] = useState(configInicial.activo);
 
   const [descargando, setDescargando] = useState(false);
@@ -137,6 +146,7 @@ export function EstatusFlotaModal({
       proyectoIds: seleccionados,
       hora: horaAutomatica,
       diaSemana: diaSemanaAutomatico,
+      periodoDias: periodoDiasAutomatico,
       destinatarios: listaDestinatarios,
       activo: envioAutomaticoActivo,
     });
@@ -225,13 +235,13 @@ export function EstatusFlotaModal({
                 Envío automático semanal
               </p>
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                Se envía el día y hora que elijas, cada semana, a los proyectos y destinatarios de arriba.
+                Se envía el día y hora que elijas, cada semana, a los proyectos y destinatarios de arriba, con los datos del periodo seleccionado.
               </p>
               <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
                 <input type="checkbox" checked={envioAutomaticoActivo} onChange={(e) => setEnvioAutomaticoActivo(e.target.checked)} />
                 Activar envío automático
               </label>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <div className="max-w-[180px]">
                   <label style={labelStyle}>Día de la semana</label>
                   <select
@@ -252,6 +262,18 @@ export function EstatusFlotaModal({
                     onChange={(e) => setHoraAutomatica(e.target.value.split(":")[0])}
                     style={fieldStyle}
                   />
+                </div>
+                <div className="max-w-[200px]">
+                  <label style={labelStyle}>Periodo de datos</label>
+                  <select
+                    value={periodoDiasAutomatico}
+                    onChange={(e) => setPeriodoDiasAutomatico(Number(e.target.value))}
+                    style={fieldStyle}
+                  >
+                    {PERIODOS_DIAS.map((p) => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <button
