@@ -22,5 +22,8 @@ export function obtenerClienteGemini(): GoogleGenAI {
 // Flash: barato/rápido — interpretación de lenguaje natural y explicaciones
 // de forecast. Pro: mejor redacción para resúmenes de insight (entrada
 // pequeña, ya agregada, así que el costo sigue siendo bajo).
-export const MODELO_INTERPRETACION = "gemini-2.5-flash";
-export const MODELO_INSIGHT = "gemini-2.5-pro";
+// gemini-2.5-pro ya no está disponible para cuentas nuevas de la API de
+// Gemini ("This model ... is no longer available to new users") — se migra
+// a la familia 3.x que Google indica como reemplazo directo.
+export const MODELO_INTERPRETACION = "gemini-3.5-flash";
+export const MODELO_INSIGHT = "gemini-3.1-pro-preview";

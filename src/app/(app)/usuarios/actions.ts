@@ -53,6 +53,10 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
       },
     }),
     prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { nombre: true } }),
+    // Si esta cuenta es también un Operador, se espeja el proyecto principal
+    // en Operador.proyectoId — lo sigue leyendo directo la ficha de operador
+    // (y cualquier otro lugar que aún no pasó a usar UsuarioProyecto).
+    ...(operadorId ? [prisma.operador.update({ where: { id: operadorId }, data: { proyectoId: proyectoIds[0] ?? null } })] : []),
   ]);
 
   const resultadoCorreo = invitacionToken
@@ -155,6 +159,8 @@ export async function actualizarUsuario(formData: FormData) {
     throw new Error("Nombre y rol son obligatorios.");
   }
 
+  const actual = await prisma.usuario.findUnique({ where: { id }, select: { operadorId: true } });
+
   await prisma.$transaction([
     prisma.usuarioProyecto.deleteMany({ where: { usuarioId: id } }),
     prisma.usuario.update({
@@ -165,6 +171,10 @@ export async function actualizarUsuario(formData: FormData) {
         proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
       },
     }),
+    // Si esta cuenta es también un Operador, se espeja el proyecto principal
+    // en Operador.proyectoId — lo sigue leyendo directo la ficha de operador
+    // (y cualquier otro lugar que aún no pasó a usar UsuarioProyecto).
+    ...(actual?.operadorId ? [prisma.operador.update({ where: { id: actual.operadorId }, data: { proyectoId: proyectoIds[0] ?? null } })] : []),
   ]);
 
   const session = await auth();

@@ -104,15 +104,14 @@ export async function obtenerDatosTurno(): Promise<DatosTurno> {
   const identidad = await resolverIdentidad();
   if (!identidad) throw new Error("No tienes permiso para tomar unidades.");
 
-  let proyectosIds: string[] | null;
-  if ("operadorId" in identidad) {
-    // El operador solo puede tomar unidades de su propio proyecto asignado
-    // — sin proyecto asignado, no ve ninguna (nunca "todas por defecto").
-    const operador = await prisma.operador.findUnique({ where: { id: identidad.operadorId }, select: { proyectoId: true } });
-    proyectosIds = operador?.proyectoId ? [operador.proyectoId] : [];
-  } else {
-    proyectosIds = await proyectosPermitidosParaModulo("O");
-  }
+  // Mismo alcance para operador o usuario: UsuarioProyecto (vía
+  // proyectosPermitidosParaModulo) es la única fuente de verdad de "a qué
+  // proyecto(s) tiene acceso esta cuenta" — antes un Operador real leía
+  // Operador.proyectoId directo, que nadie mantenía sincronizado con lo que
+  // se asigna desde Usuarios, así que cambiar su proyecto ahí no se
+  // reflejaba aquí. Operador.proyectoId sigue existiendo solo como espejo
+  // para mostrar/legado (ver actualizarUsuario/actualizarOperador).
+  const proyectosIds = await proyectosPermitidosParaModulo("O");
 
   const inicioDia = new Date();
   inicioDia.setHours(0, 0, 0, 0);
