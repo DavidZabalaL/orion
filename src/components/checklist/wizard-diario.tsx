@@ -13,6 +13,7 @@ import { FirmaPad } from "@/components/checklist/firma-pad";
 
 type UnidadWizard = {
   numeroEconomico: string;
+  placas: string;
   marca: string;
   unidadModelo: string;
   tipoVehiculo: string;
@@ -488,7 +489,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
               <label style={labelStyle}>Número económico *</label>
               <ComboboxUnidad
                 name="numeroEconomico"
-                unidades={unidadesFiltradas.map((u) => ({ numeroEconomico: u.numeroEconomico, etiqueta: `${u.numeroEconomico} — ${u.marca} ${u.unidadModelo}` }))}
+                unidades={unidadesFiltradas.map((u) => ({ numeroEconomico: u.numeroEconomico, etiqueta: `${u.numeroEconomico} — ${u.marca} ${u.unidadModelo} — ${u.placas}` }))}
                 defaultValue={numeroEconomico}
                 required
                 onSeleccionar={setNumeroEconomico}

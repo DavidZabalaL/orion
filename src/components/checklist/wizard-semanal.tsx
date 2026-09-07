@@ -12,6 +12,7 @@ import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 
 type UnidadWizard = {
   numeroEconomico: string;
+  placas: string;
   marca: string;
   unidadModelo: string;
   tipoVehiculo: string;
@@ -522,7 +523,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               name="gen_numero_economico"
               unidades={unidadesFiltradas.map((u) => ({
                 numeroEconomico: u.numeroEconomico,
-                etiqueta: `${u.numeroEconomico} — ${u.marca} ${u.unidadModelo}`,
+                etiqueta: `${u.numeroEconomico} — ${u.marca} ${u.unidadModelo} — ${u.placas}`,
               }))}
               defaultValue={numeroEconomico}
               required

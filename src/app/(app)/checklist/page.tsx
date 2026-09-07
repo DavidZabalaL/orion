@@ -28,6 +28,7 @@ export default async function ChecklistPage() {
       where: { estatus: { not: "BAJA" }, ...filtroProyecto },
       select: {
         numeroEconomico: true,
+        placas: true,
         marca: true,
         unidadModelo: true,
         tipoVehiculo: true,
@@ -122,6 +123,7 @@ export default async function ChecklistPage() {
     const responsable = responsablePorUnidad.get(u.numeroEconomico) ?? null;
     return {
       numeroEconomico: u.numeroEconomico,
+      placas: u.placas,
       marca: u.marca,
       unidadModelo: u.unidadModelo,
       tipoVehiculo: u.tipoVehiculo,

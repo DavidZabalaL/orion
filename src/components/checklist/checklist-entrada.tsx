@@ -10,6 +10,7 @@ import { WizardReporteFalla } from "@/components/checklist/wizard-reporte-falla"
 
 type UnidadWizard = {
   numeroEconomico: string;
+  placas: string;
   marca: string;
   unidadModelo: string;
   tipoVehiculo: string;
