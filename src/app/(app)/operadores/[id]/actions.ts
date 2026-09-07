@@ -27,7 +27,7 @@ export async function actualizarOperador(formData: FormData) {
     throw new Error("Nombre y CURP son obligatorios.");
   }
 
-  const anterior = await prisma.operador.findUnique({ where: { id } });
+  const anterior = await prisma.operador.findUnique({ where: { id }, include: { usuario: { select: { id: true } } } });
   if (!anterior) throw new Error("El operador no existe.");
 
   const permitidos = await proyectosPermitidosParaModulo("L");
@@ -36,20 +36,34 @@ export async function actualizarOperador(formData: FormData) {
     if (proyectoId && !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para asignar ese proyecto.");
   }
 
-  await prisma.operador.update({
-    where: { id },
-    data: {
-      nombre,
-      curp,
-      rfc,
-      nss,
-      tipoSangre: (tipoSangre as never) || null,
-      telefono,
-      contactoEmergencia,
-      proyectoId,
-      tipoLicenciaManejo: tipoLicenciaManejo || null,
-    } as never,
-  });
+  await prisma.$transaction([
+    prisma.operador.update({
+      where: { id },
+      data: {
+        nombre,
+        curp,
+        rfc,
+        nss,
+        tipoSangre: (tipoSangre as never) || null,
+        telefono,
+        contactoEmergencia,
+        proyectoId,
+        tipoLicenciaManejo: tipoLicenciaManejo || null,
+      } as never,
+    }),
+    // Si este operador tiene cuenta de acceso (Usuario), se espeja el
+    // proyecto aquí también en UsuarioProyecto — la fuente real de a qué
+    // proyecto(s) puede entrar esa cuenta (Mi Turno, Checklist, etc.).
+    ...(anterior.usuario
+      ? [
+          prisma.usuarioProyecto.deleteMany({ where: { usuarioId: anterior.usuario.id } }),
+          prisma.usuario.update({
+            where: { id: anterior.usuario.id },
+            data: { proyectos: proyectoId ? { create: [{ proyectoId }] } : undefined },
+          }),
+        ]
+      : []),
+  ]);
 
   const session = await auth();
   if (session?.user?.id) {
