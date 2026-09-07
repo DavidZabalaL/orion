@@ -108,6 +108,7 @@ export default async function FichaProyectoPage({
         {modulosActivos.has("A") && <Stat label="Unidades" value={String(proyecto.unidades.length)} />}
         {modulosActivos.has("A") && <Stat label="Disponibles" value={String(disponibles)} />}
         {modulosActivos.has("L") && <Stat label="Operadores" value={String(proyecto.operadores.length)} />}
+        {modulosActivos.has("H") && <Stat label={`Presupuesto aprobado ${anioActual}`} value={fmtMoney(resumenPresupuestoAnual.presupuestoAprobadoAnual)} mono />}
         {mostrarGastoAcumulado && <Stat label="Gasto acumulado (histórico)" value={fmtMoney(gastoAcumulado)} mono />}
       </div>
 
