@@ -45,6 +45,7 @@ export default async function DashboardsPage({
     id: reporteEstatusFlota?.id ?? null,
     proyectoIds: filtrosEstatusFlota?.proyectoIds ?? [],
     hora: reporteEstatusFlota?.hora ?? "08",
+    diaSemana: reporteEstatusFlota?.diaSemana ?? 1,
     destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
     activo: reporteEstatusFlota?.activo ?? false,
   };

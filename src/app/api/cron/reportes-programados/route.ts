@@ -5,13 +5,22 @@
 // granularidad más fina que "cada hora" en todos los planes, así que la
 // lógica de "¿ya corrió en este periodo?" vive aquí, no en el scheduler.
 //
-// Convención de granularidad (documentada porque ReporteProgramado no tiene
-// un selector de día): SEMANAL corre los lunes, MENSUAL corre el día 1 de
-// cada mes, ambos a la hora configurada (hora de México).
+// Convención de granularidad: SEMANAL corre el día de la semana configurado
+// en ReporteProgramado.diaSemana (0=domingo…6=sábado), MENSUAL corre el día
+// del mes en ReporteProgramado.diaMes (o el último día del mes si este es
+// más corto que el configurado, ej. diaMes=31 en febrero), ambos a la hora
+// configurada (hora de México).
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ejecutarReporteProgramado } from "@/lib/bi/motor-reportes";
 import { inicioDeHoyMx, inicioDeMesMx } from "@/lib/timezone";
+
+/** Último día del mes en curso (hora México), dado el marco ya desplazado a MX. */
+function esUltimoDiaDelMesMx(marcoMx: Date): boolean {
+  const manana = new Date(marcoMx);
+  manana.setUTCDate(manana.getUTCDate() + 1);
+  return manana.getUTCMonth() !== marcoMx.getUTCMonth();
+}
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -44,10 +53,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     if (reporte.frecuencia === "DIARIO") {
       periodoInicio = inicioDeHoyMx();
     } else if (reporte.frecuencia === "SEMANAL") {
-      if (diaSemanaMx !== 1) continue;
+      if (diaSemanaMx !== reporte.diaSemana) continue;
       periodoInicio = inicioDeHoyMx();
     } else {
-      if (diaDelMesMx !== 1) continue;
+      const diaConfigurado = reporte.diaMes;
+      // El mes puede ser más corto que el día configurado (ej. diaMes=31 en
+      // febrero): en ese caso corre el último día del mes en vez de nunca.
+      const esDiaConfigurado = diaDelMesMx === diaConfigurado || (diaConfigurado >= diaDelMesMx && esUltimoDiaDelMesMx(marcoMx));
+      if (!esDiaConfigurado) continue;
       periodoInicio = inicioDeMesMx();
     }
 

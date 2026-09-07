@@ -17,6 +17,16 @@ function hoyISO(offsetDias = 0): string {
   return d.toISOString().slice(0, 10);
 }
 
+const DIAS_SEMANA = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Lunes" },
+  { value: 2, label: "Martes" },
+  { value: 3, label: "Miércoles" },
+  { value: 4, label: "Jueves" },
+  { value: 5, label: "Viernes" },
+  { value: 6, label: "Sábado" },
+];
+
 const fieldStyle: React.CSSProperties = {
   border: "1px solid var(--field-border)",
   fontFamily: "var(--font-ui)",
@@ -55,6 +65,7 @@ export function EstatusFlotaModal({
   const [hasta, setHasta] = useState(hoyISO());
   const [destinatarios, setDestinatarios] = useState(configInicial.destinatarios.join(", "));
   const [horaAutomatica, setHoraAutomatica] = useState(configInicial.hora);
+  const [diaSemanaAutomatico, setDiaSemanaAutomatico] = useState(configInicial.diaSemana);
   const [envioAutomaticoActivo, setEnvioAutomaticoActivo] = useState(configInicial.activo);
 
   const [descargando, setDescargando] = useState(false);
@@ -125,6 +136,7 @@ export function EstatusFlotaModal({
       id: configInicial.id,
       proyectoIds: seleccionados,
       hora: horaAutomatica,
+      diaSemana: diaSemanaAutomatico,
       destinatarios: listaDestinatarios,
       activo: envioAutomaticoActivo,
     });
@@ -213,20 +225,34 @@ export function EstatusFlotaModal({
                 Envío automático semanal
               </p>
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                Se envía los lunes a la hora que elijas (mismo criterio que el resto de reportes semanales de la plataforma), a los proyectos y destinatarios de arriba.
+                Se envía el día y hora que elijas, cada semana, a los proyectos y destinatarios de arriba.
               </p>
               <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
                 <input type="checkbox" checked={envioAutomaticoActivo} onChange={(e) => setEnvioAutomaticoActivo(e.target.checked)} />
                 Activar envío automático
               </label>
-              <div className="max-w-[160px]">
-                <label style={labelStyle}>Hora (México)</label>
-                <input
-                  type="time"
-                  value={`${horaAutomatica.padStart(2, "0")}:00`}
-                  onChange={(e) => setHoraAutomatica(e.target.value.split(":")[0])}
-                  style={fieldStyle}
-                />
+              <div className="flex gap-3">
+                <div className="max-w-[180px]">
+                  <label style={labelStyle}>Día de la semana</label>
+                  <select
+                    value={diaSemanaAutomatico}
+                    onChange={(e) => setDiaSemanaAutomatico(Number(e.target.value))}
+                    style={fieldStyle}
+                  >
+                    {DIAS_SEMANA.map((d) => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="max-w-[160px]">
+                  <label style={labelStyle}>Hora (México)</label>
+                  <input
+                    type="time"
+                    value={`${horaAutomatica.padStart(2, "0")}:00`}
+                    onChange={(e) => setHoraAutomatica(e.target.value.split(":")[0])}
+                    style={fieldStyle}
+                  />
+                </div>
               </div>
               <button
                 onClick={guardarAutomatico}

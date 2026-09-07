@@ -269,6 +269,8 @@ export type ConfigEstatusFlotaProgramado = {
   id: string | null;
   proyectoIds: string[];
   hora: string;
+  /** Día de la semana: 0 = domingo … 6 = sábado (getUTCDay, hora México). */
+  diaSemana: number;
   destinatarios: string[];
   activo: boolean;
 };
@@ -278,20 +280,25 @@ const TIPO_ESTATUS_FLOTA = "estatus_flota";
 /**
  * Envío automático semanal — un único ReporteProgramado (tipo "estatus_flota"),
  * administrado desde este modal en vez de listarse en /reportes/generador
- * (a pedido explícito: no debe verse como un módulo aparte). Corre los
- * lunes, igual que cualquier otro reporte SEMANAL de la plataforma (ver
- * src/app/api/cron/reportes-programados/route.ts) — ese cron no cambia.
+ * (a pedido explícito: no debe verse como un módulo aparte). Corre el día de
+ * la semana configurado, igual que cualquier otro reporte SEMANAL de la
+ * plataforma (ver src/app/api/cron/reportes-programados/route.ts).
  */
 export async function guardarProgramacionEstatusFlota(input: {
   id: string | null;
   proyectoIds: string[];
   hora: string;
+  diaSemana: number;
   destinatarios: string[];
   activo: boolean;
 }): Promise<ResultadoSimple> {
   const session = await auth();
   if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
     return { ok: false, error: "No tienes permiso para configurar el envío automático." };
+  }
+
+  if (!Number.isInteger(input.diaSemana) || input.diaSemana < 0 || input.diaSemana > 6) {
+    return { ok: false, error: "Día de la semana inválido." };
   }
 
   const data = {
@@ -301,6 +308,7 @@ export async function guardarProgramacionEstatusFlota(input: {
     filtrosJson: { proyectoIds: input.proyectoIds },
     destinatarios: input.destinatarios,
     hora: input.hora,
+    diaSemana: input.diaSemana,
     frecuencia: "SEMANAL" as const,
     formato: "PDF" as const,
     activo: input.activo,
