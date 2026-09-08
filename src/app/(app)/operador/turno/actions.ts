@@ -6,11 +6,19 @@ import { tienePermisoModulo, puedeLiberarUnidadAjena } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { resolverIdentidadTurno as resolverIdentidad } from "@/lib/identidad-turno";
 
+export type ResultadoTurno = { ok: boolean; error?: string };
+
 /** Abre una nueva sesión de uso para la unidad indicada.
- *  Si ya se tiene una sesión abierta con otra unidad, la cierra primero. */
-export async function tomarUnidad(numeroEconomico: string) {
+ *  Si ya se tiene una sesión abierta con otra unidad, la cierra primero.
+ *
+ *  Devuelve {ok,error} en vez de lanzar: un conflicto de negocio (unidad ya
+ *  tomada) es esperado y frecuente aquí, y Next.js redacta en producción el
+ *  mensaje de cualquier error lanzado desde una Server Action a un genérico
+ *  "An error occurred in the Server Components render" — el operador nunca
+ *  veía el motivo real. Devolver un resultado evita esa redacción. */
+export async function tomarUnidad(numeroEconomico: string): Promise<ResultadoTurno> {
   const identidad = await resolverIdentidad();
-  if (!identidad) throw new Error("No tienes permiso para tomar o liberar unidades.");
+  if (!identidad) return { ok: false, error: "No tienes permiso para tomar o liberar unidades." };
 
   const ahora = new Date();
 
@@ -39,18 +47,19 @@ export async function tomarUnidad(numeroEconomico: string) {
       });
     });
   } catch (e) {
-    if (e instanceof Error && e.message.startsWith("Esta unidad ya está tomada")) throw e;
+    if (e instanceof Error && e.message.startsWith("Esta unidad ya está tomada")) return { ok: false, error: e.message };
     // Violación del índice único parcial (carrera real entre dos "tomar" simultáneos).
-    throw new Error("Esta unidad acaba de ser tomada por otra persona. Actualiza la página e intenta de nuevo.");
+    return { ok: false, error: "Esta unidad acaba de ser tomada por otra persona. Actualiza la página e intenta de nuevo." };
   }
 
   revalidatePath("/operador/turno");
+  return { ok: true };
 }
 
 /** Cierra la sesión de uso activa propia (libera la unidad). */
-export async function liberarUnidad() {
+export async function liberarUnidad(): Promise<ResultadoTurno> {
   const identidad = await resolverIdentidad();
-  if (!identidad) throw new Error("No tienes permiso para tomar o liberar unidades.");
+  if (!identidad) return { ok: false, error: "No tienes permiso para tomar o liberar unidades." };
 
   await prisma.bitacoraUsoUnidad.updateMany({
     where: { ...identidad, fin: null },
@@ -58,11 +67,12 @@ export async function liberarUnidad() {
   });
 
   revalidatePath("/operador/turno");
+  return { ok: true };
 }
 
 /** Fuerza el cierre de una sesión que tomó OTRA persona — ver puedeLiberarUnidadAjena. */
-export async function liberarUnidadAjena(id: string) {
-  if (!(await puedeLiberarUnidadAjena())) throw new Error("No tienes permiso para liberar unidades de otras personas.");
+export async function liberarUnidadAjena(id: string): Promise<ResultadoTurno> {
+  if (!(await puedeLiberarUnidadAjena())) return { ok: false, error: "No tienes permiso para liberar unidades de otras personas." };
 
   await prisma.bitacoraUsoUnidad.updateMany({
     where: { id, fin: null },
@@ -70,6 +80,7 @@ export async function liberarUnidadAjena(id: string) {
   });
 
   revalidatePath("/operador/turno");
+  return { ok: true };
 }
 
 export type SesionActiva = {
