@@ -3,7 +3,7 @@ import { Plus, FolderKanban, Car, DollarSign, Wallet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
-import { obtenerResumenPresupuestoAnual } from "@/lib/presupuesto";
+import { obtenerResumenPresupuestoAnual, obtenerPresupuestoAprobadoPorProyecto } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { ProyectosLista } from "@/components/proyectos/proyectos-lista";
@@ -21,10 +21,13 @@ export default async function ProyectosPage() {
     orderBy: { nombre: "asc" },
   });
 
-  const resumenes = await Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual)));
+  const [resumenes, presupuestoPorProyecto] = await Promise.all([
+    Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual))),
+    obtenerPresupuestoAprobadoPorProyecto(anioActual),
+  ]);
   const resumenPorProyecto = new Map(proyectos.map((p, i) => [p.id, resumenes[i]]));
 
-  const presupuestoTotal = proyectos.reduce((acc, p) => acc + Number(p.presupuestoAprobadoAnual), 0);
+  const presupuestoTotal = proyectos.reduce((acc, p) => acc + (presupuestoPorProyecto.get(p.id) ?? 0), 0);
   const gastadoTotal = resumenes.reduce((acc, r) => acc + r.gastoAnual, 0);
   const unidadesAsignadas = proyectos.reduce((acc, p) => acc + p.unidades.length, 0);
 
@@ -55,13 +58,14 @@ export default async function ProyectosPage() {
         anio={anioActual}
         proyectos={proyectos.map((p) => {
           const resumen = resumenPorProyecto.get(p.id)!;
-          const pct = resumen.presupuestoAprobadoAnual > 0 ? (resumen.gastoAnual / resumen.presupuestoAprobadoAnual) * 100 : 0;
+          const presupuestoAprobadoAnual = presupuestoPorProyecto.get(p.id) ?? 0;
+          const pct = presupuestoAprobadoAnual > 0 ? (resumen.gastoAnual / presupuestoAprobadoAnual) * 100 : 0;
           return {
             id: p.id,
             nombre: p.nombre,
             estadoRepublica: p.estadoRepublica,
             numUnidades: p.unidades.length,
-            presupuestoAprobadoAnual: Number(p.presupuestoAprobadoAnual),
+            presupuestoAprobadoAnual,
             gastoAnual: resumen.gastoAnual,
             pct,
             estatus: p.estatus,

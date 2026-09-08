@@ -79,6 +79,14 @@ export default async function FichaProyectoPage({
   const mostrarGastoAcumulado = modulosActivos.has("C") || modulosActivos.has("D") || modulosActivos.has("E");
   const disponibles = proyecto.unidades.filter((u) => u.disponibilidad).length;
 
+  // El presupuesto real del proyecto vive en el desglose por partida (lo que
+  // realmente se captura, ej. vía importación); el total "simple" de abajo
+  // (Ajustar presupuesto total simple) es un método alterno que en la
+  // práctica casi nunca se llena — se usa solo si el proyecto no tiene
+  // ninguna partida capturada este año.
+  const presupuestoPorPartidaAnual = resumenPorPartida.partidas.reduce((acc, p) => acc + p.presupuestadoAnual, 0);
+  const presupuestoAprobadoMostrado = presupuestoPorPartidaAnual > 0 ? presupuestoPorPartidaAnual : resumenPresupuestoAnual.presupuestoAprobadoAnual;
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -108,7 +116,7 @@ export default async function FichaProyectoPage({
         {modulosActivos.has("A") && <Stat label="Unidades" value={String(proyecto.unidades.length)} />}
         {modulosActivos.has("A") && <Stat label="Disponibles" value={String(disponibles)} />}
         {modulosActivos.has("L") && <Stat label="Operadores" value={String(proyecto.operadores.length)} />}
-        {modulosActivos.has("H") && <Stat label={`Presupuesto aprobado ${anioActual}`} value={fmtMoney(resumenPresupuestoAnual.presupuestoAprobadoAnual)} mono />}
+        {modulosActivos.has("H") && <Stat label={`Presupuesto aprobado ${anioActual}`} value={fmtMoney(presupuestoAprobadoMostrado)} mono />}
         {mostrarGastoAcumulado && <Stat label="Gasto acumulado (histórico)" value={fmtMoney(gastoAcumulado)} mono />}
       </div>
 
