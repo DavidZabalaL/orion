@@ -19,11 +19,13 @@ export type DepartamentoFalla = (typeof DEPARTAMENTOS_FALLA)[number];
 export const TIPOS_FALLA = [
   "MECÁNICA",
   "ELÉCTRICA",
+  "ELECTROMECÁNICA",
   "NEUMÁTICOS",
   "FRENOS",
   "MOTOR",
   "DAÑO POR CHOQUE",
   "AIRE ACONDICIONADO",
+  "SEGURIDAD",
 ] as const;
 
 export type TipoFalla = (typeof TIPOS_FALLA)[number];

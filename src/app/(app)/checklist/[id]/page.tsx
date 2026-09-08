@@ -138,6 +138,13 @@ function DetalleDiario({
           {respuestasExtra["ext_tiene_golpes"] && (
             <FilaItem label="¿Tiene golpes?" badge={<ColorChip value={respuestasExtra["ext_tiene_golpes"]} />} />
           )}
+          {[
+            { key: "ext_evidencia_golpes_1", label: "Evidencia de golpes 1" },
+            { key: "ext_evidencia_golpes_2", label: "Evidencia de golpes 2" },
+            { key: "ext_evidencia_golpes_3", label: "Evidencia de golpes 3" },
+          ].filter((f) => respuestasExtra[f.key]).map((f) => (
+            <FilaItem key={f.key} label={f.label} badge={null} foto={respuestasExtra[f.key]} />
+          ))}
           {respuestasExtra["ext_parabrisas_espejos"] && (
             <FilaItem label="Parabrisas y espejos" badge={<ColorChip value={respuestasExtra["ext_parabrisas_espejos"]} />} foto={respuestasExtra["ext_evidencia_parabrisas_espejos"]} />
           )}

@@ -82,6 +82,38 @@ export async function obtenerResumenPresupuestoAnual(proyectoId: string, anio: n
   };
 }
 
+export type ResumenPresupuestoMes = { anio: number; mes: number; asignado: number; gastoMes: number };
+
+/**
+ * Asignado vs. gastado del mes en curso (a la fecha `referencia`, no todo el
+ * mes) para un alcance de proyectos — usado por el reporte de "Estatus de
+ * flota" para comparar gasto acumulado del mes contra el presupuesto
+ * mensual asignado. `proyectoIds: null` = todos los proyectos (sin restricción).
+ */
+export async function obtenerPresupuestoDelMes(proyectoIds: string[] | null, referencia: Date): Promise<ResumenPresupuestoMes> {
+  const anio = referencia.getUTCFullYear();
+  const mes = referencia.getUTCMonth() + 1;
+  const inicioMes = new Date(Date.UTC(anio, mes - 1, 1));
+  const filtroProyectoGasto = proyectoIds !== null
+    ? { OR: [{ unidad: { proyectoId: { in: proyectoIds } } }, { proyectoReportanteId: { in: proyectoIds } }] }
+    : {};
+
+  const [presupuestos, gastos, combustible, tags] = await Promise.all([
+    prisma.presupuestoMensual.findMany({
+      where: { anio, mes, ...(proyectoIds !== null ? { proyectoId: { in: proyectoIds } } : {}) },
+      select: { montoAsignado: true },
+    }),
+    prisma.gastoVehicular.aggregate({ where: { fecha: { gte: inicioMes, lte: referencia }, ...filtroProyectoGasto }, _sum: { costo: true } }),
+    prisma.combustible.aggregate({ where: { fecha: { gte: inicioMes, lte: referencia }, ...filtroProyectoGasto }, _sum: { costo: true } }),
+    prisma.tag.aggregate({ where: { fecha: { gte: inicioMes, lte: referencia }, ...filtroProyectoGasto }, _sum: { monto: true } }),
+  ]);
+
+  const asignado = presupuestos.reduce((acc, p) => acc + Number(p.montoAsignado), 0);
+  const gastoMes = Number(gastos._sum.costo ?? 0) + Number(combustible._sum.costo ?? 0) + Number(tags._sum.monto ?? 0);
+
+  return { anio, mes, asignado, gastoMes };
+}
+
 export type MesPartida = { mes: number; presupuestado: number; real: number; diferencia: number };
 export type GastoPorUnidad = { numeroEconomico: string; monto: number };
 export type PartidaResumen = {

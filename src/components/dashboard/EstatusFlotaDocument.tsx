@@ -38,10 +38,19 @@ const styles = StyleSheet.create({
   tabla: { marginBottom: 26, borderWidth: 1, borderColor: BORDER, borderStyle: "solid", borderRadius: 4, overflow: "hidden" },
   filaHeader: { flexDirection: "row", backgroundColor: SURFACE, borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid" },
   fila: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid" },
-  celdaLabel: { flex: 1, padding: 8, fontSize: 9.5 },
-  celdaValor: { width: 100, padding: 8, fontSize: 9.5, textAlign: "right", fontWeight: "bold" },
   celdaHeaderTexto: { fontSize: 8.5, fontWeight: "bold", color: SLATE, letterSpacing: 0.5 },
   sinDatos: { fontSize: 9.5, color: SLATE, padding: 10 },
+
+  filaGrafica: { flexDirection: "row", alignItems: "center", padding: 8, gap: 8 },
+  celdaLabelGrafica: { width: 130, fontSize: 9, color: NAVY },
+  barraFondo: { flex: 1, height: 10, backgroundColor: SURFACE, borderRadius: 3, overflow: "hidden" },
+  celdaValorGrafica: { width: 80, textAlign: "right", fontSize: 9.5, fontWeight: "bold" },
+
+  filaDetalle: { flexDirection: "row" },
+  celdaDetalleEconomico: { width: 90, padding: 8, fontSize: 9, fontWeight: "bold" },
+  celdaDetalleTexto: { flex: 1, padding: 8, fontSize: 9, color: SLATE },
+  celdaDetalleFecha: { width: 90, padding: 8, fontSize: 9, textAlign: "right" },
+  masFilas: { fontSize: 8.5, color: SLATE, padding: 8, fontStyle: "italic" },
 
   footer: {
     position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 36, paddingVertical: 14,
@@ -58,16 +67,75 @@ function fmtFechaPdf(fecha: Date): string {
   return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function Tabla({ filas, vacio }: { filas: { label: string; valor: string }[]; vacio: string }) {
+/** Misma tabla, pero con una barra proporcional al valor de cada fila — la gráfica del reporte, sin dependencias externas (no requiere DOM ni rasterizado, corre igual en el cron server-side que en la descarga desde el navegador). */
+function TablaGrafica({ filas, vacio, formatear, color = BLUE }: { filas: { label: string; valor: number }[]; vacio: string; formatear: (v: number) => string; color?: string }) {
   if (filas.length === 0) return <Text style={styles.sinDatos}>{vacio}</Text>;
+  const max = Math.max(1, ...filas.map((f) => f.valor));
   return (
     <View style={styles.tabla}>
       {filas.map((f, i) => (
-        <View key={f.label} style={i === filas.length - 1 ? { flexDirection: "row" } : styles.fila}>
-          <Text style={styles.celdaLabel}>{f.label}</Text>
-          <Text style={styles.celdaValor}>{f.valor}</Text>
+        <View key={f.label} style={i === filas.length - 1 ? styles.filaGrafica : { ...styles.filaGrafica, ...styles.fila }}>
+          <Text style={styles.celdaLabelGrafica}>{f.label}</Text>
+          <View style={styles.barraFondo}>
+            <View style={{ width: `${Math.max(2, Math.round((f.valor / max) * 100))}%`, height: "100%", backgroundColor: color, borderRadius: 3 }} />
+          </View>
+          <Text style={styles.celdaValorGrafica}>{formatear(f.valor)}</Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+const MAX_FILAS_DETALLE = 25;
+
+function TablaDetalleIndisponibilidad({ datos }: { datos: EstatusFlota }) {
+  if (datos.indisponibilidadDetalle.length === 0) {
+    return <Text style={styles.sinDatos}>Ninguna unidad no disponible en este alcance.</Text>;
+  }
+  const filas = datos.indisponibilidadDetalle.slice(0, MAX_FILAS_DETALLE);
+  const restantes = datos.indisponibilidadDetalle.length - filas.length;
+  return (
+    <View style={styles.tabla}>
+      <View style={styles.filaHeader}>
+        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleEconomico }}>UNIDAD</Text>
+        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleTexto }}>MOTIVO</Text>
+        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleTexto }}>DETALLE</Text>
+      </View>
+      {filas.map((f, i) => (
+        <View key={f.numeroEconomico} style={i === filas.length - 1 && restantes === 0 ? styles.filaDetalle : { ...styles.filaDetalle, ...styles.fila }}>
+          <Text style={styles.celdaDetalleEconomico}>{f.numeroEconomico}</Text>
+          <Text style={styles.celdaDetalleTexto}>{f.motivo === "SIN_MOTIVO" ? "Sin motivo registrado" : LABEL_MOTIVO[f.motivo]}</Text>
+          <Text style={styles.celdaDetalleTexto}>
+            {f.tipoMantenimiento ? (CATEGORIA_GASTO_LABEL[f.tipoMantenimiento] ?? f.tipoMantenimiento) : (f.motivoDetalle ?? "—")}
+          </Text>
+        </View>
+      ))}
+      {restantes > 0 && <Text style={styles.masFilas}>+ {restantes} unidad(es) más no mostradas.</Text>}
+    </View>
+  );
+}
+
+function TablaProximosServicios({ datos }: { datos: EstatusFlota }) {
+  if (datos.proximosServicios.length === 0) {
+    return <Text style={styles.sinDatos}>Sin mantenimiento programado en los próximos 7 días.</Text>;
+  }
+  const filas = datos.proximosServicios.slice(0, MAX_FILAS_DETALLE);
+  const restantes = datos.proximosServicios.length - filas.length;
+  return (
+    <View style={styles.tabla}>
+      <View style={styles.filaHeader}>
+        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleEconomico }}>UNIDAD</Text>
+        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleTexto }}>TIPO</Text>
+        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleFecha }}>FECHA</Text>
+      </View>
+      {filas.map((f, i) => (
+        <View key={`${f.numeroEconomico}-${f.fecha.toISOString()}`} style={i === filas.length - 1 && restantes === 0 ? styles.filaDetalle : { ...styles.filaDetalle, ...styles.fila }}>
+          <Text style={styles.celdaDetalleEconomico}>{f.numeroEconomico}</Text>
+          <Text style={styles.celdaDetalleTexto}>{CATEGORIA_GASTO_LABEL[f.categoria] ?? f.categoria}</Text>
+          <Text style={styles.celdaDetalleFecha}>{fmtFechaPdf(f.fecha)}</Text>
+        </View>
+      ))}
+      {restantes > 0 && <Text style={styles.masFilas}>+ {restantes} servicio(s) más no mostrados.</Text>}
     </View>
   );
 }
@@ -103,25 +171,58 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
           </View>
         </View>
 
+        <Text style={styles.sectionTitle}>Presupuesto del mes y actividad de checklists</Text>
+        <View style={styles.kpiGrid}>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{fmtMoneyPdf(datos.presupuestoMes.asignado)}</Text>
+            <Text style={styles.kpiLabel}>Presupuesto asignado del mes</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{fmtMoneyPdf(datos.presupuestoMes.gastoMes)}</Text>
+            <Text style={styles.kpiLabel}>Gastado en lo que va del mes</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>
+              {datos.presupuestoMes.asignado > 0 ? `${Math.round((datos.presupuestoMes.gastoMes / datos.presupuestoMes.asignado) * 100)}%` : "—"}
+            </Text>
+            <Text style={styles.kpiLabel}>% del presupuesto usado</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{datos.checklistsPromedioDiario}</Text>
+            <Text style={styles.kpiLabel}>Checklists / día en promedio</Text>
+          </View>
+        </View>
+
         <Text style={styles.sectionTitle}>Estatus de la flota</Text>
-        <Tabla
+        <TablaGrafica
           vacio="Sin unidades en este alcance."
-          filas={datos.porEstatus.map((e) => ({ label: LABEL_ESTATUS[e.estatus], valor: String(e.cantidad) }))}
+          formatear={(v) => String(v)}
+          filas={datos.porEstatus.map((e) => ({ label: LABEL_ESTATUS[e.estatus], valor: e.cantidad }))}
         />
 
         <Text style={styles.sectionTitle}>Motivos de indisponibilidad</Text>
-        <Tabla
+        <TablaGrafica
           vacio="Ninguna unidad no disponible en este alcance."
+          color="#ef4444"
+          formatear={(v) => String(v)}
           filas={datos.porMotivo.map((m) => ({
             label: m.motivo === "SIN_MOTIVO" ? "Sin motivo registrado" : LABEL_MOTIVO[m.motivo],
-            valor: String(m.cantidad),
+            valor: m.cantidad,
           }))}
         />
 
+        <Text style={styles.sectionTitle}>Indisponibilidad — detalle por unidad</Text>
+        <TablaDetalleIndisponibilidad datos={datos} />
+
+        <Text style={styles.sectionTitle}>Próximos servicios (siguientes 7 días)</Text>
+        <TablaProximosServicios datos={datos} />
+
         <Text style={styles.sectionTitle}>Gastos del periodo — {fmtMoneyPdf(datos.gastoTotal)}</Text>
-        <Tabla
+        <TablaGrafica
           vacio="Sin gastos registrados en el periodo."
-          filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: fmtMoneyPdf(g.monto) }))}
+          color="#f97316"
+          formatear={fmtMoneyPdf}
+          filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto }))}
         />
       </View>
 

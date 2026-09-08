@@ -295,6 +295,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
   function validarExterior(): string | null {
     if (!respuestasExtra["ext_tiene_golpes"]) return "Indica si el vehículo tiene golpes.";
+    if (respuestasExtra["ext_tiene_golpes"] === "SÍ" && !fotosExtra["ext_evidencia_golpes_1"]) return "Adjunta al menos una foto de evidencia de los golpes.";
     if (!fotosExtra["ext_evidencia_frente"]) return "La foto del frente es obligatoria.";
     if (!respuestasExtra["ext_parabrisas_espejos"]) return "Indica el estado del parabrisas y espejos.";
     if (!fotosExtra["ext_evidencia_parabrisas_espejos"]) return "La foto de parabrisas/espejos es obligatoria.";
@@ -718,6 +719,16 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
           <div className="flex flex-col gap-4 rounded-2xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>Exterior del vehículo</h3>
             {rToggle("ext_tiene_golpes", "¿El vehículo tiene golpes?")}
+            {respuestasExtra["ext_tiene_golpes"] === "SÍ" && (
+              <div className="flex flex-col gap-3 rounded-xl p-3" style={{ background: "var(--field-bg)" }}>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                  Adjunta la evidencia de los golpes — agrega las fotos que necesites.
+                </p>
+                {rFoto("ext_evidencia_golpes_1", "Foto de evidencia de golpes 1")}
+                {rFoto("ext_evidencia_golpes_2", "Foto de evidencia de golpes 2 (opcional)", false)}
+                {rFoto("ext_evidencia_golpes_3", "Foto de evidencia de golpes 3 (opcional)", false)}
+              </div>
+            )}
             {rFoto("ext_evidencia_frente", "Foto frente del vehículo")}
             {rRadio("ext_parabrisas_espejos", "Estado del parabrisas y espejos", ["BUEN ESTADO", "ESTRELLADO", "ROTO", "N/A"])}
             {rFoto("ext_evidencia_parabrisas_espejos", "Foto parabrisas y espejos")}
