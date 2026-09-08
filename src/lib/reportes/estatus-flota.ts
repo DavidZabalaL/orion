@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { calcularSlaPorUnidadesEnRango } from "@/lib/sla-disponibilidad";
 import { obtenerPresupuestoDelMes, type ResumenPresupuestoMes } from "@/lib/presupuesto";
+import { calcularCamposExtra } from "@/lib/reportes/campos-extra";
+import type { CampoExtraSeleccionado, CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 import type { EstatusUnidad, MotivoIndisponibilidad, CategoriaGasto } from "@/generated/prisma/enums";
 
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -41,6 +43,8 @@ export type EstatusFlota = {
   presupuestoMes: ResumenPresupuestoMes;
   /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
   checklistsPromedioDiario: number;
+  /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
+  camposExtra: CampoExtraResultado[];
 };
 
 /**
@@ -56,11 +60,14 @@ export async function calcularEstatusFlota({
   desde,
   hasta,
   proyectoLabel,
+  camposExtraSeleccionados = [],
 }: {
   proyectoIds: string[] | null;
   desde: Date;
   hasta: Date;
   proyectoLabel: string;
+  /** Datos adicionales elegidos en el configurador del reporte — ver EstatusFlotaModal. */
+  camposExtraSeleccionados?: CampoExtraSeleccionado[];
 }): Promise<EstatusFlota> {
   const filtroProyecto = proyectoIds !== null ? { proyectoId: { in: proyectoIds } } : {};
 
@@ -172,7 +179,7 @@ export async function calcularEstatusFlota({
   // este alcance dentro del rango, entre el número de días del rango.
   const diasPeriodo = Math.max(1, Math.round((hasta.getTime() - desde.getTime()) / DIA_MS));
 
-  const [gastosPorCategoria, combustibleAgg, tagAgg, presupuestoMes, totalChecklists] = await Promise.all([
+  const [gastosPorCategoria, combustibleAgg, tagAgg, presupuestoMes, totalChecklists, camposExtra] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
       where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
@@ -190,6 +197,7 @@ export async function calcularEstatusFlota({
     economicos.length > 0
       ? prisma.checklist.count({ where: { numeroEconomico: { in: economicos }, fecha: { gte: desde, lte: hasta } } })
       : Promise.resolve(0),
+    calcularCamposExtra(camposExtraSeleccionados, proyectoIds),
   ]);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
 
@@ -219,6 +227,7 @@ export async function calcularEstatusFlota({
     gastoPorCategoria,
     presupuestoMes,
     checklistsPromedioDiario,
+    camposExtra,
   };
 }
 
@@ -245,12 +254,14 @@ export async function calcularEstatusFlotaReporte({
   proyectoIdsSeleccionados,
   desde,
   hasta,
+  camposExtraSeleccionados = [],
 }: {
   /** null = sin restricción de proyecto (Administrador/rol global, o el cron sin sesión). */
   proyectoIdsPermitidos: string[] | null;
   proyectoIdsSeleccionados: string[] | null;
   desde: Date;
   hasta: Date;
+  camposExtraSeleccionados?: CampoExtraSeleccionado[];
 }): Promise<EstatusFlotaReporte> {
   const seleccion = proyectoIdsSeleccionados ?? [];
 
@@ -260,14 +271,14 @@ export async function calcularEstatusFlotaReporte({
   const nombrePorId = new Map(proyectos.map((p) => [p.id, p.nombre]));
 
   const [general, seleccionCombinada, porProyecto] = await Promise.all([
-    calcularEstatusFlota({ proyectoIds: proyectoIdsPermitidos, desde, hasta, proyectoLabel: "General" }),
+    calcularEstatusFlota({ proyectoIds: proyectoIdsPermitidos, desde, hasta, proyectoLabel: "General", camposExtraSeleccionados }),
     // Con exactamente 1 proyecto seleccionado, el combinado sería idéntico al
     // desglose de ese único proyecto (solo con otro título) — se omite.
     seleccion.length > 1
-      ? calcularEstatusFlota({ proyectoIds: seleccion, desde, hasta, proyectoLabel: `Selección (${seleccion.length} proyectos)` })
+      ? calcularEstatusFlota({ proyectoIds: seleccion, desde, hasta, proyectoLabel: `Selección (${seleccion.length} proyectos)`, camposExtraSeleccionados })
       : Promise.resolve(null),
     Promise.all(
-      seleccion.map((id) => calcularEstatusFlota({ proyectoIds: [id], desde, hasta, proyectoLabel: nombrePorId.get(id) ?? id }))
+      seleccion.map((id) => calcularEstatusFlota({ proyectoIds: [id], desde, hasta, proyectoLabel: nombrePorId.get(id) ?? id, camposExtraSeleccionados }))
     ),
   ]);
 

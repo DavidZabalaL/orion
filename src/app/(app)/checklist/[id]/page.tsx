@@ -42,9 +42,9 @@ function ColorChip({ value }: { value: string }) {
   const v = value?.toUpperCase() ?? "";
   let bg = "var(--chip)";
   let color = "var(--sidebar-text)";
-  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
-  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
-  else if (v === "MEDIO") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
+  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA", "100% (NUEVA)", "75%"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
+  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO", "25%", "0% (REEMPLAZAR)"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
+  else if (v === "MEDIO" || v === "50%") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
   return (
     <span
       className="inline-block rounded-full whitespace-nowrap"

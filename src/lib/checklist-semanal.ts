@@ -64,6 +64,9 @@ const ESTADO_3 = ["MINIMO", "MEDIO", "MAXIMO"];
 const ESTADO_4 = ["MINIMO", "MEDIO", "MAXIMO", "NO APLICA"];
 const BUEN_MAL_NA = ["BUEN ESTADO", "MAL ESTADO", "N/A"];
 const BUEN_MAL_NA2 = ["BUEN ESTADO", "MAL ESTADO", "NA"];
+// Vida útil restante del dibujo de la llanta, en vez de un binario bien/mal —
+// deja ver el desgaste real y anticipar el reemplazo antes de que sea crítico.
+export const ESTADO_LLANTA = ["100% (NUEVA)", "75%", "50%", "25%", "0% (REEMPLAZAR)", "N/A"];
 
 export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
   {
@@ -89,18 +92,21 @@ export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
       { tipo: "foto", key: "ext_evidencia_faro_del_izq", label: "Evidencia fotográfica del faro delantero izquierdo", requerido: true },
       { tipo: "foto", key: "ext_evidencia_faro_del_der", label: "Evidencia fotográfica del faro delantero derecho", requerido: true },
       { tipo: "radio", key: "ext_faros_neblineros", label: "Faros neblineros", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_faros_neblineros", fotoLabel: "Evidencia fotográfica faros neblineros", fotoRequerido: false },
-      { tipo: "radio", key: "ext_llanta_del_der", label: "Llanta delantera derecha", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_llanta_del_der", fotoLabel: "Evidencia fotográfica llanta delantera derecha", fotoRequerido: false },
+      { tipo: "radio", key: "ext_llanta_del_der", label: "Llanta delantera derecha", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_del_der", fotoLabel: "Evidencia fotográfica llanta delantera derecha", fotoRequerido: false },
       { tipo: "foto", key: "ext_evidencia_lateral_der", label: "Evidencia fotográfica del lateral derecho", requerido: true },
-      { tipo: "radio", key: "ext_llanta_tras_der", label: "Llanta trasera derecha", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_der", fotoLabel: "Evidencia fotográfica llanta trasera derecha", fotoRequerido: false },
+      { tipo: "radio", key: "ext_llanta_tras_der", label: "Llanta trasera derecha (exterior)", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_der", fotoLabel: "Evidencia fotográfica llanta trasera derecha (exterior)", fotoRequerido: false },
+      // Rodado trasero doble — solo grúas (2 llantas por lado en el eje trasero, no 1 como un vehículo normal).
+      { tipo: "radio", key: "ext_llanta_tras_der_interior", label: "Llanta trasera derecha (interior, rodado doble)", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_der_interior", fotoLabel: "Evidencia fotográfica llanta trasera derecha (interior)", fotoRequerido: false, soloTipoVehiculo: "GRUA" },
       { tipo: "foto", key: "ext_evidencia_trasera", label: "Evidencia fotográfica parte trasera del vehículo", requerido: true },
       { tipo: "radio", key: "ext_faros_traseros", label: "Faros traseros", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_faro_tras_der", fotoLabel: "Evidencia faro trasero derecho", fotoRequerido: true },
       { tipo: "foto", key: "ext_evidencia_faro_tras_izq", label: "Evidencia fotográfica del faro trasero izquierdo", requerido: true },
       { tipo: "radio", key: "ext_parabrisas_posterior", label: "Parabrisas posterior", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_parabrisas_posterior", fotoLabel: "Evidencia fotográfica del parabrisas posterior", fotoRequerido: true },
-      { tipo: "radio", key: "ext_llanta_refaccion", label: "¿Estado de la llanta de refacción?", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_llanta_refaccion", fotoLabel: "Evidencia fotográfica del estado de la llanta de refacción", fotoRequerido: false },
-      { tipo: "radio", key: "ext_llanta_tras_izq", label: "Llanta trasera izquierda", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_izq", fotoLabel: "Evidencia fotográfica llanta trasera izquierda", fotoRequerido: false },
+      { tipo: "radio", key: "ext_llanta_refaccion", label: "¿Estado de la llanta de refacción?", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_refaccion", fotoLabel: "Evidencia fotográfica del estado de la llanta de refacción", fotoRequerido: false },
+      { tipo: "radio", key: "ext_llanta_tras_izq", label: "Llanta trasera izquierda (exterior)", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_izq", fotoLabel: "Evidencia fotográfica llanta trasera izquierda (exterior)", fotoRequerido: false },
+      { tipo: "radio", key: "ext_llanta_tras_izq_interior", label: "Llanta trasera izquierda (interior, rodado doble)", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_izq_interior", fotoLabel: "Evidencia fotográfica llanta trasera izquierda (interior)", fotoRequerido: false, soloTipoVehiculo: "GRUA" },
       { tipo: "foto", key: "ext_evidencia_lateral_izq", label: "Evidencia fotográfica del lateral izquierdo", requerido: true },
-      { tipo: "radio", key: "ext_llanta_del_izq", label: "Llanta delantera izquierda", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_llanta_del_izq", fotoLabel: "Evidencia fotográfica llanta delantera izquierda", fotoRequerido: false },
-      { tipo: "radio", key: "ext_llantas_general", label: "Llantas (estado general)", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_llantas_general", fotoLabel: "Evidencia fotográfica llantas estado general", fotoRequerido: true },
+      { tipo: "radio", key: "ext_llanta_del_izq", label: "Llanta delantera izquierda", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_del_izq", fotoLabel: "Evidencia fotográfica llanta delantera izquierda", fotoRequerido: false },
+      { tipo: "radio", key: "ext_llantas_general", label: "Llantas (estado general)", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llantas_general", fotoLabel: "Evidencia fotográfica llantas estado general", fotoRequerido: true },
       { tipo: "radio", key: "ext_antena", label: "Antena", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_antena", fotoLabel: "Evidencia fotográfica (antena)", fotoRequerido: true },
     ],
   },

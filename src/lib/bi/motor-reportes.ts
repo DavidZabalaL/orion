@@ -12,6 +12,7 @@ import { enviarReporteBI } from "@/lib/email";
 import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
 import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
+import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { inicioDeHoyMx } from "@/lib/timezone";
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
@@ -45,11 +46,17 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // creadoPorId); la selección de proyectos la elige quien configuró el
       // envío en el Dashboard (filtrosJson). Cubre periodoDias hacia atrás
       // desde hoy (configurable en el modal, ej. últimos 7/30/90 días).
-      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null } | null;
+      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[] } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = inicioDeHoyMx();
       const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS);
-      const datos = await calcularEstatusFlotaReporte({ proyectoIdsPermitidos: null, proyectoIdsSeleccionados: proyectoIds, desde, hasta });
+      const datos = await calcularEstatusFlotaReporte({
+        proyectoIdsPermitidos: null,
+        proyectoIdsSeleccionados: proyectoIds,
+        desde,
+        hasta,
+        camposExtraSeleccionados: filtros?.camposExtra ?? [],
+      });
       buffer = await generarEstatusFlotaBuffer(datos);
       nombreArchivo = `estatus-flota-${hasta.toISOString().slice(0, 10)}.pdf`;
       totalRegistros = datos.general.totalUnidades;

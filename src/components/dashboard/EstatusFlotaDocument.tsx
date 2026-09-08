@@ -1,230 +1,284 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Svg, Circle } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
-import { LABEL_ESTATUS, LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import type { EstatusFlota, EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
+import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 
+// Paleta Grupo Kabat — mismo azul/marino que el resto de la plataforma
+// (var(--color-primary) / sidebar oscuro), reproducida en hex fijo porque
+// @react-pdf/renderer no resuelve variables CSS.
 const NAVY = "#0f1b2d";
 const BLUE = "#2b7fff";
-const SLATE = "#6c757d";
+const GREEN = "#22c55e";
+const RED = "#ef4444";
+const SLATE = "#6b7785";
 const BORDER = "#e8ecef";
 const SURFACE = "#f6f9fc";
+const PAGE_BG = "#f4f6fb";
+const PALETA_BARRAS = ["#f59e0b", "#22c55e", "#6366f1", "#38bdf8", "#ef4444", "#a855f7", "#14b8a6", "#f43f5e"];
+
+const CATEGORIA_MANTENIMIENTO_ABREV: Record<string, string> = {
+  MANTENIMIENTO_PREVENTIVO: "Prev",
+  MANTENIMIENTO_CORRECTIVO: "Corr",
+};
 
 const styles = StyleSheet.create({
-  page: { fontSize: 10.5, fontFamily: "Helvetica", color: NAVY, paddingBottom: 48 },
+  page: { fontSize: 9.5, fontFamily: "Helvetica", color: NAVY, backgroundColor: PAGE_BG, padding: 24 },
 
-  header: { backgroundColor: NAVY, paddingTop: 28, paddingBottom: 22, paddingHorizontal: 36 },
-  headerEyebrow: { fontSize: 9, color: "#9fb0d0", letterSpacing: 1.5, marginBottom: 6 },
-  headerTitle: { fontSize: 22, fontWeight: "bold", color: "#ffffff" },
-  headerMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 },
-  headerBrand: { fontSize: 10, color: "#c5d0e4" },
-  headerDate: { fontSize: 10, color: "#c5d0e4" },
-  accentBar: { height: 4, backgroundColor: BLUE },
-
-  body: { paddingHorizontal: 36, paddingTop: 24 },
-
-  sectionTitle: {
-    fontSize: 12, fontWeight: "bold", color: NAVY, marginBottom: 12, paddingBottom: 6,
-    borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid",
+  headerCard: {
+    backgroundColor: "#ffffff", borderRadius: 8, borderLeftWidth: 4, borderLeftColor: BLUE,
+    paddingVertical: 14, paddingHorizontal: 18, marginBottom: 14,
   },
+  headerTitulo: { fontSize: 18, fontWeight: "bold", color: NAVY },
+  headerSubtitulo: { fontSize: 9, color: SLATE, marginTop: 3, letterSpacing: 0.3 },
 
-  kpiGrid: { flexDirection: "row", flexWrap: "wrap", columnGap: 10, rowGap: 10, marginBottom: 26 },
-  kpiCard: {
-    width: "31.5%", borderTopWidth: 3, borderTopColor: BLUE, borderTopStyle: "solid",
-    backgroundColor: "#ffffff", borderWidth: 1, borderColor: BORDER, borderStyle: "solid", borderRadius: 4, padding: 12,
+  fila: { flexDirection: "row", gap: 14, marginBottom: 14 },
+  tarjeta: {
+    flex: 1, backgroundColor: "#ffffff", borderRadius: 8, borderWidth: 1, borderColor: BORDER,
+    padding: 14, minHeight: 96,
   },
-  kpiValue: { fontSize: 18, fontWeight: "bold", color: NAVY },
-  kpiLabel: { fontSize: 8.5, color: SLATE, marginTop: 4 },
+  tarjetaTitulo: { fontSize: 8, fontWeight: "bold", color: SLATE, letterSpacing: 0.6, marginBottom: 10 },
 
-  tabla: { marginBottom: 26, borderWidth: 1, borderColor: BORDER, borderStyle: "solid", borderRadius: 4, overflow: "hidden" },
-  filaHeader: { flexDirection: "row", backgroundColor: SURFACE, borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid" },
-  fila: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid" },
-  celdaHeaderTexto: { fontSize: 8.5, fontWeight: "bold", color: SLATE, letterSpacing: 0.5 },
-  sinDatos: { fontSize: 9.5, color: SLATE, padding: 10 },
+  kpiValor: { fontSize: 22, fontWeight: "bold", color: NAVY },
+  kpiCaption: { fontSize: 8.5, color: SLATE, marginTop: 4 },
 
-  filaGrafica: { flexDirection: "row", alignItems: "center", padding: 8, gap: 8 },
-  celdaLabelGrafica: { width: 130, fontSize: 9, color: NAVY },
-  barraFondo: { flex: 1, height: 10, backgroundColor: SURFACE, borderRadius: 3, overflow: "hidden" },
-  celdaValorGrafica: { width: 80, textAlign: "right", fontSize: 9.5, fontWeight: "bold" },
+  barraFondo: { height: 7, backgroundColor: SURFACE, borderRadius: 4, overflow: "hidden", marginTop: 10 },
 
-  filaDetalle: { flexDirection: "row" },
-  celdaDetalleEconomico: { width: 90, padding: 8, fontSize: 9, fontWeight: "bold" },
-  celdaDetalleTexto: { flex: 1, padding: 8, fontSize: 9, color: SLATE },
-  celdaDetalleFecha: { width: 90, padding: 8, fontSize: 9, textAlign: "right" },
-  masFilas: { fontSize: 8.5, color: SLATE, padding: 8, fontStyle: "italic" },
+  donaFila: { flexDirection: "row", alignItems: "center", gap: 12 },
+  leyendaFila: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 5 },
+  leyendaTexto: { fontSize: 8.5, color: NAVY },
+
+  barraLabelFila: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 6 },
+  barraLabelTexto: { width: 78, fontSize: 8, color: SLATE },
+  barraTrack: { flex: 1, height: 9, backgroundColor: SURFACE, borderRadius: 3, overflow: "hidden" },
+  barraValor: { width: 58, textAlign: "right", fontSize: 8.5, fontWeight: "bold", color: NAVY },
+
+  listaItem: { fontSize: 8.5, color: NAVY, marginBottom: 5, lineHeight: 1.3 },
+  listaVacio: { fontSize: 8.5, color: SLATE, fontStyle: "italic" },
 
   footer: {
-    position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 36, paddingVertical: 14,
-    borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid", flexDirection: "row", justifyContent: "space-between",
+    position: "absolute", bottom: 14, left: 24, right: 24, paddingTop: 8,
+    borderTopWidth: 1, borderTopColor: BORDER, flexDirection: "row", justifyContent: "space-between",
   },
-  footerText: { fontSize: 8, color: "#a0b0d0" },
+  footerText: { fontSize: 7.5, color: SLATE },
 });
 
 function fmtMoneyPdf(valor: number): string {
-  return `$${valor.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`;
+  return `$${Math.round(valor).toLocaleString("es-MX")}`;
 }
 
 function fmtFechaPdf(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" }).replace(".", "");
 }
 
-/** Misma tabla, pero con una barra proporcional al valor de cada fila — la gráfica del reporte, sin dependencias externas (no requiere DOM ni rasterizado, corre igual en el cron server-side que en la descarga desde el navegador). */
-function TablaGrafica({ filas, vacio, formatear, color = BLUE }: { filas: { label: string; valor: number }[]; vacio: string; formatear: (v: number) => string; color?: string }) {
-  if (filas.length === 0) return <Text style={styles.sinDatos}>{vacio}</Text>;
-  const max = Math.max(1, ...filas.map((f) => f.valor));
+function fmtFechaCorta(fecha: Date): string {
+  return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric" }).replace(".", "");
+}
+
+function Tarjeta({ titulo, children, flexBasis }: { titulo: string; children: React.ReactNode; flexBasis?: number }) {
   return (
-    <View style={styles.tabla}>
-      {filas.map((f, i) => (
-        <View key={f.label} style={i === filas.length - 1 ? styles.filaGrafica : { ...styles.filaGrafica, ...styles.fila }}>
-          <Text style={styles.celdaLabelGrafica}>{f.label}</Text>
-          <View style={styles.barraFondo}>
-            <View style={{ width: `${Math.max(2, Math.round((f.valor / max) * 100))}%`, height: "100%", backgroundColor: color, borderRadius: 3 }} />
-          </View>
-          <Text style={styles.celdaValorGrafica}>{formatear(f.valor)}</Text>
-        </View>
-      ))}
+    <View style={flexBasis ? { ...styles.tarjeta, flex: flexBasis } : styles.tarjeta}>
+      <Text style={styles.tarjetaTitulo}>{titulo.toUpperCase()}</Text>
+      {children}
     </View>
   );
 }
 
-const MAX_FILAS_DETALLE = 25;
+/** Dona de disponibilidad — dibujada con dos arcos SVG (sin dependencias de rasterizado, corre igual en servidor que en el navegador). */
+function DonaDisponibilidad({ disponibles, noDisponibles }: { disponibles: number; noDisponibles: number }) {
+  const total = disponibles + noDisponibles;
+  const pct = total > 0 ? Math.round((disponibles / total) * 1000) / 10 : 0;
+  const size = 76;
+  const grosor = 12;
+  const radio = (size - grosor) / 2;
+  const circunferencia = 2 * Math.PI * radio;
+  const largoDisponible = total > 0 ? (disponibles / total) * circunferencia : 0;
+  const centro = size / 2;
 
-function TablaDetalleIndisponibilidad({ datos }: { datos: EstatusFlota }) {
-  if (datos.indisponibilidadDetalle.length === 0) {
-    return <Text style={styles.sinDatos}>Ninguna unidad no disponible en este alcance.</Text>;
-  }
-  const filas = datos.indisponibilidadDetalle.slice(0, MAX_FILAS_DETALLE);
-  const restantes = datos.indisponibilidadDetalle.length - filas.length;
   return (
-    <View style={styles.tabla}>
-      <View style={styles.filaHeader}>
-        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleEconomico }}>UNIDAD</Text>
-        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleTexto }}>MOTIVO</Text>
-        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleTexto }}>DETALLE</Text>
+    <View style={styles.donaFila}>
+      <View style={{ width: size, height: size, position: "relative" }}>
+        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <Circle cx={centro} cy={centro} r={radio} stroke={total > 0 ? RED : BORDER} strokeWidth={grosor} fill="none" />
+          {total > 0 && (
+            <Circle
+              cx={centro}
+              cy={centro}
+              r={radio}
+              stroke={GREEN}
+              strokeWidth={grosor}
+              fill="none"
+              strokeDasharray={`${largoDisponible} ${circunferencia}`}
+              transform={`rotate(-90 ${centro} ${centro})`}
+            />
+          )}
+        </Svg>
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontSize: 13, fontWeight: "bold", color: NAVY }}>{total > 0 ? `${pct}%` : "—"}</Text>
+        </View>
       </View>
-      {filas.map((f, i) => (
-        <View key={f.numeroEconomico} style={i === filas.length - 1 && restantes === 0 ? styles.filaDetalle : { ...styles.filaDetalle, ...styles.fila }}>
-          <Text style={styles.celdaDetalleEconomico}>{f.numeroEconomico}</Text>
-          <Text style={styles.celdaDetalleTexto}>{f.motivo === "SIN_MOTIVO" ? "Sin motivo registrado" : LABEL_MOTIVO[f.motivo]}</Text>
-          <Text style={styles.celdaDetalleTexto}>
-            {f.tipoMantenimiento ? (CATEGORIA_GASTO_LABEL[f.tipoMantenimiento] ?? f.tipoMantenimiento) : (f.motivoDetalle ?? "—")}
-          </Text>
+      <View>
+        <View style={styles.leyendaFila}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GREEN }} />
+          <Text style={styles.leyendaTexto}>Disp. ({disponibles})</Text>
         </View>
-      ))}
-      {restantes > 0 && <Text style={styles.masFilas}>+ {restantes} unidad(es) más no mostradas.</Text>}
+        <View style={styles.leyendaFila}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: RED }} />
+          <Text style={styles.leyendaTexto}>No disp. ({noDisponibles})</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
-function TablaProximosServicios({ datos }: { datos: EstatusFlota }) {
-  if (datos.proximosServicios.length === 0) {
-    return <Text style={styles.sinDatos}>Sin mantenimiento programado en los próximos 7 días.</Text>;
+function BarraHorizontal({ label, valor, max, color, formatear }: { label: string; valor: number; max: number; color: string; formatear: (v: number) => string }) {
+  const pct = max > 0 ? Math.max(2, Math.round((valor / max) * 100)) : 0;
+  return (
+    <View style={styles.barraLabelFila}>
+      <Text style={styles.barraLabelTexto}>{label}</Text>
+      <View style={styles.barraTrack}>
+        <View style={{ width: `${pct}%`, height: "100%", backgroundColor: color }} />
+      </View>
+      <Text style={styles.barraValor}>{formatear(valor)}</Text>
+    </View>
+  );
+}
+
+function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String(v) }: { titulo: string; filas: { label: string; valor: number }[]; vacio: string; formatear?: (v: number) => string }) {
+  if (filas.length === 0) {
+    return (
+      <Tarjeta titulo={titulo}>
+        <Text style={styles.listaVacio}>{vacio}</Text>
+      </Tarjeta>
+    );
   }
-  const filas = datos.proximosServicios.slice(0, MAX_FILAS_DETALLE);
+  const max = Math.max(...filas.map((f) => f.valor));
+  return (
+    <Tarjeta titulo={titulo}>
+      {filas.map((f, i) => (
+        <BarraHorizontal key={f.label} label={f.label} valor={f.valor} max={max} color={PALETA_BARRAS[i % PALETA_BARRAS.length]} formatear={formatear} />
+      ))}
+    </Tarjeta>
+  );
+}
+
+function TarjetaKpiExtra({ resultado }: { resultado: CampoExtraResultado }) {
+  return (
+    <Tarjeta titulo={resultado.campoLabel}>
+      <Text style={styles.kpiValor}>{(resultado.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
+      <Text style={styles.kpiCaption}>Suma total · {resultado.datasetLabel} (histórico del alcance)</Text>
+    </Tarjeta>
+  );
+}
+
+/** Agrupa las unidades no disponibles por motivo — mismo formato compacto que el resto de la tarjeta ("N u. - Motivo (unidades)"). */
+function ListaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
+  if (datos.indisponibilidadDetalle.length === 0) {
+    return <Text style={styles.listaVacio}>Ninguna unidad no disponible</Text>;
+  }
+  const grupos = new Map<string, string[]>();
+  for (const u of datos.indisponibilidadDetalle) {
+    const etiqueta = u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo];
+    const lista = grupos.get(etiqueta) ?? [];
+    lista.push(u.numeroEconomico);
+    grupos.set(etiqueta, lista);
+  }
+  const filas = Array.from(grupos, ([etiqueta, unidades]) => ({ etiqueta, unidades })).sort((a, b) => b.unidades.length - a.unidades.length);
+  return (
+    <>
+      {filas.map((f) => {
+        const MAX_MOSTRAR = 6;
+        const mostradas = f.unidades.slice(0, MAX_MOSTRAR);
+        const restantes = f.unidades.length - mostradas.length;
+        const detalle = f.etiqueta === "Sin motivo" ? "" : ` (${mostradas.join(", ")}${restantes > 0 ? ` +${restantes}` : ""})`;
+        return (
+          <Text key={f.etiqueta} style={styles.listaItem}>• {f.unidades.length} u. - {f.etiqueta}{detalle}</Text>
+        );
+      })}
+    </>
+  );
+}
+
+function ListaProximosServicios({ datos }: { datos: EstatusFlota }) {
+  if (datos.proximosServicios.length === 0) {
+    return <Text style={styles.listaVacio}>Sin mantenimiento programado</Text>;
+  }
+  const MAX_MOSTRAR = 10;
+  const filas = datos.proximosServicios.slice(0, MAX_MOSTRAR);
   const restantes = datos.proximosServicios.length - filas.length;
   return (
-    <View style={styles.tabla}>
-      <View style={styles.filaHeader}>
-        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleEconomico }}>UNIDAD</Text>
-        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleTexto }}>TIPO</Text>
-        <Text style={{ ...styles.celdaHeaderTexto, ...styles.celdaDetalleFecha }}>FECHA</Text>
-      </View>
+    <>
       {filas.map((f, i) => (
-        <View key={`${f.numeroEconomico}-${f.fecha.toISOString()}`} style={i === filas.length - 1 && restantes === 0 ? styles.filaDetalle : { ...styles.filaDetalle, ...styles.fila }}>
-          <Text style={styles.celdaDetalleEconomico}>{f.numeroEconomico}</Text>
-          <Text style={styles.celdaDetalleTexto}>{CATEGORIA_GASTO_LABEL[f.categoria] ?? f.categoria}</Text>
-          <Text style={styles.celdaDetalleFecha}>{fmtFechaPdf(f.fecha)}</Text>
-        </View>
+        <Text key={`${f.numeroEconomico}-${i}`} style={styles.listaItem}>
+          • {f.numeroEconomico} ({CATEGORIA_MANTENIMIENTO_ABREV[f.categoria] ?? CATEGORIA_GASTO_LABEL[f.categoria]}) - {fmtFechaCorta(f.fecha)}
+        </Text>
       ))}
-      {restantes > 0 && <Text style={styles.masFilas}>+ {restantes} servicio(s) más no mostrados.</Text>}
-    </View>
+      {restantes > 0 && <Text style={styles.listaVacio}>+ {restantes} más</Text>}
+    </>
   );
 }
 
 /** Una página del reporte para un alcance específico (general, selección combinada, o un proyecto individual). */
 function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
+  const pctPresupuesto = datos.presupuestoMes.asignado > 0 ? Math.round((datos.gastoTotal / datos.presupuestoMes.asignado) * 100) : 0;
+
   return (
     <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
-        <Text style={styles.headerEyebrow}>ORIÓN · CONTROL VEHICULAR — GRUPO KABAT</Text>
-        <Text style={styles.headerTitle}>Estatus de flota — {datos.proyectoLabel}</Text>
-        <View style={styles.headerMeta}>
-          <Text style={styles.headerBrand}>{fmtFechaPdf(datos.desde)} — {fmtFechaPdf(datos.hasta)}</Text>
-          <Text style={styles.headerDate}>Generado el {fmtFechaPdf(new Date())}</Text>
-        </View>
+      <View style={styles.headerCard}>
+        <Text style={styles.headerTitulo}>{datos.proyectoLabel}</Text>
+        <Text style={styles.headerSubtitulo}>
+          GRUPO KABAT · ESTATUS DE FLOTA · {fmtFechaPdf(datos.desde).toUpperCase()} — {fmtFechaPdf(datos.hasta).toUpperCase()}
+        </Text>
       </View>
-      <View style={styles.accentBar} />
 
-      <View style={styles.body}>
-        <Text style={styles.sectionTitle}>Disponibilidad (SLA)</Text>
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
-            <Text style={styles.kpiLabel}>SLA promedio del periodo</Text>
+      <View style={styles.fila}>
+        <Tarjeta titulo="Disponibilidad">
+          <DonaDisponibilidad disponibles={datos.unidadesDisponibles} noDisponibles={datos.unidadesNoDisponibles} />
+        </Tarjeta>
+        <Tarjeta titulo="Gasto vs. presupuesto">
+          <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.gastoTotal)}</Text>
+          <View style={styles.barraFondo}>
+            <View style={{ width: `${Math.min(100, pctPresupuesto)}%`, height: "100%", backgroundColor: pctPresupuesto > 90 ? RED : BLUE }} />
           </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>{datos.unidadesDisponibles}</Text>
-            <Text style={styles.kpiLabel}>Unidades disponibles</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>{datos.unidadesNoDisponibles}</Text>
-            <Text style={styles.kpiLabel}>Unidades no disponibles</Text>
-          </View>
-        </View>
+          <Text style={styles.kpiCaption}>Mes: {fmtMoneyPdf(datos.presupuestoMes.asignado)} · {pctPresupuesto}%</Text>
+        </Tarjeta>
+        <Tarjeta titulo="Actividad checklists">
+          <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
+          <Text style={styles.kpiCaption}>promedio por día</Text>
+        </Tarjeta>
+      </View>
 
-        <Text style={styles.sectionTitle}>Presupuesto del mes y actividad de checklists</Text>
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>{fmtMoneyPdf(datos.presupuestoMes.asignado)}</Text>
-            <Text style={styles.kpiLabel}>Presupuesto asignado del mes</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>{fmtMoneyPdf(datos.presupuestoMes.gastoMes)}</Text>
-            <Text style={styles.kpiLabel}>Gastado en lo que va del mes</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>
-              {datos.presupuestoMes.asignado > 0 ? `${Math.round((datos.presupuestoMes.gastoMes / datos.presupuestoMes.asignado) * 100)}%` : "—"}
-            </Text>
-            <Text style={styles.kpiLabel}>% del presupuesto usado</Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiValue}>{datos.checklistsPromedioDiario}</Text>
-            <Text style={styles.kpiLabel}>Checklists / día en promedio</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Estatus de la flota</Text>
-        <TablaGrafica
-          vacio="Sin unidades en este alcance."
-          formatear={(v) => String(v)}
-          filas={datos.porEstatus.map((e) => ({ label: LABEL_ESTATUS[e.estatus], valor: e.cantidad }))}
-        />
-
-        <Text style={styles.sectionTitle}>Motivos de indisponibilidad</Text>
-        <TablaGrafica
-          vacio="Ninguna unidad no disponible en este alcance."
-          color="#ef4444"
-          formatear={(v) => String(v)}
-          filas={datos.porMotivo.map((m) => ({
-            label: m.motivo === "SIN_MOTIVO" ? "Sin motivo registrado" : LABEL_MOTIVO[m.motivo],
-            valor: m.cantidad,
-          }))}
-        />
-
-        <Text style={styles.sectionTitle}>Indisponibilidad — detalle por unidad</Text>
-        <TablaDetalleIndisponibilidad datos={datos} />
-
-        <Text style={styles.sectionTitle}>Próximos servicios (siguientes 7 días)</Text>
-        <TablaProximosServicios datos={datos} />
-
-        <Text style={styles.sectionTitle}>Gastos del periodo — {fmtMoneyPdf(datos.gastoTotal)}</Text>
-        <TablaGrafica
+      <View style={styles.fila}>
+        <TarjetaBarras
+          titulo="Desglose de gastos"
           vacio="Sin gastos registrados en el periodo."
-          color="#f97316"
           formatear={fmtMoneyPdf}
           filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto }))}
         />
+        <Tarjeta titulo="Unidades no disponibles">
+          <ListaUnidadesNoDisponibles datos={datos} />
+        </Tarjeta>
+        <Tarjeta titulo="Próximos servicios (7 días)">
+          <ListaProximosServicios datos={datos} />
+        </Tarjeta>
       </View>
+
+      {datos.camposExtra.length > 0 && (
+        <View style={styles.fila}>
+          {datos.camposExtra.map((c) =>
+            c.tipoVisualizacion === "kpi" ? (
+              <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} />
+            ) : (
+              <TarjetaBarras
+                key={`${c.datasetId}.${c.campoId}`}
+                titulo={c.campoLabel}
+                vacio="Sin datos."
+                filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+              />
+            )
+          )}
+        </View>
+      )}
 
       <View style={styles.footer} fixed>
         <Text style={styles.footerText}>Orión · Control Vehicular — Grupo Kabat</Text>

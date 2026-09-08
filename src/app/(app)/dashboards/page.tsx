@@ -13,6 +13,7 @@ import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
 import { calcularSlaMesActualPorUnidades } from "@/lib/sla-disponibilidad";
 import { preferenciaOcultaPorUsuario, CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
+import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function DashboardsPage({
     prisma.reporteProgramado.findFirst({ where: { tipo: "estatus_flota" } }),
   ]);
 
-  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null } | null;
+  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[] } | null;
   const configEstatusFlota = {
     id: reporteEstatusFlota?.id ?? null,
     proyectoIds: filtrosEstatusFlota?.proyectoIds ?? [],
@@ -49,6 +50,7 @@ export default async function DashboardsPage({
     periodoDias: reporteEstatusFlota?.periodoDias ?? 7,
     destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
     activo: reporteEstatusFlota?.activo ?? false,
+    camposExtra: filtrosEstatusFlota?.camposExtra ?? [],
   };
 
   const vistas: VistaDashboard[] = vistasDb.map((v) => ({
@@ -91,7 +93,7 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
   const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: { in: restriccionOperador.numerosEconomicos } } : {};
 
   const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([
+  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos, periodosAbiertos] = await Promise.all([
     prisma.unidad.findMany({
       where: { ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}), ...filtroOperador },
       include: {
@@ -122,8 +124,13 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
       },
       _count: { id: true },
     }),
+    prisma.historicoDisponibilidadUnidad.findMany({
+      where: { hasta: null, disponible: false },
+      select: { numeroEconomico: true, motivo: true, motivoDetalle: true },
+    }),
   ]);
 
+  const motivoPorEconomico = new Map(periodosAbiertos.map((p) => [p.numeroEconomico, { motivo: p.motivo, detalle: p.motivoDetalle }]));
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
   const proximoPorEconomico = new Map(proximosMantenimientos.map((m) => [m.numeroEconomico, m._min.fecha]));
   const ultimoCombustiblePorEconomico = new Map(ultimosCombustibles.map((m) => [m.numeroEconomico, m._max.fecha]));
@@ -161,6 +168,8 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
       proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
       semaforo,
       slaPorcentaje: null,
+      motivoIndisponibilidad: motivoPorEconomico.get(u.numeroEconomico)?.motivo ?? null,
+      motivoIndisponibilidadDetalle: motivoPorEconomico.get(u.numeroEconomico)?.detalle ?? null,
     };
   });
 

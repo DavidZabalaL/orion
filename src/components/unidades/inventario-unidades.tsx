@@ -222,7 +222,7 @@ export function InventarioUnidades({
               {widgetsActivos.map((w) => {
                 const valor = valorWidgetUnidades(w.id, datosWidgets);
                 if (Array.isArray(valor)) {
-                  const esProyecto = w.id === "porProyecto";
+                  const esProyecto = w.id === "porProyecto" || w.id === "slaPorProyecto";
                   const esTipoNoDisponible = w.id === "porTipoNoDisponible";
                   const esTipo = w.id === "porTipo" || esTipoNoDisponible;
                   const alternar = esProyecto ? alternarProyecto : esTipoNoDisponible ? alternarTipoNoDisponible : esTipo ? alternarTipo : undefined;

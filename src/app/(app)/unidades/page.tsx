@@ -22,7 +22,7 @@ export default async function UnidadesPage() {
   const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: { in: restriccionOperador.numerosEconomicos } } : {};
 
   const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([
+  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos, periodosAbiertos] = await Promise.all([
     prisma.unidad.findMany({
       where: { ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}), ...filtroOperador },
       include: {
@@ -53,8 +53,15 @@ export default async function UnidadesPage() {
       },
       _count: { id: true },
     }),
+    // Motivo del periodo de indisponibilidad actualmente abierto (hasta: null)
+    // — para explicar en la tabla por qué una unidad no está disponible.
+    prisma.historicoDisponibilidadUnidad.findMany({
+      where: { hasta: null, disponible: false },
+      select: { numeroEconomico: true, motivo: true, motivoDetalle: true },
+    }),
   ]);
 
+  const motivoPorEconomico = new Map(periodosAbiertos.map((p) => [p.numeroEconomico, { motivo: p.motivo, detalle: p.motivoDetalle }]));
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
   const proximoPorEconomico = new Map(proximosMantenimientos.map((m) => [m.numeroEconomico, m._min.fecha]));
   const ultimoCombustiblePorEconomico = new Map(ultimosCombustibles.map((m) => [m.numeroEconomico, m._max.fecha]));
@@ -92,6 +99,8 @@ export default async function UnidadesPage() {
       proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
       semaforo,
       slaPorcentaje: null,
+      motivoIndisponibilidad: motivoPorEconomico.get(u.numeroEconomico)?.motivo ?? null,
+      motivoIndisponibilidadDetalle: motivoPorEconomico.get(u.numeroEconomico)?.detalle ?? null,
     };
   });
 
