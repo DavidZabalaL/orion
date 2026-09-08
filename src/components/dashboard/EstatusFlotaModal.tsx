@@ -17,6 +17,21 @@ function hoyISO(offsetDias = 0): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * `obtenerDatosEstatusFlota` viaja por JSON (server action), así que aquí
+ * `desde`/`hasta`/`proximosServicios[].fecha` llegan como strings ISO aunque
+ * el tipo diga `Date` — hay que reconstruirlos antes de pasarlos al PDF
+ * (EstatusFlotaDocument llama `.toLocaleDateString()` sobre esos campos).
+ */
+function rehidratarFechasAlcance<T extends { desde: Date; hasta: Date; proximosServicios: { fecha: Date }[] }>(alcance: T): T {
+  return {
+    ...alcance,
+    desde: new Date(alcance.desde),
+    hasta: new Date(alcance.hasta),
+    proximosServicios: alcance.proximosServicios.map((s) => ({ ...s, fecha: new Date(s.fecha) })),
+  };
+}
+
 const DIAS_SEMANA = [
   { value: 0, label: "Domingo" },
   { value: 1, label: "Lunes" },
@@ -105,9 +120,9 @@ export function EstatusFlotaModal({
         ...res.datos,
         desde: new Date(res.datos.desde),
         hasta: new Date(res.datos.hasta),
-        seleccion: res.datos.seleccion ? { ...res.datos.seleccion, desde: new Date(res.datos.seleccion.desde), hasta: new Date(res.datos.seleccion.hasta) } : null,
-        porProyecto: res.datos.porProyecto.map((p) => ({ ...p, desde: new Date(p.desde), hasta: new Date(p.hasta) })),
-        general: { ...res.datos.general, desde: new Date(res.datos.general.desde), hasta: new Date(res.datos.general.hasta) },
+        seleccion: res.datos.seleccion ? rehidratarFechasAlcance(res.datos.seleccion) : null,
+        porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
+        general: rehidratarFechasAlcance(res.datos.general),
       };
       const blob = await pdf(<EstatusFlotaDocument datos={datos} />).toBlob();
       const url = URL.createObjectURL(blob);
