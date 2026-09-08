@@ -357,7 +357,6 @@ export function WizardCargaCombustible({
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
               />

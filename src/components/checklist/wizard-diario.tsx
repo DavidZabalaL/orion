@@ -146,6 +146,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const fotoPuntoInputRef = useRef<HTMLInputElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const fotoHorometroInputRef = useRef<HTMLInputElement>(null);
+  // Sin `capture`, a diferencia del resto de fotos del checklist (que deben
+  // tomarse en el momento con la cámara): la licencia normalmente ya existe
+  // como foto en la galería del operador, no tiene sentido forzarlo a
+  // fotografiarla de nuevo.
+  const licenciaFotoInputRef = useRef<HTMLInputElement>(null);
   const extraFotoKeyRef = useRef("");
   const puntoFotoActualRef = useRef<string | null>(null);
 
@@ -182,6 +187,12 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     extraFotoKeyRef.current = key;
     if (extraFotoInputRef.current) extraFotoInputRef.current.value = "";
     extraFotoInputRef.current?.click();
+  }
+
+  function iniciarFotoLicencia() {
+    extraFotoKeyRef.current = "gen_foto_licencia";
+    if (licenciaFotoInputRef.current) licenciaFotoInputRef.current.value = "";
+    licenciaFotoInputRef.current?.click();
   }
 
   async function handleExtraFoto(file: File | undefined) {
@@ -357,7 +368,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
   // ─── Render helpers ───────────────────────────────────────────────────────
 
-  function rFoto(clave: string, label: string, requerido = true) {
+  function rFoto(clave: string, label: string, requerido = true, permitirGaleria = false) {
     const url = fotosExtra[clave];
     const sub = subiendoExtra === clave;
     if (url) {
@@ -377,10 +388,10 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     return (
       <div key={clave}>
         <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
-        <button type="button" onClick={() => iniciarFotoExtra(clave)} className="flex items-center justify-center gap-2 rounded-xl w-full"
+        <button type="button" onClick={() => (permitirGaleria ? iniciarFotoLicencia() : iniciarFotoExtra(clave))} className="flex items-center justify-center gap-2 rounded-xl w-full"
           style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
           {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-          {sub ? "Subiendo…" : "Tomar foto"}
+          {sub ? "Subiendo…" : permitirGaleria ? "Tomar foto o elegir de galería" : "Tomar foto"}
         </button>
       </div>
     );
@@ -450,6 +461,9 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     <>
       {/* Inputs ocultos — siempre montados para estabilidad de refs */}
       <input ref={extraFotoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
+      {/* Sin `capture`: permite elegir de la galería además de tomar una foto nueva — solo para la licencia. */}
+      <input ref={licenciaFotoInputRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
       <input ref={fotoPuntoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => subirFotoPunto(e.target.files?.[0])} />
@@ -594,7 +608,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
             </div>
 
             {rRadio("gen_tipo_licencia", "Tipo de licencia", ["CON VIGENCIA", "SIN VIGENCIA"])}
-            {rFoto("gen_foto_licencia", "Foto de licencia")}
+            {rFoto("gen_foto_licencia", "Foto de licencia", true, true)}
 
             {error && <p style={errorStyle}>{error}</p>}
 

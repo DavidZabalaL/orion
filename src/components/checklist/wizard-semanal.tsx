@@ -155,11 +155,13 @@ function BarraProgreso({ actual, total, seccion }: { actual: number; total: numb
 }
 
 function SubirFoto({
-  clave, label, requerido, url, onUrl,
+  clave, label, requerido, url, onUrl, permitirGaleria = false,
 }: {
   clave: string; label: string; requerido: boolean;
   url: string | undefined;
   onUrl: (url: string | null) => void;
+  /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
+  permitirGaleria?: boolean;
 }) {
   const [subiendo, setSubiendo] = useState(false);
   const [errFoto, setErrFoto] = useState<string | null>(null);
@@ -202,7 +204,7 @@ function SubirFoto({
         ref={ref}
         type="file"
         accept="image/*"
-        capture="environment"
+        {...(permitirGaleria ? {} : { capture: "environment" as const })}
         className="hidden"
         onChange={(e) => alSeleccionar(e.target.files?.[0])}
       />
@@ -678,6 +680,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               requerido
               url={fotos[item.key]}
               onUrl={(url) => setFoto(item.key, url)}
+              permitirGaleria
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
