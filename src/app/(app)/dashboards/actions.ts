@@ -283,7 +283,7 @@ export type ConfigEstatusFlotaProgramado = {
 };
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
-const MAX_CAMPOS_EXTRA = 8;
+const MAX_CAMPOS_EXTRA = 18;
 
 /**
  * Envío automático semanal — un único ReporteProgramado (tipo "estatus_flota"),

@@ -44,7 +44,7 @@ const DIAS_SEMANA = [
   { value: 6, label: "Sábado" },
 ];
 
-const MAX_CAMPOS_EXTRA = 8;
+const MAX_CAMPOS_EXTRA = 18;
 
 const PERIODOS_DIAS = [
   { value: 7, label: "Últimos 7 días" },

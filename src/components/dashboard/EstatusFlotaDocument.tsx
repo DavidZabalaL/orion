@@ -1,6 +1,7 @@
-import { Document, Page, Text, View, StyleSheet, Svg, Circle } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Svg, Circle, Image } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 
@@ -26,11 +27,13 @@ const styles = StyleSheet.create({
   page: { fontSize: 9.5, fontFamily: "Helvetica", color: NAVY, backgroundColor: PAGE_BG, padding: 24 },
 
   headerCard: {
-    backgroundColor: "#ffffff", borderRadius: 8, borderLeftWidth: 4, borderLeftColor: BLUE,
+    backgroundColor: NAVY, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: BLUE,
     paddingVertical: 14, paddingHorizontal: 18, marginBottom: 14,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
-  headerTitulo: { fontSize: 18, fontWeight: "bold", color: NAVY },
-  headerSubtitulo: { fontSize: 9, color: SLATE, marginTop: 3, letterSpacing: 0.3 },
+  headerTitulo: { fontSize: 18, fontWeight: "bold", color: "#ffffff" },
+  headerSubtitulo: { fontSize: 9, color: "#a8b4c8", marginTop: 3, letterSpacing: 0.3 },
+  headerLogo: { width: 62, height: 42, objectFit: "contain" },
 
   fila: { flexDirection: "row", gap: 14, marginBottom: 14 },
   tarjeta: {
@@ -62,6 +65,15 @@ const styles = StyleSheet.create({
   },
   footerText: { fontSize: 7.5, color: SLATE },
 });
+
+const TARJETAS_POR_FILA = 3;
+
+/** Divide una lista en grupos de `tamano` — cada grupo se renderiza como su propia fila, así ninguna fila termina con más tarjetas de las que caben en el ancho de la página. */
+function enGrupos<T>(lista: T[], tamano: number): T[][] {
+  const grupos: T[][] = [];
+  for (let i = 0; i < lista.length; i += tamano) grupos.push(lista.slice(i, i + tamano));
+  return grupos;
+}
 
 function fmtMoneyPdf(valor: number): string {
   return `$${Math.round(valor).toLocaleString("es-MX")}`;
@@ -223,15 +235,19 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
   const pctPresupuesto = datos.presupuestoMes.asignado > 0 ? Math.round((datos.gastoTotal / datos.presupuestoMes.asignado) * 100) : 0;
 
   return (
-    <Page size="A4" style={styles.page}>
+    <Page size="A4" orientation="landscape" style={styles.page}>
       <View style={styles.headerCard}>
-        <Text style={styles.headerTitulo}>{datos.proyectoLabel}</Text>
-        <Text style={styles.headerSubtitulo}>
-          GRUPO KABAT · ESTATUS DE FLOTA · {fmtFechaPdf(datos.desde).toUpperCase()} — {fmtFechaPdf(datos.hasta).toUpperCase()}
-        </Text>
+        <View>
+          <Text style={styles.headerTitulo}>{datos.proyectoLabel}</Text>
+          <Text style={styles.headerSubtitulo}>
+            ESTATUS DE FLOTA · {fmtFechaPdf(datos.desde).toUpperCase()} — {fmtFechaPdf(datos.hasta).toUpperCase()}
+          </Text>
+        </View>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
+        <Image src={KABAT_LOGO_DATA_URI} style={styles.headerLogo} />
       </View>
 
-      <View style={styles.fila}>
+      <View style={styles.fila} wrap={false}>
         <Tarjeta titulo="Disponibilidad">
           <DonaDisponibilidad disponibles={datos.unidadesDisponibles} noDisponibles={datos.unidadesNoDisponibles} />
         </Tarjeta>
@@ -248,7 +264,7 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
         </Tarjeta>
       </View>
 
-      <View style={styles.fila}>
+      <View style={styles.fila} wrap={false}>
         <TarjetaBarras
           titulo="Desglose de gastos"
           vacio="Sin gastos registrados en el periodo."
@@ -263,9 +279,9 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
         </Tarjeta>
       </View>
 
-      {datos.camposExtra.length > 0 && (
-        <View style={styles.fila}>
-          {datos.camposExtra.map((c) =>
+      {enGrupos(datos.camposExtra, TARJETAS_POR_FILA).map((grupo, i) => (
+        <View key={i} style={styles.fila} wrap={false}>
+          {grupo.map((c) =>
             c.tipoVisualizacion === "kpi" ? (
               <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} />
             ) : (
@@ -277,8 +293,12 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
               />
             )
           )}
+          {/* Rellena huecos de la última fila incompleta para que las tarjetas no se estiren de más. */}
+          {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
+            <View key={`hueco-${j}`} style={{ flex: 1 }} />
+          ))}
         </View>
-      )}
+      ))}
 
       <View style={styles.footer} fixed>
         <Text style={styles.footerText}>Orión · Control Vehicular — Grupo Kabat</Text>
