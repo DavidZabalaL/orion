@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
   kpiValue: { fontSize: 18, fontWeight: "bold", color: NAVY },
   kpiLabel: { fontSize: 8.5, color: SLATE, marginTop: 4 },
 
+  chartsGrid: { flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 14 },
   chartBlock: {
-    marginBottom: 20,
     borderWidth: 1,
     borderColor: BORDER,
     borderStyle: "solid",
@@ -108,23 +108,35 @@ interface Props {
   charts: { title: string; dataUrl: string; width: number; height: number }[];
 }
 
-// Ancho útil de la página: A4 (595pt) menos los 36pt de margen de .body a
-// cada lado, menos los 12pt de padding de .chartImageWrap a cada lado.
-const CHART_IMAGE_WIDTH = 499;
-// Tope generoso para que un widget muy angosto y alto (ej. una lista larga
-// en tipoGrafica "avance") no termine ocupando varias páginas completas.
-const CHART_IMAGE_MAX_HEIGHT = 620;
+// Ancho útil de la página: A4 horizontal (842pt) menos los 36pt de margen de
+// .body a cada lado — landscape porque, a diferencia de una carta de texto,
+// este reporte es casi todo gráficas/tablas anchas, y el ancho extra reduce
+// tanto el recorte de etiquetas como las páginas casi vacías.
+const PAGE_CONTENT_WIDTH = 770;
+const CHARTS_GRID_GAP = 14;
+// Padding de .chartImageWrap (12 c/lado) + borde de .chartBlock (1 c/lado).
+const CHART_BLOCK_CHROME = 26;
+const CHART_FULL_WIDTH = PAGE_CONTENT_WIDTH - CHART_BLOCK_CHROME;
+const CHART_HALF_WIDTH = (PAGE_CONTENT_WIDTH - CHARTS_GRID_GAP) / 2 - CHART_BLOCK_CHROME;
+// Tope de alto por imagen: en horizontal la página tiene menos alto útil que
+// en vertical, así que un widget angosto y alto (ej. "avance") debe ceder
+// ancho (ver anchoRelativo) antes que intentar ocupar toda la altura disponible.
+const CHART_IMAGE_MAX_HEIGHT = 440;
+// Un widget cuyo ancho capturado en pantalla es notablemente menor que el
+// más ancho del lote es, casi siempre, un widget de 1 columna en la grilla
+// del dashboard (ej. "avance"), no una gráfica ancha con proporción rara —
+// comparte fila con otro igual de angosto en dos columnas. La proporción
+// alto/ancho del PNG capturado NO sirve para esto: un widget de 1 columna
+// con pocas filas (ej. un solo "avance" corto) puede salir tan ancho como
+// alto, y aun así seguir siendo, por su ancho real en pantalla, un widget
+// angosto que conviene emparejar.
+const UMBRAL_ANCHO_RELATIVO = 0.72;
 
-/**
- * Calcula el tamaño del <Image> a partir de la proporción real capturada en
- * pantalla (ver ExportSummaryModal) — reemplaza el `maxHeight` fijo anterior,
- * que dejaba mucho espacio en blanco en widgets naturalmente angostos y altos
- * (ej. "avance") y no reflejaba el ancho real de gráficas anchas.
- */
-function tamanoImagen(width: number, height: number): { width: number; height: number } {
-  if (!width || !height) return { width: CHART_IMAGE_WIDTH, height: 200 };
+/** Calcula el tamaño del <Image> a partir de la proporción real capturada en pantalla (ver ExportSummaryModal), acotado al ancho de columna que le toque. */
+function tamanoImagen(width: number, height: number, anchoMaximo: number): { width: number; height: number } {
+  if (!width || !height) return { width: anchoMaximo, height: 200 };
   const proporcion = height / width;
-  let w = CHART_IMAGE_WIDTH;
+  let w = anchoMaximo;
   let h = w * proporcion;
   if (h > CHART_IMAGE_MAX_HEIGHT) {
     h = CHART_IMAGE_MAX_HEIGHT;
@@ -133,11 +145,51 @@ function tamanoImagen(width: number, height: number): { width: number; height: n
   return { width: w, height: h };
 }
 
+type ChartImg = Props["charts"][number];
+
+/**
+ * Agrupa las gráficas en "filas" para el render: dos angostas (widgets de 1
+ * columna en la grilla del dashboard, ver UMBRAL_ANCHO_RELATIVO) consecutivas
+ * se emparejan en una fila de dos columnas; una ancha (o una angosta que
+ * quedó sin pareja) va sola en su propia fila. No basta con un solo
+ * contenedor flex-wrap para todas las gráficas — el motor de paginación de
+ * @react-pdf/renderer decide los saltos de página elemento por elemento, y en
+ * la práctica dos angostas dentro de un único flex-wrap grande terminaban
+ * cada una en su propia página aunque cupieran una junto a la otra. Envolver
+ * cada par en su propia fila (con `wrap={false}` sobre la fila, no sobre cada
+ * gráfica) fuerza a que ambas se midan y salten de página como una unidad.
+ */
+function agruparFilas(charts: ChartImg[]): ChartImg[][] {
+  const anchoMax = Math.max(...charts.map((c) => c.width), 1);
+  const esAngosta = (c: ChartImg) => c.width < anchoMax * UMBRAL_ANCHO_RELATIVO;
+  const filas: ChartImg[][] = [];
+  // Una angosta pendiente de pareja espera incluso a través de anchas
+  // intermedias (que se van insertando en su propia fila mientras tanto) —
+  // así, dos angostas separadas en el orden original por una ancha de por
+  // medio (ej. angosta, ancha, angosta) igual se emparejan, en vez de que la
+  // primera se quede sola solo por el orden en que llegaron los widgets.
+  let pendiente: ChartImg | null = null;
+  for (const c of charts) {
+    if (esAngosta(c)) {
+      if (pendiente) {
+        filas.push([pendiente, c]);
+        pendiente = null;
+      } else {
+        pendiente = c;
+      }
+    } else {
+      filas.push([c]);
+    }
+  }
+  if (pendiente) filas.push([pendiente]);
+  return filas;
+}
+
 /** Documento del "resumen ejecutivo" exportable en PDF desde el Dashboard — ver ExportSummaryModal. */
 export function ExecutiveSummaryDocument({ title, date, summary, kpis, charts }: Props) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation="landscape" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
@@ -178,17 +230,27 @@ export function ExecutiveSummaryDocument({ title, date, summary, kpis, charts }:
           {charts.length > 0 && (
             <View>
               <Text style={styles.sectionTitle}>Gráficas</Text>
-              {charts.map((c) => (
-                <View key={c.title} style={styles.chartBlock} wrap={false}>
-                  <View style={styles.chartTitleBar}>
-                    <Text style={styles.chartTitle}>{c.title}</Text>
+              <View style={{ gap: CHARTS_GRID_GAP }}>
+                {agruparFilas(charts).map((fila) => (
+                  <View key={fila.map((c) => c.title).join("|")} style={styles.chartsGrid} wrap={false}>
+                    {fila.map((c) => {
+                      const enPar = fila.length > 1;
+                      const anchoColumna = enPar ? CHART_HALF_WIDTH : CHART_FULL_WIDTH;
+                      return (
+                        <View key={c.title} style={{ ...styles.chartBlock, width: enPar ? "48.5%" : "100%" }}>
+                          <View style={styles.chartTitleBar}>
+                            <Text style={styles.chartTitle}>{c.title}</Text>
+                          </View>
+                          <View style={styles.chartImageWrap}>
+                            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
+                            <Image src={c.dataUrl} style={{ ...tamanoImagen(c.width, c.height, anchoColumna), objectFit: "contain" }} />
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
-                  <View style={styles.chartImageWrap}>
-                    {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
-                    <Image src={c.dataUrl} style={{ ...tamanoImagen(c.width, c.height), objectFit: "contain" }} />
-                  </View>
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
           )}
         </View>

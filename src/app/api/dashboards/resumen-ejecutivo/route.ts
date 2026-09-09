@@ -80,8 +80,20 @@ ${prompt ? `\nEl equipo directivo pidió específicamente lo siguiente para este
     const response = await client.models.generateContent({
       model: MODELO_INSIGHT,
       contents: "Genera el resumen ejecutivo.",
-      config: { maxOutputTokens: 600, systemInstruction: system },
+      // gemini-3.1-pro-preview razona internamente antes de responder, y esos
+      // tokens de "pensamiento" cuentan contra maxOutputTokens — con un tope
+      // bajo (600) el modelo podía agotar el presupuesto pensando y dejar el
+      // texto visible cortado a media frase. 2048 deja margen de sobra para
+      // el razonamiento y las 4-6 frases que pide el prompt.
+      config: { maxOutputTokens: 2048, systemInstruction: system },
     });
+    // Si el modelo se quedó sin presupuesto de tokens, el texto puede venir
+    // cortado a media frase — mejor tratarlo como fallo explícito (el modal
+    // ya muestra un aviso y genera el PDF sin resumen) que mostrar un
+    // párrafo roto en el PDF.
+    if (response.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+      return NextResponse.json({ summary: "", error: "El resumen con IA se cortó por límite de longitud. Intenta de nuevo." });
+    }
     const texto = sanitizarParaPdf(response.text?.trim() || "");
     return NextResponse.json({ summary: texto });
   } catch (error) {

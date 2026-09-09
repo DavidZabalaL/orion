@@ -330,8 +330,17 @@ function ejes(w: number, h: number, valores: number[]) {
   return { max: max === 0 ? 1 : max, innerW, innerH };
 }
 
+// Ancho aproximado (px) de una etiqueta de categoría a fontSize 10 en la
+// fuente UI — usado para reservarle a cada barra/grupo el espacio horizontal
+// mínimo que su propia etiqueta (ya truncada a `maxChars`) necesita, y así
+// evitar que se encime con la etiqueta vecina cuando hay muchas categorías.
+function anchoMinimoEtiqueta(texto: string, maxChars: number): number {
+  return Math.min(texto.length, maxChars + 1) * 6 + 16;
+}
+
 function BiBarras({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
-  const W = Math.max(width, datos.length * 60);
+  const anchoPorEtiqueta = Math.max(60, ...datos.map((d) => anchoMinimoEtiqueta(d.dimension, 12)));
+  const W = Math.max(width, datos.length * anchoPorEtiqueta);
   const H = height;
   const { max, innerW, innerH } = ejes(W, H, datos.map((d) => d.valor));
   const gap = 8;
@@ -433,7 +442,8 @@ function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, ejeYSufi
   const { series, filas } = cruzado;
   const nSeries = Math.max(series.length, 1);
   const legendH = 28;
-  const groupMinWidth = Math.max(50, nSeries * 16 + 12);
+  const anchoPorEtiqueta = Math.max(50, ...filas.map((f) => anchoMinimoEtiqueta(f.dimension, 14)));
+  const groupMinWidth = Math.max(50, nSeries * 16 + 12, anchoPorEtiqueta);
   const W = Math.max(width, filas.length * groupMinWidth);
   const H = height;
   const max = Math.max(...filas.flatMap((f) => series.map((s) => f.valores[s] ?? 0)), 0);
