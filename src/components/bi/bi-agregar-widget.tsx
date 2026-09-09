@@ -67,6 +67,7 @@ export function BiAgregarWidget({
       orden: combinacion.orden,
       orientacion: combinacion.orientacion,
       colorimetria: combinacion.colorimetria,
+      vistaPreferida: combinacion.vistaPreferida,
       filtros: combinacion.filtros,
       proyectoIds: combinacion.proyectoIds,
       emiteFiltro: emiteFiltro || undefined,

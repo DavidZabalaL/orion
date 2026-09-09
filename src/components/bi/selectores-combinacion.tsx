@@ -90,6 +90,8 @@ export type CombinacionBI = {
   orientacion?: "vertical" | "horizontal";
   /** Solo con tipoGrafica "avance": si un % alto es bueno (verde) o malo (rojo). */
   colorimetria?: "positivo" | "negativo";
+  /** Con qué vista abre el widget por defecto, si soporta tabla: "grafica" (por defecto) o "tabla". */
+  vistaPreferida?: "grafica" | "tabla";
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
 };
@@ -297,6 +299,31 @@ export function SelectoresCombinacion({
                   title={c === "positivo" ? "Ej. disponibilidad, cumplimiento: llegar al 100% es bueno" : "Ej. ejecución presupuestal: pasarse del 100% es malo"}
                 >
                   {c === "positivo" ? "Alto es bueno (verde)" : "Alto es malo (rojo)"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide" && combinacion.tipoGrafica !== "contador" && combinacion.tipoGrafica !== "avance" && (
+          <div>
+            <label style={labelStyle}>Vista preferida</label>
+            <div className="flex gap-1.5">
+              {(["grafica", "tabla"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => onChange({ ...combinacion, vistaPreferida: v })}
+                  className="flex-1 rounded-md px-3"
+                  style={{
+                    height: "var(--h-md)",
+                    background: (combinacion.vistaPreferida ?? "grafica") === v ? "var(--color-primary)" : "var(--field-bg)",
+                    color: (combinacion.vistaPreferida ?? "grafica") === v ? "#fff" : "var(--sidebar-text)",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: "var(--text-sm)",
+                  }}
+                  title="Con qué vista se abre este widget por defecto — igual puedes alternar en cualquier momento"
+                >
+                  {v === "grafica" ? "Gráfica" : "Tabla"}
                 </button>
               ))}
             </div>

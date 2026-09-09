@@ -763,6 +763,8 @@ export type CombinacionGuardable = {
   orientacion?: "vertical" | "horizontal";
   /** Solo con tipoGrafica "avance": si un % alto es bueno (verde, ej. disponibilidad/SLA) o malo (rojo, ej. ejecución presupuestal). Por defecto "negativo". Puramente visual. */
   colorimetria?: "positivo" | "negativo";
+  /** Con qué vista abre el widget por defecto, si soporta tabla (todas menos caja/piramide/contador/avance): "grafica" (por defecto) o "tabla". Puramente visual — el usuario igual puede alternar en cualquier momento. */
+  vistaPreferida?: "grafica" | "tabla";
   /** Filtros adicionales (narrows el conjunto de filas antes de agrupar). Ausente/[] = sin filtro. */
   filtros?: FiltroGuardable[];
   /** Proyectos elegidos por quien arma el widget. Ausente = "Nacional" (todos los
@@ -842,6 +844,7 @@ export const WIDGETS_BI_DEFAULT: WidgetDashboardBI[] = BI_COMBINACIONES_SUGERIDA
     ejeMeta: c.ejeMeta,
     orientacion: c.orientacion,
     colorimetria: c.colorimetria,
+    vistaPreferida: c.vistaPreferida,
     agregacion: c.agregacion,
     tipoGrafica: c.tipoGrafica,
     layout: { x: col, y: fila * ALTO_DEFAULT, w, h: ALTO_DEFAULT },

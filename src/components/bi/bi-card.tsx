@@ -10,6 +10,10 @@ import { useBiQuery } from "@/components/bi/use-bi-query";
 import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
 import { useRegisterExportable } from "@/components/dashboard/ExportRegistryContext";
 
+// Misma precisión que fmtNumero() en bi-chart.tsx (no exportado desde ahí) —
+// para que el KPI exportado al PDF muestre el mismo redondeo que el "Contador" en pantalla.
+const FMT_KPI = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
+
 export function BiCard({
   label,
   dataset,
@@ -22,6 +26,7 @@ export function BiCard({
   orden,
   orientacion,
   colorimetria,
+  vistaPreferida,
   filtros,
   proyectoIds,
   editMode = false,
@@ -46,6 +51,8 @@ export function BiCard({
   orientacion?: "vertical" | "horizontal";
   /** Solo con tipoGrafica "avance": si un % alto es bueno (verde) o malo (rojo). */
   colorimetria?: "positivo" | "negativo";
+  /** Con qué vista abre el widget por defecto (solo si soporta tabla): "grafica" (por defecto) o "tabla". */
+  vistaPreferida?: "grafica" | "tabla";
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
   editMode?: boolean;
@@ -58,7 +65,7 @@ export function BiCard({
   filtroInteraccion?: FiltroGuardable | null;
   onCategoriaClick?: (campoId: string, valor: string) => void;
 }) {
-  const [verTabla, setVerTabla] = useState(false);
+  const [verTabla, setVerTabla] = useState(vistaPreferida === "tabla");
   const [mostrarTotal, setMostrarTotal] = useState(false);
   const soportaTabla = tipoGrafica !== "caja" && tipoGrafica !== "piramide" && tipoGrafica !== "contador" && tipoGrafica !== "avance";
 
@@ -87,11 +94,19 @@ export function BiCard({
   // resumen ejecutivo mientras está visible y con datos: los "contador"
   // (un solo valor) se registran como KPI numérico, el resto como gráfica a
   // rasterizar desde el mismo `graficaRef` que ya usa ExportarMenu.
+  // Réplica exacta de cómo BiContador calcula el número mostrado — usar solo
+  // `datos[0].valor` (como hacía antes) da el valor del primer grupo, no el
+  // total/promedio real, cuando el contador agrupa por varias categorías
+  // (ej. SLA promedio por unidad): el KPI exportado terminaba mostrando un
+  // número distinto al que se ve en pantalla.
+  const totalContador =
+    datos.length > 0 ? FMT_KPI.format(datos.reduce((acc, d) => acc + d.valor, 0) / (agregacion === "promedio" ? datos.length : 1)) : undefined;
+
   useRegisterExportable(
     cargando || error
       ? null
       : tipoGrafica === "contador"
-      ? { id: idExportable, type: "kpi", title: label, value: datos[0]?.valor !== undefined ? `${datos[0].valor}${ejeYSufijo}` : undefined }
+      ? { id: idExportable, type: "kpi", title: label, value: totalContador !== undefined ? `${totalContador}${ejeYSufijo}` : undefined }
       : { id: idExportable, type: "chart", title: label, domRef: graficaRef }
   );
 

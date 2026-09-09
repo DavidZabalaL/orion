@@ -31,6 +31,7 @@ const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contad
 const ORDENES_VALIDOS: TipoOrden[] = ["dimension", "valor_desc", "valor_asc"];
 const ORIENTACIONES_VALIDAS = ["vertical", "horizontal"] as const;
 const COLORIMETRIAS_VALIDAS = ["positivo", "negativo"] as const;
+const VISTAS_PREFERIDAS_VALIDAS = ["grafica", "tabla"] as const;
 const MAX_FILTROS = 20;
 const MAX_VALORES_POR_FILTRO = 100;
 
@@ -66,7 +67,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, filtros, proyectoIds, emiteFiltro, escuchaFiltro } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
     if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
@@ -121,6 +122,12 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       colorimetriaLimpia = colorimetria as "positivo" | "negativo";
     }
 
+    let vistaPreferidaLimpia: "grafica" | "tabla" | undefined;
+    if (vistaPreferida !== undefined) {
+      if (!VISTAS_PREFERIDAS_VALIDAS.includes(vistaPreferida as "grafica" | "tabla")) return null;
+      vistaPreferidaLimpia = vistaPreferida as "grafica" | "tabla";
+    }
+
     const filtrosLimpios = validarFiltros(filtros, ds);
     if (filtrosLimpios === null) return null;
 
@@ -143,6 +150,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       orden: ordenLimpio,
       orientacion: orientacionLimpia,
       colorimetria: colorimetriaLimpia,
+      vistaPreferida: vistaPreferidaLimpia,
       filtros: filtrosLimpios,
       proyectoIds: proyectoIdsLimpios,
       layout: layoutValido,

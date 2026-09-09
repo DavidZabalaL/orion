@@ -2,40 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sigma, LayoutGrid, Compass, Car, CalendarClock } from "lucide-react";
+import { Sigma, LayoutGrid, Compass, CalendarClock } from "lucide-react";
 import { BiDashboardEditor, type VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import { BiExplorer, type MetricaDisponible } from "@/components/bi/bi-explorer";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
-import { InventarioResumenTab } from "@/components/dashboard/InventarioResumenTab";
 import { ExportRegistryProvider } from "@/components/dashboard/ExportRegistryContext";
 import { EstatusFlotaModal } from "@/components/dashboard/EstatusFlotaModal";
 import type { ConfigEstatusFlotaProgramado } from "@/app/(app)/dashboards/actions";
-import type { UnidadRow } from "@/components/unidades/unidades-table";
-import type { WidgetActivo } from "@/lib/widgets";
 
 const TABS = [
   { id: "propios", label: "Mis dashboards", icon: LayoutGrid },
   { id: "explorador", label: "Explorador libre", icon: Compass },
-  { id: "inventario", label: "Inventario de Unidades", icon: Car },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
-
-export type DatosInventarioTab = {
-  rows: UnidadRow[];
-  widgetsActivos: WidgetActivo[];
-  gastoHoy: number;
-  puedeVerSla: boolean;
-  slaOcultoInicial: boolean;
-  puedeConfigurar: boolean;
-};
 
 /**
  * Antes eran dos pantallas separadas (/dashboards con la cuadrícula de
  * widgets guardados, /reportes/bi con el explorador ad-hoc) sobre el mismo
  * motor (/api/bi/query) — se unifican aquí como pestañas de una sola
- * pantalla, bajo el permiso "M". La pestaña "Inventario de Unidades" suma el
- * resumen de /unidades (permiso "A") como tercera pestaña, sin tocar ese
- * módulo — ver InventarioResumenTab.
+ * pantalla, bajo el permiso "M".
  */
 export function DashboardsUnificado({
   vistas,
@@ -43,7 +28,6 @@ export function DashboardsUnificado({
   proyectosDisponibles,
   metricasDisponibles,
   tabInicial,
-  datosInventario,
   configEstatusFlota,
 }: {
   vistas: VistaDashboard[];
@@ -51,11 +35,9 @@ export function DashboardsUnificado({
   proyectosDisponibles: ProyectoDisponible[];
   metricasDisponibles: MetricaDisponible[];
   tabInicial: TabId;
-  datosInventario?: DatosInventarioTab;
   configEstatusFlota: ConfigEstatusFlotaProgramado;
 }) {
-  const [tab, setTab] = useState<TabId>(datosInventario ? tabInicial : tabInicial === "inventario" ? "propios" : tabInicial);
-  const tabsVisibles = datosInventario ? TABS : TABS.filter((t) => t.id !== "inventario");
+  const [tab, setTab] = useState<TabId>(tabInicial);
   const [mostrarEstatusFlota, setMostrarEstatusFlota] = useState(false);
 
   return (
@@ -69,9 +51,7 @@ export function DashboardsUnificado({
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
               {tab === "propios"
                 ? "Guarda tus propias vistas con las combinaciones que más uses."
-                : tab === "explorador"
-                ? "Combina cualquier dimensión con cualquier métrica, pregunta en lenguaje natural, o pide un resumen automático."
-                : "Ficha única por número económico con vista consolidada de flota."}
+                : "Combina cualquier dimensión con cualquier métrica, pregunta en lenguaje natural, o pide un resumen automático."}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -96,7 +76,7 @@ export function DashboardsUnificado({
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b" style={{ borderColor: "var(--field-border)" }} data-no-print>
-          {tabsVisibles.map((t) => (
+          {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -117,7 +97,6 @@ export function DashboardsUnificado({
 
         {tab === "propios" && <BiDashboardEditor vistas={vistas} puedeEditar={puedeEditar} proyectosDisponibles={proyectosDisponibles} />}
         {tab === "explorador" && <BiExplorer proyectosDisponibles={proyectosDisponibles} metricasDisponibles={metricasDisponibles} />}
-        {tab === "inventario" && datosInventario && <InventarioResumenTab {...datosInventario} />}
 
         {mostrarEstatusFlota && (
           <EstatusFlotaModal

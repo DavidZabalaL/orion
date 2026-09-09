@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, FileDown, Loader2 } from "lucide-react";
 import { useExportRegistry } from "./ExportRegistryContext";
 
@@ -11,9 +11,9 @@ import { useExportRegistry } from "./ExportRegistryContext";
  * una captura de pantalla): @react-pdf/renderer para el documento,
  * html-to-image para rasterizar las gráficas elegidas.
  */
-export function ExportSummaryModal({ onClose }: { onClose: () => void }) {
+export function ExportSummaryModal({ onClose, title = "Resumen ejecutivo" }: { onClose: () => void; title?: string }) {
   const { items } = useExportRegistry();
-  const [selected, setSelected] = useState<Set<string>>(new Set(items.map((i) => i.id)));
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customPrompt, setCustomPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -21,6 +21,20 @@ export function ExportSummaryModal({ onClose }: { onClose: () => void }) {
 
   const kpis = items.filter((i) => i.type === "kpi");
   const charts = items.filter((i) => i.type === "chart");
+
+  // `items` se llena de forma asíncrona (cada widget se registra cuando
+  // termina de cargar sus propios datos) — si el modal se abre antes de que
+  // todos hayan terminado, un `useState` inicializado una sola vez con
+  // `items` los deja fuera para siempre. Este efecto los va marcando a medida
+  // que aparecen, sin pisar una selección que el usuario ya haya cambiado a
+  // mano para un ítem que ya conocíamos.
+  const vistos = useRef(new Set<string>());
+  useEffect(() => {
+    const nuevos = items.map((i) => i.id).filter((id) => !vistos.current.has(id));
+    if (nuevos.length === 0) return;
+    for (const id of nuevos) vistos.current.add(id);
+    setSelected((prev) => new Set([...prev, ...nuevos]));
+  }, [items]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -78,7 +92,7 @@ export function ExportSummaryModal({ onClose }: { onClose: () => void }) {
 
       const doc = (
         <ExecutiveSummaryDocument
-          title="Resumen ejecutivo"
+          title={title}
           date={new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}
           summary={summary}
           kpis={kpisSeleccionados.map((i) => ({ title: i.title, value: String(i.value ?? "") }))}

@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 
 const NAVY = "#0f1b2d";
 const BLUE = "#2b7fff";
@@ -15,10 +16,11 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
     paddingHorizontal: 36,
   },
+  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   headerEyebrow: { fontSize: 9, color: "#9fb0d0", letterSpacing: 1.5, marginBottom: 6 },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: "#ffffff" },
-  headerMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 },
-  headerBrand: { fontSize: 10, color: "#c5d0e4" },
+  headerLogo: { width: 58, height: 39, objectFit: "contain" },
+  headerMeta: { flexDirection: "row", justifyContent: "flex-end", alignItems: "flex-end", marginTop: 14 },
   headerDate: { fontSize: 10, color: "#c5d0e4" },
   accentBar: { height: 4, backgroundColor: BLUE },
 
@@ -116,10 +118,15 @@ export function ExecutiveSummaryDocument({ title, date, summary, kpis, charts }:
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.headerEyebrow}>ORIÓN · CONTROL VEHICULAR — GRUPO KABAT</Text>
-          <Text style={styles.headerTitle}>{title}</Text>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerEyebrow}>ORIÓN · CONTROL VEHICULAR</Text>
+              <Text style={styles.headerTitle}>{title}</Text>
+            </View>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
+            <Image src={KABAT_LOGO_DATA_URI} style={styles.headerLogo} />
+          </View>
           <View style={styles.headerMeta}>
-            <Text style={styles.headerBrand}>Grupo Kabat</Text>
             <Text style={styles.headerDate}>{date}</Text>
           </View>
         </View>
@@ -156,6 +163,7 @@ export function ExecutiveSummaryDocument({ title, date, summary, kpis, charts }:
                     <Text style={styles.chartTitle}>{c.title}</Text>
                   </View>
                   <View style={styles.chartImageWrap}>
+                    {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
                     <Image src={c.dataUrl} style={styles.chartImage} />
                   </View>
                 </View>

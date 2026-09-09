@@ -15,6 +15,10 @@ import { InsightBI } from "@/components/bi/insight-bi";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 import { useRegisterExportable } from "@/components/dashboard/ExportRegistryContext";
 
+// Misma precisión que fmtNumero() en bi-chart.tsx (no exportado desde ahí) —
+// para que el KPI exportado al PDF muestre el mismo redondeo que el "Contador" en pantalla.
+const FMT_KPI = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
+
 export type MetricaDisponible = {
   id: string;
   nombre: string;
@@ -46,7 +50,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
-    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, orientacion: s.orientacion, colorimetria: s.colorimetria });
+    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, orientacion: s.orientacion, colorimetria: s.colorimetria, vistaPreferida: s.vistaPreferida });
   }
 
   // Aplicar una métrica guardada solo pre-llena dataset/ejeY/agregación/filtros
@@ -87,13 +91,21 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();
 
+  // Réplica exacta de cómo BiContador calcula el número mostrado — usar solo
+  // `datos[0].valor` da el valor del primer grupo, no el total/promedio real,
+  // cuando el contador agrupa por varias categorías (ej. SLA promedio por
+  // unidad): el KPI exportado terminaba mostrando un número distinto al que
+  // se ve en pantalla.
+  const totalContador =
+    datos.length > 0 ? FMT_KPI.format(datos.reduce((acc, d) => acc + d.valor, 0) / (combinacion.agregacion === "promedio" ? datos.length : 1)) : undefined;
+
   // Igual que en BiCard: la combinación libre del explorador se registra
   // para el exportador de resumen ejecutivo mientras tiene datos visibles.
   useRegisterExportable(
     cargando || error || verTabla
       ? null
       : combinacion.tipoGrafica === "contador"
-      ? { id: idExportable, type: "kpi", title: dataset.label, value: datos[0]?.valor !== undefined ? `${datos[0].valor}${ejeYSufijo}` : undefined }
+      ? { id: idExportable, type: "kpi", title: dataset.label, value: totalContador !== undefined ? `${totalContador}${ejeYSufijo}` : undefined }
       : { id: idExportable, type: "chart", title: dataset.label, domRef: graficaRef }
   );
 
