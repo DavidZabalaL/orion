@@ -4,7 +4,7 @@ import { InventarioUnidades } from "@/components/unidades/inventario-unidades";
 import { LayoutGrid } from "lucide-react";
 import { requerirPermisoModulo, esRolGlobal, puedeVerSlaDisponibilidad } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
-import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
+import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, conAlturaSegura, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
 import Link from "next/link";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
@@ -130,7 +130,7 @@ export default async function UnidadesPage() {
         label: w.labelDefault,
         tipo: w.tipo,
         activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
-        layout: esLayoutValido(guardado?.layout) ? guardado.layout : layoutsPorDefecto[w.id],
+        layout: esLayoutValido(guardado?.layout) ? conAlturaSegura(w.tipo, guardado.layout) : layoutsPorDefecto[w.id],
       };
     })
     // El widget de SLA por proyecto respeta el mismo permiso especial que la

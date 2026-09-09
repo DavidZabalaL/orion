@@ -8,7 +8,7 @@ import type { WidgetDashboardBI } from "@/lib/bi/metadata";
 import type { VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { DatosInventarioTab } from "@/components/bi/dashboards-unificado";
 import { type UnidadRow } from "@/components/unidades/unidades-table";
-import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
+import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, conAlturaSegura, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
 import { calcularSlaMesActualPorUnidades } from "@/lib/sla-disponibilidad";
@@ -198,7 +198,7 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
         label: w.labelDefault,
         tipo: w.tipo,
         activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
-        layout: esLayoutValido(guardado?.layout) ? guardado.layout : layoutsPorDefecto[w.id],
+        layout: esLayoutValido(guardado?.layout) ? conAlturaSegura(w.tipo, guardado.layout) : layoutsPorDefecto[w.id],
       };
     })
     .filter((w) => w.activo && (w.id !== "slaPorProyecto" || puedeVerSla));

@@ -52,7 +52,22 @@ export function StatCard({
         >
           {value}
         </div>
-        <div className="truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-ui)",
+            fontSize: "var(--text-sm)",
+            color: "var(--sidebar-text)",
+            // Etiquetas cortas (2-3 palabras): que hagan wrap a una segunda
+            // línea en vez de truncarse con "…" — el ancho de la tarjeta
+            // varía según cuántas quepan por fila, y wrap nunca pierde
+            // información. line-clamp de respaldo por si algún label llega a
+            // ser inusualmente largo.
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
           {label}
         </div>
       </div>
