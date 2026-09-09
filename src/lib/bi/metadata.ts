@@ -90,6 +90,8 @@ export type CampoMeta = {
   opciones?: { valor: string; label: string }[];
   /** Se agrega al formatear el valor de este campo cuando es el eje Y (ej. "%") — no aplica cuando la agregación es "conteo" (ahí el valor es N° de registros, no el campo). */
   sufijo?: string;
+  /** Restringe qué agregaciones tienen sentido para este campo (por defecto: las del tipo). Ej. un porcentaje como SLA solo se puede promediar — sumarlo o contarlo no significa nada y confunde (se ve como "N° de registros", sin el sufijo). */
+  agregacionesPermitidas?: TipoAgregacion[];
 };
 
 export type DatasetMeta = {
@@ -132,6 +134,11 @@ export const BI_DATASETS: DatasetMeta[] = [
     proyectoScopeExpr: `u."proyectoId"`,
     tablasBase: ["Unidad", "Proyecto", "Operador"],
     campos: [
+      // Máxima granularidad posible (1 fila = 1 unidad) — útil como eje X
+      // para ver un campo "por unidad" en vez de agrupado/promediado, igual
+      // que se ve en la tabla de Inventario de Unidades (ej. SLA de
+      // disponibilidad de cada unidad, no el promedio de su proyecto).
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `u."numeroEconomico"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `u."estatus"`, opciones: opcionesDe(ESTATUS_UNIDAD_LABEL) },
       {
         id: "disponibilidad",
@@ -180,14 +187,49 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mesAlta", label: "Mes de alta", tipo: "fecha_mes", expr: `u."fechaAlta"` },
       { id: "diaAlta", label: "Día de alta", tipo: "fecha_dia", expr: `u."fechaAlta"` },
-      { id: "kmOficial", label: "Km oficial", tipo: "numero", expr: `u."kmOficial"` },
-      { id: "rendimientoPromedio", label: "Rendimiento promedio", tipo: "numero", expr: `u."rendimientoPromedio"` },
-      { id: "capacidadTanqueLitros", label: "Capacidad de tanque (litros)", tipo: "numero", expr: `u."capacidadTanqueLitros"` },
+      {
+        id: "kmOficial",
+        label: "Km oficial",
+        tipo: "numero",
+        expr: `u."kmOficial"`,
+        sufijo: " km",
+        // Lectura de odómetro por unidad, no una cantidad que se acumule
+        // entre unidades — sumar los km de varias unidades no significa
+        // nada (ni es "distancia recorrida por la flota"); solo promediarlo
+        // tiene sentido (ej. "km oficial promedio por marca").
+        agregacionesPermitidas: ["promedio"],
+      },
+      {
+        id: "rendimientoPromedio",
+        label: "Rendimiento promedio",
+        tipo: "numero",
+        expr: `u."rendimientoPromedio"`,
+        sufijo: " km/L",
+        // Ya es un promedio por unidad — sumarlo entre unidades no
+        // representa nada real, solo promediarlo (promedio de promedios).
+        agregacionesPermitidas: ["promedio"],
+      },
+      {
+        id: "capacidadTanqueLitros",
+        label: "Capacidad de tanque (litros)",
+        tipo: "numero",
+        expr: `u."capacidadTanqueLitros"`,
+        sufijo: " L",
+        // A diferencia de km/rendimiento, sumar sí tiene un significado real
+        // (capacidad total de tanque de la flota/grupo) — se deja además de
+        // promedio; "conteo" se excluye porque ignoraría el campo.
+        agregacionesPermitidas: ["suma", "promedio"],
+      },
       {
         id: "slaDisponibilidad",
         label: "SLA de disponibilidad (% mes en curso)",
         tipo: "numero",
         sufijo: "%",
+        // Solo tiene sentido promediarlo: "conteo" ignoraría el campo (N° de
+        // registros, sin %) y "suma" de porcentajes entre unidades no
+        // significa nada — forzar "promedio" evita el resultado confuso de
+        // dejar la agregación en su valor por defecto ("conteo").
+        agregacionesPermitidas: ["promedio"],
         // Réplica en SQL de calcularSlaEnRango (src/lib/sla-disponibilidad.ts)
         // para el mes en curso: de los periodos de HistoricoDisponibilidadUnidad
         // que se traslapan con [inicio de mes, ahora], qué fracción del tiempo
@@ -231,7 +273,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `g."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `g."fecha"` },
-      { id: "costo", label: "Costo", tipo: "numero", expr: `g."costo"` },
+      { id: "costo", label: "Costo", tipo: "numero", expr: `g."costo"`, sufijo: " MXN" },
     ],
   },
   {
@@ -251,9 +293,18 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `c."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `c."fecha"` },
-      { id: "litros", label: "Litros", tipo: "numero", expr: `c."litros"` },
-      { id: "costo", label: "Costo", tipo: "numero", expr: `c."costo"` },
-      { id: "rendimientoCalculado", label: "Rendimiento", tipo: "numero", expr: `c."rendimientoCalculado"` },
+      { id: "litros", label: "Litros", tipo: "numero", expr: `c."litros"`, sufijo: " L" },
+      { id: "costo", label: "Costo", tipo: "numero", expr: `c."costo"`, sufijo: " MXN" },
+      {
+        id: "rendimientoCalculado",
+        label: "Rendimiento",
+        tipo: "numero",
+        expr: `c."rendimientoCalculado"`,
+        sufijo: " km/L",
+        // Ya es un cálculo por carga (km/L) — sumarlo entre cargas no
+        // representa nada, solo promediarlo.
+        agregacionesPermitidas: ["promedio"],
+      },
     ],
   },
   {
@@ -268,7 +319,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mesVencimiento", label: "Mes de vencimiento", tipo: "fecha_mes", expr: `s."fechaVencimiento"` },
       { id: "diaVencimiento", label: "Día de vencimiento", tipo: "fecha_dia", expr: `s."fechaVencimiento"` },
-      { id: "costo", label: "Costo", tipo: "numero", expr: `s."costo"` },
+      { id: "costo", label: "Costo", tipo: "numero", expr: `s."costo"`, sufijo: " MXN" },
     ],
   },
   {
@@ -312,7 +363,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `t."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `t."fecha"` },
-      { id: "monto", label: "Monto", tipo: "numero", expr: `t."monto"` },
+      { id: "monto", label: "Monto", tipo: "numero", expr: `t."monto"`, sufijo: " MXN" },
     ],
   },
   {
@@ -325,7 +376,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `pp."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `make_date(pp."anio", pp."mes", 1)` },
-      { id: "montoPresupuestado", label: "Monto presupuestado", tipo: "numero", expr: `pp."montoPresupuestado"` },
+      { id: "montoPresupuestado", label: "Monto presupuestado", tipo: "numero", expr: `pp."montoPresupuestado"`, sufijo: " MXN" },
     ],
   },
   {
@@ -339,7 +390,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `p."estatus"`, opciones: [{ valor: "ACTIVO", label: "Activo" }, { valor: "CERRADO", label: "Cerrado" }] },
       { id: "mesInicio", label: "Mes de inicio", tipo: "fecha_mes", expr: `p."fechaInicio"` },
       { id: "diaInicio", label: "Día de inicio", tipo: "fecha_dia", expr: `p."fechaInicio"` },
-      { id: "presupuestoAprobadoAnual", label: "Presupuesto aprobado anual", tipo: "numero", expr: `p."presupuestoAprobadoAnual"` },
+      { id: "presupuestoAprobadoAnual", label: "Presupuesto aprobado anual", tipo: "numero", expr: `p."presupuestoAprobadoAnual"`, sufijo: " MXN" },
     ],
   },
   {
@@ -380,9 +431,9 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `s."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `s."fecha"` },
-      { id: "estimacionDanos", label: "Estimación de daños", tipo: "numero", expr: `s."estimacionDanos"` },
-      { id: "costoArrastre", label: "Costo de arrastre", tipo: "numero", expr: `s."costoArrastre"` },
-      { id: "costoReparacion", label: "Costo de reparación", tipo: "numero", expr: `s."costoReparacion"` },
+      { id: "estimacionDanos", label: "Estimación de daños", tipo: "numero", expr: `s."estimacionDanos"`, sufijo: " MXN" },
+      { id: "costoArrastre", label: "Costo de arrastre", tipo: "numero", expr: `s."costoArrastre"`, sufijo: " MXN" },
+      { id: "costoReparacion", label: "Costo de reparación", tipo: "numero", expr: `s."costoReparacion"`, sufijo: " MXN" },
     ],
   },
   {
@@ -464,7 +515,16 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `ch."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `ch."fecha"` },
-      { id: "odometro", label: "Odómetro", tipo: "numero", expr: `ch."odometro"` },
+      {
+        id: "odometro",
+        label: "Odómetro",
+        tipo: "numero",
+        expr: `ch."odometro"`,
+        sufijo: " km",
+        // Lectura de odómetro, no una cantidad acumulable entre unidades —
+        // ver el mismo criterio en "kmOficial" del dataset de unidades.
+        agregacionesPermitidas: ["promedio"],
+      },
     ],
   },
   {
@@ -489,7 +549,16 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `g."timestamp"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `g."timestamp"` },
-      { id: "velocidad", label: "Velocidad", tipo: "numero", expr: `g."velocidad"` },
+      {
+        id: "velocidad",
+        label: "Velocidad",
+        tipo: "numero",
+        expr: `g."velocidad"`,
+        sufijo: " km/h",
+        // Lectura instantánea por punto GPS — sumar velocidades de varios
+        // puntos no significa nada, solo promediarla.
+        agregacionesPermitidas: ["promedio"],
+      },
     ],
   },
   {
@@ -509,7 +578,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes de inicio", tipo: "fecha_mes", expr: `h."timestampInicio"` },
       { id: "dia", label: "Día de inicio", tipo: "fecha_dia", expr: `h."timestampInicio"` },
-      { id: "duracionMinutos", label: "Duración (minutos)", tipo: "numero", expr: `h."duracionMinutos"` },
+      { id: "duracionMinutos", label: "Duración (minutos)", tipo: "numero", expr: `h."duracionMinutos"`, sufijo: " min" },
     ],
   },
   {
@@ -556,8 +625,9 @@ export function obtenerCampo(dataset: DatasetMeta, id: string): CampoMeta | unde
   return dataset.campos.find((c) => c.id === id);
 }
 
-/** Agregaciones permitidas para un campo: conteo siempre; suma/promedio solo en campos numéricos. */
+/** Agregaciones permitidas para un campo: conteo siempre; suma/promedio solo en campos numéricos — salvo que el campo restrinja explícitamente cuáles tienen sentido (`agregacionesPermitidas`). */
 export function agregacionesDisponibles(campo: CampoMeta): TipoAgregacion[] {
+  if (campo.agregacionesPermitidas) return campo.agregacionesPermitidas;
   return campo.tipo === "numero" ? ["conteo", "suma", "promedio"] : ["conteo"];
 }
 
@@ -609,6 +679,7 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Motivo de indisponibilidad", dataset: "unidades", ejeX: "motivoIndisponibilidad", ejeY: "motivoIndisponibilidad", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "SLA de disponibilidad por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "barras" },
+  { label: "SLA de disponibilidad por unidad", dataset: "unidades", ejeX: "numeroEconomico", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "puntos", orden: "valor_asc" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Litros de combustible por mes", dataset: "combustible", ejeX: "mes", ejeY: "litros", agregacion: "suma", tipoGrafica: "lineas" },

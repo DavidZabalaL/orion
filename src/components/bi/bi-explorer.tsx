@@ -187,7 +187,12 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
         tieneDatos={!cargando && !error && datos.length > 0}
       />
 
-      <AnalisisAvanzado datasetId={combinacion.datasetId} proyectoIds={combinacion.proyectoIds} filtros={combinacion.filtros} />
+      {/* key=datasetId: fuerza remount al cambiar de dataset — sus selects de
+          campo (campoXVar/campoYVar/campoFunnel) se inicializan una sola vez
+          con useState a partir del dataset "actual" en ese momento; sin
+          remount quedan apuntando a un campo que no existe en el nuevo
+          dataset y el .find(...)! revienta en tiempo de ejecución. */}
+      <AnalisisAvanzado key={combinacion.datasetId} datasetId={combinacion.datasetId} proyectoIds={combinacion.proyectoIds} filtros={combinacion.filtros} />
     </div>
   );
 }
