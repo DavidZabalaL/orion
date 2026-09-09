@@ -25,6 +25,10 @@ export function StatCard({
         boxShadow: "var(--shadow-sm)",
         border: seleccionado ? "2px solid var(--color-primary)" : "2px solid transparent",
         cursor: onClick ? "pointer" : "default",
+        // Permite que clamp(...cqw...) de abajo escale con el ancho real de
+        // esta tarjeta (cuánto le tocó del grid), no con el viewport —
+        // así el número no se desborda cuando el widget queda angosto.
+        containerType: "inline-size",
       }}
     >
       <div
@@ -33,8 +37,19 @@ export function StatCard({
       >
         <Icon size={20} color={accent} />
       </div>
-      <div className="min-w-0">
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+      <div className="min-w-0 flex-1">
+        <div
+          className="truncate"
+          style={{
+            fontFamily: "var(--font-mono)",
+            // clamp entre un piso legible y el tamaño normal — cuando el
+            // contenedor es angosto, cqw lo encoge antes de que desborde;
+            // "truncate" (arriba) cubre el caso extremo con "…".
+            fontSize: "clamp(15px, 9cqw, var(--text-2xl))",
+            fontWeight: 700,
+            color: "var(--sidebar-text-active)",
+          }}
+        >
           {value}
         </div>
         <div className="truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>

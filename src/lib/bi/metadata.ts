@@ -131,6 +131,42 @@ export const BI_DATASETS: DatasetMeta[] = [
     tablasBase: ["Unidad", "Proyecto", "Operador"],
     campos: [
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `u."estatus"`, opciones: opcionesDe(ESTATUS_UNIDAD_LABEL) },
+      {
+        id: "disponibilidad",
+        label: "Disponibilidad",
+        tipo: "texto",
+        expr: `CASE WHEN u."disponibilidad" THEN 'Disponible' ELSE 'No disponible' END`,
+        opciones: [{ valor: "Disponible", label: "Disponible" }, { valor: "No disponible", label: "No disponible" }],
+      },
+      {
+        id: "motivoIndisponibilidad",
+        label: "Motivo de no disponibilidad",
+        tipo: "texto",
+        // NULL para las disponibles: el motor de consultas descarta filas con
+        // dimensión NULL, así que agrupar por este campo muestra solo el
+        // desglose de las no disponibles — igual que "Unidades no
+        // disponibles" del reporte de Estatus de flota.
+        expr: `CASE WHEN u."disponibilidad" THEN NULL ELSE
+          CASE u."motivoIndisponibilidad"
+            WHEN 'MANTENIMIENTO' THEN 'Mantenimiento'
+            WHEN 'SINIESTRO' THEN 'Siniestro'
+            WHEN 'SIN_OPERADOR' THEN 'Sin operador asignado'
+            WHEN 'TRAMITE_DOCUMENTACION' THEN 'Trámite / documentación'
+            WHEN 'SIN_COMBUSTIBLE' THEN 'Falta de combustible'
+            WHEN 'OTRO' THEN 'Otro'
+            ELSE 'Sin motivo registrado'
+          END
+        END`,
+        opciones: [
+          { valor: "Mantenimiento", label: "Mantenimiento" },
+          { valor: "Siniestro", label: "Siniestro" },
+          { valor: "Sin operador asignado", label: "Sin operador asignado" },
+          { valor: "Trámite / documentación", label: "Trámite / documentación" },
+          { valor: "Falta de combustible", label: "Falta de combustible" },
+          { valor: "Otro", label: "Otro" },
+          { valor: "Sin motivo registrado", label: "Sin motivo registrado" },
+        ],
+      },
       { id: "tipoVehiculo", label: "Tipo de vehículo", tipo: "texto", expr: `u."tipoVehiculo"`, opciones: opcionesDe(TIPO_VEHICULO_LABEL) },
       { id: "tipoCombustible", label: "Tipo de combustible", tipo: "texto", expr: `u."tipoCombustible"` },
       { id: "marca", label: "Marca", tipo: "texto", expr: `u."marca"` },
@@ -392,7 +428,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     proyectoScopeExpr: `u."proyectoId"`,
     tablasBase: ["Checklist", "Unidad", "Proyecto"],
     campos: [
-      { id: "tipo", label: "Tipo", tipo: "texto", expr: `ch."tipo"`, opciones: [{ valor: "DIARIO", label: "Diario" }, { valor: "SEMANAL", label: "Semanal" }] },
+      { id: "tipo", label: "Tipo", tipo: "texto", expr: `ch."tipo"`, opciones: [{ valor: "DIARIO", label: "Diario" }, { valor: "SEMANAL", label: "Semanal" }, { valor: "CARGA_COMBUSTIBLE", label: "Carga de combustible" }, { valor: "REPORTE_FALLA", label: "Reporte de falla" }] },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `ch."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `ch."fecha"` },
@@ -537,6 +573,8 @@ export type CombinacionGuardable = {
 /** Combinaciones curadas de arranque (MVP), antes de abrir el selector libre. */
 export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Unidades por estatus", dataset: "unidades", ejeX: "estatus", ejeY: "estatus", agregacion: "conteo", tipoGrafica: "barras" },
+  { label: "Unidades por disponibilidad", dataset: "unidades", ejeX: "disponibilidad", ejeY: "disponibilidad", agregacion: "conteo", tipoGrafica: "pie" },
+  { label: "Motivo de indisponibilidad", dataset: "unidades", ejeX: "motivoIndisponibilidad", ejeY: "motivoIndisponibilidad", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },

@@ -93,7 +93,7 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
   const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: { in: restriccionOperador.numerosEconomicos } } : {};
 
   const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos, periodosAbiertos] = await Promise.all([
+  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([
     prisma.unidad.findMany({
       where: { ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}), ...filtroOperador },
       include: {
@@ -124,13 +124,7 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
       },
       _count: { id: true },
     }),
-    prisma.historicoDisponibilidadUnidad.findMany({
-      where: { hasta: null, disponible: false },
-      select: { numeroEconomico: true, motivo: true, motivoDetalle: true },
-    }),
   ]);
-
-  const motivoPorEconomico = new Map(periodosAbiertos.map((p) => [p.numeroEconomico, { motivo: p.motivo, detalle: p.motivoDetalle }]));
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
   const proximoPorEconomico = new Map(proximosMantenimientos.map((m) => [m.numeroEconomico, m._min.fecha]));
   const ultimoCombustiblePorEconomico = new Map(ultimosCombustibles.map((m) => [m.numeroEconomico, m._max.fecha]));
@@ -168,8 +162,8 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
       proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
       semaforo,
       slaPorcentaje: null,
-      motivoIndisponibilidad: motivoPorEconomico.get(u.numeroEconomico)?.motivo ?? null,
-      motivoIndisponibilidadDetalle: motivoPorEconomico.get(u.numeroEconomico)?.detalle ?? null,
+      motivoIndisponibilidad: u.motivoIndisponibilidad,
+      motivoIndisponibilidadDetalle: u.motivoIndisponibilidadDetalle,
     };
   });
 

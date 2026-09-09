@@ -12,6 +12,8 @@ export const CAMPOS_UNIDAD = [
   { key: "capacidadTanqueLitros", label: "Capacidad máxima de tanque (litros)", requerido: false },
   { key: "proyecto", label: "Proyecto", requerido: false },
   { key: "estatus", label: "Estatus (Activo/Inactivo/Baja)", requerido: false },
+  { key: "motivoIndisponibilidad", label: "Motivo de no disponibilidad (solo si Estatus=Inactivo; ej. Mantenimiento, Siniestro, Sin operador, Trámite, Sin combustible, Otro)", requerido: false },
+  { key: "motivoIndisponibilidadDetalle", label: "Detalle del motivo (opcional)", requerido: false },
   { key: "resguardante", label: "Resguardante (nombre del operador)", requerido: false },
   { key: "propietario", label: "Propietario (SYM/5 Star/Kabat)", requerido: false },
   { key: "origenPlaca", label: "Origen de placa (estado)", requerido: false },
@@ -39,6 +41,15 @@ const ESTATUS_ALIAS: Record<string, string> = {
   ACTIVO: "ACTIVO", ACTIVA: "ACTIVO",
   INACTIVO: "INACTIVO", INACTIVA: "INACTIVO",
   BAJA: "BAJA",
+};
+
+const MOTIVO_INDISPONIBILIDAD_ALIAS: Record<string, string> = {
+  MANTENIMIENTO: "MANTENIMIENTO",
+  SINIESTRO: "SINIESTRO", ACCIDENTE: "SINIESTRO",
+  SIN_OPERADOR: "SIN_OPERADOR", "SIN OPERADOR": "SIN_OPERADOR",
+  TRAMITE_DOCUMENTACION: "TRAMITE_DOCUMENTACION", "TRAMITE / DOCUMENTACION": "TRAMITE_DOCUMENTACION", "TRÁMITE / DOCUMENTACIÓN": "TRAMITE_DOCUMENTACION", TRAMITE: "TRAMITE_DOCUMENTACION", TRÁMITE: "TRAMITE_DOCUMENTACION", DOCUMENTACION: "TRAMITE_DOCUMENTACION", DOCUMENTACIÓN: "TRAMITE_DOCUMENTACION",
+  SIN_COMBUSTIBLE: "SIN_COMBUSTIBLE", "SIN COMBUSTIBLE": "SIN_COMBUSTIBLE", "FALTA DE COMBUSTIBLE": "SIN_COMBUSTIBLE",
+  OTRO: "OTRO",
 };
 
 const PROPIETARIO_ALIAS: Record<string, string> = {
@@ -72,6 +83,14 @@ export function normalizarEstatus(v: unknown): { valor: string; reconocido: bool
   if (!limpio) return { valor: "ACTIVO", reconocido: true };
   const valor = ESTATUS_ALIAS[limpio];
   return valor ? { valor, reconocido: true } : { valor: "ACTIVO", reconocido: false };
+}
+
+/** A diferencia de los demás normalizadores, vacío es un resultado válido (columna opcional, unidad activa) — no cae a un valor por default. */
+export function normalizarMotivoIndisponibilidad(v: unknown): { valor: string | null; reconocido: boolean } {
+  const limpio = limpiar(v);
+  if (!limpio) return { valor: null, reconocido: true };
+  const valor = MOTIVO_INDISPONIBILIDAD_ALIAS[limpio];
+  return valor ? { valor, reconocido: true } : { valor: null, reconocido: false };
 }
 
 export function normalizarPropietario(v: unknown): { valor: string; reconocido: boolean } {

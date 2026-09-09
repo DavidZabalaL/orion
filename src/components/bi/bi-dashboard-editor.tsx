@@ -22,8 +22,11 @@ const TEMPORAL = "__temporal__";
 // el ancho del contenedor cruzaba su umbral — algo que el colapso de la barra
 // lateral dispara constantemente. Con un único corte, muy por debajo de
 // cualquier ancho de escritorio real, ese cruce accidental deja de ocurrir.
-const BREAKPOINTS = { lg: 600, sm: 0 };
-const COLS = { lg: 12, sm: 1 };
+// Ver mismo ajuste y motivo en inventario-unidades.tsx: sin un escalón
+// intermedio, un ancho de tablet/laptop chica hereda la densidad de
+// escritorio completa y las gráficas/tarjetas quedan demasiado angostas.
+const BREAKPOINTS = { lg: 900, md: 600, sm: 0 };
+const COLS = { lg: 12, md: 6, sm: 1 };
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",

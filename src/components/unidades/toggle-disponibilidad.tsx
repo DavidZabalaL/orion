@@ -8,8 +8,8 @@ type Props = {
   numeroEconomico: string;
   /** Controlado: el padre es dueño del valor, para mantenerlo en sync con el badge de estatus y "días sin operar". */
   disponible: boolean;
-  /** Se llama solo cuando el servidor confirma el cambio — el padre debe actualizar su estado con este valor. */
-  onCambio: (nuevoDisponible: boolean) => void;
+  /** Se llama solo cuando el servidor confirma el cambio — el padre debe actualizar su estado con estos valores (motivo/motivoDetalle solo van presentes al apagar). */
+  onCambio: (nuevoDisponible: boolean, motivo?: string | null, motivoDetalle?: string | null) => void;
   deshabilitado?: boolean;
   variante?: "compacto" | "completo";
 };
@@ -40,7 +40,7 @@ export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, de
     startTransition(async () => {
       const res = await alternarDisponibilidad(formData);
       if (res.ok) {
-        onCambio(nuevoValor);
+        onCambio(nuevoValor, nuevoValor ? null : (motivoSel ?? null), nuevoValor ? null : (motivoDetalleSel ?? null));
         setPidiendoMotivo(false);
         setMotivo("");
         setMotivoDetalle("");

@@ -86,6 +86,12 @@ const COLORES_OPCION: Record<string, { bg: string; color: string }> = {
   "NO APLICA": { bg: "#64748b", color: "#fff" },
   "Y": { bg: "#16a34a", color: "#fff" },
   "N": { bg: "#dc2626", color: "#fff" },
+  // Vida útil de llantas (ver ESTADO_LLANTA en lib/checklist-semanal.ts) — gradiente verde→rojo.
+  "100% (NUEVA)": { bg: "#16a34a", color: "#fff" },
+  "75%": { bg: "#65a30d", color: "#fff" },
+  "50%": { bg: "#d97706", color: "#fff" },
+  "25%": { bg: "#ea580c", color: "#fff" },
+  "0% (REEMPLAZAR)": { bg: "#dc2626", color: "#fff" },
 };
 
 function estiloOpcion(opcion: string, seleccionada: boolean): React.CSSProperties {

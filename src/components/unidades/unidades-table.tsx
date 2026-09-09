@@ -139,11 +139,18 @@ export function UnidadesTable({
 
   // Al encender/apagar desde esta tabla, "días sin operar" arranca en 0 —
   // acaba de cambiar en este instante — sin esperar a recargar la página.
-  function alCambiarDisponibilidad(numeroEconomico: string, nuevoDisponible: boolean) {
+  function alCambiarDisponibilidad(numeroEconomico: string, nuevoDisponible: boolean, motivo?: string | null, motivoDetalle?: string | null) {
     setRows((prev) =>
       prev.map((r) =>
         r.numeroEconomico === numeroEconomico
-          ? { ...r, disponibilidad: nuevoDisponible, diasSinOperar: 0, origenDiasSinOperar: nuevoDisponible ? r.origenDiasSinOperar : "apagada" }
+          ? {
+              ...r,
+              disponibilidad: nuevoDisponible,
+              diasSinOperar: 0,
+              origenDiasSinOperar: nuevoDisponible ? r.origenDiasSinOperar : "apagada",
+              motivoIndisponibilidad: (motivo ?? null) as UnidadRow["motivoIndisponibilidad"],
+              motivoIndisponibilidadDetalle: motivoDetalle ?? null,
+            }
           : r
       )
     );
@@ -322,7 +329,7 @@ export function UnidadesTable({
                   <ToggleDisponibilidad
                     numeroEconomico={r.numeroEconomico}
                     disponible={r.disponibilidad}
-                    onCambio={(nuevo) => alCambiarDisponibilidad(r.numeroEconomico, nuevo)}
+                    onCambio={(nuevo, motivo, motivoDetalle) => alCambiarDisponibilidad(r.numeroEconomico, nuevo, motivo, motivoDetalle)}
                     deshabilitado={r.estatus === "BAJA"}
                   />
                 </td>

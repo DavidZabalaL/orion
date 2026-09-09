@@ -68,6 +68,13 @@ const BUEN_MAL_NA2 = ["BUEN ESTADO", "MAL ESTADO", "NA"];
 // deja ver el desgaste real y anticipar el reemplazo antes de que sea crítico.
 export const ESTADO_LLANTA = ["100% (NUEVA)", "75%", "50%", "25%", "0% (REEMPLAZAR)", "N/A"];
 
+// Valores de respuesta que cuentan como "alerta" en los resúmenes del
+// checklist semanal (badge de "N alertas" en la lista y en la ficha de la
+// unidad) — "MAL ESTADO"/"MINIMO" para los campos binarios/de nivel de
+// siempre, más las llantas por debajo de 50% de vida útil. Única fuente para
+// no desincronizar los distintos resúmenes que cuentan lo mismo.
+export const VALORES_ALERTA_SEMANAL = new Set(["MAL ESTADO", "MINIMO", "25%", "0% (REEMPLAZAR)"]);
+
 export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
   {
     key: "niveles",

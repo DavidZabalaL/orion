@@ -8,6 +8,7 @@ import {
   normalizarTipoCombustible,
   normalizarEstatus,
   normalizarPropietario,
+  normalizarMotivoIndisponibilidad,
 } from "@/lib/import-unidades";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
@@ -71,6 +72,15 @@ export async function importarUnidades(
     const estatus = normalizarEstatus(fila.estatus);
     if (!estatus.reconocido) resultado.advertencias.push({ fila: numFila, mensaje: `Estatus "${fila.estatus}" no reconocido, se usó "Activo".` });
 
+    const disponibilidadFila = estatus.valor === "ACTIVO";
+    const motivoIndisponibilidad = normalizarMotivoIndisponibilidad(fila.motivoIndisponibilidad);
+    if (!motivoIndisponibilidad.reconocido) {
+      resultado.advertencias.push({ fila: numFila, mensaje: `Motivo de no disponibilidad "${fila.motivoIndisponibilidad}" no reconocido, se dejó sin motivo.` });
+    } else if (!disponibilidadFila && !motivoIndisponibilidad.valor) {
+      resultado.advertencias.push({ fila: numFila, mensaje: "Unidad marcada como no disponible sin motivo — se recomienda indicarlo en la columna de motivo." });
+    }
+    const motivoIndisponibilidadDetalle = String(fila.motivoIndisponibilidadDetalle ?? "").trim().slice(0, 300) || null;
+
     const propietario = normalizarPropietario(fila.propietario);
 
     let proyectoId: string | null = proyectoIdPorDefecto;
@@ -107,7 +117,9 @@ export async function importarUnidades(
       capacidadTanqueLitros: fila.capacidadTanqueLitros ? parseFloat(fila.capacidadTanqueLitros) : null,
       proyectoId,
       estatus: estatus.valor as never,
-      disponibilidad: estatus.valor === "ACTIVO",
+      disponibilidad: disponibilidadFila,
+      motivoIndisponibilidad: (disponibilidadFila ? null : motivoIndisponibilidad.valor) as never,
+      motivoIndisponibilidadDetalle: disponibilidadFila ? null : motivoIndisponibilidadDetalle,
       resguardanteId,
       propietario: propietario.valor as never,
       origenPlaca: String(fila.origenPlaca ?? "").trim(),
@@ -124,7 +136,7 @@ export async function importarUnidades(
       if (existente) {
         await prisma.unidad.update({ where: { numeroEconomico }, data });
         if (existente.disponibilidad !== data.disponibilidad) {
-          await registrarCambioDisponibilidad(numeroEconomico, data.disponibilidad);
+          await registrarCambioDisponibilidad(numeroEconomico, data.disponibilidad, undefined, data.motivoIndisponibilidad, data.motivoIndisponibilidadDetalle);
         }
         if (existente.resguardanteId !== resguardanteId) {
           await registrarCambioResguardante(numeroEconomico, resguardanteId, undefined, "Actualización por importación");
@@ -132,7 +144,7 @@ export async function importarUnidades(
         resultado.actualizadas.push(numeroEconomico);
       } else {
         await prisma.unidad.create({ data: { numeroEconomico, ...data } });
-        await registrarCambioDisponibilidad(numeroEconomico, data.disponibilidad);
+        await registrarCambioDisponibilidad(numeroEconomico, data.disponibilidad, undefined, data.motivoIndisponibilidad, data.motivoIndisponibilidadDetalle);
         await registrarCambioResguardante(numeroEconomico, resguardanteId, undefined, "Alta por importación");
         resultado.creadas.push(numeroEconomico);
       }
