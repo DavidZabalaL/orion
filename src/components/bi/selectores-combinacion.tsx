@@ -118,11 +118,17 @@ export function SelectoresCombinacion({
   function cambiarDataset(datasetId: string) {
     const ds = obtenerDataset(datasetId)!;
     const req = REQUISITOS_TIPO_GRAFICA[combinacion.tipoGrafica];
+    // El primer campo del dataset no necesariamente es válido para el eje
+    // según el tipo de gráfica activo (p. ej. "mapa" exige un campo
+    // geográfico) — hay que buscar el primer campo que sí cumpla, igual que
+    // hace cambiarTipoGrafica, o el API rechaza la combinación con 400.
+    const nuevoEjeX = ds.campos.find((c) => campoValidoParaEje(c, req.ejeX))?.id ?? ds.campos[0].id;
+    const nuevoEjeY = ds.campos.find((c) => campoValidoParaEje(c, req.ejeY))?.id ?? ds.campos[0].id;
     onChange({
       ...combinacion,
       datasetId,
-      ejeX: ds.campos[0].id,
-      ejeY: ds.campos[0].id,
+      ejeX: nuevoEjeX,
+      ejeY: nuevoEjeY,
       agregacion: "conteo",
       ejeSplit: req.ejeSplit?.obligatorio ? ds.campos[0].id : undefined,
       filtros: [],

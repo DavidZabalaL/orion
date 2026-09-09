@@ -1,6 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import { calcularSlaPorUnidadesEnRango } from "@/lib/sla-disponibilidad";
+import { obtenerPresupuestoDelMes, type ResumenPresupuestoMes } from "@/lib/presupuesto";
+import { calcularCamposExtra } from "@/lib/reportes/campos-extra";
+import type { CampoExtraSeleccionado, CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 import type { EstatusUnidad, MotivoIndisponibilidad, CategoriaGasto } from "@/generated/prisma/enums";
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+const HORIZONTE_PROXIMO_SERVICIO_DIAS = 7;
+const CATEGORIAS_MANTENIMIENTO: CategoriaGasto[] = ["MANTENIMIENTO_PREVENTIVO", "MANTENIMIENTO_CORRECTIVO"];
+
+export type IndisponibilidadUnidad = {
+  numeroEconomico: string;
+  motivo: MotivoIndisponibilidad | "SIN_MOTIVO";
+  motivoDetalle: string | null;
+  /** Solo cuando motivo=MANTENIMIENTO: categoría del último gasto de mantenimiento registrado de la unidad en el periodo, si existe. */
+  tipoMantenimiento: CategoriaGasto | null;
+};
+
+export type ProximoServicio = {
+  numeroEconomico: string;
+  categoria: CategoriaGasto;
+  fecha: Date;
+};
 
 export type EstatusFlota = {
   proyectoLabel: string;
@@ -12,8 +33,18 @@ export type EstatusFlota = {
   totalUnidades: number;
   porEstatus: { estatus: EstatusUnidad; cantidad: number }[];
   porMotivo: { motivo: MotivoIndisponibilidad | "SIN_MOTIVO"; cantidad: number }[];
+  /** Desglose por unidad de las no disponibles — motivo, detalle y, si aplica, tipo de mantenimiento. */
+  indisponibilidadDetalle: IndisponibilidadUnidad[];
+  /** Unidades con mantenimiento programado (no realizado aún) dentro de los próximos 7 días desde `hasta`. */
+  proximosServicios: ProximoServicio[];
   gastoTotal: number;
   gastoPorCategoria: { categoria: CategoriaGasto; monto: number }[];
+  /** Asignado vs. gastado del mes en curso (a la fecha `hasta`), para este alcance de proyectos. */
+  presupuestoMes: ResumenPresupuestoMes;
+  /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
+  checklistsPromedioDiario: number;
+  /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
+  camposExtra: CampoExtraResultado[];
 };
 
 /**
@@ -29,11 +60,14 @@ export async function calcularEstatusFlota({
   desde,
   hasta,
   proyectoLabel,
+  camposExtraSeleccionados = [],
 }: {
   proyectoIds: string[] | null;
   desde: Date;
   hasta: Date;
   proyectoLabel: string;
+  /** Datos adicionales elegidos en el configurador del reporte — ver EstatusFlotaModal. */
+  camposExtraSeleccionados?: CampoExtraSeleccionado[];
 }): Promise<EstatusFlota> {
   const filtroProyecto = proyectoIds !== null ? { proyectoId: { in: proyectoIds } } : {};
 
@@ -59,16 +93,17 @@ export async function calcularEstatusFlota({
     ? await prisma.historicoDisponibilidadUnidad.findMany({
         where: { numeroEconomico: { in: economicosNoBaja }, desde: { lte: hasta }, OR: [{ hasta: null }, { hasta: { gt: hasta } }] },
         orderBy: { desde: "desc" },
-        select: { numeroEconomico: true, disponible: true, motivo: true },
+        select: { numeroEconomico: true, disponible: true, motivo: true, motivoDetalle: true },
       })
     : [];
-  const periodoPorEconomico = new Map<string, { disponible: boolean; motivo: MotivoIndisponibilidad | null }>();
+  const periodoPorEconomico = new Map<string, { disponible: boolean; motivo: MotivoIndisponibilidad | null; motivoDetalle: string | null }>();
   for (const p of periodos) {
-    if (!periodoPorEconomico.has(p.numeroEconomico)) periodoPorEconomico.set(p.numeroEconomico, { disponible: p.disponible, motivo: p.motivo });
+    if (!periodoPorEconomico.has(p.numeroEconomico)) periodoPorEconomico.set(p.numeroEconomico, { disponible: p.disponible, motivo: p.motivo, motivoDetalle: p.motivoDetalle });
   }
 
   let unidadesDisponibles = 0;
   const porMotivoMapa = new Map<MotivoIndisponibilidad | "SIN_MOTIVO", number>();
+  const noDisponibles: { numeroEconomico: string; motivo: MotivoIndisponibilidad | "SIN_MOTIVO"; motivoDetalle: string | null }[] = [];
   for (const numeroEconomico of economicosNoBaja) {
     const periodo = periodoPorEconomico.get(numeroEconomico);
     const disponible = periodo?.disponible ?? true;
@@ -77,10 +112,49 @@ export async function calcularEstatusFlota({
     } else {
       const motivo = periodo?.motivo ?? "SIN_MOTIVO";
       porMotivoMapa.set(motivo, (porMotivoMapa.get(motivo) ?? 0) + 1);
+      noDisponibles.push({ numeroEconomico, motivo, motivoDetalle: periodo?.motivoDetalle ?? null });
     }
   }
   const unidadesNoDisponibles = economicosNoBaja.length - unidadesDisponibles;
   const porMotivo = Array.from(porMotivoMapa, ([motivo, cantidad]) => ({ motivo, cantidad }));
+
+  // Para las no disponibles por MANTENIMIENTO, se cruza con GastoVehicular
+  // del periodo para saber si fue preventivo o correctivo — el histórico de
+  // disponibilidad no distingue el tipo, solo GastoVehicular lo tiene.
+  const economicosEnMantenimiento = noDisponibles.filter((n) => n.motivo === "MANTENIMIENTO").map((n) => n.numeroEconomico);
+  const mantenimientosDelPeriodo = economicosEnMantenimiento.length > 0
+    ? await prisma.gastoVehicular.findMany({
+        where: { numeroEconomico: { in: economicosEnMantenimiento }, categoria: { in: CATEGORIAS_MANTENIMIENTO }, fecha: { gte: desde, lte: hasta } },
+        orderBy: { fecha: "desc" },
+        select: { numeroEconomico: true, categoria: true },
+      })
+    : [];
+  const tipoMantenimientoPorEconomico = new Map<string, CategoriaGasto>();
+  for (const m of mantenimientosDelPeriodo) {
+    if (m.numeroEconomico && !tipoMantenimientoPorEconomico.has(m.numeroEconomico)) tipoMantenimientoPorEconomico.set(m.numeroEconomico, m.categoria);
+  }
+  const indisponibilidadDetalle: IndisponibilidadUnidad[] = noDisponibles.map((n) => ({
+    ...n,
+    tipoMantenimiento: n.motivo === "MANTENIMIENTO" ? (tipoMantenimientoPorEconomico.get(n.numeroEconomico) ?? null) : null,
+  }));
+
+  // Mantenimiento programado (aún no realizado) dentro de los próximos 7 días
+  // desde el corte del reporte — para anticipar servicios de la semana siguiente.
+  const proximosServiciosRaw = economicosNoBaja.length > 0
+    ? await prisma.gastoVehicular.findMany({
+        where: {
+          numeroEconomico: { in: economicosNoBaja },
+          categoria: { in: CATEGORIAS_MANTENIMIENTO },
+          estatus: "PROGRAMADO",
+          fecha: { gte: hasta, lte: new Date(hasta.getTime() + HORIZONTE_PROXIMO_SERVICIO_DIAS * DIA_MS) },
+        },
+        orderBy: { fecha: "asc" },
+        select: { numeroEconomico: true, categoria: true, fecha: true },
+      })
+    : [];
+  const proximosServicios: ProximoServicio[] = proximosServiciosRaw
+    .filter((p): p is { numeroEconomico: string; categoria: CategoriaGasto; fecha: Date } => p.numeroEconomico !== null)
+    .map((p) => ({ numeroEconomico: p.numeroEconomico, categoria: p.categoria, fecha: p.fecha }));
 
   // SLA promedio del periodo — mismo motor que ya usa /unidades, solo que
   // aquí el rango es el elegido en vez del mes en curso.
@@ -101,7 +175,11 @@ export async function calcularEstatusFlota({
   const filtroProyectoGasto = proyectoIds !== null
     ? { OR: [{ unidad: { proyectoId: { in: proyectoIds } } }, { proyectoReportanteId: { in: proyectoIds } }] }
     : {};
-  const [gastosPorCategoria, combustibleAgg, tagAgg] = await Promise.all([
+  // Checklists/día promedio: cuenta simple de registros de las unidades de
+  // este alcance dentro del rango, entre el número de días del rango.
+  const diasPeriodo = Math.max(1, Math.round((hasta.getTime() - desde.getTime()) / DIA_MS));
+
+  const [gastosPorCategoria, combustibleAgg, tagAgg, presupuestoMes, totalChecklists, camposExtra] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
       where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
@@ -115,7 +193,13 @@ export async function calcularEstatusFlota({
       where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
       _sum: { monto: true },
     }),
+    obtenerPresupuestoDelMes(proyectoIds, hasta),
+    economicos.length > 0
+      ? prisma.checklist.count({ where: { numeroEconomico: { in: economicos }, fecha: { gte: desde, lte: hasta } } })
+      : Promise.resolve(0),
+    calcularCamposExtra(camposExtraSeleccionados, proyectoIds),
   ]);
+  const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
 
   const gastoPorCategoriaMapa = new Map<CategoriaGasto, number>();
   for (const g of gastosPorCategoria) gastoPorCategoriaMapa.set(g.categoria, Number(g._sum.costo ?? 0));
@@ -137,8 +221,13 @@ export async function calcularEstatusFlota({
     totalUnidades: economicos.length,
     porEstatus,
     porMotivo,
+    indisponibilidadDetalle,
+    proximosServicios,
     gastoTotal,
     gastoPorCategoria,
+    presupuestoMes,
+    checklistsPromedioDiario,
+    camposExtra,
   };
 }
 
@@ -165,12 +254,14 @@ export async function calcularEstatusFlotaReporte({
   proyectoIdsSeleccionados,
   desde,
   hasta,
+  camposExtraSeleccionados = [],
 }: {
   /** null = sin restricción de proyecto (Administrador/rol global, o el cron sin sesión). */
   proyectoIdsPermitidos: string[] | null;
   proyectoIdsSeleccionados: string[] | null;
   desde: Date;
   hasta: Date;
+  camposExtraSeleccionados?: CampoExtraSeleccionado[];
 }): Promise<EstatusFlotaReporte> {
   const seleccion = proyectoIdsSeleccionados ?? [];
 
@@ -180,14 +271,14 @@ export async function calcularEstatusFlotaReporte({
   const nombrePorId = new Map(proyectos.map((p) => [p.id, p.nombre]));
 
   const [general, seleccionCombinada, porProyecto] = await Promise.all([
-    calcularEstatusFlota({ proyectoIds: proyectoIdsPermitidos, desde, hasta, proyectoLabel: "General" }),
+    calcularEstatusFlota({ proyectoIds: proyectoIdsPermitidos, desde, hasta, proyectoLabel: "General", camposExtraSeleccionados }),
     // Con exactamente 1 proyecto seleccionado, el combinado sería idéntico al
     // desglose de ese único proyecto (solo con otro título) — se omite.
     seleccion.length > 1
-      ? calcularEstatusFlota({ proyectoIds: seleccion, desde, hasta, proyectoLabel: `Selección (${seleccion.length} proyectos)` })
+      ? calcularEstatusFlota({ proyectoIds: seleccion, desde, hasta, proyectoLabel: `Selección (${seleccion.length} proyectos)`, camposExtraSeleccionados })
       : Promise.resolve(null),
     Promise.all(
-      seleccion.map((id) => calcularEstatusFlota({ proyectoIds: [id], desde, hasta, proyectoLabel: nombrePorId.get(id) ?? id }))
+      seleccion.map((id) => calcularEstatusFlota({ proyectoIds: [id], desde, hasta, proyectoLabel: nombrePorId.get(id) ?? id, camposExtraSeleccionados }))
     ),
   ]);
 

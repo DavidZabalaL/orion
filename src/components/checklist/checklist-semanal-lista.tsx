@@ -7,7 +7,7 @@ import { blobProxy } from "@/lib/blob";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
-import { todasLasClavesFoto } from "@/lib/checklist-semanal";
+import { todasLasClavesFoto, VALORES_ALERTA_SEMANAL } from "@/lib/checklist-semanal";
 
 type ChecklistSemanalRow = {
   id: string;
@@ -39,7 +39,7 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
         <Table headers={["Hora", "Unidad", "Oficina / Sede", "Capturado por", "Alertas", ""]} minWidth={760}>
           {filtrados.map((c) => {
             const respuestas = c.respuestasSemanal ?? {};
-            const alertas = Object.entries(respuestas).filter(([k, v]) => !CLAVES_FOTO.has(k) && v === "MAL ESTADO").length;
+            const alertas = Object.entries(respuestas).filter(([k, v]) => !CLAVES_FOTO.has(k) && VALORES_ALERTA_SEMANAL.has(v)).length;
             return (
               <Fragment key={c.id}>
                 <tr style={{ borderBottom: expandido === c.id ? "none" : "1px solid var(--field-border)" }}>
@@ -74,8 +74,8 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
                             .map(([k, v]) => (
                               <div key={k}>
                                 <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>{k}</div>
-                                <div className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: v === "MAL ESTADO" ? "var(--color-status-escena)" : "var(--field-text)" }}>
-                                  {v === "MAL ESTADO" && <TriangleAlert size={12} />} {v}
+                                <div className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: VALORES_ALERTA_SEMANAL.has(v) ? "var(--color-status-escena)" : "var(--field-text)" }}>
+                                  {VALORES_ALERTA_SEMANAL.has(v) && <TriangleAlert size={12} />} {v}
                                 </div>
                               </div>
                             ))}

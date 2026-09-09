@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { TriangleAlert, Car, Wrench, BarChart3 } from "lucide-react";
+import { TriangleAlert, Car, Wrench, BarChart3, Building2, UserRound } from "lucide-react";
 import { signIn } from "@/auth";
 import { OrionIcon } from "@/components/brand/orion-icon";
 import logoKabat from "../../../public/Logo-Grupo-Kabat_bl.png";
@@ -82,7 +82,7 @@ export default async function IniciarSesionPage({
               Iniciar sesión
             </h1>
             <p className="mt-1 mb-6" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "#64748b" }}>
-              Ingresa con tu correo de Grupo Kabat
+              Elige la opción que corresponda a tu tipo de correo.
             </p>
 
             {error && (
@@ -92,6 +92,15 @@ export default async function IniciarSesionPage({
               </div>
             )}
 
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 size={15} color="#334155" />
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 700, color: "#334155" }}>
+                Correo institucional
+              </span>
+            </div>
+            <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>
+              Tu correo termina en @grupokabat.com.
+            </p>
             <form
               action={async () => {
                 "use server";
@@ -108,66 +117,64 @@ export default async function IniciarSesionPage({
               </button>
             </form>
 
-            <div className="my-5 flex items-center gap-3">
+            <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1" style={{ background: "#e2e8f0" }} />
               <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>o</span>
               <div className="h-px flex-1" style={{ background: "#e2e8f0" }} />
             </div>
 
-            <details>
-              <summary
-                className="cursor-pointer"
-                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "#334155", listStyle: "none" }}
+            <div className="flex items-center gap-2 mb-2">
+              <UserRound size={15} color="#334155" />
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 700, color: "#334155" }}>
+                Correo personal
+              </span>
+            </div>
+            <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>
+              Para operadores sin correo @grupokabat.com — entra con el correo personal y la contraseña que creaste al registrarte.
+            </p>
+            <form
+              className="flex flex-col gap-3"
+              action={async (fd) => {
+                "use server";
+                try {
+                  await signIn("operador-credenciales", { correo: fd.get("correo"), password: fd.get("password"), redirectTo: "/unidades" });
+                } catch (error) {
+                  if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+                  redirect("/iniciar-sesion?error=CredencialesOperadorInvalidas");
+                }
+              }}
+            >
+              <input
+                name="correo"
+                type="email"
+                placeholder="Correo personal"
+                autoComplete="email"
+                required
+                style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Contraseña"
+                autoComplete="current-password"
+                required
+                style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
+              />
+              <button
+                type="submit"
+                className="h-10 rounded-md font-semibold"
+                style={{ background: "#fff", color: "#0f1b2d", border: "1px solid #d7dee8", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}
               >
-                Ingreso operador
-              </summary>
-              <p className="mt-2 mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>
-                Para operadores sin correo institucional, con contraseña creada desde su invitación por correo.
-              </p>
-              <form
-                className="flex flex-col gap-3"
-                action={async (fd) => {
-                  "use server";
-                  try {
-                    await signIn("operador-credenciales", { correo: fd.get("correo"), password: fd.get("password"), redirectTo: "/unidades" });
-                  } catch (error) {
-                    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
-                    redirect("/iniciar-sesion?error=CredencialesOperadorInvalidas");
-                  }
-                }}
+                Entrar con correo personal
+              </button>
+              <a
+                href="/recuperar-contrasena"
+                className="text-center"
+                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}
               >
-                <input
-                  name="correo"
-                  type="email"
-                  placeholder="Correo"
-                  autoComplete="email"
-                  required
-                  style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
-                />
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="Contraseña"
-                  autoComplete="current-password"
-                  required
-                  style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
-                />
-                <button
-                  type="submit"
-                  className="h-10 rounded-md font-semibold"
-                  style={{ background: "#fff", color: "#0f1b2d", border: "1px solid #d7dee8", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}
-                >
-                  Entrar como operador
-                </button>
-                <a
-                  href="/recuperar-contrasena"
-                  className="text-center"
-                  style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}
-                >
-                  ¿Olvidaste tu contraseña? <span style={{ color: "#cbd5e1" }}>(solo si entras con correo y contraseña, no con cuenta Microsoft)</span>
-                </a>
-              </form>
-            </details>
+                ¿Olvidaste tu contraseña? <span style={{ color: "#cbd5e1" }}>(solo si entras con correo y contraseña, no con cuenta Microsoft)</span>
+              </a>
+            </form>
           </div>
 
           <p className="mt-6 text-center" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>

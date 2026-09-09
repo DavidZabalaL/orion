@@ -10,11 +10,14 @@ export function CampoFotoSemanal({
   label,
   requerido,
   initialUrl,
+  permitirGaleria = false,
 }: {
   name: string;
   label: string;
   requerido: boolean;
   initialUrl?: string;
+  /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
+  permitirGaleria?: boolean;
 }) {
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(initialUrl ? "foto anterior" : null);
   const [url, setUrl] = useState<string | null>(initialUrl ?? null);
@@ -64,7 +67,7 @@ export function CampoFotoSemanal({
         <input
           type="file"
           accept="image/*"
-          capture="environment"
+          {...(permitirGaleria ? {} : { capture: "environment" as const })}
           className="hidden"
           onChange={(e) => alSeleccionar(e.target.files?.[0])}
         />

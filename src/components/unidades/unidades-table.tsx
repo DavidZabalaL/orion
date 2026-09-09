@@ -14,6 +14,8 @@ import { fmtFecha } from "@/lib/formato";
 import { labelFuenteActividad, type FuenteActividad } from "@/lib/actividad-unidad";
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 import { alternarOcultarSlaDisponibilidad } from "@/app/(app)/unidades/actions";
+import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import type { MotivoIndisponibilidad } from "@/generated/prisma/enums";
 
 export type UnidadRow = {
   numeroEconomico: string;
@@ -33,7 +35,16 @@ export type UnidadRow = {
   semaforo: "verde" | "amarillo" | "rojo";
   /** % de días activa en el mes en curso, hasta hoy (null = aún sin historial). Ver src/lib/sla-disponibilidad.ts. */
   slaPorcentaje: number | null;
+  /** Motivo del periodo de indisponibilidad actualmente abierto (HistoricoDisponibilidadUnidad) — null si está disponible o si nunca se registró un motivo. */
+  motivoIndisponibilidad: MotivoIndisponibilidad | null;
+  motivoIndisponibilidadDetalle: string | null;
 };
+
+function motivoTexto(r: UnidadRow): string {
+  if (r.disponibilidad) return "—";
+  if (r.motivoIndisponibilidad) return LABEL_MOTIVO[r.motivoIndisponibilidad] + (r.motivoIndisponibilidadDetalle ? ` — ${r.motivoIndisponibilidadDetalle}` : "");
+  return "Sin motivo registrado";
+}
 
 const SEMAFORO_COLOR: Record<string, string> = {
   verde: "#22c55e",
@@ -49,7 +60,7 @@ const SEMAFORO_LABEL: Record<string, string> = {
 
 function exportarCsv(rows: UnidadRow[], incluirSla: boolean) {
   const headers = [
-    "N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Días sin operar",
+    "N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Motivo", "Días sin operar",
     ...(incluirSla ? ["SLA disponibilidad mes en curso (%)"] : []),
     "Resguardante", "Último mantenimiento", "Próximo mantenimiento",
   ];
@@ -62,6 +73,7 @@ function exportarCsv(rows: UnidadRow[], incluirSla: boolean) {
     r.proyecto ?? "",
     estatusVisibleUnidad(r.estatus, r.disponibilidad).label,
     r.disponibilidad ? "Sí" : "No",
+    motivoTexto(r),
     String(r.diasSinOperar),
     ...(incluirSla ? [r.slaPorcentaje !== null ? String(r.slaPorcentaje) : ""] : []),
     r.resguardante ?? "",
@@ -127,11 +139,18 @@ export function UnidadesTable({
 
   // Al encender/apagar desde esta tabla, "días sin operar" arranca en 0 —
   // acaba de cambiar en este instante — sin esperar a recargar la página.
-  function alCambiarDisponibilidad(numeroEconomico: string, nuevoDisponible: boolean) {
+  function alCambiarDisponibilidad(numeroEconomico: string, nuevoDisponible: boolean, motivo?: string | null, motivoDetalle?: string | null) {
     setRows((prev) =>
       prev.map((r) =>
         r.numeroEconomico === numeroEconomico
-          ? { ...r, disponibilidad: nuevoDisponible, diasSinOperar: 0, origenDiasSinOperar: nuevoDisponible ? r.origenDiasSinOperar : "apagada" }
+          ? {
+              ...r,
+              disponibilidad: nuevoDisponible,
+              diasSinOperar: 0,
+              origenDiasSinOperar: nuevoDisponible ? r.origenDiasSinOperar : "apagada",
+              motivoIndisponibilidad: (motivo ?? null) as UnidadRow["motivoIndisponibilidad"],
+              motivoIndisponibilidadDetalle: motivoDetalle ?? null,
+            }
           : r
       )
     );
@@ -246,7 +265,7 @@ export function UnidadesTable({
           <thead>
             <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
               {[
-                "", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Días s/operar",
+                "", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Motivo", "Días s/operar",
                 ...(mostrarColumnaSla ? ["SLA disp. (mes)"] : []),
                 "Resguardante", "Último manto.", "Próx. manto.", "",
               ].map((h) => (
@@ -310,9 +329,12 @@ export function UnidadesTable({
                   <ToggleDisponibilidad
                     numeroEconomico={r.numeroEconomico}
                     disponible={r.disponibilidad}
-                    onCambio={(nuevo) => alCambiarDisponibilidad(r.numeroEconomico, nuevo)}
+                    onCambio={(nuevo, motivo, motivoDetalle) => alCambiarDisponibilidad(r.numeroEconomico, nuevo, motivo, motivoDetalle)}
                     deshabilitado={r.estatus === "BAJA"}
                   />
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: r.disponibilidad ? "var(--sidebar-text)" : "var(--priority-alta)" }}>
+                  {motivoTexto(r)}
                 </td>
                 <td
                   className="px-4 py-3"
@@ -356,7 +378,7 @@ export function UnidadesTable({
             ))}
             {filtradas.length === 0 && (
               <tr>
-                <td colSpan={mostrarColumnaSla ? 14 : 13} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
+                <td colSpan={mostrarColumnaSla ? 15 : 14} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
                   No se encontraron unidades con los filtros aplicados.
                 </td>
               </tr>

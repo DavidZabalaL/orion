@@ -28,13 +28,11 @@ export default async function HistorialChecklistPage({
 
   const checklists = await prisma.checklist.findMany({
     where: {
-      tipo: "DIARIO",
       fecha: { gte: inicio, lte: fin },
       ...(proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {}),
     },
     include: {
       unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
-      evidencia: { select: { url: true } },
       capturadoPor: { select: { nombre: true } },
     },
     orderBy: { fecha: "desc" },
@@ -50,7 +48,7 @@ export default async function HistorialChecklistPage({
           Historial de checklists por fecha
         </h1>
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Consulta y exporta uno o varios checklists de un día específico.
+          Consulta y exporta todo lo registrado en un día específico — diarios, semanales, cargas de combustible y reportes de falla.
         </p>
       </div>
 

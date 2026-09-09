@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
+import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
@@ -146,6 +146,14 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const fotoPuntoInputRef = useRef<HTMLInputElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const fotoHorometroInputRef = useRef<HTMLInputElement>(null);
+  // A diferencia del resto de fotos del checklist (que fuerzan la cámara con
+  // `capture`): la licencia normalmente ya existe como foto en la galería del
+  // operador, así que aquí se ofrecen las dos opciones explícitas — un input
+  // con `capture` (cámara) y otro sin él (galería) — en vez de un solo botón
+  // que deje la elección al selector nativo del sistema operativo, que no se
+  // comporta igual en todos los dispositivos.
+  const licenciaGaleriaInputRef = useRef<HTMLInputElement>(null);
+  const licenciaCamaraInputRef = useRef<HTMLInputElement>(null);
   const extraFotoKeyRef = useRef("");
   const puntoFotoActualRef = useRef<string | null>(null);
 
@@ -182,6 +190,18 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     extraFotoKeyRef.current = key;
     if (extraFotoInputRef.current) extraFotoInputRef.current.value = "";
     extraFotoInputRef.current?.click();
+  }
+
+  function iniciarFotoLicenciaGaleria() {
+    extraFotoKeyRef.current = "gen_foto_licencia";
+    if (licenciaGaleriaInputRef.current) licenciaGaleriaInputRef.current.value = "";
+    licenciaGaleriaInputRef.current?.click();
+  }
+
+  function iniciarFotoLicenciaCamara() {
+    extraFotoKeyRef.current = "gen_foto_licencia";
+    if (licenciaCamaraInputRef.current) licenciaCamaraInputRef.current.value = "";
+    licenciaCamaraInputRef.current?.click();
   }
 
   async function handleExtraFoto(file: File | undefined) {
@@ -295,6 +315,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
   function validarExterior(): string | null {
     if (!respuestasExtra["ext_tiene_golpes"]) return "Indica si el vehículo tiene golpes.";
+    if (respuestasExtra["ext_tiene_golpes"] === "SÍ" && !fotosExtra["ext_evidencia_golpes_1"]) return "Adjunta al menos una foto de evidencia de los golpes.";
     if (!fotosExtra["ext_evidencia_frente"]) return "La foto del frente es obligatoria.";
     if (!respuestasExtra["ext_parabrisas_espejos"]) return "Indica el estado del parabrisas y espejos.";
     if (!fotosExtra["ext_evidencia_parabrisas_espejos"]) return "La foto de parabrisas/espejos es obligatoria.";
@@ -356,7 +377,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
   // ─── Render helpers ───────────────────────────────────────────────────────
 
-  function rFoto(clave: string, label: string, requerido = true) {
+  function rFoto(clave: string, label: string, requerido = true, permitirGaleria = false) {
     const url = fotosExtra[clave];
     const sub = subiendoExtra === clave;
     if (url) {
@@ -368,6 +389,25 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
             <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
             <button type="button" onClick={() => setFotosExtra((p) => { const c = { ...p }; delete c[clave]; return c; })} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
               <X size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (permitirGaleria) {
+      return (
+        <div key={clave}>
+          <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
+          <div className="flex gap-2">
+            <button type="button" onClick={iniciarFotoLicenciaCamara} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+              {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              {sub ? "Subiendo…" : "Tomar foto"}
+            </button>
+            <button type="button" onClick={iniciarFotoLicenciaGaleria} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+              {sub ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+              {sub ? "Subiendo…" : "Elegir de galería"}
             </button>
           </div>
         </div>
@@ -449,6 +489,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     <>
       {/* Inputs ocultos — siempre montados para estabilidad de refs */}
       <input ref={extraFotoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
+      {/* Dos inputs explícitos para la licencia: uno fuerza cámara, el otro (sin `capture`) abre la galería. */}
+      <input ref={licenciaCamaraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
+      <input ref={licenciaGaleriaInputRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
       <input ref={fotoPuntoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => subirFotoPunto(e.target.files?.[0])} />
@@ -593,7 +638,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
             </div>
 
             {rRadio("gen_tipo_licencia", "Tipo de licencia", ["CON VIGENCIA", "SIN VIGENCIA"])}
-            {rFoto("gen_foto_licencia", "Foto de licencia")}
+            {rFoto("gen_foto_licencia", "Foto de licencia", true, true)}
 
             {error && <p style={errorStyle}>{error}</p>}
 
@@ -718,6 +763,16 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
           <div className="flex flex-col gap-4 rounded-2xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>Exterior del vehículo</h3>
             {rToggle("ext_tiene_golpes", "¿El vehículo tiene golpes?")}
+            {respuestasExtra["ext_tiene_golpes"] === "SÍ" && (
+              <div className="flex flex-col gap-3 rounded-xl p-3" style={{ background: "var(--field-bg)" }}>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                  Adjunta la evidencia de los golpes — agrega las fotos que necesites.
+                </p>
+                {rFoto("ext_evidencia_golpes_1", "Foto de evidencia de golpes 1")}
+                {rFoto("ext_evidencia_golpes_2", "Foto de evidencia de golpes 2 (opcional)", false)}
+                {rFoto("ext_evidencia_golpes_3", "Foto de evidencia de golpes 3 (opcional)", false)}
+              </div>
+            )}
             {rFoto("ext_evidencia_frente", "Foto frente del vehículo")}
             {rRadio("ext_parabrisas_espejos", "Estado del parabrisas y espejos", ["BUEN ESTADO", "ESTRELLADO", "ROTO", "N/A"])}
             {rFoto("ext_evidencia_parabrisas_espejos", "Foto parabrisas y espejos")}

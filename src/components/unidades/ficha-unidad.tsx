@@ -42,6 +42,8 @@ import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
 import { DocumentosUnidad } from "@/components/unidades/documentos-unidad";
+import { VALORES_ALERTA_SEMANAL } from "@/lib/checklist-semanal";
+import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -333,6 +335,8 @@ export function FichaUnidad({
   // operar" cambien todos juntos al usarlo, sin esperar a recargar la página.
   const [disponible, setDisponible] = useState<boolean>(unidad.disponibilidad);
   const [fechaCambioLocal, setFechaCambioLocal] = useState<Date | null>(null);
+  const [motivoIndisponibilidad, setMotivoIndisponibilidad] = useState(unidad.motivoIndisponibilidad ?? null);
+  const [motivoIndisponibilidadDetalle, setMotivoIndisponibilidadDetalle] = useState(unidad.motivoIndisponibilidadDetalle ?? null);
 
   const seguroVigente = unidad.seguros?.[0];
   const diasSeguro = diasPara(seguroVigente?.fechaVencimiento);
@@ -380,6 +384,12 @@ export function FichaUnidad({
                   {unidad.numeroEconomico}
                 </h1>
                 <Badge label={estatusVisible.label} color={estatusVisible.color} bg={estatusVisible.bg} />
+                {!disponible && (
+                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
+                    {motivoIndisponibilidad ? LABEL_MOTIVO[motivoIndisponibilidad as keyof typeof LABEL_MOTIVO] : "Sin motivo registrado"}
+                    {motivoIndisponibilidadDetalle ? ` — ${motivoIndisponibilidadDetalle}` : ""}
+                  </span>
+                )}
               </div>
               <div className="mt-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
                 {unidad.marca} {unidad.unidadModelo} · {unidad.anio} · {TIPO_VEHICULO_LABEL[unidad.tipoVehiculo]} · Placas{" "}
@@ -399,9 +409,11 @@ export function FichaUnidad({
             <ToggleDisponibilidad
               numeroEconomico={unidad.numeroEconomico}
               disponible={disponible}
-              onCambio={(nuevo) => {
+              onCambio={(nuevo, motivo, motivoDetalle) => {
                 setDisponible(nuevo);
                 setFechaCambioLocal(new Date());
+                setMotivoIndisponibilidad(motivo ?? null);
+                setMotivoIndisponibilidadDetalle(motivoDetalle ?? null);
               }}
               deshabilitado={unidad.estatus === "BAJA"}
               variante="completo"
@@ -995,7 +1007,7 @@ function ResumenChecklistSemanal({ respuestas }: { respuestas: Record<string, st
   const valores = Object.entries(respuestas).filter(
     ([k, v]) => v && !k.endsWith("Url") && !k.startsWith("gen_foto") && !k.startsWith("fotoLicencia")
   );
-  const enMalEstado = valores.filter(([, v]) => v === "MAL ESTADO" || v === "MINIMO").length;
+  const enMalEstado = valores.filter(([, v]) => VALORES_ALERTA_SEMANAL.has(v)).length;
   const sede = respuestas.oficinaSede ?? "—";
   return (
     <div className="flex items-center gap-2 flex-wrap">

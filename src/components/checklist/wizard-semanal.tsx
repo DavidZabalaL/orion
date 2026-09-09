@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { upload } from "@vercel/blob/client";
-import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
+import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklistSemanal } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
@@ -86,6 +86,12 @@ const COLORES_OPCION: Record<string, { bg: string; color: string }> = {
   "NO APLICA": { bg: "#64748b", color: "#fff" },
   "Y": { bg: "#16a34a", color: "#fff" },
   "N": { bg: "#dc2626", color: "#fff" },
+  // Vida útil de llantas (ver ESTADO_LLANTA en lib/checklist-semanal.ts) — gradiente verde→rojo.
+  "100% (NUEVA)": { bg: "#16a34a", color: "#fff" },
+  "75%": { bg: "#65a30d", color: "#fff" },
+  "50%": { bg: "#d97706", color: "#fff" },
+  "25%": { bg: "#ea580c", color: "#fff" },
+  "0% (REEMPLAZAR)": { bg: "#dc2626", color: "#fff" },
 };
 
 function estiloOpcion(opcion: string, seleccionada: boolean): React.CSSProperties {
@@ -155,15 +161,18 @@ function BarraProgreso({ actual, total, seccion }: { actual: number; total: numb
 }
 
 function SubirFoto({
-  clave, label, requerido, url, onUrl,
+  clave, label, requerido, url, onUrl, permitirGaleria = false,
 }: {
   clave: string; label: string; requerido: boolean;
   url: string | undefined;
   onUrl: (url: string | null) => void;
+  /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
+  permitirGaleria?: boolean;
 }) {
   const [subiendo, setSubiendo] = useState(false);
   const [errFoto, setErrFoto] = useState<string | null>(null);
   const ref = useRef<HTMLInputElement>(null);
+  const refGaleria = useRef<HTMLInputElement>(null);
 
   async function alSeleccionar(file: File | undefined) {
     if (!file) return;
@@ -192,6 +201,37 @@ function SubirFoto({
         <button type="button" onClick={() => onUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
           <X size={14} />
         </button>
+      </div>
+    );
+  }
+
+  if (permitirGaleria) {
+    return (
+      <div className="flex flex-col gap-1">
+        <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden"
+          onChange={(e) => alSeleccionar(e.target.files?.[0])} />
+        <input ref={refGaleria} type="file" accept="image/*" className="hidden"
+          onChange={(e) => alSeleccionar(e.target.files?.[0])} />
+        <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          {label}{requerido ? " *" : " (opcional)"}
+        </label>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => ref.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+            {subiendo ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            {subiendo ? "Subiendo…" : "Tomar foto"}
+          </button>
+          <button type="button" onClick={() => refGaleria.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+            {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+            {subiendo ? "Subiendo…" : "Elegir de galería"}
+          </button>
+        </div>
+        {errFoto && (
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+            {errFoto}
+          </p>
+        )}
       </div>
     );
   }
@@ -678,6 +718,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               requerido
               url={fotos[item.key]}
               onUrl={(url) => setFoto(item.key, url)}
+              permitirGaleria
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>

@@ -82,6 +82,72 @@ export async function obtenerResumenPresupuestoAnual(proyectoId: string, anio: n
   };
 }
 
+export type ResumenPresupuestoMes = { anio: number; mes: number; asignado: number; gastoMes: number };
+
+/**
+ * Asignado vs. gastado del mes en curso (a la fecha `referencia`, no todo el
+ * mes) para un alcance de proyectos — usado por el reporte de "Estatus de
+ * flota" para comparar gasto acumulado del mes contra el presupuesto
+ * mensual asignado. `proyectoIds: null` = todos los proyectos (sin restricción).
+ *
+ * El "asignado" prioriza el Presupuesto por partida (el que realmente se usa
+ * en la práctica — capturado por categoría/mes, ej. vía importación de
+ * Excel) sobre PresupuestoMensual (un total simple manual que, en los datos
+ * reales, casi nunca se llena): para cada proyecto se toma la suma por
+ * partida si existe, y solo se recurre al total simple cuando ese proyecto
+ * no tiene ninguna partida capturada ese mes — así nunca se cuenta doble.
+ */
+export async function obtenerPresupuestoDelMes(proyectoIds: string[] | null, referencia: Date): Promise<ResumenPresupuestoMes> {
+  const anio = referencia.getUTCFullYear();
+  const mes = referencia.getUTCMonth() + 1;
+  const inicioMes = new Date(Date.UTC(anio, mes - 1, 1));
+  const whereProyecto = proyectoIds !== null ? { proyectoId: { in: proyectoIds } } : {};
+  const filtroProyectoGasto = proyectoIds !== null
+    ? { OR: [{ unidad: { proyectoId: { in: proyectoIds } } }, { proyectoReportanteId: { in: proyectoIds } }] }
+    : {};
+
+  const [partidasPorProyecto, presupuestosMensuales, gastos, combustible, tags] = await Promise.all([
+    prisma.presupuestoPartida.groupBy({ by: ["proyectoId"], where: { anio, mes, ...whereProyecto }, _sum: { montoPresupuestado: true } }),
+    prisma.presupuestoMensual.findMany({ where: { anio, mes, ...whereProyecto }, select: { proyectoId: true, montoAsignado: true } }),
+    prisma.gastoVehicular.aggregate({ where: { fecha: { gte: inicioMes, lte: referencia }, ...filtroProyectoGasto }, _sum: { costo: true } }),
+    prisma.combustible.aggregate({ where: { fecha: { gte: inicioMes, lte: referencia }, ...filtroProyectoGasto }, _sum: { costo: true } }),
+    prisma.tag.aggregate({ where: { fecha: { gte: inicioMes, lte: referencia }, ...filtroProyectoGasto }, _sum: { monto: true } }),
+  ]);
+
+  const proyectosConPartida = new Set(partidasPorProyecto.map((p) => p.proyectoId));
+  const asignadoPartida = partidasPorProyecto.reduce((acc, p) => acc + Number(p._sum.montoPresupuestado ?? 0), 0);
+  const asignadoSimpleFaltante = presupuestosMensuales
+    .filter((m) => !proyectosConPartida.has(m.proyectoId))
+    .reduce((acc, m) => acc + Number(m.montoAsignado), 0);
+  const asignado = asignadoPartida + asignadoSimpleFaltante;
+
+  const gastoMes = Number(gastos._sum.costo ?? 0) + Number(combustible._sum.costo ?? 0) + Number(tags._sum.monto ?? 0);
+
+  return { anio, mes, asignado, gastoMes };
+}
+
+/**
+ * Presupuesto aprobado anual por proyecto, mismo criterio de prioridad que
+ * `obtenerPresupuestoDelMes`: la suma del Presupuesto por partida si el
+ * proyecto tiene partidas capturadas ese año, si no el total simple
+ * (`Proyecto.presupuestoAprobadoAnual`). Una sola consulta agrupada para
+ * todos los proyectos — pensado para listados (ej. /proyectos).
+ */
+export async function obtenerPresupuestoAprobadoPorProyecto(anio: number): Promise<Map<string, number>> {
+  const [partidasPorProyecto, proyectos] = await Promise.all([
+    prisma.presupuestoPartida.groupBy({ by: ["proyectoId"], where: { anio }, _sum: { montoPresupuestado: true } }),
+    prisma.proyecto.findMany({ select: { id: true, presupuestoAprobadoAnual: true } }),
+  ]);
+
+  const partidaPorProyecto = new Map(partidasPorProyecto.map((p) => [p.proyectoId, Number(p._sum.montoPresupuestado ?? 0)]));
+  const resultado = new Map<string, number>();
+  for (const proyecto of proyectos) {
+    const desdePartida = partidaPorProyecto.get(proyecto.id) ?? 0;
+    resultado.set(proyecto.id, desdePartida > 0 ? desdePartida : Number(proyecto.presupuestoAprobadoAnual));
+  }
+  return resultado;
+}
+
 export type MesPartida = { mes: number; presupuestado: number; real: number; diferencia: number };
 export type GastoPorUnidad = { numeroEconomico: string; monto: number };
 export type PartidaResumen = {

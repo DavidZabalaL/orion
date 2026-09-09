@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "ReporteProgramado" ADD COLUMN     "diaMes" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "diaSemana" INTEGER NOT NULL DEFAULT 1;

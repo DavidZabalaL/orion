@@ -62,7 +62,24 @@ export function valorWidgetUnidades(id: string, datos: DatosWidgetsUnidades): nu
 // los "desglose" (con chips que pueden envolver) empiezan más anchos.
 export const COLS_WIDGETS = 12;
 const ANCHO_DEFAULT: Record<DefinicionWidget["tipo"], number> = { contador: 3, desglose: 6 };
-const ALTO_DEFAULT: Record<DefinicionWidget["tipo"], number> = { contador: 4, desglose: 6 };
+// "desglose" muestra una cantidad de chips que depende de los datos (cuántos
+// proyectos/tipos existan) y crece con el tiempo — 8 filas es lo mínimo para
+// que quepan ~10-12 chips envueltos sin necesitar scroll en la mayoría de los
+// casos reales. Antes eran 6, y un admin pudo guardar un valor todavía más
+// chico desde /usuarios/widgets (ese editor no muestra datos reales, así que
+// no hay forma de notar ahí que un valor tan bajo corta contenido).
+const ALTO_DEFAULT: Record<DefinicionWidget["tipo"], number> = { contador: 4, desglose: 8 };
+
+/**
+ * Altura mínima segura que nunca se debe pisar, sin importar qué haya guardado
+ * en ConfiguracionWidgets (ni lo que un admin haya arrastrado en
+ * /usuarios/widgets, que edita sin ver datos reales) — así un valor
+ * demasiado chico ya guardado se autocorrige en cada render en vez de seguir
+ * cortando contenido silenciosamente.
+ */
+export function conAlturaSegura(tipo: DefinicionWidget["tipo"], layout: LayoutWidget): LayoutWidget {
+  return layout.h < ALTO_DEFAULT[tipo] ? { ...layout, h: ALTO_DEFAULT[tipo] } : layout;
+}
 
 export function generarLayoutsPorDefecto(catalogo: DefinicionWidget[]): Record<string, LayoutWidget> {
   const layouts: Record<string, LayoutWidget> = {};

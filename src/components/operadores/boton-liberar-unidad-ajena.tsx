@@ -11,11 +11,8 @@ export function BotonLiberarUnidadAjena({ id }: { id: string }) {
   function handleClick() {
     setError(null);
     startTransition(async () => {
-      try {
-        await liberarUnidadAjena(id);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al liberar la unidad.");
-      }
+      const res = await liberarUnidadAjena(id);
+      if (!res.ok) setError(res.error ?? "Error al liberar la unidad.");
     });
   }
 

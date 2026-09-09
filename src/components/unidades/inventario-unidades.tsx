@@ -10,8 +10,13 @@ import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-ta
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { valorWidgetUnidades, COLS_WIDGETS, type WidgetActivo } from "@/lib/widgets";
 
-const BREAKPOINTS = { lg: 600, sm: 0 };
-const COLS = { lg: COLS_WIDGETS, sm: 1 };
+// Antes solo había dos escalones (< 600px = 1 columna, ≥ 600px = las 12
+// completas): cualquier ancho intermedio (tablet, laptop chica, ventana no
+// maximizada) heredaba la misma densidad que un monitor de escritorio y
+// terminaba con "contador" de w:3 apretados en ~150px — muy poco para un
+// ícono + un monto en pesos. "md" da un paso intermedio real.
+const BREAKPOINTS = { lg: 900, md: 600, sm: 0 };
+const COLS = { lg: COLS_WIDGETS, md: 6, sm: 1 };
 
 const ICONO_WIDGET: Record<string, typeof Car> = {
   total: Layers,
@@ -222,7 +227,7 @@ export function InventarioUnidades({
               {widgetsActivos.map((w) => {
                 const valor = valorWidgetUnidades(w.id, datosWidgets);
                 if (Array.isArray(valor)) {
-                  const esProyecto = w.id === "porProyecto";
+                  const esProyecto = w.id === "porProyecto" || w.id === "slaPorProyecto";
                   const esTipoNoDisponible = w.id === "porTipoNoDisponible";
                   const esTipo = w.id === "porTipo" || esTipoNoDisponible;
                   const alternar = esProyecto ? alternarProyecto : esTipoNoDisponible ? alternarTipoNoDisponible : esTipo ? alternarTipo : undefined;
@@ -266,7 +271,7 @@ export function InventarioUnidades({
                   );
                 }
                 return (
-                  <div key={w.id}>
+                  <div key={w.id} className="flex h-full items-center">
                     <StatCard
                       label={w.label}
                       value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}

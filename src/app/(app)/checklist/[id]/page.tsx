@@ -42,9 +42,9 @@ function ColorChip({ value }: { value: string }) {
   const v = value?.toUpperCase() ?? "";
   let bg = "var(--chip)";
   let color = "var(--sidebar-text)";
-  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
-  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
-  else if (v === "MEDIO") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
+  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA", "100% (NUEVA)", "75%"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
+  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO", "25%", "0% (REEMPLAZAR)"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
+  else if (v === "MEDIO" || v === "50%") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
   return (
     <span
       className="inline-block rounded-full whitespace-nowrap"
@@ -138,6 +138,13 @@ function DetalleDiario({
           {respuestasExtra["ext_tiene_golpes"] && (
             <FilaItem label="¿Tiene golpes?" badge={<ColorChip value={respuestasExtra["ext_tiene_golpes"]} />} />
           )}
+          {[
+            { key: "ext_evidencia_golpes_1", label: "Evidencia de golpes 1" },
+            { key: "ext_evidencia_golpes_2", label: "Evidencia de golpes 2" },
+            { key: "ext_evidencia_golpes_3", label: "Evidencia de golpes 3" },
+          ].filter((f) => respuestasExtra[f.key]).map((f) => (
+            <FilaItem key={f.key} label={f.label} badge={null} foto={respuestasExtra[f.key]} />
+          ))}
           {respuestasExtra["ext_parabrisas_espejos"] && (
             <FilaItem label="Parabrisas y espejos" badge={<ColorChip value={respuestasExtra["ext_parabrisas_espejos"]} />} foto={respuestasExtra["ext_evidencia_parabrisas_espejos"]} />
           )}

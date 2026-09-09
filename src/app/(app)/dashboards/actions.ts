@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
+import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { enviarReporteBI } from "@/lib/email";
 import {
   obtenerDataset,
@@ -213,7 +214,7 @@ async function validarSeleccion(proyectoIdsSolicitados: string[], permitidos: st
   return proyectoIdsSolicitados.filter((id) => permitidos.includes(id));
 }
 
-async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: string; hasta: string }): Promise<EstatusFlotaReporte> {
+async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: string; hasta: string; camposExtra?: CampoExtraSeleccionado[] }): Promise<EstatusFlotaReporte> {
   const permitidos = await alcanceGeneralPermitido();
   const seleccionValidada = await validarSeleccion(input.proyectoIds, permitidos);
   return calcularEstatusFlotaReporte({
@@ -221,13 +222,14 @@ async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: 
     proyectoIdsSeleccionados: seleccionValidada,
     desde: new Date(input.desde),
     hasta: new Date(input.hasta),
+    camposExtraSeleccionados: (input.camposExtra ?? []).slice(0, MAX_CAMPOS_EXTRA),
   });
 }
 
 export type ResultadoDatosEstatusFlota = { ok: true; datos: EstatusFlotaReporte } | { ok: false; error: string };
 
 /** Datos del reporte para armar el PDF en el cliente ("Descargar PDF"). */
-export async function obtenerDatosEstatusFlota(input: { proyectoIds: string[]; desde: string; hasta: string }): Promise<ResultadoDatosEstatusFlota> {
+export async function obtenerDatosEstatusFlota(input: { proyectoIds: string[]; desde: string; hasta: string; camposExtra?: CampoExtraSeleccionado[] }): Promise<ResultadoDatosEstatusFlota> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   try {
     const datos = await calcularReporteConAlcance(input);
@@ -243,6 +245,7 @@ export async function enviarEstatusFlotaAhora(input: {
   desde: string;
   hasta: string;
   destinatarios: string[];
+  camposExtra?: CampoExtraSeleccionado[];
 }): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
@@ -269,38 +272,65 @@ export type ConfigEstatusFlotaProgramado = {
   id: string | null;
   proyectoIds: string[];
   hora: string;
+  /** Día de la semana: 0 = domingo … 6 = sábado (getUTCDay, hora México). */
+  diaSemana: number;
+  /** Ventana de datos que cubre cada envío, en días hacia atrás (ej. 7, 15, 30, 60, 90). */
+  periodoDias: number;
   destinatarios: string[];
   activo: boolean;
+  /** Datos adicionales elegidos libremente (cualquier "etiqueta" del catálogo BI) — ver campos-extra.ts. */
+  camposExtra: CampoExtraSeleccionado[];
 };
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
+const MAX_CAMPOS_EXTRA = 18;
 
 /**
  * Envío automático semanal — un único ReporteProgramado (tipo "estatus_flota"),
  * administrado desde este modal en vez de listarse en /reportes/generador
- * (a pedido explícito: no debe verse como un módulo aparte). Corre los
- * lunes, igual que cualquier otro reporte SEMANAL de la plataforma (ver
- * src/app/api/cron/reportes-programados/route.ts) — ese cron no cambia.
+ * (a pedido explícito: no debe verse como un módulo aparte). Corre el día de
+ * la semana configurado, igual que cualquier otro reporte SEMANAL de la
+ * plataforma (ver src/app/api/cron/reportes-programados/route.ts).
  */
+const PERIODOS_DIAS_VALIDOS = [7, 15, 30, 60, 90];
+
 export async function guardarProgramacionEstatusFlota(input: {
   id: string | null;
   proyectoIds: string[];
   hora: string;
+  diaSemana: number;
+  periodoDias: number;
   destinatarios: string[];
   activo: boolean;
+  camposExtra: CampoExtraSeleccionado[];
 }): Promise<ResultadoSimple> {
   const session = await auth();
   if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
     return { ok: false, error: "No tienes permiso para configurar el envío automático." };
   }
 
+  if (!Number.isInteger(input.diaSemana) || input.diaSemana < 0 || input.diaSemana > 6) {
+    return { ok: false, error: "Día de la semana inválido." };
+  }
+  if (!PERIODOS_DIAS_VALIDOS.includes(input.periodoDias)) {
+    return { ok: false, error: "Periodo de datos inválido." };
+  }
+  const camposExtraValidos = input.camposExtra
+    .filter((c) => {
+      const dataset = obtenerDataset(c.datasetId);
+      return !!dataset && !!obtenerCampo(dataset, c.campoId);
+    })
+    .slice(0, MAX_CAMPOS_EXTRA);
+
   const data = {
     nombre: "Estatus semanal de flota",
     tipo: TIPO_ESTATUS_FLOTA,
     camposJson: [],
-    filtrosJson: { proyectoIds: input.proyectoIds },
+    filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos },
     destinatarios: input.destinatarios,
     hora: input.hora,
+    diaSemana: input.diaSemana,
+    periodoDias: input.periodoDias,
     frecuencia: "SEMANAL" as const,
     formato: "PDF" as const,
     activo: input.activo,

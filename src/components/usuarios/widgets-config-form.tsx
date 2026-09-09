@@ -7,7 +7,14 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, GripVertical } from "lucide-react";
 import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
 import { actualizarConfiguracionWidgets } from "@/app/(app)/usuarios/widgets/actions";
-import { COLS_WIDGETS, type DefinicionWidget, type WidgetConfigItem } from "@/lib/widgets";
+import { COLS_WIDGETS, conAlturaSegura, type DefinicionWidget, type WidgetConfigItem } from "@/lib/widgets";
+
+// Mínimo que se puede arrastrar aquí, por tipo — este editor muestra
+// tarjetas de relleno (sin los chips reales de datos), así que no hay forma
+// de notar en vivo si un tamaño queda demasiado chico; MIN_ALTURA evita que
+// se pueda guardar un valor que luego corte contenido real en Inventario de
+// Unidades (ver conAlturaSegura, que además autocorrige lo ya guardado).
+const MIN_ALTURA: Record<DefinicionWidget["tipo"], number> = { contador: 3, desglose: 8 };
 
 // Mismo esquema de breakpoints que el dashboard de BI: un solo corte, muy por
 // debajo de cualquier ancho de escritorio real, para que el colapso del
@@ -30,7 +37,8 @@ export function WidgetsConfigForm({
   const [widgets, setWidgets] = useState<WidgetEditable[]>(() =>
     catalogo.map((w) => {
       const actual = widgetsActuales.find((a) => a.id === w.id);
-      return { id: w.id, label: w.labelDefault, tipo: w.tipo, activo: actual?.activo ?? false, layout: actual?.layout ?? { x: 0, y: 0, w: 3, h: 4 } };
+      const layout = actual?.layout ?? { x: 0, y: 0, w: 3, h: 4 };
+      return { id: w.id, label: w.labelDefault, tipo: w.tipo, activo: actual?.activo ?? false, layout: conAlturaSegura(w.tipo, layout) };
     })
   );
   const [pending, startTransition] = useTransition();
@@ -65,7 +73,7 @@ export function WidgetsConfigForm({
   }
 
   const layouts: ResponsiveLayouts = {
-    lg: widgets.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h, minW: 2, minH: 3 })),
+    lg: widgets.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h, minW: 2, minH: MIN_ALTURA[w.tipo] })),
   };
 
   return (

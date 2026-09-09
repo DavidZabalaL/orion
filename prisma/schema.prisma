@@ -947,6 +947,12 @@ model ReporteProgramado {
   filtrosJson   Json
   destinatarios Json
   hora          String
+  /** Día de la semana para frecuencia SEMANAL: 0 = domingo … 6 = sábado (getUTCDay). Ignorado para DIARIO/MENSUAL. */
+  diaSemana     Int               @default(1)
+  /** Día del mes (1-31) para frecuencia MENSUAL — se corre el último día del mes si el mes es más corto. Ignorado para DIARIO/SEMANAL. */
+  diaMes        Int               @default(1)
+  /** Ventana de datos que cubre cada envío (días hacia atrás desde la fecha de corte), ej. 7/15/30/60/90. Hoy solo lo usa el reporte "estatus_flota". */
+  periodoDias   Int               @default(7)
   frecuencia    FrecuenciaReporte
   formato       FormatoReporte    @default(EXCEL)
   activo        Boolean           @default(true)

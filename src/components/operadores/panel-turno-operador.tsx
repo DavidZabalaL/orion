@@ -31,23 +31,17 @@ export function PanelTurnoOperador({ datos }: { datos: DatosTurno }) {
     if (!unidadSeleccionada) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await tomarUnidad(unidadSeleccionada);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al tomar la unidad.");
-      }
+      const res = await tomarUnidad(unidadSeleccionada);
+      if (!res.ok) setError(res.error ?? "Error al tomar la unidad.");
     });
   }
 
   function handleLiberar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await liberarUnidad();
-        setUnidadSeleccionada("");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al liberar la unidad.");
-      }
+      const res = await liberarUnidad();
+      if (!res.ok) { setError(res.error ?? "Error al liberar la unidad."); return; }
+      setUnidadSeleccionada("");
     });
   }
 

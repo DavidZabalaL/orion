@@ -8,11 +8,12 @@ import type { WidgetDashboardBI } from "@/lib/bi/metadata";
 import type { VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { DatosInventarioTab } from "@/components/bi/dashboards-unificado";
 import { type UnidadRow } from "@/components/unidades/unidades-table";
-import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
+import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, conAlturaSegura, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
 import { calcularSlaMesActualPorUnidades } from "@/lib/sla-disponibilidad";
 import { preferenciaOcultaPorUsuario, CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
+import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -40,13 +41,16 @@ export default async function DashboardsPage({
     prisma.reporteProgramado.findFirst({ where: { tipo: "estatus_flota" } }),
   ]);
 
-  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null } | null;
+  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[] } | null;
   const configEstatusFlota = {
     id: reporteEstatusFlota?.id ?? null,
     proyectoIds: filtrosEstatusFlota?.proyectoIds ?? [],
     hora: reporteEstatusFlota?.hora ?? "08",
+    diaSemana: reporteEstatusFlota?.diaSemana ?? 1,
+    periodoDias: reporteEstatusFlota?.periodoDias ?? 7,
     destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
     activo: reporteEstatusFlota?.activo ?? false,
+    camposExtra: filtrosEstatusFlota?.camposExtra ?? [],
   };
 
   const vistas: VistaDashboard[] = vistasDb.map((v) => ({
@@ -121,7 +125,6 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
       _count: { id: true },
     }),
   ]);
-
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
   const proximoPorEconomico = new Map(proximosMantenimientos.map((m) => [m.numeroEconomico, m._min.fecha]));
   const ultimoCombustiblePorEconomico = new Map(ultimosCombustibles.map((m) => [m.numeroEconomico, m._max.fecha]));
@@ -159,6 +162,8 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
       proximoMantenimiento: proximoPorEconomico.get(u.numeroEconomico)?.toISOString() ?? null,
       semaforo,
       slaPorcentaje: null,
+      motivoIndisponibilidad: u.motivoIndisponibilidad,
+      motivoIndisponibilidadDetalle: u.motivoIndisponibilidadDetalle,
     };
   });
 
@@ -193,7 +198,7 @@ async function obtenerDatosInventario(): Promise<DatosInventarioTab> {
         label: w.labelDefault,
         tipo: w.tipo,
         activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
-        layout: esLayoutValido(guardado?.layout) ? guardado.layout : layoutsPorDefecto[w.id],
+        layout: esLayoutValido(guardado?.layout) ? conAlturaSegura(w.tipo, guardado.layout) : layoutsPorDefecto[w.id],
       };
     })
     .filter((w) => w.activo && (w.id !== "slaPorProyecto" || puedeVerSla));
