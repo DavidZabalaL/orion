@@ -76,6 +76,11 @@ export function ejeYLabelSimple(agregacion: TipoAgregacion, campoY: CampoMeta): 
   return agregacion === "conteo" ? "N° de registros" : `${campoY.label} (${AGREGACION_LABEL[agregacion]})`;
 }
 
+/** Sufijo a mostrar junto al valor del eje Y (ej. "%") — vacío en "conteo" porque ahí el valor es N° de registros, no el campo elegido. */
+export function ejeYSufijo(agregacion: TipoAgregacion, campoY: CampoMeta): string {
+  return agregacion === "conteo" ? "" : campoY.sufijo ?? "";
+}
+
 /** Rellena con valor 0 los periodos (mes o día) sin datos entre el mínimo y máximo presentes. */
 export function rellenarHuecosPeriodo(datos: { dimension: string; valor: number }[], tipo: "fecha_mes" | "fecha_dia"): { dimension: string; valor: number }[] {
   if (datos.length < 2) return datos;
@@ -129,7 +134,7 @@ export function validarParamsSimple(datasetId: string, ejeXId: string, ejeYId: s
 export type ResultadoSimple = {
   dataset: string;
   ejeX: { id: string; label: string };
-  ejeY: { label: string };
+  ejeY: { label: string; sufijo: string };
   datos: { dimension: string; valor: number }[];
 };
 
@@ -171,7 +176,7 @@ export async function ejecutarSimple(
       return {
         dataset: dataset.id,
         ejeX: { id: campoX.id, label: campoX.label },
-        ejeY: { label: ejeYLabelSimple(agregacion, campoY) },
+        ejeY: { label: ejeYLabelSimple(agregacion, campoY), sufijo: ejeYSufijo(agregacion, campoY) },
         datos,
       };
     }

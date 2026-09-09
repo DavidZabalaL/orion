@@ -79,7 +79,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
     }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();
@@ -90,7 +90,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
     cargando || error || verTabla
       ? null
       : combinacion.tipoGrafica === "contador"
-      ? { id: idExportable, type: "kpi", title: dataset.label, value: datos[0]?.valor }
+      ? { id: idExportable, type: "kpi", title: dataset.label, value: datos[0]?.valor !== undefined ? `${datos[0].valor}${ejeYSufijo}` : undefined }
       : { id: idExportable, type: "chart", title: dataset.label, domRef: graficaRef }
   );
 
@@ -167,11 +167,11 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
               {error}
             </div>
           ) : verTabla && cruzado ? (
-            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} />
+            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} />
           ) : verTabla && soportaTabla ? (
-            <TablaDatos datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} />
+            <TablaDatos datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} />
           ) : (
-            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} truncado={truncado} />
+            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={combinacion.agregacion} truncado={truncado} />
           )}
         </div>
       </div>
@@ -192,7 +192,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   );
 }
 
-function TablaDatos({ datos, ejeXLabel, ejeYLabel }: { datos: { dimension: string; valor: number }[]; ejeXLabel: string; ejeYLabel: string }) {
+function TablaDatos({ datos, ejeXLabel, ejeYLabel, ejeYSufijo = "" }: { datos: { dimension: string; valor: number }[]; ejeXLabel: string; ejeYLabel: string; ejeYSufijo?: string }) {
   return (
     <table className="w-full" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
       <thead>
@@ -205,7 +205,7 @@ function TablaDatos({ datos, ejeXLabel, ejeYLabel }: { datos: { dimension: strin
         {datos.map((d) => (
           <tr key={d.dimension} style={{ borderTop: "1px solid var(--field-border)", color: "var(--sidebar-text-active)" }}>
             <td className="py-2">{d.dimension}</td>
-            <td className="py-2">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(d.valor)}</td>
+            <td className="py-2">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(d.valor)}{ejeYSufijo}</td>
           </tr>
         ))}
       </tbody>

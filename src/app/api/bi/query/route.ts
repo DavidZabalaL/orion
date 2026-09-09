@@ -23,6 +23,7 @@ import {
   construirWhere,
   resolverAlcanceProyecto,
   ejeYLabelSimple,
+  ejeYSufijo,
   ejecutarSimple,
 } from "@/lib/bi/motor-consultas";
 
@@ -223,7 +224,7 @@ async function consultarVariacion(
     return {
       dataset: dataset.id,
       ejeX: { id: campoX.id, label: campoX.label },
-      ejeY: { label: ejeYLabelSimple(agregacion, campoY) },
+      ejeY: { label: ejeYLabelSimple(agregacion, campoY), sufijo: ejeYSufijo(agregacion, campoY) },
       comparacion,
       datos,
     };
@@ -364,7 +365,7 @@ async function consultarHistograma(
     const [rango] = await prisma.$queryRaw<{ minimo: number | null; maximo: number | null; total: number }[]>(rangoQuery);
 
     if (!rango || rango.total === 0 || rango.minimo === null || rango.maximo === null) {
-      return { dataset: dataset.id, ejeX: { id: campoX.id, label: campoX.label }, ejeY: { label: "N° de registros" }, datos: [] };
+      return { dataset: dataset.id, ejeX: { id: campoX.id, label: campoX.label }, ejeY: { label: "N° de registros", sufijo: "" }, datos: [] };
     }
 
     const { minimo, maximo } = rango;
@@ -401,7 +402,7 @@ async function consultarHistograma(
     return {
       dataset: dataset.id,
       ejeX: { id: campoX.id, label: campoX.label },
-      ejeY: { label: "N° de registros" },
+      ejeY: { label: "N° de registros", sufijo: "" },
       datos,
     };
   });
@@ -437,7 +438,7 @@ async function consultarDispersion(
     return {
       dataset: dataset.id,
       ejeX: { id: campoX.id, label: campoX.label },
-      ejeY: { label: campoY.label },
+      ejeY: { label: campoY.label, sufijo: campoY.sufijo ?? "" },
       datos,
       truncado,
     };
@@ -481,7 +482,7 @@ async function consultarCaja(
     return {
       dataset: dataset.id,
       ejeX: { id: campoX.id, label: campoX.label },
-      ejeY: { label: campoY.label },
+      ejeY: { label: campoY.label, sufijo: campoY.sufijo ?? "" },
       cajas,
     };
   });
@@ -538,7 +539,7 @@ async function consultarPiramide(
       return {
         dataset: dataset.id,
         ejeX: { id: campoX.id, label: campoX.label },
-        ejeY: { label: ejeYLabelSimple(agregacion, campoY) },
+        ejeY: { label: ejeYLabelSimple(agregacion, campoY), sufijo: ejeYSufijo(agregacion, campoY) },
         pares,
         splitLabels: [grupo1 ?? "", grupo2 ?? ""],
       };
@@ -612,7 +613,7 @@ async function consultarCruzado(
       return {
         dataset: dataset.id,
         ejeX: { id: campoX.id, label: campoX.label },
-        ejeY: { label: ejeYLabelSimple(agregacion, campoY) },
+        ejeY: { label: ejeYLabelSimple(agregacion, campoY), sufijo: ejeYSufijo(agregacion, campoY) },
         cruzado: { series, filas: filasCruzadas, truncado: seriesTruncadas || dimensionesTruncadas },
       };
     }

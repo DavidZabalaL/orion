@@ -25,8 +25,8 @@ function colorFor(i: number, dark: boolean) {
   return paleta[i % paleta.length];
 }
 
-function fmtNumero(n: number) {
-  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(n);
+function fmtNumero(n: number, sufijo = "") {
+  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(n) + sufijo;
 }
 
 const TAMANO_INICIAL = { width: 640, height: 320 };
@@ -59,6 +59,7 @@ export function BiChart({
   cruzado,
   tipoGrafica,
   ejeYLabel,
+  ejeYSufijo = "",
   agregacion,
   truncado,
   onCategoriaClick,
@@ -70,6 +71,8 @@ export function BiChart({
   cruzado?: BiCruzado | null;
   tipoGrafica: TipoGrafica;
   ejeYLabel: string;
+  /** Se agrega a cada valor formateado del eje Y (ej. "%") — vacío por defecto. */
+  ejeYSufijo?: string;
   agregacion?: TipoAgregacion;
   truncado?: boolean;
   /** Drill-down: se dispara con el valor de la categoría clicada (barras, pie, puntos, divergente). Opcional — no rompe usos existentes. */
@@ -119,6 +122,7 @@ export function BiChart({
             cruzado={cruzado ?? null}
             tipoGrafica={tipoGrafica}
             ejeYLabel={ejeYLabel}
+            ejeYSufijo={ejeYSufijo}
             agregacion={agregacion}
             width={width}
             height={Math.max(height, 180)}
@@ -141,6 +145,7 @@ function BiChartInterno(props: {
   cruzado: BiCruzado | null;
   tipoGrafica: TipoGrafica;
   ejeYLabel: string;
+  ejeYSufijo: string;
   agregacion?: TipoAgregacion;
   width: number;
   height: number;
@@ -149,24 +154,24 @@ function BiChartInterno(props: {
   uid: string;
   onCategoriaClick?: (valor: string) => void;
 }) {
-  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
+  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
-  if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} agregacion={agregacion} width={width} height={height} />;
-  if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
-  if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "puntos") return <BiPuntos datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
-  if (tipoGrafica === "divergente") return <BiDivergente datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
-  if (tipoGrafica === "dispersion") return <BiDispersion datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "calendario") return <BiCalendario datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "caja") return <BiCajaChart cajas={cajas} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "piramide") return <BiPiramide pares={pares} splitLabels={splitLabels} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "mapa") return <BiMapa datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  if (tipoGrafica === "barras" && cruzado) return <BiBarrasAgrupadas cruzado={cruzado} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} />;
-  return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
+  if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={agregacion} width={width} height={height} />;
+  if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
+  if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "puntos") return <BiPuntos datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
+  if (tipoGrafica === "divergente") return <BiDivergente datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
+  if (tipoGrafica === "dispersion") return <BiDispersion datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "calendario") return <BiCalendario datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "caja") return <BiCajaChart cajas={cajas} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "piramide") return <BiPiramide pares={pares} splitLabels={splitLabels} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "mapa") return <BiMapa datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "barras" && cruzado) return <BiBarrasAgrupadas cruzado={cruzado} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
 }
 
-function BiContador({ datos, ejeYLabel, agregacion, width, height }: { datos: BiDato[]; ejeYLabel: string; agregacion?: TipoAgregacion; width: number; height: number }) {
+function BiContador({ datos, ejeYLabel, ejeYSufijo, agregacion, width, height }: { datos: BiDato[]; ejeYLabel: string; ejeYSufijo: string; agregacion?: TipoAgregacion; width: number; height: number }) {
   const suma = datos.reduce((acc, d) => acc + d.valor, 0);
   const total = agregacion === "promedio" ? suma / datos.length : suma;
   const fontSize = Math.min(72, Math.max(28, Math.min(width, height) * 0.22));
@@ -174,7 +179,7 @@ function BiContador({ datos, ejeYLabel, agregacion, width, height }: { datos: Bi
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-center">
       <div style={{ fontFamily: "var(--font-mono)", fontSize, fontWeight: 700, color: "var(--sidebar-text-active)", fontVariantNumeric: "tabular-nums" }}>
-        {fmtNumero(total)}
+        {fmtNumero(total, ejeYSufijo)}
       </div>
       <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
         {ejeYLabel}
@@ -197,7 +202,7 @@ function ejes(w: number, h: number, valores: number[]) {
   return { max: max === 0 ? 1 : max, innerW, innerH };
 }
 
-function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
+function BiBarras({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const W = Math.max(width, datos.length * 60);
   const H = height;
   const { max, innerW, innerH } = ejes(W, H, datos.map((d) => d.valor));
@@ -228,7 +233,7 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height, onCa
               <rect x={x} y={y} width={bw} height={Math.max(h, 1)} rx={4} fill={colorFor(i, dark)} opacity={hover === null || hover === i ? 1 : 0.45} />
               {mostrarEtiquetas && (
                 <text x={x + bw / 2} y={y - 6} textAnchor="middle" fontSize={10} fontFamily="var(--font-ui)" fill={ink}>
-                  {fmtNumero(d.valor)}
+                  {fmtNumero(d.valor, ejeYSufijo)}
                 </text>
               )}
               <text x={x + bw / 2} y={H - PAD.bottom + 16} textAnchor="middle" fontSize={10} fontFamily="var(--font-ui)" fill={ink}>
@@ -241,7 +246,7 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height, onCa
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: `${((hover + 0.5) / datos.length) * 100}%`, top: 4, transform: "translateX(-50%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
         </div>
       )}
     </div>
@@ -249,7 +254,7 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel, width, height, onCa
 }
 
 /** Barras agrupadas: cruce de 2 dimensiones — una barra por serie dentro de cada grupo (eje X). `hover` indexa `dimension::serie` aplanado. */
-function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, width, height }: { cruzado: BiCruzado; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { cruzado: BiCruzado; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const { series, filas } = cruzado;
   const nSeries = Math.max(series.length, 1);
   const legendH = 28;
@@ -297,7 +302,7 @@ function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, width, h
                       <rect x={x} y={y} width={Math.max(barWidth, 1)} height={Math.max(h, 1)} rx={3} fill={colorFor(si, dark)} opacity={hover === null || hover === idx ? 1 : 0.4} />
                       {mostrarEtiquetas && (
                         <text x={x + barWidth / 2} y={y - 5} textAnchor="middle" fontSize={9} fontFamily="var(--font-ui)" fill={ink}>
-                          {fmtNumero(valor)}
+                          {fmtNumero(valor, ejeYSufijo)}
                         </text>
                       )}
                     </g>
@@ -325,7 +330,7 @@ function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, width, h
           >
             <div style={{ fontWeight: 600 }}>{filas[celdaHover.fila].dimension}</div>
             <div style={{ color: colorFor(celdaHover.serie, dark) }}>
-              {series[celdaHover.serie]}: {fmtNumero(filas[celdaHover.fila].valores[series[celdaHover.serie]] ?? 0)}
+              {series[celdaHover.serie]}: {fmtNumero(filas[celdaHover.fila].valores[series[celdaHover.serie]] ?? 0, ejeYSufijo)}
             </div>
             <div style={{ color: "var(--sidebar-text)", opacity: 0.7 }}>{ejeYLabel}</div>
           </div>
@@ -335,7 +340,7 @@ function BiBarrasAgrupadas({ cruzado, dark, hover, setHover, ejeYLabel, width, h
   );
 }
 
-function BiLineas({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiLineas({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const W = Math.max(width, datos.length * 50);
   const H = height;
   const { max, innerW, innerH } = ejes(W, H, datos.map((d) => d.valor));
@@ -366,14 +371,14 @@ function BiLineas({ datos, dark, hover, setHover, ejeYLabel, width, height }: { 
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: `${(puntos[hover].x / W) * 100}%`, top: 4, transform: "translateX(-50%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
         </div>
       )}
     </div>
   );
 }
 
-function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; uid: string; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
+function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, ejeYSufijo, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; uid: string; ejeYLabel: string; ejeYSufijo: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const total = datos.reduce((acc, d) => acc + d.valor, 0) || 1;
   const apilado = width < 420;
   const pieW = apilado ? width : Math.max(180, Math.min(width * 0.5, height));
@@ -430,7 +435,7 @@ function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height, on
             <span style={{ width: 10, height: 10, borderRadius: 3, background: colorFor(i, dark), flexShrink: 0 }} />
             <span style={{ color: "var(--sidebar-text-active)" }}>{d.dimension}</span>
             <span style={{ color: "var(--sidebar-text)" }}>
-              — {fmtNumero(d.valor)} {ejeYLabel} ({Math.round((arcos[i].pct ?? 0) * 100)}%)
+              — {fmtNumero(d.valor, ejeYSufijo)} {ejeYLabel} ({Math.round((arcos[i].pct ?? 0) * 100)}%)
             </span>
           </div>
         ))}
@@ -440,7 +445,7 @@ function BiPie({ datos, dark, hover, setHover, uid, ejeYLabel, width, height, on
 }
 
 /** Diagrama de tira de puntos: una fila por categoría, punto posicionado por su valor — alternativa más ligera a las barras para rankings. */
-function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
+function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const W = width;
   const filaAlto = 28;
   const H = Math.max(height, PAD.top + PAD.bottom + datos.length * filaAlto);
@@ -479,7 +484,7 @@ function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height, onCa
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: PAD.left + labelAncho, top: PAD.top + hover * filaAlto, transform: "translateY(-100%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
         </div>
       )}
     </div>
@@ -487,7 +492,7 @@ function BiPuntos({ datos, dark, hover, setHover, ejeYLabel, width, height, onCa
 }
 
 /** Barra divergente: desviación de cada categoría respecto al promedio del conjunto mostrado. */
-function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
+function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
   const promedio = datos.reduce((acc, d) => acc + d.valor, 0) / datos.length;
   const desviaciones = datos.map((d) => d.valor - promedio);
   const maxAbs = Math.max(...desviaciones.map((v) => Math.abs(v)), 1);
@@ -530,8 +535,8 @@ function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, width, height, 
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: centro, top: PAD.top + hover * filaAlto, transform: "translateY(-100%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor)}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>Promedio: {fmtNumero(promedio)} ({desviaciones[hover] >= 0 ? "+" : ""}{fmtNumero(desviaciones[hover])})</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>Promedio: {fmtNumero(promedio, ejeYSufijo)} ({desviaciones[hover] >= 0 ? "+" : ""}{fmtNumero(desviaciones[hover], ejeYSufijo)})</div>
         </div>
       )}
     </div>
@@ -539,7 +544,7 @@ function BiDivergente({ datos, dark, hover, setHover, ejeYLabel, width, height, 
 }
 
 /** Dispersión: cada fila de "datos" es un punto (dimension = X como texto numérico, valor = Y), sin agrupar. */
-function BiDispersion({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiDispersion({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const puntos = datos.map((d) => ({ x: Number(d.dimension), y: d.valor }));
   const W = width;
   const H = height;
@@ -588,7 +593,7 @@ function BiDispersion({ datos, dark, hover, setHover, ejeYLabel, width, height }
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: posiciones[hover].cx, top: posiciones[hover].cy, transform: "translate(-50%, -120%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ color: "var(--sidebar-text)" }}>X: {fmtNumero(posiciones[hover].x)}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(posiciones[hover].y)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(posiciones[hover].y, ejeYSufijo)}</div>
         </div>
       )}
     </div>
@@ -596,7 +601,7 @@ function BiDispersion({ datos, dark, hover, setHover, ejeYLabel, width, height }
 }
 
 /** Mapa de calor calendario: dimension = "YYYY-MM-DD". Cuadrícula de semanas (columnas) x días (filas), color por magnitud (rampa secuencial de un tono). */
-function BiCalendario({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiCalendario({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const fechas = datos.map((d) => new Date(d.dimension + "T00:00:00Z"));
   const inicio = new Date(Math.min(...fechas.map((f) => f.getTime())));
   const fin = new Date(Math.max(...fechas.map((f) => f.getTime())));
@@ -656,7 +661,7 @@ function BiCalendario({ datos, dark, hover, setHover, ejeYLabel, width, height }
       {hover !== null && datos[hover] && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: 20, top: 0, background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
         </div>
       )}
     </div>
@@ -664,7 +669,7 @@ function BiCalendario({ datos, dark, hover, setHover, ejeYLabel, width, height }
 }
 
 /** Box plot: min / Q1 / mediana / Q3 / max por categoría. */
-function BiCajaChart({ cajas, dark, hover, setHover, ejeYLabel, width, height }: { cajas: BiCaja[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiCajaChart({ cajas, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { cajas: BiCaja[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const W = Math.max(width, cajas.length * 70);
   const H = height;
   const max = Math.max(...cajas.map((c) => c.max), 0) || 1;
@@ -705,11 +710,11 @@ function BiCajaChart({ cajas, dark, hover, setHover, ejeYLabel, width, height }:
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: `${((hover + 0.5) / cajas.length) * 100}%`, top: 4, transform: "translateX(-50%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{cajas[hover].dimension}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>Máx: {fmtNumero(cajas[hover].max)}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>Q3: {fmtNumero(cajas[hover].q3)}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>Mediana: {fmtNumero(cajas[hover].mediana)}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>Q1: {fmtNumero(cajas[hover].q1)}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>Mín: {fmtNumero(cajas[hover].min)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>Máx: {fmtNumero(cajas[hover].max, ejeYSufijo)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>Q3: {fmtNumero(cajas[hover].q3, ejeYSufijo)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>Mediana: {fmtNumero(cajas[hover].mediana, ejeYSufijo)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>Q1: {fmtNumero(cajas[hover].q1, ejeYSufijo)}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>Mín: {fmtNumero(cajas[hover].min, ejeYSufijo)}</div>
           <div style={{ color: "var(--sidebar-text)", opacity: 0.7 }}>{ejeYLabel}</div>
         </div>
       )}
@@ -718,7 +723,7 @@ function BiCajaChart({ cajas, dark, hover, setHover, ejeYLabel, width, height }:
 }
 
 /** Comparación de dos grupos (estilo pirámide poblacional): barras espejo a izquierda/derecha de un eje central por categoría. */
-function BiPiramide({ pares, splitLabels, dark, hover, setHover, ejeYLabel, width, height }: { pares: BiPar[]; splitLabels: [string, string]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiPiramide({ pares, splitLabels, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { pares: BiPar[]; splitLabels: [string, string]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const maxAbs = Math.max(...pares.flatMap((p) => [p.izquierda, p.derecha]), 1);
   const W = width;
   const filaAlto = 28;
@@ -753,8 +758,8 @@ function BiPiramide({ pares, splitLabels, dark, hover, setHover, ejeYLabel, widt
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: centro, top: PAD.top + 24 + hover * filaAlto, transform: "translateY(-100%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{pares[hover].dimension}</div>
-          <div style={{ color: colorIzq }}>{splitLabels[0]}: {fmtNumero(pares[hover].izquierda)}</div>
-          <div style={{ color: colorDer }}>{splitLabels[1]}: {fmtNumero(pares[hover].derecha)}</div>
+          <div style={{ color: colorIzq }}>{splitLabels[0]}: {fmtNumero(pares[hover].izquierda, ejeYSufijo)}</div>
+          <div style={{ color: colorDer }}>{splitLabels[1]}: {fmtNumero(pares[hover].derecha, ejeYSufijo)}</div>
           <div style={{ color: "var(--sidebar-text)", opacity: 0.7 }}>{ejeYLabel}</div>
         </div>
       )}
@@ -767,7 +772,7 @@ type FeatureMapa = { type: "Feature"; properties: { estado: string }; geometry: 
 type GeoMapa = { type: "FeatureCollection"; features: FeatureMapa[] };
 
 /** Mapa coroplético de estados de México: agrupa el texto libre de "dimension" al nombre de estado del GeoJSON (con alias) y colorea por magnitud. */
-function BiMapa({ datos, dark, hover, setHover, ejeYLabel, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; width: number; height: number }) {
+function BiMapa({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number }) {
   const [geo, setGeo] = useState<GeoMapa | null>(null);
 
   useEffect(() => {
@@ -865,7 +870,7 @@ function BiMapa({ datos, dark, hover, setHover, ejeYLabel, width, height }: { da
       {estadoHover && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: 8, top: 8, background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{estadoHover}</div>
-          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {valorPorEstado.has(estadoHover) ? fmtNumero(valorPorEstado.get(estadoHover)!) : "Sin datos"}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {valorPorEstado.has(estadoHover) ? fmtNumero(valorPorEstado.get(estadoHover)!, ejeYSufijo) : "Sin datos"}</div>
         </div>
       )}
       {noReconocidos.length > 0 && (

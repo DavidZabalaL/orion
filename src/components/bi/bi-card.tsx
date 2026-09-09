@@ -66,7 +66,7 @@ export function BiCard({
     () => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden, filtros: filtrosEfectivos, proyectoIds }),
     [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden, filtrosEfectivos, proyectoIds]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, truncado, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = obtenerCampo(obtenerDataset(dataset)!, ejeX)?.label ?? ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();
@@ -79,7 +79,7 @@ export function BiCard({
     cargando || error
       ? null
       : tipoGrafica === "contador"
-      ? { id: idExportable, type: "kpi", title: label, value: datos[0]?.valor }
+      ? { id: idExportable, type: "kpi", title: label, value: datos[0]?.valor !== undefined ? `${datos[0].valor}${ejeYSufijo}` : undefined }
       : { id: idExportable, type: "chart", title: label, domRef: graficaRef }
   );
 
@@ -164,7 +164,7 @@ export function BiCard({
             {error}
           </div>
         ) : verTabla && cruzado ? (
-          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} />
+          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} />
         ) : (
           <BiChart
             datos={datos}
@@ -174,6 +174,7 @@ export function BiCard({
             cruzado={cruzado}
             tipoGrafica={tipoGrafica}
             ejeYLabel={ejeYLabel}
+            ejeYSufijo={ejeYSufijo}
             agregacion={agregacion}
             truncado={truncado}
             onCategoriaClick={emiteFiltro ? (valor) => onCategoriaClick?.(ejeX, valor) : undefined}

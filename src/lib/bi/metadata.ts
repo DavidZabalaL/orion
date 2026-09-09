@@ -88,6 +88,8 @@ export type CampoMeta = {
   /** Si está presente, un filtro sobre este campo se muestra como checkboxes
    *  con estas opciones (multi-selección) en vez de un campo de texto libre. */
   opciones?: { valor: string; label: string }[];
+  /** Se agrega al formatear el valor de este campo cuando es el eje Y (ej. "%") — no aplica cuando la agregación es "conteo" (ahí el valor es N° de registros, no el campo). */
+  sufijo?: string;
 };
 
 export type DatasetMeta = {
@@ -185,6 +187,7 @@ export const BI_DATASETS: DatasetMeta[] = [
         id: "slaDisponibilidad",
         label: "SLA de disponibilidad (% mes en curso)",
         tipo: "numero",
+        sufijo: "%",
         // Réplica en SQL de calcularSlaEnRango (src/lib/sla-disponibilidad.ts)
         // para el mes en curso: de los periodos de HistoricoDisponibilidadUnidad
         // que se traslapan con [inicio de mes, ahora], qué fracción del tiempo

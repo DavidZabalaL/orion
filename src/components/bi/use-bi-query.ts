@@ -19,6 +19,7 @@ export type BiQueryParams = {
 export type BiQueryResultado = {
   datos: BiDato[];
   ejeYLabel: string;
+  ejeYSufijo: string;
   cajas: BiCaja[];
   pares: BiPar[];
   splitLabels: [string, string];
@@ -28,7 +29,7 @@ export type BiQueryResultado = {
   error: string | null;
 };
 
-const VACIO: Omit<BiQueryResultado, "cargando" | "error"> = { datos: [], ejeYLabel: "", cajas: [], pares: [], splitLabels: ["", ""], cruzado: null, truncado: false };
+const VACIO: Omit<BiQueryResultado, "cargando" | "error"> = { datos: [], ejeYLabel: "", ejeYSufijo: "", cajas: [], pares: [], splitLabels: ["", ""], cruzado: null, truncado: false };
 
 /** Ejecuta /api/bi/query y deriva el estado de carga de la comparación de "key" en vez de setState síncrono en el efecto. */
 export function useBiQuery(params: BiQueryParams): BiQueryResultado {
@@ -55,6 +56,7 @@ export function useBiQuery(params: BiQueryParams): BiQueryResultado {
         setResultado({
           datos: body.datos ?? [],
           ejeYLabel: body.ejeY?.label ?? "",
+          ejeYSufijo: body.ejeY?.sufijo ?? "",
           cajas: body.cajas ?? [],
           pares: body.pares ?? [],
           splitLabels: body.splitLabels ?? ["", ""],

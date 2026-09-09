@@ -5,7 +5,7 @@ import type { BiCruzado } from "@/components/bi/bi-chart";
 const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
 /** Tabla cruzada (pivote): filas = dimensión del eje X, columnas = segundo grupo. Misma forma que alimenta las barras agrupadas. */
-export function BiTablaCruzada({ cruzado, ejeXLabel }: { cruzado: BiCruzado; ejeXLabel: string }) {
+export function BiTablaCruzada({ cruzado, ejeXLabel, ejeYSufijo = "" }: { cruzado: BiCruzado; ejeXLabel: string; ejeYSufijo?: string }) {
   return (
     <div className="h-full overflow-auto">
       <table className="w-full" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
@@ -23,7 +23,7 @@ export function BiTablaCruzada({ cruzado, ejeXLabel }: { cruzado: BiCruzado; eje
               <td className="py-2 pr-3">{f.dimension}</td>
               {cruzado.series.map((s) => (
                 <td key={s} className="py-2 pr-3 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {fmt.format(f.valores[s] ?? 0)}
+                  {fmt.format(f.valores[s] ?? 0)}{ejeYSufijo}
                 </td>
               ))}
             </tr>

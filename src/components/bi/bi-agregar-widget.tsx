@@ -50,7 +50,7 @@ export function BiAgregarWidget({
     }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, cargando, error } = useBiQuery(params);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -107,7 +107,7 @@ export function BiAgregarWidget({
                 {error}
               </div>
             ) : (
-              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} agregacion={combinacion.agregacion} />
+              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={combinacion.agregacion} />
             )}
           </div>
         </div>
