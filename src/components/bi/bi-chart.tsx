@@ -89,8 +89,17 @@ export function BiChart({
       ? cruzado.filas.length === 0
       : datos.length === 0;
 
+  // El mínimo de 280px es para que las gráficas (barras, pie, líneas, etc.)
+  // tengan espacio legible — pero el "contador" es solo texto centrado y no
+  // lo necesita; forzarlo aquí hacía que, en una tarjeta angosta (widget
+  // "contador" reducido a su alto mínimo real), este contenedor excediera el
+  // alto real de la tarjeta y el ancestro `overflow-auto` de BiCard mostrara
+  // solo la porción superior — el número "flotando" con espacio vacío
+  // arriba y la etiqueta cortada por debajo del corte visible.
+  const alturaMinima = tipoGrafica === "contador" ? undefined : 280;
+
   return (
-    <div ref={contenedorRef} className="flex h-full min-h-[280px] w-full flex-col gap-2">
+    <div ref={contenedorRef} className="flex h-full w-full flex-col gap-2" style={alturaMinima ? { minHeight: alturaMinima } : undefined}>
       {truncado && (
         <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
           Mostrando una muestra de los primeros puntos — hay más datos de los que se grafican aquí.

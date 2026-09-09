@@ -88,7 +88,18 @@ export function BiCard({
       <div className={`mb-3 flex items-center justify-between gap-2 ${editMode ? "bi-drag-handle cursor-move" : ""}`}>
         <div className="flex items-center gap-1.5 min-w-0">
           {editMode && <GripVertical size={14} color="var(--sidebar-text)" className="shrink-0" data-no-print />}
-          <h3 className="truncate" style={{ fontFamily: "var(--font)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+          <h3
+            style={{
+              fontFamily: "var(--font)",
+              fontSize: "var(--text-md)",
+              fontWeight: 600,
+              color: "var(--sidebar-text-active)",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
             {label}
           </h3>
           {filtrosEfectivos !== filtros && (
