@@ -164,7 +164,7 @@ export default async function IniciarSesionPage({
                   className="text-center"
                   style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}
                 >
-                  ¿Olvidaste tu contraseña?
+                  ¿Olvidaste tu contraseña? <span style={{ color: "#cbd5e1" }}>(solo si entras con correo y contraseña, no con cuenta Microsoft)</span>
                 </a>
               </form>
             </details>
