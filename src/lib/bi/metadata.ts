@@ -181,6 +181,35 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "kmOficial", label: "Km oficial", tipo: "numero", expr: `u."kmOficial"` },
       { id: "rendimientoPromedio", label: "Rendimiento promedio", tipo: "numero", expr: `u."rendimientoPromedio"` },
       { id: "capacidadTanqueLitros", label: "Capacidad de tanque (litros)", tipo: "numero", expr: `u."capacidadTanqueLitros"` },
+      {
+        id: "slaDisponibilidad",
+        label: "SLA de disponibilidad (% mes en curso)",
+        tipo: "numero",
+        // Réplica en SQL de calcularSlaEnRango (src/lib/sla-disponibilidad.ts)
+        // para el mes en curso: de los periodos de HistoricoDisponibilidadUnidad
+        // que se traslapan con [inicio de mes, ahora], qué fracción del tiempo
+        // la unidad estuvo disponible. NULL si la unidad no tiene historial en
+        // el rango (unidad recién dada de alta este mes, por ejemplo) — el
+        // motor de consultas ya descarta NULL al promediar/agrupar.
+        expr: `(
+          SELECT CASE WHEN COALESCE(SUM(GREATEST(0, EXTRACT(EPOCH FROM (
+              LEAST(COALESCE(h."hasta", NOW()), NOW()) - GREATEST(h."desde", date_trunc('month', NOW()))
+            )))), 0) > 0
+          THEN ROUND(
+            (100.0 * SUM(CASE WHEN h."disponible" THEN GREATEST(0, EXTRACT(EPOCH FROM (
+              LEAST(COALESCE(h."hasta", NOW()), NOW()) - GREATEST(h."desde", date_trunc('month', NOW()))
+            ))) ELSE 0 END)
+            / SUM(GREATEST(0, EXTRACT(EPOCH FROM (
+              LEAST(COALESCE(h."hasta", NOW()), NOW()) - GREATEST(h."desde", date_trunc('month', NOW()))
+            )))))::numeric
+          , 1)
+          ELSE NULL END
+          FROM "HistoricoDisponibilidadUnidad" h
+          WHERE h."numeroEconomico" = u."numeroEconomico"
+            AND h."desde" < NOW()
+            AND (h."hasta" IS NULL OR h."hasta" > date_trunc('month', NOW()))
+        )`,
+      },
     ],
   },
   {
@@ -576,6 +605,7 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Unidades por disponibilidad", dataset: "unidades", ejeX: "disponibilidad", ejeY: "disponibilidad", agregacion: "conteo", tipoGrafica: "pie" },
   { label: "Motivo de indisponibilidad", dataset: "unidades", ejeX: "motivoIndisponibilidad", ejeY: "motivoIndisponibilidad", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
+  { label: "SLA de disponibilidad por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Litros de combustible por mes", dataset: "combustible", ejeX: "mes", ejeY: "litros", agregacion: "suma", tipoGrafica: "lineas" },
