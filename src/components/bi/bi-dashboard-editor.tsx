@@ -278,6 +278,8 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                     filtros={w.filtros}
                     proyectoIds={w.proyectoIds}
                     orden={w.orden}
+                    orientacion={w.orientacion}
+                    colorimetria={w.colorimetria}
                     editMode={editMode}
                     onEditar={() => setFormulario({ editarId: w.id })}
                     onEliminar={() => eliminarWidget(w.id)}
@@ -370,7 +372,10 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                           agregacion: widgetEditando.agregacion,
                           tipoGrafica: widgetEditando.tipoGrafica,
                           ejeSplit: widgetEditando.ejeSplit,
+                          ejeMeta: widgetEditando.ejeMeta,
                           orden: widgetEditando.orden,
+                          orientacion: widgetEditando.orientacion,
+                          colorimetria: widgetEditando.colorimetria,
                           filtros: widgetEditando.filtros,
                           proyectoIds: widgetEditando.proyectoIds,
                         },

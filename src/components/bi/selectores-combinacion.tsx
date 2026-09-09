@@ -86,6 +86,10 @@ export type CombinacionBI = {
   /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
   ejeMeta?: string;
   orden?: TipoOrden;
+  /** Solo con tipoGrafica "barras" simple (sin ejeSplit): barras horizontales en vez de verticales. */
+  orientacion?: "vertical" | "horizontal";
+  /** Solo con tipoGrafica "avance": si un % alto es bueno (verde) o malo (rojo). */
+  colorimetria?: "positivo" | "negativo";
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
 };
@@ -249,6 +253,55 @@ export function SelectoresCombinacion({
             </select>
           </div>
         )}
+        {combinacion.tipoGrafica === "barras" && combinacion.ejeSplit === undefined && (
+          <div>
+            <label style={labelStyle}>Orientación</label>
+            <div className="flex gap-1.5">
+              {(["vertical", "horizontal"] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => onChange({ ...combinacion, orientacion: o })}
+                  className="flex-1 rounded-md px-3"
+                  style={{
+                    height: "var(--h-md)",
+                    background: (combinacion.orientacion ?? "vertical") === o ? "var(--color-primary)" : "var(--field-bg)",
+                    color: (combinacion.orientacion ?? "vertical") === o ? "#fff" : "var(--sidebar-text)",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: "var(--text-sm)",
+                  }}
+                >
+                  {o === "vertical" ? "Vertical" : "Horizontal"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {combinacion.tipoGrafica === "avance" && (
+          <div>
+            <label style={labelStyle}>Colorimetría</label>
+            <div className="flex gap-1.5">
+              {(["positivo", "negativo"] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => onChange({ ...combinacion, colorimetria: c })}
+                  className="flex-1 rounded-md px-3"
+                  style={{
+                    height: "var(--h-md)",
+                    background: (combinacion.colorimetria ?? "negativo") === c ? "var(--color-primary)" : "var(--field-bg)",
+                    color: (combinacion.colorimetria ?? "negativo") === c ? "#fff" : "var(--sidebar-text)",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: "var(--text-sm)",
+                  }}
+                  title={c === "positivo" ? "Ej. disponibilidad, cumplimiento: llegar al 100% es bueno" : "Ej. ejecución presupuestal: pasarse del 100% es malo"}
+                >
+                  {c === "positivo" ? "Alto es bueno (verde)" : "Alto es malo (rojo)"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <AlcanceProyecto combinacion={combinacion} onChange={onChange} proyectosDisponibles={proyectosDisponibles} />
@@ -410,6 +463,102 @@ function FiltrosCombinacion({
   );
 }
 
+type ModoMes = "actual" | "anterior" | "especifico" | "anual";
+
+const MODO_MES_LABEL: Record<ModoMes, string> = {
+  actual: "Mes actual",
+  anterior: "Mes anterior",
+  especifico: "Elegir mes",
+  anual: "Año completo",
+};
+
+function claveMes(fecha: Date): string {
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function mesesDelAnio(anio: number): string[] {
+  return Array.from({ length: 12 }, (_, i) => `${anio}-${String(i + 1).padStart(2, "0")}`);
+}
+
+/**
+ * Filtro especializado para campos "fecha_mes" (ej. "Mes" del presupuesto):
+ * en vez de escribir "2026-09" a mano, ofrece presets de uso diario (mes
+ * actual/anterior), un selector de mes específico, o "año completo" (los 12
+ * valores del año, para ver el acumulado anualizado). Reutiliza el mismo
+ * `valores: string[]` del filtro genérico — el backend no cambia, porque
+ * "IN (...)" sobre TO_CHAR(fecha,'YYYY-MM') ya soportaba esto, solo faltaba
+ * una UI cómoda para armarlo.
+ */
+function SelectorMes({ valores, onCambiar }: { valores: string[]; onCambiar: (valores: string[]) => void }) {
+  const ahora = new Date();
+  const mesActual = claveMes(ahora);
+  const mesAnterior = claveMes(new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1));
+  const anioActual = ahora.getFullYear();
+
+  // El modo se infiere de los valores actuales (no se guarda aparte) — así,
+  // si esta combinación ya se había guardado antes de existir este selector,
+  // se reconoce automáticamente en el modo correcto al reabrirla.
+  const anioDetectado = valores.length === 12 ? Number(valores[0]?.split("-")[0]) : NaN;
+  // Sin valores todavía (filtro recién agregado): ningún modo activo — el
+  // usuario debe elegir uno explícitamente, en vez de mostrar un mes
+  // precargado que no corresponde a ningún valor real del filtro.
+  const modoInferido: ModoMes | null =
+    valores.length === 0
+      ? null
+      : valores.length === 1 && valores[0] === mesActual
+      ? "actual"
+      : valores.length === 1 && valores[0] === mesAnterior
+      ? "anterior"
+      : valores.length === 12 && !Number.isNaN(anioDetectado) && valores.every((v, i) => v === mesesDelAnio(anioDetectado)[i])
+      ? "anual"
+      : "especifico";
+
+  const anioAnual = modoInferido === "anual" ? Number(valores[0].split("-")[0]) : anioActual;
+  const mesEspecifico = modoInferido === "especifico" && valores.length === 1 ? valores[0] : mesActual;
+
+  function elegirModo(modo: ModoMes) {
+    if (modo === "actual") onCambiar([mesActual]);
+    else if (modo === "anterior") onCambiar([mesAnterior]);
+    else if (modo === "anual") onCambiar(mesesDelAnio(anioActual));
+    else onCambiar([mesActual]);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-1.5">
+        {(Object.keys(MODO_MES_LABEL) as ModoMes[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => elegirModo(m)}
+            className="rounded-md px-2.5"
+            style={{
+              height: 28,
+              background: modoInferido === m ? "var(--color-primary)" : "var(--chip)",
+              color: modoInferido === m ? "#fff" : "var(--sidebar-text-active)",
+              fontFamily: "var(--font-ui)",
+              fontSize: "var(--text-xs)",
+            }}
+          >
+            {MODO_MES_LABEL[m]}
+          </button>
+        ))}
+      </div>
+      {modoInferido === "especifico" && (
+        <input type="month" value={mesEspecifico} onChange={(e) => e.target.value && onCambiar([e.target.value])} style={{ ...fieldStyle, width: "auto" }} />
+      )}
+      {modoInferido === "anual" && (
+        <input
+          type="number"
+          value={anioAnual}
+          onChange={(e) => e.target.value && onCambiar(mesesDelAnio(Number(e.target.value)))}
+          style={{ ...fieldStyle, width: 100 }}
+        />
+      )}
+    </div>
+  );
+}
+
 function FilaFiltro({
   filtro,
   dataset,
@@ -444,7 +593,9 @@ function FilaFiltro({
           <X size={14} />
         </button>
       </div>
-      {campo.opciones ? (
+      {campo.tipo === "fecha_mes" ? (
+        <SelectorMes valores={filtro.valores} onCambiar={onCambiarValores} />
+      ) : campo.opciones ? (
         <div className="flex flex-wrap gap-x-3 gap-y-1.5">
           {campo.opciones.map((o) => (
             <label key={o.valor} className="flex items-center gap-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>

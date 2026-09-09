@@ -5,6 +5,7 @@ import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
+import { TablaSimple } from "@/components/bi/bi-tabla-simple";
 import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { SelectoresCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
@@ -32,6 +33,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
     tipoGrafica: "barras",
   });
   const [verTabla, setVerTabla] = useState(false);
+  const [mostrarTotal, setMostrarTotal] = useState(false);
 
   useEffect(() => {
     const clave = "bi-vio:explorador:general";
@@ -44,7 +46,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
-    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden });
+    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, orientacion: s.orientacion, colorimetria: s.colorimetria });
   }
 
   // Aplicar una métrica guardada solo pre-llena dataset/ejeY/agregación/filtros
@@ -143,16 +145,24 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
           <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             {dataset.label}
           </h3>
-          {(soportaTabla || cruzado) && (
-            <button
-              type="button"
-              onClick={() => setVerTabla((v) => !v)}
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5"
-              style={{ background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
-            >
-              <Table2 size={13} /> {verTabla ? "Ver gráfica" : "Ver tabla"}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {verTabla && (
+              <label className="flex items-center gap-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                <input type="checkbox" checked={mostrarTotal} onChange={(e) => setMostrarTotal(e.target.checked)} />
+                Mostrar total
+              </label>
+            )}
+            {(soportaTabla || cruzado) && (
+              <button
+                type="button"
+                onClick={() => setVerTabla((v) => !v)}
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+              >
+                <Table2 size={13} /> {verTabla ? "Ver gráfica" : "Ver tabla"}
+              </button>
+            )}
+          </div>
           {!cargando && !error && (
             <ExportarMenu dataset={combinacion.datasetId} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={combinacion.proyectoIds} contenedorRef={graficaRef} tipoRecurso="explorador" />
           )}
@@ -168,11 +178,11 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
               {error}
             </div>
           ) : verTabla && cruzado ? (
-            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} />
+            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
           ) : verTabla && soportaTabla ? (
-            <TablaDatos datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} />
+            <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
           ) : (
-            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} agregacion={combinacion.agregacion} truncado={truncado} />
+            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} orientacion={combinacion.orientacion} colorimetria={combinacion.colorimetria} agregacion={combinacion.agregacion} truncado={truncado} />
           )}
         </div>
       </div>
@@ -195,26 +205,5 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
           dataset y el .find(...)! revienta en tiempo de ejecución. */}
       <AnalisisAvanzado key={combinacion.datasetId} datasetId={combinacion.datasetId} proyectoIds={combinacion.proyectoIds} filtros={combinacion.filtros} />
     </div>
-  );
-}
-
-function TablaDatos({ datos, ejeXLabel, ejeYLabel, ejeYSufijo = "" }: { datos: { dimension: string; valor: number }[]; ejeXLabel: string; ejeYLabel: string; ejeYSufijo?: string }) {
-  return (
-    <table className="w-full" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
-      <thead>
-        <tr style={{ color: "var(--sidebar-text)", textAlign: "left" }}>
-          <th className="py-2">{ejeXLabel}</th>
-          <th className="py-2">{ejeYLabel}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {datos.map((d) => (
-          <tr key={d.dimension} style={{ borderTop: "1px solid var(--field-border)", color: "var(--sidebar-text-active)" }}>
-            <td className="py-2">{d.dimension}</td>
-            <td className="py-2">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(d.valor)}{ejeYSufijo}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

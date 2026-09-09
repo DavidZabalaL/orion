@@ -62,6 +62,8 @@ export function BiChart({
   ejeYSufijo = "",
   ejeMetaLabel = "",
   ejeMetaSufijo = "",
+  colorimetria = "negativo",
+  orientacion = "vertical",
   agregacion,
   truncado,
   onCategoriaClick,
@@ -78,6 +80,10 @@ export function BiChart({
   /** Solo con tipoGrafica "avance": etiqueta/sufijo del campo "meta". */
   ejeMetaLabel?: string;
   ejeMetaSufijo?: string;
+  /** Solo con tipoGrafica "avance": si alto % es bueno (verde) o malo (rojo). Por defecto "negativo" (ej. ejecución presupuestal: gastar de más es malo). */
+  colorimetria?: "positivo" | "negativo";
+  /** Solo con tipoGrafica "barras" simple (sin cruce): barras horizontales en vez de verticales. */
+  orientacion?: "vertical" | "horizontal";
   agregacion?: TipoAgregacion;
   truncado?: boolean;
   /** Drill-down: se dispara con el valor de la categoría clicada (barras, pie, puntos, divergente). Opcional — no rompe usos existentes. */
@@ -88,6 +94,22 @@ export function BiChart({
   const contenedorRef = useRef<HTMLDivElement>(null);
   const { width, height } = useTamanoContenedor(contenedorRef);
 
+  // Aislar una categoría: clic en una barra/porción/punto la deja como única
+  // fila visible en ESTE widget (no confundir con el cross-filter de
+  // `onCategoriaClick`, que además puede filtrar OTROS widgets). Se limpia
+  // volviendo a hacer clic en la misma categoría, o con el chip "Ver todas".
+  const [aislado, setAislado] = useState<string | null>(null);
+  const datosMostrados = aislado !== null ? datos.filter((d) => d.dimension === aislado) : datos;
+
+  function manejarClic(valor: string) {
+    setAislado((actual) => (actual === valor ? null : valor));
+    // El índice de hover apunta al arreglo ya filtrado — al aislar/desaislar
+    // ese arreglo cambia de tamaño y el índice queda apuntando a otra fila (o
+    // fuera de rango), reventando el tooltip (`datos[hover]` undefined).
+    setHover(null);
+    onCategoriaClick?.(valor);
+  }
+
   const vacio =
     tipoGrafica === "caja"
       ? (cajas?.length ?? 0) === 0
@@ -95,7 +117,7 @@ export function BiChart({
       ? (pares?.length ?? 0) === 0
       : tipoGrafica === "barras" && cruzado
       ? cruzado.filas.length === 0
-      : datos.length === 0;
+      : datosMostrados.length === 0;
 
   // El mínimo de 280px es para que las gráficas (barras, pie, líneas, etc.)
   // tengan espacio legible — pero el "contador" es solo texto centrado y no
@@ -113,6 +135,16 @@ export function BiChart({
           Mostrando una muestra de los primeros puntos — hay más datos de los que se grafican aquí.
         </div>
       )}
+      {aislado !== null && (
+        <button
+          type="button"
+          onClick={() => setAislado(null)}
+          className="flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1"
+          style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+        >
+          Mostrando solo: <strong>{aislado}</strong> · Ver todas ✕
+        </button>
+      )}
       <div className="min-h-0 flex-1">
         {vacio ? (
           <div className="flex h-full items-center justify-center rounded-lg p-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
@@ -120,7 +152,7 @@ export function BiChart({
           </div>
         ) : (
           <BiChartInterno
-            datos={datos}
+            datos={datosMostrados}
             cajas={cajas ?? []}
             pares={pares ?? []}
             splitLabels={splitLabels ?? ["", ""]}
@@ -130,13 +162,15 @@ export function BiChart({
             ejeYSufijo={ejeYSufijo}
             ejeMetaLabel={ejeMetaLabel}
             ejeMetaSufijo={ejeMetaSufijo}
+            colorimetria={colorimetria}
+            orientacion={orientacion}
             agregacion={agregacion}
             width={width}
             height={Math.max(height, 180)}
             hover={hover}
             setHover={setHover}
             uid={uid}
-            onCategoriaClick={onCategoriaClick}
+            onCategoriaClick={manejarClic}
           />
         )}
       </div>
@@ -155,6 +189,8 @@ function BiChartInterno(props: {
   ejeYSufijo: string;
   ejeMetaLabel: string;
   ejeMetaSufijo: string;
+  colorimetria?: "positivo" | "negativo";
+  orientacion?: "vertical" | "horizontal";
   agregacion?: TipoAgregacion;
   width: number;
   height: number;
@@ -163,10 +199,10 @@ function BiChartInterno(props: {
   uid: string;
   onCategoriaClick?: (valor: string) => void;
 }) {
-  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
+  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, colorimetria, orientacion, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
-  if (tipoGrafica === "avance") return <BiAvance datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} />;
+  if (tipoGrafica === "avance") return <BiAvance datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} colorimetria={colorimetria} />;
   if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={agregacion} width={width} height={height} />;
   if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
   if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
@@ -178,6 +214,7 @@ function BiChartInterno(props: {
   if (tipoGrafica === "piramide") return <BiPiramide pares={pares} splitLabels={splitLabels} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
   if (tipoGrafica === "mapa") return <BiMapa datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
   if (tipoGrafica === "barras" && cruzado) return <BiBarrasAgrupadas cruzado={cruzado} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
+  if (tipoGrafica === "barras" && orientacion === "horizontal") return <BiBarrasHorizontal datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
   return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
 }
 
@@ -203,18 +240,29 @@ function BiContador({ datos, ejeYLabel, ejeYSufijo, agregacion, width, height }:
   );
 }
 
-/** Color del avance: rojo si se pasó de la meta, ámbar cerca de agotarla, verde en el resto — mismo criterio de alerta que el resto del dashboard (ver semáforo de disponibilidad). */
-function colorAvance(pct: number): string {
+/**
+ * Color del avance — el sentido de "alto %" depende de qué se está midiendo:
+ * - "negativo" (ej. ejecución presupuestal: gastar de más es malo): rojo si
+ *   se pasó de la meta, ámbar cerca de agotarla, verde el resto.
+ * - "positivo" (ej. disponibilidad, cumplimiento: alcanzar la meta es bueno):
+ *   verde cerca/en el 100%, ámbar a medio camino, rojo si va muy bajo.
+ */
+function colorAvance(pct: number, colorimetria: "positivo" | "negativo"): string {
+  if (colorimetria === "positivo") {
+    if (pct >= 90) return "var(--color-status-cerrado)";
+    if (pct >= 70) return "var(--color-status-revision)";
+    return "var(--color-status-escena)";
+  }
   if (pct > 100) return "var(--color-status-escena)";
   if (pct >= 85) return "var(--color-status-revision)";
   return "var(--color-status-cerrado)";
 }
 
 /** Una fila "valor vs. meta": nombre, valor formateado, barra de progreso y "Meta: X (Y%)". */
-function FilaAvance({ nombre, valor, meta, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, destacado }: { nombre: string; valor: number; meta: number; ejeYSufijo: string; ejeMetaLabel: string; ejeMetaSufijo: string; destacado?: boolean }) {
+function FilaAvance({ nombre, valor, meta, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, colorimetria, destacado }: { nombre: string; valor: number; meta: number; ejeYSufijo: string; ejeMetaLabel: string; ejeMetaSufijo: string; colorimetria: "positivo" | "negativo"; destacado?: boolean }) {
   const pct = meta > 0 ? Math.round((valor / meta) * 1000) / 10 : 0;
   const anchoBarra = Math.min(100, pct);
-  const color = colorAvance(pct);
+  const color = colorAvance(pct, colorimetria);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -243,7 +291,7 @@ function FilaAvance({ nombre, valor, meta, ejeYSufijo, ejeMetaLabel, ejeMetaSufi
  * (ej. agrupado por proyecto) se agrega además una fila "Total" en negritas
  * arriba, igual que la fila TOTAL de una tabla dinámica.
  */
-function BiAvance({ datos, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo }: { datos: BiDato[]; ejeYLabel: string; ejeYSufijo: string; ejeMetaLabel: string; ejeMetaSufijo: string }) {
+function BiAvance({ datos, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, colorimetria = "negativo" }: { datos: BiDato[]; ejeYLabel: string; ejeYSufijo: string; ejeMetaLabel: string; ejeMetaSufijo: string; colorimetria?: "positivo" | "negativo" }) {
   const conMeta = datos.map((d) => ({ ...d, meta: d.meta ?? 0 }));
   const totalValor = conMeta.reduce((acc, d) => acc + d.valor, 0);
   const totalMeta = conMeta.reduce((acc, d) => acc + d.meta, 0);
@@ -252,7 +300,7 @@ function BiAvance({ datos, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo }:
     <div className="flex h-full w-full flex-col gap-4 overflow-auto py-1">
       {conMeta.length > 1 && (
         <>
-          <FilaAvance nombre={`Total — ${ejeYLabel}`} valor={totalValor} meta={totalMeta} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} destacado />
+          <FilaAvance nombre={`Total — ${ejeYLabel}`} valor={totalValor} meta={totalMeta} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} colorimetria={colorimetria} destacado />
           <div style={{ borderTop: "1px solid var(--field-border)" }} />
         </>
       )}
@@ -265,6 +313,7 @@ function BiAvance({ datos, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo }:
           ejeYSufijo={ejeYSufijo}
           ejeMetaLabel={ejeMetaLabel}
           ejeMetaSufijo={ejeMetaSufijo}
+          colorimetria={colorimetria}
           destacado={conMeta.length === 1}
         />
       ))}
@@ -324,6 +373,53 @@ function BiBarras({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, 
       </svg>
       {hover !== null && (
         <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: `${((hover + 0.5) / datos.length) * 100}%`, top: 4, transform: "translateX(-50%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
+          <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
+          <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Igual que BiBarras pero horizontal: útil cuando las etiquetas son largas o hay muchas categorías (se leen sin cortar, apiladas verticalmente en vez de rotadas/truncadas). */
+function BiBarrasHorizontal({ datos, dark, hover, setHover, ejeYLabel, ejeYSufijo, width, height, onCategoriaClick }: { datos: BiDato[]; dark: boolean; hover: number | null; setHover: (i: number | null) => void; ejeYLabel: string; ejeYSufijo: string; width: number; height: number; onCategoriaClick?: (valor: string) => void }) {
+  const W = width;
+  const filaAlto = 30;
+  const H = Math.max(height, PAD.top + PAD.bottom + datos.length * filaAlto);
+  const max = Math.max(...datos.map((d) => d.valor), 0) || 1;
+  const labelAncho = 130;
+  const innerW = W - PAD.left - labelAncho - PAD.right;
+  const ink = dark ? "#c3c2b7" : "#52514e";
+  const barAlto = 18;
+
+  return (
+    <div className="relative h-full w-full overflow-y-auto overflow-x-hidden">
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        {datos.map((d, i) => {
+          const y = PAD.top + i * filaAlto + filaAlto / 2;
+          const x0 = PAD.left + labelAncho;
+          const w = (d.valor / max) * innerW;
+          return (
+            <g
+              key={d.dimension}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onCategoriaClick?.(d.dimension)}
+              style={onCategoriaClick ? { cursor: "pointer" } : undefined}
+            >
+              <text x={PAD.left} y={y + 4} fontSize={11} fontFamily="var(--font-ui)" fill={ink}>
+                {d.dimension.length > 20 ? d.dimension.slice(0, 19) + "…" : d.dimension}
+              </text>
+              <rect x={x0} y={y - barAlto / 2} width={Math.max(w, 1)} height={barAlto} rx={4} fill={colorFor(i, dark)} opacity={hover === null || hover === i ? 1 : 0.45} />
+              <text x={x0 + w + 6} y={y + 4} fontSize={10} fontFamily="var(--font-ui)" fill={ink}>
+                {fmtNumero(d.valor, ejeYSufijo)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {hover !== null && (
+        <div className="pointer-events-none absolute rounded-md px-3 py-2 text-xs" style={{ left: PAD.left + labelAncho, top: PAD.top + hover * filaAlto, transform: "translateY(-100%)", background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", fontFamily: "var(--font-ui)", color: "var(--sidebar-text-active)" }}>
           <div style={{ fontWeight: 600 }}>{datos[hover].dimension}</div>
           <div style={{ color: "var(--sidebar-text)" }}>{ejeYLabel}: {fmtNumero(datos[hover].valor, ejeYSufijo)}</div>
         </div>

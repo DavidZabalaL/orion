@@ -4,6 +4,7 @@ import { useId, useMemo, useRef, useState } from "react";
 import { X, Pencil, GripVertical, Table2 } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
 import { BiTablaCruzada } from "@/components/bi/bi-tabla-cruzada";
+import { TablaSimple } from "@/components/bi/bi-tabla-simple";
 import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
@@ -19,6 +20,8 @@ export function BiCard({
   ejeSplit,
   ejeMeta,
   orden,
+  orientacion,
+  colorimetria,
   filtros,
   proyectoIds,
   editMode = false,
@@ -39,6 +42,10 @@ export function BiCard({
   /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
   ejeMeta?: string;
   orden?: TipoOrden;
+  /** Solo con tipoGrafica "barras" simple: barras horizontales en vez de verticales. */
+  orientacion?: "vertical" | "horizontal";
+  /** Solo con tipoGrafica "avance": si un % alto es bueno (verde) o malo (rojo). */
+  colorimetria?: "positivo" | "negativo";
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
   editMode?: boolean;
@@ -52,6 +59,8 @@ export function BiCard({
   onCategoriaClick?: (campoId: string, valor: string) => void;
 }) {
   const [verTabla, setVerTabla] = useState(false);
+  const [mostrarTotal, setMostrarTotal] = useState(false);
+  const soportaTabla = tipoGrafica !== "caja" && tipoGrafica !== "piramide" && tipoGrafica !== "contador" && tipoGrafica !== "avance";
 
   // El filtro de interacción solo se fusiona si este dataset realmente tiene
   // ese campo — si no, se ignora en silencio (nunca rompe la consulta de un
@@ -116,7 +125,13 @@ export function BiCard({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5" data-no-print>
-          {cruzado && (
+          {verTabla && (cruzado || soportaTabla) && (
+            <label className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }} onMouseDown={(e) => e.stopPropagation()}>
+              <input type="checkbox" checked={mostrarTotal} onChange={(e) => setMostrarTotal(e.target.checked)} />
+              Total
+            </label>
+          )}
+          {(cruzado || soportaTabla) && (
             <button
               type="button"
               onClick={() => setVerTabla((v) => !v)}
@@ -167,7 +182,9 @@ export function BiCard({
             {error}
           </div>
         ) : verTabla && cruzado ? (
-          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} />
+          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
+        ) : verTabla && soportaTabla ? (
+          <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
         ) : (
           <BiChart
             datos={datos}
@@ -180,6 +197,8 @@ export function BiCard({
             ejeYSufijo={ejeYSufijo}
             ejeMetaLabel={ejeMetaLabel}
             ejeMetaSufijo={ejeMetaSufijo}
+            orientacion={orientacion}
+            colorimetria={colorimetria}
             agregacion={agregacion}
             truncado={truncado}
             onCategoriaClick={emiteFiltro ? (valor) => onCategoriaClick?.(ejeX, valor) : undefined}

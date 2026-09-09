@@ -759,6 +759,10 @@ export type CombinacionGuardable = {
   ejeMeta?: string;
   /** Orden de las categorías — solo aplica a barras/puntos/divergente. */
   orden?: TipoOrden;
+  /** Solo con tipoGrafica "barras" simple (sin ejeSplit): orientación de las barras. Por defecto "vertical". Puramente visual — el servidor no lo usa, la consulta es idéntica en ambos casos. */
+  orientacion?: "vertical" | "horizontal";
+  /** Solo con tipoGrafica "avance": si un % alto es bueno (verde, ej. disponibilidad/SLA) o malo (rojo, ej. ejecución presupuestal). Por defecto "negativo". Puramente visual. */
+  colorimetria?: "positivo" | "negativo";
   /** Filtros adicionales (narrows el conjunto de filas antes de agrupar). Ausente/[] = sin filtro. */
   filtros?: FiltroGuardable[];
   /** Proyectos elegidos por quien arma el widget. Ausente = "Nacional" (todos los
@@ -785,9 +789,9 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "SLA de disponibilidad por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "SLA de disponibilidad por unidad", dataset: "unidades", ejeX: "numeroEconomico", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "puntos", orden: "valor_asc" },
-  { label: "Disponibilidad por proyecto (avance)", dataset: "unidades", ejeX: "proyecto", ejeY: "unidadesDisponiblesConteo", ejeMeta: "unidadesConteo", agregacion: "suma", tipoGrafica: "avance" },
-  { label: "Ejecución presupuestal por proyecto", dataset: "presupuesto_partida", ejeX: "proyecto", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance" },
-  { label: "Ejecución presupuestal por concepto", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance" },
+  { label: "Disponibilidad por proyecto (avance)", dataset: "unidades", ejeX: "proyecto", ejeY: "unidadesDisponiblesConteo", ejeMeta: "unidadesConteo", agregacion: "suma", tipoGrafica: "avance", colorimetria: "positivo" },
+  { label: "Ejecución presupuestal por proyecto", dataset: "presupuesto_partida", ejeX: "proyecto", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance", colorimetria: "negativo" },
+  { label: "Ejecución presupuestal por concepto", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance", colorimetria: "negativo" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Litros de combustible por mes", dataset: "combustible", ejeX: "mes", ejeY: "litros", agregacion: "suma", tipoGrafica: "lineas" },
@@ -836,6 +840,8 @@ export const WIDGETS_BI_DEFAULT: WidgetDashboardBI[] = BI_COMBINACIONES_SUGERIDA
     ejeX: c.ejeX,
     ejeY: c.ejeY,
     ejeMeta: c.ejeMeta,
+    orientacion: c.orientacion,
+    colorimetria: c.colorimetria,
     agregacion: c.agregacion,
     tipoGrafica: c.tipoGrafica,
     layout: { x: col, y: fila * ALTO_DEFAULT, w, h: ALTO_DEFAULT },
