@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
+import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
@@ -146,11 +146,14 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const fotoPuntoInputRef = useRef<HTMLInputElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const fotoHorometroInputRef = useRef<HTMLInputElement>(null);
-  // Sin `capture`, a diferencia del resto de fotos del checklist (que deben
-  // tomarse en el momento con la cámara): la licencia normalmente ya existe
-  // como foto en la galería del operador, no tiene sentido forzarlo a
-  // fotografiarla de nuevo.
-  const licenciaFotoInputRef = useRef<HTMLInputElement>(null);
+  // A diferencia del resto de fotos del checklist (que fuerzan la cámara con
+  // `capture`): la licencia normalmente ya existe como foto en la galería del
+  // operador, así que aquí se ofrecen las dos opciones explícitas — un input
+  // con `capture` (cámara) y otro sin él (galería) — en vez de un solo botón
+  // que deje la elección al selector nativo del sistema operativo, que no se
+  // comporta igual en todos los dispositivos.
+  const licenciaGaleriaInputRef = useRef<HTMLInputElement>(null);
+  const licenciaCamaraInputRef = useRef<HTMLInputElement>(null);
   const extraFotoKeyRef = useRef("");
   const puntoFotoActualRef = useRef<string | null>(null);
 
@@ -189,10 +192,16 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     extraFotoInputRef.current?.click();
   }
 
-  function iniciarFotoLicencia() {
+  function iniciarFotoLicenciaGaleria() {
     extraFotoKeyRef.current = "gen_foto_licencia";
-    if (licenciaFotoInputRef.current) licenciaFotoInputRef.current.value = "";
-    licenciaFotoInputRef.current?.click();
+    if (licenciaGaleriaInputRef.current) licenciaGaleriaInputRef.current.value = "";
+    licenciaGaleriaInputRef.current?.click();
+  }
+
+  function iniciarFotoLicenciaCamara() {
+    extraFotoKeyRef.current = "gen_foto_licencia";
+    if (licenciaCamaraInputRef.current) licenciaCamaraInputRef.current.value = "";
+    licenciaCamaraInputRef.current?.click();
   }
 
   async function handleExtraFoto(file: File | undefined) {
@@ -385,13 +394,32 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
         </div>
       );
     }
+    if (permitirGaleria) {
+      return (
+        <div key={clave}>
+          <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
+          <div className="flex gap-2">
+            <button type="button" onClick={iniciarFotoLicenciaCamara} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+              {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              {sub ? "Subiendo…" : "Tomar foto"}
+            </button>
+            <button type="button" onClick={iniciarFotoLicenciaGaleria} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+              {sub ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+              {sub ? "Subiendo…" : "Elegir de galería"}
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div key={clave}>
         <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
-        <button type="button" onClick={() => (permitirGaleria ? iniciarFotoLicencia() : iniciarFotoExtra(clave))} className="flex items-center justify-center gap-2 rounded-xl w-full"
+        <button type="button" onClick={() => iniciarFotoExtra(clave)} className="flex items-center justify-center gap-2 rounded-xl w-full"
           style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
           {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-          {sub ? "Subiendo…" : permitirGaleria ? "Tomar foto o elegir de galería" : "Tomar foto"}
+          {sub ? "Subiendo…" : "Tomar foto"}
         </button>
       </div>
     );
@@ -462,8 +490,10 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
       {/* Inputs ocultos — siempre montados para estabilidad de refs */}
       <input ref={extraFotoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
-      {/* Sin `capture`: permite elegir de la galería además de tomar una foto nueva — solo para la licencia. */}
-      <input ref={licenciaFotoInputRef} type="file" accept="image/*" className="hidden"
+      {/* Dos inputs explícitos para la licencia: uno fuerza cámara, el otro (sin `capture`) abre la galería. */}
+      <input ref={licenciaCamaraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
+      <input ref={licenciaGaleriaInputRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
       <input ref={fotoPuntoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => subirFotoPunto(e.target.files?.[0])} />

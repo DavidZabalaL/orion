@@ -271,7 +271,7 @@ export function InventarioUnidades({
                   );
                 }
                 return (
-                  <div key={w.id}>
+                  <div key={w.id} className="flex h-full items-center">
                     <StatCard
                       label={w.label}
                       value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}

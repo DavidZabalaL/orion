@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { ChevronLeft, CheckCircle2, Loader2, Camera } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Loader2, Camera, Image as ImageIcon } from "lucide-react";
 import { crearChecklistCargaCombustible, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { FirmaPad } from "@/components/checklist/firma-pad";
@@ -331,36 +331,51 @@ export function WizardCargaCombustible({
             </div>
           </div>
 
-          {/* Foto de licencia — usa estado en lugar de input hidden dentro de form */}
+          {/* Foto de licencia — usa estado en lugar de input hidden dentro de form.
+              Dos opciones explícitas (cámara / galería) en vez de un solo picker nativo. */}
           <div>
-            <label
-              className="flex items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer"
-              style={{
-                background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
-                color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
-                fontFamily: "var(--font-ui)",
-                fontSize: "var(--text-sm)",
-              }}
-            >
-              {subiendoFotoLicencia ? (
-                <Loader2 size={15} className="animate-spin shrink-0" />
-              ) : (
-                <Camera size={15} className="shrink-0" />
-              )}
-              <span className="truncate">
-                {subiendoFotoLicencia
-                  ? "Subiendo foto de licencia…"
-                  : fotoLicenciaUrl
-                    ? "Foto de licencia adjuntada *"
-                    : "Foto de licencia *"}
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
-              />
+            <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+              {fotoLicenciaUrl ? "Foto de licencia adjuntada *" : "Foto de licencia *"}
             </label>
+            <div className="flex gap-2 mt-1">
+              <label
+                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 cursor-pointer"
+                style={{
+                  background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+                  color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: "var(--text-sm)",
+                }}
+              >
+                {subiendoFotoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <Camera size={15} className="shrink-0" />}
+                <span className="truncate">{subiendoFotoLicencia ? "Subiendo…" : "Tomar foto"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
+                />
+              </label>
+              <label
+                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 cursor-pointer"
+                style={{
+                  background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+                  color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: "var(--text-sm)",
+                }}
+              >
+                {subiendoFotoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <ImageIcon size={15} className="shrink-0" />}
+                <span className="truncate">{subiendoFotoLicencia ? "Subiendo…" : "Elegir de galería"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
+                />
+              </label>
+            </div>
           </div>
 
           {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}

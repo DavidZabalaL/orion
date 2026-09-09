@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { upload } from "@vercel/blob/client";
-import { Camera, CheckCircle2, ChevronLeft, Loader2, X } from "lucide-react";
+import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklistSemanal } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
@@ -172,6 +172,7 @@ function SubirFoto({
   const [subiendo, setSubiendo] = useState(false);
   const [errFoto, setErrFoto] = useState<string | null>(null);
   const ref = useRef<HTMLInputElement>(null);
+  const refGaleria = useRef<HTMLInputElement>(null);
 
   async function alSeleccionar(file: File | undefined) {
     if (!file) return;
@@ -204,13 +205,44 @@ function SubirFoto({
     );
   }
 
+  if (permitirGaleria) {
+    return (
+      <div className="flex flex-col gap-1">
+        <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden"
+          onChange={(e) => alSeleccionar(e.target.files?.[0])} />
+        <input ref={refGaleria} type="file" accept="image/*" className="hidden"
+          onChange={(e) => alSeleccionar(e.target.files?.[0])} />
+        <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          {label}{requerido ? " *" : " (opcional)"}
+        </label>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => ref.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+            {subiendo ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            {subiendo ? "Subiendo…" : "Tomar foto"}
+          </button>
+          <button type="button" onClick={() => refGaleria.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
+            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+            {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+            {subiendo ? "Subiendo…" : "Elegir de galería"}
+          </button>
+        </div>
+        {errFoto && (
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
+            {errFoto}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1">
       <input
         ref={ref}
         type="file"
         accept="image/*"
-        {...(permitirGaleria ? {} : { capture: "environment" as const })}
+        capture="environment"
         className="hidden"
         onChange={(e) => alSeleccionar(e.target.files?.[0])}
       />
