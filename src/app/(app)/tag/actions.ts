@@ -68,7 +68,7 @@ export async function crearTag(formData: FormData): Promise<ResultadoCrearTag> {
   }
 
   revalidatePath("/tag");
-  invalidarCacheBI(["peajes"]);
+  invalidarCacheBI(["peajes", "presupuesto_partida"]);
   if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true };
 }
@@ -123,7 +123,7 @@ export async function actualizarTag(formData: FormData): Promise<ResultadoCrearT
   }
 
   revalidatePath("/tag");
-  invalidarCacheBI(["peajes"]);
+  invalidarCacheBI(["peajes", "presupuesto_partida"]);
   if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   if (anterior.numeroEconomico && anterior.numeroEconomico !== numeroEconomico) revalidatePath(`/unidades/${anterior.numeroEconomico}`);
   return { ok: true };
@@ -156,6 +156,6 @@ export async function asignarEconomicoTag(formData: FormData) {
   }
 
   revalidatePath("/tag");
-  invalidarCacheBI(["peajes"]);
+  invalidarCacheBI(["peajes", "presupuesto_partida"]);
   if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
 }

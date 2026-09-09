@@ -17,6 +17,7 @@ export function BiCard({
   agregacion,
   tipoGrafica,
   ejeSplit,
+  ejeMeta,
   orden,
   filtros,
   proyectoIds,
@@ -35,6 +36,8 @@ export function BiCard({
   agregacion: TipoAgregacion;
   tipoGrafica: TipoGrafica;
   ejeSplit?: string;
+  /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
+  ejeMeta?: string;
   orden?: TipoOrden;
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
@@ -63,10 +66,10 @@ export function BiCard({
   }, [escuchaFiltro, filtroInteraccion, filtros, dataset]);
 
   const params = useMemo(
-    () => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden, filtros: filtrosEfectivos, proyectoIds }),
-    [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, orden, filtrosEfectivos, proyectoIds]
+    () => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, ejeMeta, orden, filtros: filtrosEfectivos, proyectoIds }),
+    [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, ejeMeta, orden, filtrosEfectivos, proyectoIds]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, truncado, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = obtenerCampo(obtenerDataset(dataset)!, ejeX)?.label ?? ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();
@@ -175,6 +178,8 @@ export function BiCard({
             tipoGrafica={tipoGrafica}
             ejeYLabel={ejeYLabel}
             ejeYSufijo={ejeYSufijo}
+            ejeMetaLabel={ejeMetaLabel}
+            ejeMetaSufijo={ejeMetaSufijo}
             agregacion={agregacion}
             truncado={truncado}
             onCategoriaClick={emiteFiltro ? (valor) => onCategoriaClick?.(ejeX, valor) : undefined}

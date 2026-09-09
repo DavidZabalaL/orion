@@ -111,7 +111,7 @@ export async function reasignarProyecto(formData: FormData): Promise<ResultadoSi
 
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/unidades");
-  invalidarCacheBI(["unidades", "historico_proyecto"]);
+  invalidarCacheBI(["unidades", "historico_proyecto", "presupuesto_partida"]);
   return { ok: true };
 }
 
@@ -177,7 +177,7 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
 
   revalidatePath(`/unidades/${numeroEconomico}`);
   revalidatePath("/unidades");
-  invalidarCacheBI(["unidades", "historico_proyecto"]);
+  invalidarCacheBI(["unidades", "historico_proyecto", "presupuesto_partida"]);
   return { ok: true };
 }
 

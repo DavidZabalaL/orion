@@ -44,13 +44,14 @@ export function BiAgregarWidget({
       agregacion: combinacion.agregacion,
       tipoGrafica: combinacion.tipoGrafica,
       ejeSplit: combinacion.ejeSplit,
+      ejeMeta: combinacion.ejeMeta,
       orden: combinacion.orden,
       filtros: combinacion.filtros,
       proyectoIds: combinacion.proyectoIds,
     }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, cargando, error } = useBiQuery(params);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +63,7 @@ export function BiAgregarWidget({
       agregacion: combinacion.agregacion,
       tipoGrafica: combinacion.tipoGrafica,
       ejeSplit: combinacion.ejeSplit,
+      ejeMeta: combinacion.ejeMeta,
       orden: combinacion.orden,
       filtros: combinacion.filtros,
       proyectoIds: combinacion.proyectoIds,
@@ -107,7 +109,7 @@ export function BiAgregarWidget({
                 {error}
               </div>
             ) : (
-              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={combinacion.agregacion} />
+              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} agregacion={combinacion.agregacion} />
             )}
           </div>
         </div>

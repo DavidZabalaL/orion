@@ -106,7 +106,7 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   }
 
   revalidatePath("/mantenimiento");
-  invalidarCacheBI(["mantenimiento"]);
+  invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
   if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true, id: gasto.id };
 }
@@ -185,7 +185,7 @@ export async function marcarRealizado(formData: FormData) {
   }
 
   revalidatePath("/mantenimiento");
-  invalidarCacheBI(["mantenimiento"]);
+  invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
 }
 
@@ -259,7 +259,7 @@ export async function actualizarGasto(formData: FormData) {
   }
 
   revalidatePath("/mantenimiento");
-  invalidarCacheBI(["mantenimiento"]);
+  invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
   if (actual.numeroEconomico) revalidatePath(`/unidades/${actual.numeroEconomico}`);
 }
 
@@ -301,7 +301,7 @@ export async function eliminarGasto(formData: FormData): Promise<ResultadoElimin
   }
 
   revalidatePath("/mantenimiento");
-  invalidarCacheBI(["mantenimiento"]);
+  invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
   return { ok: true };
 }

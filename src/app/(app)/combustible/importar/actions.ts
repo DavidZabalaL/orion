@@ -169,7 +169,7 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
     }
   }
 
-  if (resultado.creadas.length > 0) invalidarCacheBI(["combustible"]);
+  if (resultado.creadas.length > 0) invalidarCacheBI(["combustible", "presupuesto_partida"]);
 
   const session = await auth();
   if (session?.user?.id) {

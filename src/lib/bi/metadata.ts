@@ -30,7 +30,8 @@ export type TipoGrafica =
   | "calendario"
   | "caja"
   | "piramide"
-  | "mapa";
+  | "mapa"
+  | "avance";
 
 export const TIPO_GRAFICA_LABEL: Record<TipoGrafica, string> = {
   barras: "Barras",
@@ -45,6 +46,7 @@ export const TIPO_GRAFICA_LABEL: Record<TipoGrafica, string> = {
   caja: "Caja (box plot)",
   piramide: "Comparación de dos grupos",
   mapa: "Mapa (coroplético)",
+  avance: "Barra de avance (valor vs. meta)",
 };
 
 type RequisitoCampo = TipoCampo[] | "cualquiera" | "ninguno";
@@ -59,7 +61,10 @@ type RequisitoCampo = TipoCampo[] | "cualquiera" | "ninguno";
  * opcional (barras: sin elegirlo es una gráfica simple, al elegirlo se activa
  * el cruce — barras agrupadas + tabla cruzada, sin tope de categorías).
  */
-export const REQUISITOS_TIPO_GRAFICA: Record<TipoGrafica, { ejeX: RequisitoCampo; ejeY: RequisitoCampo; ejeSplit?: { tipos: RequisitoCampo; obligatorio: boolean } }> = {
+export const REQUISITOS_TIPO_GRAFICA: Record<
+  TipoGrafica,
+  { ejeX: RequisitoCampo; ejeY: RequisitoCampo; ejeSplit?: { tipos: RequisitoCampo; obligatorio: boolean }; ejeMeta?: RequisitoCampo }
+> = {
   barras: { ejeX: "cualquiera", ejeY: "cualquiera", ejeSplit: { tipos: "cualquiera", obligatorio: false } },
   lineas: { ejeX: "cualquiera", ejeY: "cualquiera" },
   pie: { ejeX: "cualquiera", ejeY: "cualquiera" },
@@ -72,6 +77,9 @@ export const REQUISITOS_TIPO_GRAFICA: Record<TipoGrafica, { ejeX: RequisitoCampo
   caja: { ejeX: "cualquiera", ejeY: ["numero"] },
   piramide: { ejeX: "cualquiera", ejeY: "cualquiera", ejeSplit: { tipos: "cualquiera", obligatorio: true } },
   mapa: { ejeX: ["geografico"], ejeY: "cualquiera" },
+  // "Valor" y "meta" siempre se suman (no aplica conteo/promedio) — una barra
+  // de avance compara dos montos totales, no una distribución.
+  avance: { ejeX: "cualquiera", ejeY: ["numero"], ejeMeta: ["numero"] },
 };
 
 export function campoValidoParaEje(campo: CampoMeta, requisito: RequisitoCampo): boolean {
@@ -255,6 +263,33 @@ export const BI_DATASETS: DatasetMeta[] = [
             AND (h."hasta" IS NULL OR h."hasta" > date_trunc('month', NOW()))
         )`,
       },
+      {
+        id: "disponibilidadPct",
+        label: "% de disponibilidad (actual)",
+        tipo: "numero",
+        sufijo: "%",
+        // 100/0 por unidad — promediarlo grupo por grupo da exactamente
+        // "disponibles / total" de ese grupo (ej. por proyecto), igual que
+        // la columna Disponibilidad de Inventario de Unidades.
+        agregacionesPermitidas: ["promedio"],
+        expr: `CASE WHEN u."disponibilidad" THEN 100 ELSE 0 END`,
+      },
+      {
+        id: "unidadesDisponiblesConteo",
+        label: "Unidades disponibles (para barra de avance)",
+        tipo: "numero",
+        // Sin sufijo: es un conteo crudo, pensado como "valor" de una barra
+        // de avance contra "unidadesConteo" como "meta" — no para verse solo.
+        agregacionesPermitidas: ["suma"],
+        expr: `CASE WHEN u."disponibilidad" THEN 1 ELSE 0 END`,
+      },
+      {
+        id: "unidadesConteo",
+        label: "Unidades (para barra de avance)",
+        tipo: "numero",
+        agregacionesPermitidas: ["suma"],
+        expr: `1`,
+      },
     ],
   },
   {
@@ -371,12 +406,79 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Presupuesto por partida (autorizado)",
     from: `"PresupuestoPartida" pp LEFT JOIN "Proyecto" p ON p.id = pp."proyectoId"`,
     proyectoScopeExpr: `pp."proyectoId"`,
-    tablasBase: ["PresupuestoPartida", "Proyecto"],
+    // Incluye GastoVehicular/Combustible/Tag/Unidad porque el campo
+    // "gastoReal" los lee vía subconsulta correlacionada — un gasto nuevo
+    // debe invalidar la caché de este dataset igual que uno nuevo en
+    // PresupuestoPartida.
+    tablasBase: ["PresupuestoPartida", "Proyecto", "GastoVehicular", "Combustible", "Tag", "Unidad"],
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `pp."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `make_date(pp."anio", pp."mes", 1)` },
       { id: "montoPresupuestado", label: "Monto presupuestado", tipo: "numero", expr: `pp."montoPresupuestado"`, sufijo: " MXN" },
+      {
+        id: "gastoReal",
+        label: "Gasto real",
+        tipo: "numero",
+        sufijo: " MXN",
+        agregacionesPermitidas: ["suma"],
+        // Réplica en SQL de obtenerResumenPresupuestoPorPartida
+        // (src/lib/presupuesto.ts): el origen del gasto real NO es uniforme
+        // por categoría — Gasolina sale de Combustible, Casetas de Tag, el
+        // resto de GastoVehicular — para la MISMA combinación proyecto +
+        // categoría + año + mes que esta partida. A diferencia del resto de
+        // datasets de este catálogo (que atribuyen por el proyecto ACTUAL de
+        // la unidad), aquí SÍ se replica la atribución histórica exacta del
+        // original (vía UnidadHistoricoProyecto: el gasto cuenta para este
+        // proyecto solo si la unidad estuvo asignada a él en la fecha del
+        // gasto) — un dato financiero de "ejecución presupuestal" que se
+        // aparta demasiado del oficial (~2-3x en unidades reasignadas) no es
+        // aceptable, aunque cueste una subconsulta más cara.
+        expr: `(
+          CASE pp."categoria"
+            WHEN 'GASOLINA' THEN (
+              SELECT COALESCE(SUM(c."costo"), 0) FROM "Combustible" c
+              WHERE (
+                c."proyectoReportanteId" = pp."proyectoId"
+                OR EXISTS (
+                  SELECT 1 FROM "UnidadHistoricoProyecto" h
+                  WHERE h."numeroEconomico" = c."numeroEconomico" AND h."proyectoId" = pp."proyectoId"
+                    AND h."fechaInicio" <= c."fecha" AND (h."fechaFin" IS NULL OR h."fechaFin" > c."fecha")
+                )
+              )
+              AND EXTRACT(YEAR FROM c."fecha") = pp."anio" AND EXTRACT(MONTH FROM c."fecha") = pp."mes"
+            )
+            WHEN 'CASETAS' THEN (
+              SELECT COALESCE(SUM(t."monto"), 0) FROM "Tag" t
+              WHERE (
+                t."proyectoReportanteId" = pp."proyectoId"
+                OR EXISTS (
+                  SELECT 1 FROM "UnidadHistoricoProyecto" h
+                  WHERE h."numeroEconomico" = t."numeroEconomico" AND h."proyectoId" = pp."proyectoId"
+                    AND h."fechaInicio" <= t."fecha" AND (h."fechaFin" IS NULL OR h."fechaFin" > t."fecha")
+                )
+              )
+              AND EXTRACT(YEAR FROM t."fecha") = pp."anio" AND EXTRACT(MONTH FROM t."fecha") = pp."mes"
+            )
+            WHEN 'VIATICOS_OPERACION' THEN (
+              -- Sin unidad (reportado directo al proyecto) — nunca vía historico.
+              SELECT COALESCE(SUM(g."costo"), 0) FROM "GastoVehicular" g
+              WHERE g."categoria" = 'VIATICOS_OPERACION' AND g."proyectoReportanteId" = pp."proyectoId"
+                AND EXTRACT(YEAR FROM g."fecha") = pp."anio" AND EXTRACT(MONTH FROM g."fecha") = pp."mes"
+            )
+            ELSE (
+              SELECT COALESCE(SUM(g."costo"), 0) FROM "GastoVehicular" g
+              WHERE g."categoria" = pp."categoria"
+                AND EXISTS (
+                  SELECT 1 FROM "UnidadHistoricoProyecto" h
+                  WHERE h."numeroEconomico" = g."numeroEconomico" AND h."proyectoId" = pp."proyectoId"
+                    AND h."fechaInicio" <= g."fecha" AND (h."fechaFin" IS NULL OR h."fechaFin" > g."fecha")
+                )
+                AND EXTRACT(YEAR FROM g."fecha") = pp."anio" AND EXTRACT(MONTH FROM g."fecha") = pp."mes"
+            )
+          END
+        )`,
+      },
     ],
   },
   {
@@ -652,6 +754,9 @@ export type CombinacionGuardable = {
   /** Segundo campo de agrupación — obligatorio en "piramide" (máx. 2 categorías),
    *  opcional en "barras" (cruce de 2 dimensiones, sin tope de categorías). */
   ejeSplit?: string;
+  /** Segundo campo NUMÉRICO (no de agrupación, como ejeSplit) — la "meta" contra
+   *  la que se compara ejeY en una barra de avance (ej. presupuesto vs. gasto). */
+  ejeMeta?: string;
   /** Orden de las categorías — solo aplica a barras/puntos/divergente. */
   orden?: TipoOrden;
   /** Filtros adicionales (narrows el conjunto de filas antes de agrupar). Ausente/[] = sin filtro. */
@@ -680,6 +785,9 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "SLA de disponibilidad por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "SLA de disponibilidad por unidad", dataset: "unidades", ejeX: "numeroEconomico", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "puntos", orden: "valor_asc" },
+  { label: "Disponibilidad por proyecto (avance)", dataset: "unidades", ejeX: "proyecto", ejeY: "unidadesDisponiblesConteo", ejeMeta: "unidadesConteo", agregacion: "suma", tipoGrafica: "avance" },
+  { label: "Ejecución presupuestal por proyecto", dataset: "presupuesto_partida", ejeX: "proyecto", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance" },
+  { label: "Ejecución presupuestal por concepto", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Litros de combustible por mes", dataset: "combustible", ejeX: "mes", ejeY: "litros", agregacion: "suma", tipoGrafica: "lineas" },
@@ -727,6 +835,7 @@ export const WIDGETS_BI_DEFAULT: WidgetDashboardBI[] = BI_COMBINACIONES_SUGERIDA
     dataset: c.dataset,
     ejeX: c.ejeX,
     ejeY: c.ejeY,
+    ejeMeta: c.ejeMeta,
     agregacion: c.agregacion,
     tipoGrafica: c.tipoGrafica,
     layout: { x: col, y: fila * ALTO_DEFAULT, w, h: ALTO_DEFAULT },

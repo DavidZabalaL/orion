@@ -44,7 +44,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
-    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, orden: s.orden });
+    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden });
   }
 
   // Aplicar una métrica guardada solo pre-llena dataset/ejeY/agregación/filtros
@@ -73,13 +73,14 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
       agregacion: combinacion.agregacion,
       tipoGrafica: combinacion.tipoGrafica,
       ejeSplit: combinacion.ejeSplit,
+      ejeMeta: combinacion.ejeMeta,
       orden: combinacion.orden,
       filtros: combinacion.filtros,
       proyectoIds: combinacion.proyectoIds,
     }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, truncado, cargando, error } = useBiQuery(params);
+  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, truncado, cargando, error } = useBiQuery(params);
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();
@@ -171,7 +172,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
           ) : verTabla && soportaTabla ? (
             <TablaDatos datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} />
           ) : (
-            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={combinacion.agregacion} truncado={truncado} />
+            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} agregacion={combinacion.agregacion} truncado={truncado} />
           )}
         </div>
       </div>

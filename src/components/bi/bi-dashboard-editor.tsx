@@ -274,6 +274,7 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                     agregacion={w.agregacion}
                     tipoGrafica={w.tipoGrafica}
                     ejeSplit={w.ejeSplit}
+                    ejeMeta={w.ejeMeta}
                     filtros={w.filtros}
                     proyectoIds={w.proyectoIds}
                     orden={w.orden}

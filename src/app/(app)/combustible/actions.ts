@@ -45,7 +45,7 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
       await logActivity({ userId: session.user.id, modulo: "combustible", accion: "create", entidad: "Combustible", entidadId: combustible.id, detalle: { proyectoReportanteId, litros, costo } });
     }
     revalidatePath("/combustible");
-    invalidarCacheBI(["combustible"]);
+    invalidarCacheBI(["combustible", "presupuesto_partida"]);
     return { ok: true };
   }
 
@@ -111,7 +111,7 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   }
 
   revalidatePath("/combustible");
-  invalidarCacheBI(["combustible"]);
+  invalidarCacheBI(["combustible", "presupuesto_partida"]);
   revalidatePath(`/unidades/${numeroEconomico}`);
   return { ok: true, alertaSobrellenado };
 }
@@ -149,7 +149,7 @@ export async function asignarEconomicoCombustible(formData: FormData) {
   }
 
   revalidatePath("/combustible");
-  invalidarCacheBI(["combustible"]);
+  invalidarCacheBI(["combustible", "presupuesto_partida"]);
   if (numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
 }
 
@@ -228,7 +228,7 @@ export async function eliminarCombustible(formData: FormData): Promise<Resultado
   }
 
   revalidatePath("/combustible");
-  invalidarCacheBI(["combustible"]);
+  invalidarCacheBI(["combustible", "presupuesto_partida"]);
   if (registro.numeroEconomico) revalidatePath(`/unidades/${registro.numeroEconomico}`);
   return { ok: true };
 }

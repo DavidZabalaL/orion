@@ -106,7 +106,7 @@ export async function importarTags(
     }
   }
 
-  if (resultado.creadas.length > 0) invalidarCacheBI(["peajes"]);
+  if (resultado.creadas.length > 0) invalidarCacheBI(["peajes", "presupuesto_partida"]);
 
   const session = await auth();
   if (session?.user?.id) {

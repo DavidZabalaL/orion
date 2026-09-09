@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, LineChart, PieChart, Hash, Circle, SplitSquareHorizontal, BarChart2, ScatterChart, CalendarDays, Boxes, Users, MapPinned, Plus, X } from "lucide-react";
+import { BarChart3, LineChart, PieChart, Hash, Circle, SplitSquareHorizontal, BarChart2, ScatterChart, CalendarDays, Boxes, Users, MapPinned, Gauge, Plus, X } from "lucide-react";
 import {
   BI_DATASETS,
   obtenerDataset,
@@ -54,6 +54,7 @@ const TIPOS_GRAFICA: { value: TipoGrafica; icon: typeof BarChart3 }[] = [
   { value: "caja", icon: Boxes },
   { value: "piramide", icon: Users },
   { value: "mapa", icon: MapPinned },
+  { value: "avance", icon: Gauge },
 ];
 
 const ORDEN_LABEL: Record<TipoOrden, string> = {
@@ -82,6 +83,8 @@ export type CombinacionBI = {
   agregacion: TipoAgregacion;
   tipoGrafica: TipoGrafica;
   ejeSplit?: string;
+  /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
+  ejeMeta?: string;
   orden?: TipoOrden;
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
@@ -114,6 +117,7 @@ export function SelectoresCombinacion({
 
   const camposEjeX = dataset.campos.filter((c) => campoValidoParaEje(c, requisitos.ejeX));
   const camposEjeY = dataset.campos.filter((c) => campoValidoParaEje(c, requisitos.ejeY));
+  const camposEjeMeta = requisitos.ejeMeta ? dataset.campos.filter((c) => campoValidoParaEje(c, requisitos.ejeMeta!)) : [];
 
   function cambiarDataset(datasetId: string) {
     const ds = obtenerDataset(datasetId)!;
@@ -124,11 +128,13 @@ export function SelectoresCombinacion({
     // hace cambiarTipoGrafica, o el API rechaza la combinación con 400.
     const nuevoEjeX = ds.campos.find((c) => campoValidoParaEje(c, req.ejeX))?.id ?? ds.campos[0].id;
     const nuevoEjeY = ds.campos.find((c) => campoValidoParaEje(c, req.ejeY))?.id ?? ds.campos[0].id;
+    const nuevoEjeMeta = req.ejeMeta ? ds.campos.find((c) => campoValidoParaEje(c, req.ejeMeta!))?.id ?? ds.campos[0].id : undefined;
     onChange({
       ...combinacion,
       datasetId,
       ejeX: nuevoEjeX,
       ejeY: nuevoEjeY,
+      ejeMeta: nuevoEjeMeta,
       agregacion: "conteo",
       ejeSplit: req.ejeSplit?.obligatorio ? ds.campos[0].id : undefined,
       filtros: [],
@@ -140,7 +146,9 @@ export function SelectoresCombinacion({
     const nuevoEjeX = campoValidoParaEje(obtenerCampo(dataset, combinacion.ejeX)!, req.ejeX) ? combinacion.ejeX : dataset.campos.find((c) => campoValidoParaEje(c, req.ejeX))?.id ?? combinacion.ejeX;
     const nuevoEjeY = campoValidoParaEje(obtenerCampo(dataset, combinacion.ejeY)!, req.ejeY) ? combinacion.ejeY : dataset.campos.find((c) => campoValidoParaEje(c, req.ejeY))?.id ?? combinacion.ejeY;
     const nuevoEjeSplit = !req.ejeSplit ? undefined : req.ejeSplit.obligatorio ? combinacion.ejeSplit ?? dataset.campos[0].id : combinacion.ejeSplit;
-    onChange({ ...combinacion, tipoGrafica, ejeX: nuevoEjeX, ejeY: nuevoEjeY, ejeSplit: nuevoEjeSplit });
+    const ejeMetaActualValido = combinacion.ejeMeta && campoValidoParaEje(obtenerCampo(dataset, combinacion.ejeMeta)!, req.ejeMeta ?? "ninguno");
+    const nuevoEjeMeta = !req.ejeMeta ? undefined : ejeMetaActualValido ? combinacion.ejeMeta : dataset.campos.find((c) => campoValidoParaEje(c, req.ejeMeta!))?.id ?? dataset.campos[0].id;
+    onChange({ ...combinacion, tipoGrafica, ejeX: nuevoEjeX, ejeY: nuevoEjeY, ejeSplit: nuevoEjeSplit, ejeMeta: nuevoEjeMeta });
   }
 
   function cambiarEjeY(ejeY: string) {
@@ -170,7 +178,7 @@ export function SelectoresCombinacion({
         </div>
         {requisitos.ejeY !== "ninguno" && (
           <div>
-            <label style={labelStyle}>Eje Y{sufijoRequisito(requisitos.ejeY)}</label>
+            <label style={labelStyle}>{combinacion.tipoGrafica === "avance" ? "Valor" : "Eje Y"}{sufijoRequisito(requisitos.ejeY)}</label>
             <select value={combinacion.ejeY} onChange={(e) => cambiarEjeY(e.target.value)} style={fieldStyle}>
               {camposEjeY.map((c) => (
                 <option key={c.id} value={c.id}>{c.label}</option>
@@ -178,7 +186,17 @@ export function SelectoresCombinacion({
             </select>
           </div>
         )}
-        {requisitos.ejeY !== "ninguno" && combinacion.tipoGrafica !== "dispersion" && combinacion.tipoGrafica !== "caja" && (
+        {requisitos.ejeMeta && (
+          <div>
+            <label style={labelStyle}>Meta{sufijoRequisito(requisitos.ejeMeta)}</label>
+            <select value={combinacion.ejeMeta ?? ""} onChange={(e) => onChange({ ...combinacion, ejeMeta: e.target.value })} style={fieldStyle}>
+              {camposEjeMeta.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {requisitos.ejeY !== "ninguno" && combinacion.tipoGrafica !== "dispersion" && combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "avance" && (
           <div>
             <label style={labelStyle}>Agregación</label>
             <select value={combinacion.agregacion} onChange={(e) => onChange({ ...combinacion, agregacion: e.target.value as TipoAgregacion })} style={fieldStyle}>

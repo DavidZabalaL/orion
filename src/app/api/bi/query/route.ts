@@ -37,6 +37,8 @@ type BiQueryBody = {
   agregacion: TipoAgregacion;
   tipoGrafica: TipoGrafica;
   ejeSplit?: string;
+  /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
+  ejeMeta?: string;
   orden?: TipoOrden;
   filtros?: Filtro[];
   proyectoIds?: string[];
@@ -120,8 +122,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!campoValidoParaEje(campoY, requisitos.ejeY)) {
       return NextResponse.json({ error: "El campo elegido en eje Y no aplica a este tipo de gráfica." }, { status: 400 });
     }
-    if (tipoGrafica !== "dispersion" && tipoGrafica !== "caja" && !agregacionesDisponibles(campoY).includes(agregacion)) {
+    if (tipoGrafica !== "dispersion" && tipoGrafica !== "caja" && tipoGrafica !== "avance" && !agregacionesDisponibles(campoY).includes(agregacion)) {
       return NextResponse.json({ error: "Esa agregación no aplica al campo elegido en el eje Y." }, { status: 400 });
+    }
+  }
+
+  let campoMeta: CampoMeta | undefined;
+  if (requisitos.ejeMeta) {
+    campoMeta = obtenerCampo(dataset, body.ejeMeta ?? "");
+    if (!campoMeta) return NextResponse.json({ error: "Meta desconocida para este dataset." }, { status: 400 });
+    if (!campoValidoParaEje(campoMeta, requisitos.ejeMeta)) {
+      return NextResponse.json({ error: "El campo elegido como meta no aplica a este tipo de gráfica." }, { status: 400 });
     }
   }
 
@@ -146,6 +157,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       return await consultarVariacion(dataset, campoX, campoY!, agregacion, body.comparacion ?? "periodo_anterior", body.filtros, alcance, llaveAlcance, filtrosLlave);
     }
     if (tipoGrafica === "histograma") return await consultarHistograma(dataset, campoX, body.filtros, alcance, llaveAlcance, filtrosLlave);
+    if (tipoGrafica === "avance") return await consultarAvance(dataset, campoX, campoY!, campoMeta!, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "dispersion") return await consultarDispersion(dataset, campoX, campoY!, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "caja") return await consultarCaja(dataset, campoX, campoY!, body.filtros, alcance, llaveAlcance, filtrosLlave);
     if (tipoGrafica === "piramide") return await consultarPiramide(dataset, campoX, campoY!, agregacion, campoSplit!, body.filtros, alcance, llaveAlcance, filtrosLlave);
@@ -403,6 +415,51 @@ async function consultarHistograma(
       dataset: dataset.id,
       ejeX: { id: campoX.id, label: campoX.label },
       ejeY: { label: "N° de registros", sufijo: "" },
+      datos,
+    };
+  });
+
+  return NextResponse.json(resultado);
+}
+
+/**
+ * Barra de avance: valor vs. meta, agrupados por campoX — ambos siempre SUM
+ * (una barra de avance compara dos montos totales, no distribuciones). El
+ * cliente decide cómo mostrarlo: una sola fila (ej. filtrado a un solo
+ * proyecto) se ve como una tarjeta única "valor vs meta"; varias filas se ven
+ * como una lista de barras, una por categoría (ej. "por proyecto").
+ */
+async function consultarAvance(
+  dataset: DatasetMeta,
+  campoX: CampoMeta,
+  campoY: CampoMeta,
+  campoMeta: CampoMeta,
+  filtros: Filtro[] | undefined,
+  alcance: Prisma.Sql,
+  llaveAlcance: string,
+  filtrosLlave: string
+): Promise<NextResponse> {
+  const resultado = await cachearConsultaBI(dataset.id, ["avance", campoX.id, campoY.id, campoMeta.id, filtrosLlave, llaveAlcance], async () => {
+    const dimensionExpr = campoExpr(campoX);
+    const valorExpr = Prisma.sql`SUM(${Prisma.raw(campoY.expr)})`;
+    const metaExpr = Prisma.sql`SUM(${Prisma.raw(campoMeta.expr)})`;
+    const where = construirWhere(dataset, filtros, [alcance]);
+
+    const query = Prisma.sql`
+      SELECT ${dimensionExpr} AS dimension, ${valorExpr} AS valor, ${metaExpr} AS meta
+      FROM ${Prisma.raw(dataset.from)}
+      ${where}
+      GROUP BY ${dimensionExpr}
+      ORDER BY ${dimensionExpr} ASC
+    `;
+    const filas = await prisma.$queryRaw<{ dimension: string | null; valor: number | string | null; meta: number | string | null }[]>(query);
+    const datos = filas.filter((f) => f.dimension !== null).map((f) => ({ dimension: String(f.dimension), valor: Number(f.valor ?? 0), meta: Number(f.meta ?? 0) }));
+
+    return {
+      dataset: dataset.id,
+      ejeX: { id: campoX.id, label: campoX.label },
+      ejeY: { label: campoY.label, sufijo: campoY.sufijo ?? "" },
+      ejeMeta: { label: campoMeta.label, sufijo: campoMeta.sufijo ?? "" },
       datos,
     };
   });

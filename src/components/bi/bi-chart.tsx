@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
 import { resolverEstado } from "@/lib/bi/estados-mexico";
 
-export type BiDato = { dimension: string; valor: number };
+export type BiDato = { dimension: string; valor: number; /** Solo con tipoGrafica "avance". */ meta?: number };
 export type BiCaja = { dimension: string; min: number; q1: number; mediana: number; q3: number; max: number };
 export type BiPar = { dimension: string; izquierda: number; derecha: number };
 export type BiCruzado = { series: string[]; filas: { dimension: string; valores: Record<string, number> }[]; truncado: boolean };
@@ -60,6 +60,8 @@ export function BiChart({
   tipoGrafica,
   ejeYLabel,
   ejeYSufijo = "",
+  ejeMetaLabel = "",
+  ejeMetaSufijo = "",
   agregacion,
   truncado,
   onCategoriaClick,
@@ -73,6 +75,9 @@ export function BiChart({
   ejeYLabel: string;
   /** Se agrega a cada valor formateado del eje Y (ej. "%") — vacío por defecto. */
   ejeYSufijo?: string;
+  /** Solo con tipoGrafica "avance": etiqueta/sufijo del campo "meta". */
+  ejeMetaLabel?: string;
+  ejeMetaSufijo?: string;
   agregacion?: TipoAgregacion;
   truncado?: boolean;
   /** Drill-down: se dispara con el valor de la categoría clicada (barras, pie, puntos, divergente). Opcional — no rompe usos existentes. */
@@ -99,7 +104,7 @@ export function BiChart({
   // alto real de la tarjeta y el ancestro `overflow-auto` de BiCard mostrara
   // solo la porción superior — el número "flotando" con espacio vacío
   // arriba y la etiqueta cortada por debajo del corte visible.
-  const alturaMinima = tipoGrafica === "contador" ? undefined : 280;
+  const alturaMinima = tipoGrafica === "contador" || tipoGrafica === "avance" ? undefined : 280;
 
   return (
     <div ref={contenedorRef} className="flex h-full w-full flex-col gap-2" style={alturaMinima ? { minHeight: alturaMinima } : undefined}>
@@ -123,6 +128,8 @@ export function BiChart({
             tipoGrafica={tipoGrafica}
             ejeYLabel={ejeYLabel}
             ejeYSufijo={ejeYSufijo}
+            ejeMetaLabel={ejeMetaLabel}
+            ejeMetaSufijo={ejeMetaSufijo}
             agregacion={agregacion}
             width={width}
             height={Math.max(height, 180)}
@@ -146,6 +153,8 @@ function BiChartInterno(props: {
   tipoGrafica: TipoGrafica;
   ejeYLabel: string;
   ejeYSufijo: string;
+  ejeMetaLabel: string;
+  ejeMetaSufijo: string;
   agregacion?: TipoAgregacion;
   width: number;
   height: number;
@@ -154,9 +163,10 @@ function BiChartInterno(props: {
   uid: string;
   onCategoriaClick?: (valor: string) => void;
 }) {
-  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
+  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
+  if (tipoGrafica === "avance") return <BiAvance datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} />;
   if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={agregacion} width={width} height={height} />;
   if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
   if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
@@ -189,6 +199,75 @@ function BiContador({ datos, ejeYLabel, ejeYSufijo, agregacion, width, height }:
           {agregacion === "promedio" ? `promedio de ${datos.length} grupos` : `suma de ${datos.length} grupos`}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Color del avance: rojo si se pasó de la meta, ámbar cerca de agotarla, verde en el resto — mismo criterio de alerta que el resto del dashboard (ver semáforo de disponibilidad). */
+function colorAvance(pct: number): string {
+  if (pct > 100) return "var(--color-status-escena)";
+  if (pct >= 85) return "var(--color-status-revision)";
+  return "var(--color-status-cerrado)";
+}
+
+/** Una fila "valor vs. meta": nombre, valor formateado, barra de progreso y "Meta: X (Y%)". */
+function FilaAvance({ nombre, valor, meta, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, destacado }: { nombre: string; valor: number; meta: number; ejeYSufijo: string; ejeMetaLabel: string; ejeMetaSufijo: string; destacado?: boolean }) {
+  const pct = meta > 0 ? Math.round((valor / meta) * 1000) / 10 : 0;
+  const anchoBarra = Math.min(100, pct);
+  const color = colorAvance(pct);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: destacado ? "var(--text-sm)" : "var(--text-xs)", fontWeight: destacado ? 700 : 600, color: "var(--sidebar-text-active)" }}>
+          {nombre}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: destacado ? "var(--text-lg)" : "var(--text-sm)", fontWeight: 700, color: "var(--sidebar-text-active)", fontVariantNumeric: "tabular-nums" }}>
+          {fmtNumero(valor, ejeYSufijo)}
+        </span>
+      </div>
+      <div className="w-full overflow-hidden rounded-full" style={{ height: destacado ? 10 : 7, background: "var(--chip)" }}>
+        <div style={{ width: `${anchoBarra}%`, height: "100%", background: color, borderRadius: 999, transition: "width 0.3s ease" }} />
+      </div>
+      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+        {ejeMetaLabel || "Meta"}: {fmtNumero(meta, ejeMetaSufijo)} ({pct.toLocaleString("es-MX")}%)
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Barra de avance: compara un valor contra una meta (ej. gasto vs.
+ * presupuesto, disponibles vs. flota total). Con una sola fila se ve como una
+ * tarjeta única "valor vs meta" (ej. filtrado a un solo proyecto); con varias
+ * (ej. agrupado por proyecto) se agrega además una fila "Total" en negritas
+ * arriba, igual que la fila TOTAL de una tabla dinámica.
+ */
+function BiAvance({ datos, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo }: { datos: BiDato[]; ejeYLabel: string; ejeYSufijo: string; ejeMetaLabel: string; ejeMetaSufijo: string }) {
+  const conMeta = datos.map((d) => ({ ...d, meta: d.meta ?? 0 }));
+  const totalValor = conMeta.reduce((acc, d) => acc + d.valor, 0);
+  const totalMeta = conMeta.reduce((acc, d) => acc + d.meta, 0);
+
+  return (
+    <div className="flex h-full w-full flex-col gap-4 overflow-auto py-1">
+      {conMeta.length > 1 && (
+        <>
+          <FilaAvance nombre={`Total — ${ejeYLabel}`} valor={totalValor} meta={totalMeta} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} destacado />
+          <div style={{ borderTop: "1px solid var(--field-border)" }} />
+        </>
+      )}
+      {conMeta.map((d) => (
+        <FilaAvance
+          key={d.dimension}
+          nombre={d.dimension}
+          valor={d.valor}
+          meta={d.meta}
+          ejeYSufijo={ejeYSufijo}
+          ejeMetaLabel={ejeMetaLabel}
+          ejeMetaSufijo={ejeMetaSufijo}
+          destacado={conMeta.length === 1}
+        />
+      ))}
     </div>
   );
 }
