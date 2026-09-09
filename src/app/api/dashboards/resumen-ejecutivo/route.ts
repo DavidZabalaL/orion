@@ -10,6 +10,22 @@ interface ResumenItem {
   value: string | number;
 }
 
+// El PDF usa la fuente estándar "Helvetica" de @react-pdf/renderer, cuya
+// codificación (WinAnsi/Latin-1) no cubre todo Unicode — un solo carácter
+// fuera de ese rango (típicamente una comilla tipográfica, un guion largo o
+// puntos suspensivos que Gemini genera con naturalidad en prosa) puede
+// corromper o truncar el <Text> completo donde aparece. Se normalizan los
+// casos comunes a su equivalente ASCII y se descarta cualquier otro símbolo
+// fuera de Latin-1 en vez de dejarlo pasar tal cual.
+function sanitizarParaPdf(texto: string): string {
+  return texto
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/[^\n\r\t -ÿ]/g, "");
+}
+
 /**
  * POST /api/dashboards/resumen-ejecutivo — redacta el texto narrativo del
  * resumen ejecutivo exportable en PDF desde el dashboard unificado, a partir
@@ -66,7 +82,7 @@ ${prompt ? `\nEl equipo directivo pidió específicamente lo siguiente para este
       contents: "Genera el resumen ejecutivo.",
       config: { maxOutputTokens: 600, systemInstruction: system },
     });
-    const texto = response.text?.trim() || "";
+    const texto = sanitizarParaPdf(response.text?.trim() || "");
     return NextResponse.json({ summary: texto });
   } catch (error) {
     console.error("[dashboards/resumen-ejecutivo] error:", error);

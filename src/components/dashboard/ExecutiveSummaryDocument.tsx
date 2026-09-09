@@ -83,10 +83,6 @@ const styles = StyleSheet.create({
   },
   chartTitle: { fontSize: 10, fontWeight: "bold", color: NAVY },
   chartImageWrap: { padding: 12, alignItems: "center" },
-  // maxHeight es clave: la imagen rasterizada puede venir con cualquier
-  // proporción (según el tamaño real del contenedor en pantalla), y sin tope
-  // puede terminar ocupando casi una página entera.
-  chartImage: { width: "100%", maxHeight: 260, objectFit: "contain" },
 
   footer: {
     position: "absolute",
@@ -109,7 +105,32 @@ interface Props {
   date: string;
   summary: string;
   kpis: { title: string; value: string }[];
-  charts: { title: string; dataUrl: string }[];
+  charts: { title: string; dataUrl: string; width: number; height: number }[];
+}
+
+// Ancho útil de la página: A4 (595pt) menos los 36pt de margen de .body a
+// cada lado, menos los 12pt de padding de .chartImageWrap a cada lado.
+const CHART_IMAGE_WIDTH = 499;
+// Tope generoso para que un widget muy angosto y alto (ej. una lista larga
+// en tipoGrafica "avance") no termine ocupando varias páginas completas.
+const CHART_IMAGE_MAX_HEIGHT = 620;
+
+/**
+ * Calcula el tamaño del <Image> a partir de la proporción real capturada en
+ * pantalla (ver ExportSummaryModal) — reemplaza el `maxHeight` fijo anterior,
+ * que dejaba mucho espacio en blanco en widgets naturalmente angostos y altos
+ * (ej. "avance") y no reflejaba el ancho real de gráficas anchas.
+ */
+function tamanoImagen(width: number, height: number): { width: number; height: number } {
+  if (!width || !height) return { width: CHART_IMAGE_WIDTH, height: 200 };
+  const proporcion = height / width;
+  let w = CHART_IMAGE_WIDTH;
+  let h = w * proporcion;
+  if (h > CHART_IMAGE_MAX_HEIGHT) {
+    h = CHART_IMAGE_MAX_HEIGHT;
+    w = h / proporcion;
+  }
+  return { width: w, height: h };
 }
 
 /** Documento del "resumen ejecutivo" exportable en PDF desde el Dashboard — ver ExportSummaryModal. */
@@ -164,7 +185,7 @@ export function ExecutiveSummaryDocument({ title, date, summary, kpis, charts }:
                   </View>
                   <View style={styles.chartImageWrap}>
                     {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
-                    <Image src={c.dataUrl} style={styles.chartImage} />
+                    <Image src={c.dataUrl} style={{ ...tamanoImagen(c.width, c.height), objectFit: "contain" }} />
                   </View>
                 </View>
               ))}

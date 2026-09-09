@@ -5,6 +5,32 @@ import { X, FileDown, Loader2 } from "lucide-react";
 import { useExportRegistry } from "./ExportRegistryContext";
 
 /**
+ * Fuerza `overflow: visible` en `el` y todo su subárbol (mutando el DOM real,
+ * no un clon — `html-to-image` solo permite sobreescribir el estilo de la
+ * raíz capturada vía su opción `style`, no el de los descendientes) para que
+ * `scrollWidth`/`scrollHeight` reflejen el contenido completo en vez del
+ * recorte visible (ej. una barra con muchas categorías en `overflow-x-auto`,
+ * o una lista larga en `overflow-auto`). Devuelve una función que restaura el
+ * estilo inline original de cada nodo tocado.
+ */
+function liberarOverflow(el: HTMLElement): () => void {
+  const nodos = [el, ...Array.from(el.querySelectorAll<HTMLElement>("*"))];
+  const afectados = nodos.filter((n) => {
+    const cs = getComputedStyle(n);
+    return cs.overflow !== "visible" || cs.overflowX !== "visible" || cs.overflowY !== "visible";
+  });
+  const originales = afectados.map((n) => n.getAttribute("style"));
+  for (const n of afectados) n.style.overflow = "visible";
+  return () => {
+    afectados.forEach((n, i) => {
+      const original = originales[i];
+      if (original === null) n.removeAttribute("style");
+      else n.setAttribute("style", original);
+    });
+  };
+}
+
+/**
  * Modal "Exportar resumen ejecutivo" del dashboard unificado — deja elegir
  * qué KPIs/gráficas de la pestaña activa incluir, genera un resumen breve
  * con IA a partir de los KPIs elegidos, y arma un PDF con formato propio (no
@@ -78,11 +104,23 @@ export function ExportSummaryModal({ onClose, title = "Resumen ejecutivo" }: { o
       }
 
       const { toPng } = await import("html-to-image");
-      const chartImages: { title: string; dataUrl: string }[] = [];
+      const chartImages: { title: string; dataUrl: string; width: number; height: number }[] = [];
       for (const c of chartsSeleccionados) {
-        if (!c.domRef?.current) continue;
-        const dataUrl = await toPng(c.domRef.current, { backgroundColor: "#ffffff", pixelRatio: 2 });
-        chartImages.push({ title: c.title, dataUrl });
+        const el = c.domRef?.current;
+        if (!el) continue;
+        // Varias gráficas/widgets recortan su propio contenido en pantalla
+        // (overflow-x-auto en barras con muchas categorías, overflow-auto en
+        // el contenedor de la tarjeta) — capturar tal cual da una imagen
+        // recortada. Se libera el overflow de TODO el subárbol antes de medir
+        // y capturar (para que scrollWidth/scrollHeight reflejen el
+        // contenido completo, no el recorte visible), y se restaura después.
+        const restaurar = liberarOverflow(el);
+        await new Promise((r) => requestAnimationFrame(r));
+        const width = el.scrollWidth;
+        const height = el.scrollHeight;
+        const dataUrl = await toPng(el, { backgroundColor: "#ffffff", pixelRatio: 2, width, height });
+        restaurar();
+        chartImages.push({ title: c.title, dataUrl, width, height });
       }
 
       const [{ pdf }, { ExecutiveSummaryDocument }] = await Promise.all([
