@@ -27,8 +27,10 @@ import {
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
-const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contador", "puntos", "divergente", "histograma", "dispersion", "calendario", "caja", "piramide", "mapa"];
+const TIPOS_GRAFICA_VALIDOS: TipoGrafica[] = ["barras", "lineas", "pie", "contador", "puntos", "divergente", "histograma", "dispersion", "calendario", "caja", "piramide", "mapa", "avance"];
 const ORDENES_VALIDOS: TipoOrden[] = ["dimension", "valor_desc", "valor_asc"];
+const ORIENTACIONES_VALIDAS = ["vertical", "horizontal"] as const;
+const COLORIMETRIAS_VALIDAS = ["positivo", "negativo"] as const;
 const MAX_FILTROS = 20;
 const MAX_VALORES_POR_FILTRO = 100;
 
@@ -64,7 +66,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, orden, filtros, proyectoIds, emiteFiltro, escuchaFiltro } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, filtros, proyectoIds, emiteFiltro, escuchaFiltro } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
     if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
@@ -79,7 +81,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
     if (requisitos.ejeY !== "ninguno") {
       const campoY = obtenerCampo(ds, ejeY);
       if (!campoY || !campoValidoParaEje(campoY, requisitos.ejeY)) return null;
-      if (tipoGrafica !== "dispersion" && tipoGrafica !== "caja" && !agregacionesDisponibles(campoY).includes(agregacion as TipoAgregacion)) return null;
+      if (tipoGrafica !== "dispersion" && tipoGrafica !== "caja" && tipoGrafica !== "avance" && !agregacionesDisponibles(campoY).includes(agregacion as TipoAgregacion)) return null;
     }
 
     let ejeSplitLimpio: string | undefined;
@@ -93,10 +95,30 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       }
     }
 
+    let ejeMetaLimpio: string | undefined;
+    if (requisitos.ejeMeta) {
+      if (typeof ejeMeta !== "string") return null;
+      const campoMeta = obtenerCampo(ds, ejeMeta);
+      if (!campoMeta || !campoValidoParaEje(campoMeta, requisitos.ejeMeta)) return null;
+      ejeMetaLimpio = ejeMeta;
+    }
+
     let ordenLimpio: TipoOrden | undefined;
     if (orden !== undefined) {
       if (!ORDENES_VALIDOS.includes(orden as TipoOrden)) return null;
       ordenLimpio = orden as TipoOrden;
+    }
+
+    let orientacionLimpia: "vertical" | "horizontal" | undefined;
+    if (orientacion !== undefined) {
+      if (!ORIENTACIONES_VALIDAS.includes(orientacion as "vertical" | "horizontal")) return null;
+      orientacionLimpia = orientacion as "vertical" | "horizontal";
+    }
+
+    let colorimetriaLimpia: "positivo" | "negativo" | undefined;
+    if (colorimetria !== undefined) {
+      if (!COLORIMETRIAS_VALIDAS.includes(colorimetria as "positivo" | "negativo")) return null;
+      colorimetriaLimpia = colorimetria as "positivo" | "negativo";
     }
 
     const filtrosLimpios = validarFiltros(filtros, ds);
@@ -117,7 +139,10 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       agregacion: agregacion as TipoAgregacion,
       tipoGrafica: tipoGrafica as TipoGrafica,
       ejeSplit: ejeSplitLimpio,
+      ejeMeta: ejeMetaLimpio,
       orden: ordenLimpio,
+      orientacion: orientacionLimpia,
+      colorimetria: colorimetriaLimpia,
       filtros: filtrosLimpios,
       proyectoIds: proyectoIdsLimpios,
       layout: layoutValido,
