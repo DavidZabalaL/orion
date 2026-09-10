@@ -9,12 +9,31 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { cachearConsultaBI } from "@/lib/bi/cache";
-import { obtenerDataset, obtenerCampo, agregacionesDisponibles, AGREGACION_LABEL, type TipoAgregacion, type TipoOrden, type CampoMeta, type DatasetMeta } from "@/lib/bi/metadata";
+import { claveMesMx } from "@/lib/timezone";
+import {
+  obtenerDataset,
+  obtenerCampo,
+  agregacionesDisponibles,
+  AGREGACION_LABEL,
+  SENTINEL_MES_ACTUAL,
+  SENTINEL_MES_ANTERIOR,
+  type TipoAgregacion,
+  type TipoOrden,
+  type CampoMeta,
+  type DatasetMeta,
+} from "@/lib/bi/metadata";
 
 export type Filtro = { campoId: string; valores: string[] };
 
 export const MAX_FILTROS = 20;
 export const MAX_VALORES_POR_FILTRO = 100;
+
+function resolverValorFiltro(campo: CampoMeta, valor: string): string {
+  if (campo.tipo !== "fecha_mes") return valor;
+  if (valor === SENTINEL_MES_ACTUAL) return claveMesMx(0);
+  if (valor === SENTINEL_MES_ANTERIOR) return claveMesMx(-1);
+  return valor;
+}
 
 export function campoExpr(campo: CampoMeta): Prisma.Sql {
   if (campo.tipo === "fecha_mes") return Prisma.sql`TO_CHAR(${Prisma.raw(campo.expr)}, 'YYYY-MM')`;
@@ -33,7 +52,10 @@ export function metricaExpr(agregacion: TipoAgregacion, campoY: CampoMeta): Pris
 export function condicionCampoIn(dataset: DatasetMeta, campoId: string, valores: unknown): Prisma.Sql | null {
   const campo = obtenerCampo(dataset, campoId);
   if (!campo || !Array.isArray(valores)) return null;
-  const limpios = valores.filter((v) => typeof v === "string" && v.trim() !== "").slice(0, MAX_VALORES_POR_FILTRO);
+  const limpios = valores
+    .filter((v) => typeof v === "string" && v.trim() !== "")
+    .map((v) => resolverValorFiltro(campo, v as string))
+    .slice(0, MAX_VALORES_POR_FILTRO);
   if (limpios.length === 0) return null;
   return Prisma.sql`${campoExpr(campo)} IN (${Prisma.join(limpios)})`;
 }

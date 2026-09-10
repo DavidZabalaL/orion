@@ -16,6 +16,18 @@ function opcionesDe(label: Record<string, string>): { valor: string; label: stri
   return Object.entries(label).map(([valor, label]) => ({ valor, label }));
 }
 
+// Sentinelas para un filtro de mes "siempre vigente" (ej. preset "Mes
+// actual" en el selector de BI, src/components/bi/selectores-combinacion.tsx):
+// en vez de guardar en el widget un valor fijo como "2026-09" (que se queda
+// congelado al mes en que se guardó/editó por última vez), se guarda este
+// texto y motor-consultas.ts lo resuelve al mes real EN CADA consulta — así
+// el widget siempre refleja el mes/mes anterior en curso sin que nadie tenga
+// que reabrirlo y volver a elegirlo cada mes. Viven aquí (no en
+// motor-consultas.ts, que importa Prisma) para que el componente cliente que
+// arma el filtro pueda usar el mismo valor sin arrastrar dependencias de servidor.
+export const SENTINEL_MES_ACTUAL = "__MES_ACTUAL__";
+export const SENTINEL_MES_ANTERIOR = "__MES_ANTERIOR__";
+
 export type TipoCampo = "texto" | "fecha_mes" | "fecha_dia" | "numero" | "geografico";
 export type TipoAgregacion = "conteo" | "suma" | "promedio";
 export type TipoGrafica =
@@ -793,6 +805,7 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "SLA de disponibilidad por unidad", dataset: "unidades", ejeX: "numeroEconomico", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "puntos", orden: "valor_asc" },
   { label: "Disponibilidad por proyecto (avance)", dataset: "unidades", ejeX: "proyecto", ejeY: "unidadesDisponiblesConteo", ejeMeta: "unidadesConteo", agregacion: "suma", tipoGrafica: "avance", colorimetria: "positivo" },
   { label: "Ejecución presupuestal por proyecto", dataset: "presupuesto_partida", ejeX: "proyecto", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance", colorimetria: "negativo" },
+  { label: "Gasto del mes en curso por proyecto", dataset: "presupuesto_partida", ejeX: "proyecto", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance", colorimetria: "negativo", filtros: [{ campoId: "mes", valores: [SENTINEL_MES_ACTUAL] }] },
   { label: "Ejecución presupuestal por concepto", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "gastoReal", ejeMeta: "montoPresupuestado", agregacion: "suma", tipoGrafica: "avance", colorimetria: "negativo" },
   { label: "Gasto de mantenimiento por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Gasto de mantenimiento por mes", dataset: "mantenimiento", ejeX: "mes", ejeY: "costo", agregacion: "suma", tipoGrafica: "lineas" },

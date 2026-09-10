@@ -11,6 +11,8 @@ import {
   REQUISITOS_TIPO_GRAFICA,
   TIPO_GRAFICA_LABEL,
   AGREGACION_LABEL,
+  SENTINEL_MES_ACTUAL,
+  SENTINEL_MES_ANTERIOR,
   type TipoGrafica,
   type TipoAgregacion,
   type TipoOrden,
@@ -515,6 +517,12 @@ function mesesDelAnio(anio: number): string[] {
  * `valores: string[]` del filtro genérico — el backend no cambia, porque
  * "IN (...)" sobre TO_CHAR(fecha,'YYYY-MM') ya soportaba esto, solo faltaba
  * una UI cómoda para armarlo.
+ *
+ * Los presets "Mes actual" y "Mes anterior" guardan un sentinel
+ * (SENTINEL_MES_ACTUAL/ANTERIOR), no el valor "YYYY-MM" concreto de hoy: así
+ * el widget se resuelve al mes real EN CADA consulta (motor-consultas.ts) y
+ * no se queda congelado en el mes en que se guardó — nadie tiene que
+ * reabrirlo cada mes para que siga mostrando "el mes en curso".
  */
 function SelectorMes({ valores, onCambiar }: { valores: string[]; onCambiar: (valores: string[]) => void }) {
   const ahora = new Date();
@@ -524,7 +532,10 @@ function SelectorMes({ valores, onCambiar }: { valores: string[]; onCambiar: (va
 
   // El modo se infiere de los valores actuales (no se guarda aparte) — así,
   // si esta combinación ya se había guardado antes de existir este selector,
-  // se reconoce automáticamente en el modo correcto al reabrirla.
+  // se reconoce automáticamente en el modo correcto al reabrirla. También
+  // reconoce el valor concreto de hoy (mesActual/mesAnterior) como "actual"/
+  // "anterior" por compatibilidad con widgets guardados antes de que estos
+  // presets pasaran a guardar el sentinel dinámico.
   const anioDetectado = valores.length === 12 ? Number(valores[0]?.split("-")[0]) : NaN;
   // Sin valores todavía (filtro recién agregado): ningún modo activo — el
   // usuario debe elegir uno explícitamente, en vez de mostrar un mes
@@ -532,9 +543,9 @@ function SelectorMes({ valores, onCambiar }: { valores: string[]; onCambiar: (va
   const modoInferido: ModoMes | null =
     valores.length === 0
       ? null
-      : valores.length === 1 && valores[0] === mesActual
+      : valores.length === 1 && (valores[0] === SENTINEL_MES_ACTUAL || valores[0] === mesActual)
       ? "actual"
-      : valores.length === 1 && valores[0] === mesAnterior
+      : valores.length === 1 && (valores[0] === SENTINEL_MES_ANTERIOR || valores[0] === mesAnterior)
       ? "anterior"
       : valores.length === 12 && !Number.isNaN(anioDetectado) && valores.every((v, i) => v === mesesDelAnio(anioDetectado)[i])
       ? "anual"
@@ -544,8 +555,8 @@ function SelectorMes({ valores, onCambiar }: { valores: string[]; onCambiar: (va
   const mesEspecifico = modoInferido === "especifico" && valores.length === 1 ? valores[0] : mesActual;
 
   function elegirModo(modo: ModoMes) {
-    if (modo === "actual") onCambiar([mesActual]);
-    else if (modo === "anterior") onCambiar([mesAnterior]);
+    if (modo === "actual") onCambiar([SENTINEL_MES_ACTUAL]);
+    else if (modo === "anterior") onCambiar([SENTINEL_MES_ANTERIOR]);
     else if (modo === "anual") onCambiar(mesesDelAnio(anioActual));
     else onCambiar([mesActual]);
   }

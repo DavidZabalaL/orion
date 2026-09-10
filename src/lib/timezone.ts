@@ -21,6 +21,13 @@ export function inicioDeMesMx(): Date {
   return new Date(ahoraEnMarcoMx.getTime() + OFFSET_MX_HORAS * HORA_MS);
 }
 
+/** "YYYY-MM" del mes actual en hora de México, o de un mes desplazado (ej. -1 = mes anterior). */
+export function claveMesMx(offsetMeses = 0): string {
+  const marco = new Date(inicioDeMesMx().getTime() - OFFSET_MX_HORAS * HORA_MS);
+  marco.setUTCMonth(marco.getUTCMonth() + offsetMeses);
+  return `${marco.getUTCFullYear()}-${String(marco.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 /**
  * Convierte un valor "YYYY-MM-DD" de un `<input type="date">` (o
  * "YYYY-MM-DDTHH:mm" de `type="datetime-local"`) al instante UTC de esa
