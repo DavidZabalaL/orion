@@ -104,7 +104,7 @@ export function ExportSummaryModal({ onClose, title = "Resumen ejecutivo" }: { o
       }
 
       const { toPng } = await import("html-to-image");
-      const chartImages: { title: string; dataUrl: string; width: number; height: number }[] = [];
+      const chartImages: { title: string; dataUrl: string; width: number; height: number; chartKind?: string }[] = [];
       for (const c of chartsSeleccionados) {
         const el = c.domRef?.current;
         if (!el) continue;
@@ -120,7 +120,7 @@ export function ExportSummaryModal({ onClose, title = "Resumen ejecutivo" }: { o
         const height = el.scrollHeight;
         const dataUrl = await toPng(el, { backgroundColor: "#ffffff", pixelRatio: 2, width, height });
         restaurar();
-        chartImages.push({ title: c.title, dataUrl, width, height });
+        chartImages.push({ title: c.title, dataUrl, width, height, chartKind: c.chartKind });
       }
 
       const [{ pdf }, { ExecutiveSummaryDocument }] = await Promise.all([

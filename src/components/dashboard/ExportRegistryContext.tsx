@@ -11,6 +11,15 @@ export interface ExportableItem {
   value?: string | number;
   /** Solo para type 'chart' — el contenedor a rasterizar para el PDF. */
   domRef?: React.RefObject<HTMLElement | null>;
+  /**
+   * Solo para type 'chart' — el `tipoGrafica` del widget (ver TipoGrafica en
+   * lib/bi/metadata). El PDF lo usa para decidir qué gráficas comparten fila
+   * en dos columnas ("avance", naturalmente angosta) y cuáles necesitan todo
+   * el ancho de la página ("barras", etc.) — inferirlo del tamaño capturado
+   * en pantalla no sirve, porque ese tamaño depende del viewport de quien
+   * exporta, no del tipo de gráfica.
+   */
+  chartKind?: string;
 }
 
 interface ExportRegistryContextValue {

@@ -107,7 +107,7 @@ export function BiCard({
       ? null
       : tipoGrafica === "contador"
       ? { id: idExportable, type: "kpi", title: label, value: totalContador !== undefined ? `${totalContador}${ejeYSufijo}` : undefined }
-      : { id: idExportable, type: "chart", title: label, domRef: graficaRef }
+      : { id: idExportable, type: "chart", title: label, domRef: graficaRef, chartKind: tipoGrafica }
   );
 
   return (
