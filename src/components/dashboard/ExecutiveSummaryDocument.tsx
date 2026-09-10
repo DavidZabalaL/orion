@@ -65,24 +65,14 @@ const styles = StyleSheet.create({
   kpiValue: { fontSize: 18, fontWeight: "bold", color: NAVY },
   kpiLabel: { fontSize: 8.5, color: SLATE, marginTop: 4 },
 
-  chartsGrid: { flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 14 },
-  chartBlock: {
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderStyle: "solid",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  chartTitleBar: {
-    backgroundColor: SURFACE,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    borderBottomStyle: "solid",
-  },
-  chartTitle: { fontSize: 10, fontWeight: "bold", color: NAVY },
-  chartImageWrap: { padding: 12, alignItems: "center" },
+  // Antes cada gráfica era una tarjeta con marco + barra de título sombreada
+  // ("todo separado" fue la queja concreta del usuario) — un reporte impreso
+  // lee mejor como secciones de un mismo documento continuo: una etiqueta
+  // discreta arriba de la imagen, sin caja ni fondo propio.
+  chartsGrid: { flexDirection: "row", flexWrap: "wrap", columnGap: 18, rowGap: 16 },
+  chartBlock: {},
+  chartTitle: { fontSize: 9, fontWeight: "bold", color: SLATE, letterSpacing: 0.4, marginBottom: 5, textTransform: "uppercase" },
+  chartImageWrap: { alignItems: "center" },
 
   footer: {
     position: "absolute",
@@ -113,23 +103,24 @@ interface Props {
 // este reporte es casi todo gráficas/tablas anchas, y el ancho extra reduce
 // tanto el recorte de etiquetas como las páginas casi vacías.
 const PAGE_CONTENT_WIDTH = 770;
-const CHARTS_GRID_GAP = 14;
-// Padding de .chartImageWrap (12 c/lado) + borde de .chartBlock (1 c/lado).
-const CHART_BLOCK_CHROME = 26;
-const CHART_FULL_WIDTH = PAGE_CONTENT_WIDTH - CHART_BLOCK_CHROME;
-const CHART_HALF_WIDTH = (PAGE_CONTENT_WIDTH - CHARTS_GRID_GAP) / 2 - CHART_BLOCK_CHROME;
-// Tope de alto por imagen: en horizontal la página tiene menos alto útil que
-// en vertical, así que un widget angosto y alto (ej. "avance") debe ceder
-// ancho (ver ANCHOS_ANGOSTOS) antes que intentar ocupar toda la altura disponible.
-const CHART_IMAGE_MAX_HEIGHT = 440;
-// Qué tipos de gráfica comparten fila en dos columnas: solo "avance" (listas
-// de barras de progreso, ej. "Disponibilidad por zona") — son angostas por
-// diseño, sin importar cuántas filas tengan. El resto (barras, pastel, etc.)
-// siempre va a ancho completo. Antes esto se inferia del ancho capturado
-// en pantalla, pero ese ancho depende del viewport de quien exporta el PDF,
-// no del tipo de gráfica — con una ventana angosta, hasta una gráfica de
-// barras terminaba clasificada como "angosta" y se encimaba con su pareja.
-const ANCHOS_ANGOSTOS = new Set(["avance"]);
+const CHARTS_GRID_GAP = 18;
+const CHART_FULL_WIDTH = PAGE_CONTENT_WIDTH;
+const CHART_HALF_WIDTH = (PAGE_CONTENT_WIDTH - CHARTS_GRID_GAP) / 2;
+// Tope de alto por imagen — bajo a propósito: con el tope alto anterior
+// (440) cada fila copaba casi toda una página de por sí, así que el reporte
+// terminaba con exactamente una fila por página aunque hubiera espacio de
+// sobra ("todo separado" — la queja del usuario). Con un tope más chico caben
+// dos filas en una misma página en la mayoría de los casos.
+const CHART_IMAGE_MAX_HEIGHT = 340;
+// Qué tipos de gráfica comparten fila en dos columnas: "avance" (listas de
+// barras de progreso) y "pie" son angostas por diseño — el resto (barras,
+// tablas, etc.) siempre va a ancho completo, porque necesita todo el espacio
+// para no encimar sus propias etiquetas. Antes esto se inferia del ancho
+// capturado en pantalla, pero ese ancho depende del viewport de quien
+// exporta el PDF, no del tipo de gráfica — con una ventana angosta, hasta una
+// gráfica de barras terminaba clasificada como "angosta" y se encimaba con
+// su pareja.
+const ANCHOS_ANGOSTOS = new Set(["avance", "pie"]);
 
 /** Calcula el tamaño del <Image> a partir de la proporción real capturada en pantalla (ver ExportSummaryModal), acotado al ancho de columna que le toque. */
 function tamanoImagen(width: number, height: number, anchoMaximo: number): { width: number; height: number } {
@@ -191,9 +182,7 @@ function FilaGraficas({ fila }: { fila: ChartImg[] }) {
         const anchoColumna = enPar ? CHART_HALF_WIDTH : CHART_FULL_WIDTH;
         return (
           <View key={c.title} style={{ ...styles.chartBlock, width: enPar ? "48.5%" : "100%" }}>
-            <View style={styles.chartTitleBar}>
-              <Text style={styles.chartTitle}>{c.title}</Text>
-            </View>
+            <Text style={styles.chartTitle}>{c.title}</Text>
             <View style={styles.chartImageWrap}>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
               <Image src={c.dataUrl} style={{ ...tamanoImagen(c.width, c.height, anchoColumna), objectFit: "contain" }} />
