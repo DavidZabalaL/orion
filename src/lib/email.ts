@@ -12,7 +12,7 @@ const EMAIL_FROM_DEFAULT = "Orión <orion@grupokabat.com>";
 // el flujo de correo de Office 365 en absoluto.
 type MensajeCorreo = {
   from: string;
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   attachments?: { filename: string; content: Buffer; contentType?: string }[];
@@ -187,7 +187,7 @@ export async function enviarReporteBI({
   try {
     await enviarConReintento({
       from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
-      to: destinatarios.join(","),
+      to: destinatarios,
       subject: `Reporte programado — ${nombreReporte}`,
       html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el reporte <strong>${nombreReporte}</strong>, generado automáticamente por Orión.</p>`,
       attachments: [{ filename: nombreArchivo, content: buffer, contentType: mime }],
@@ -226,7 +226,7 @@ export async function enviarNotificacionTicketRescate({
   try {
     await enviarConReintento({
       from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
-      to: destinatarios.join(","),
+      to: destinatarios,
       subject: `Nuevo ticket de rescate ${folio} — ${numeroEconomico} (${prioridadLabel})`,
       html: `
         <div style="font-family:sans-serif;font-size:14px;color:#334155;">
@@ -278,7 +278,7 @@ export async function enviarNotificacionReporteFalla({
   try {
     await enviarConReintento({
       from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
-      to: destinatarios.join(","),
+      to: destinatarios,
       subject: `Reporte de falla — ${numeroEconomico} (${tipoFalla})`,
       html: `
         <div style="font-family:sans-serif;font-size:14px;color:#334155;">
