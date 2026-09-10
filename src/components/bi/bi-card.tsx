@@ -9,6 +9,7 @@ import { ExportarMenu } from "@/components/bi/exportar-menu";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
 import { useRegisterExportable } from "@/components/dashboard/ExportRegistryContext";
+import { UnidadesDrillDownModal } from "@/components/bi/unidades-drilldown-modal";
 
 // Misma precisión que fmtNumero() en bi-chart.tsx (no exportado desde ahí) —
 // para que el KPI exportado al PDF muestre el mismo redondeo que el "Contador" en pantalla.
@@ -68,6 +69,16 @@ export function BiCard({
   const [verTabla, setVerTabla] = useState(vistaPreferida === "tabla");
   const [mostrarTotal, setMostrarTotal] = useState(false);
   const soportaTabla = tipoGrafica !== "caja" && tipoGrafica !== "piramide" && tipoGrafica !== "contador" && tipoGrafica !== "avance";
+
+  // Detalle de unidades al hacer clic en una categoría — solo tiene sentido
+  // para "¿cuáles unidades son estas?" (disponibilidad / motivo de no
+  // disponibilidad del dataset "unidades"), no para cualquier campo.
+  const [drillDown, setDrillDown] = useState<{ campoId: "disponibilidad" | "motivoIndisponibilidad"; valor: string } | null>(null);
+  const soportaDrillDown = dataset === "unidades" && (ejeX === "disponibilidad" || ejeX === "motivoIndisponibilidad");
+  function manejarClicCategoria(valor: string) {
+    if (emiteFiltro) onCategoriaClick?.(ejeX, valor);
+    if (soportaDrillDown) setDrillDown({ campoId: ejeX as "disponibilidad" | "motivoIndisponibilidad", valor });
+  }
 
   // El filtro de interacción solo se fusiona si este dataset realmente tiene
   // ese campo — si no, se ignora en silencio (nunca rompe la consulta de un
@@ -216,10 +227,20 @@ export function BiCard({
             colorimetria={colorimetria}
             agregacion={agregacion}
             truncado={truncado}
-            onCategoriaClick={emiteFiltro ? (valor) => onCategoriaClick?.(ejeX, valor) : undefined}
+            onCategoriaClick={emiteFiltro || soportaDrillDown ? manejarClicCategoria : undefined}
           />
         )}
       </div>
+      {drillDown && (
+        <UnidadesDrillDownModal
+          key={`${drillDown.campoId}:${drillDown.valor}`}
+          titulo={label}
+          campoId={drillDown.campoId}
+          valor={drillDown.valor}
+          proyectoIds={proyectoIds}
+          onClose={() => setDrillDown(null)}
+        />
+      )}
     </div>
   );
 }

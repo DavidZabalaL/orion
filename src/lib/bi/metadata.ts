@@ -182,6 +182,7 @@ export const BI_DATASETS: DatasetMeta[] = [
             WHEN 'SIN_OPERADOR' THEN 'Sin operador asignado'
             WHEN 'TRAMITE_DOCUMENTACION' THEN 'Trámite / documentación'
             WHEN 'SIN_COMBUSTIBLE' THEN 'Falta de combustible'
+            WHEN 'FALLA_MECANICA' THEN 'Falla mecánica'
             WHEN 'OTRO' THEN 'Otro'
             ELSE 'Sin motivo registrado'
           END
@@ -192,6 +193,7 @@ export const BI_DATASETS: DatasetMeta[] = [
           { valor: "Sin operador asignado", label: "Sin operador asignado" },
           { valor: "Trámite / documentación", label: "Trámite / documentación" },
           { valor: "Falta de combustible", label: "Falta de combustible" },
+          { valor: "Falla mecánica", label: "Falla mecánica" },
           { valor: "Otro", label: "Otro" },
           { valor: "Sin motivo registrado", label: "Sin motivo registrado" },
         ],

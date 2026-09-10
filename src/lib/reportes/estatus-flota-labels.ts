@@ -18,5 +18,6 @@ export const LABEL_MOTIVO: Record<MotivoIndisponibilidad, string> = {
   SIN_OPERADOR: "Sin operador asignado",
   TRAMITE_DOCUMENTACION: "Trámite / documentación",
   SIN_COMBUSTIBLE: "Falta de combustible",
+  FALLA_MECANICA: "Falla mecánica",
   OTRO: "Otro",
 };

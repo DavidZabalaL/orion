@@ -15,7 +15,7 @@ import { crearDocumento } from "@/lib/subir-archivo";
 import { TIPOS_DOCUMENTO_UNIDAD, REQUIERE_ANIO } from "@/lib/catalogo-documentos-unidad";
 import type { TipoDocumentoUnidad, MotivoIndisponibilidad } from "@/generated/prisma/enums";
 
-const MOTIVOS_INDISPONIBILIDAD: MotivoIndisponibilidad[] = ["MANTENIMIENTO", "SINIESTRO", "SIN_OPERADOR", "TRAMITE_DOCUMENTACION", "SIN_COMBUSTIBLE", "OTRO"];
+const MOTIVOS_INDISPONIBILIDAD: MotivoIndisponibilidad[] = ["MANTENIMIENTO", "SINIESTRO", "SIN_OPERADOR", "TRAMITE_DOCUMENTACION", "SIN_COMBUSTIBLE", "FALLA_MECANICA", "OTRO"];
 
 export type ResultadoActualizarCapacidad = { ok: boolean; error?: string };
 

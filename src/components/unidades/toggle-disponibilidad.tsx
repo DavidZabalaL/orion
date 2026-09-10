@@ -20,6 +20,7 @@ const MOTIVOS: { value: string; label: string }[] = [
   { value: "SIN_OPERADOR", label: "Sin operador asignado" },
   { value: "TRAMITE_DOCUMENTACION", label: "Trámite / documentación" },
   { value: "SIN_COMBUSTIBLE", label: "Falta de combustible" },
+  { value: "FALLA_MECANICA", label: "Falla mecánica" },
   { value: "OTRO", label: "Otro" },
 ];
 

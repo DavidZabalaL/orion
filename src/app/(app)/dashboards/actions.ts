@@ -12,6 +12,9 @@ import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocu
 import { sanearOrdenSecciones, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { enviarReporteBI } from "@/lib/email";
+import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import type { MotivoIndisponibilidad } from "@/generated/prisma/enums";
 import {
   obtenerDataset,
   obtenerCampo,
@@ -389,5 +392,81 @@ export async function guardarProgramacionEstatusFlota(input: {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar la programación." };
+  }
+}
+
+export type UnidadDrillDown = {
+  numeroEconomico: string;
+  vehiculo: string;
+  tipoVehiculo: string;
+  proyecto: string;
+  motivo: string;
+  motivoDetalle: string | null;
+};
+
+/**
+ * Detalle de unidades detrás de una categoría clickeada en un widget del
+ * dataset "unidades" — por ahora solo para los dos campos donde tiene
+ * sentido ("¿cuáles unidades son estas?"): disponibilidad y motivo de no
+ * disponibilidad. `valor` es el texto ya traducido que se ve en la gráfica
+ * (ver metadata.ts campo "motivoIndisponibilidad"), así que hay que
+ * revertirlo al valor real del enum para consultar `Unidad`.
+ */
+export async function obtenerUnidadesPorCategoria(input: {
+  campoId: "disponibilidad" | "motivoIndisponibilidad";
+  valor: string;
+  proyectoIds?: string[];
+}): Promise<{ ok: true; unidades: UnidadDrillDown[] } | { ok: false; error: string }> {
+  if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para ver este detalle." };
+
+  const permitidos = await proyectosPermitidosParaModulo("M");
+  const proyectoIdsSolicitados = input.proyectoIds ?? [];
+  const proyectoIdsEfectivos = permitidos === null
+    ? (proyectoIdsSolicitados.length > 0 ? proyectoIdsSolicitados : null)
+    : (proyectoIdsSolicitados.length > 0 ? proyectoIdsSolicitados.filter((id) => permitidos.includes(id)) : permitidos);
+
+  const where: { proyectoId?: { in: string[] }; disponibilidad?: boolean; motivoIndisponibilidad?: MotivoIndisponibilidad | null } = {};
+  if (proyectoIdsEfectivos !== null) where.proyectoId = { in: proyectoIdsEfectivos };
+
+  if (input.campoId === "disponibilidad") {
+    where.disponibilidad = input.valor === "Disponible";
+  } else {
+    where.disponibilidad = false;
+    if (input.valor === "Sin motivo registrado") {
+      where.motivoIndisponibilidad = null;
+    } else {
+      const entrada = (Object.entries(LABEL_MOTIVO) as [MotivoIndisponibilidad, string][]).find(([, label]) => label === input.valor);
+      if (!entrada) return { ok: false, error: "Motivo no reconocido." };
+      where.motivoIndisponibilidad = entrada[0];
+    }
+  }
+
+  try {
+    const unidades = await prisma.unidad.findMany({
+      where,
+      select: {
+        numeroEconomico: true,
+        marca: true,
+        unidadModelo: true,
+        tipoVehiculo: true,
+        motivoIndisponibilidad: true,
+        motivoIndisponibilidadDetalle: true,
+        proyecto: { select: { nombre: true } },
+      },
+      orderBy: { numeroEconomico: "asc" },
+    });
+    return {
+      ok: true,
+      unidades: unidades.map((u) => ({
+        numeroEconomico: u.numeroEconomico,
+        vehiculo: `${u.marca} ${u.unidadModelo}`,
+        tipoVehiculo: TIPO_VEHICULO_LABEL[u.tipoVehiculo] ?? u.tipoVehiculo,
+        proyecto: u.proyecto?.nombre ?? "Sin proyecto",
+        motivo: u.motivoIndisponibilidad ? LABEL_MOTIVO[u.motivoIndisponibilidad] : "Sin motivo registrado",
+        motivoDetalle: u.motivoIndisponibilidadDetalle,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo consultar el detalle." };
   }
 }
