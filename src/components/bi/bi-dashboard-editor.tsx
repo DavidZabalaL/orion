@@ -6,11 +6,10 @@ import "react-resizable/css/styles.css";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
-import { Pencil, Plus, FileDown, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
+import { Pencil, Plus, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
 import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI, type FiltroGuardable } from "@/lib/bi/metadata";
 import { BiCard } from "@/components/bi/bi-card";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
-import { ExportSummaryModal } from "@/components/dashboard/ExportSummaryModal";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
@@ -57,7 +56,6 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
   const [widgets, setWidgets] = useState<WidgetDashboardBI[]>(primeraVista?.widgets ?? WIDGETS_BI_DEFAULT);
   const [editMode, setEditMode] = useState(false);
   const [formulario, setFormulario] = useState<"agregar" | { editarId: string } | null>(null);
-  const [mostrarExportarPdf, setMostrarExportarPdf] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>("lg");
 
@@ -207,13 +205,6 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                   <Pencil size={13} /> Editar dashboard
                 </button>
               )}
-              <button
-                onClick={() => setMostrarExportarPdf(true)}
-                className="flex items-center gap-1.5 rounded-md px-3 h-9"
-                style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-              >
-                <FileDown size={13} /> Exportar PDF
-              </button>
             </div>
           </div>
         )}
@@ -338,13 +329,6 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                 </button>
               )}
               <button
-                onClick={() => setMostrarExportarPdf(true)}
-                className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
-                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-              >
-                <FileDown size={13} /> Exportar PDF
-              </button>
-              <button
                 onClick={() => {
                   setEditMode(false);
                   setFormulario(null);
@@ -404,7 +388,6 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
           </div>
         </aside>
       )}
-      {mostrarExportarPdf && <ExportSummaryModal onClose={() => setMostrarExportarPdf(false)} title={nombreVista} />}
     </div>
   );
 }

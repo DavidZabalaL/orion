@@ -10,6 +10,8 @@ import {
 } from "@/app/(app)/dashboards/actions";
 import { BI_DATASETS } from "@/lib/bi/metadata";
 import { VISUALIZACION_SUGERIDA, VISUALIZACION_SUGERIDA_LABEL, type CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
+import { useExportRegistry } from "./ExportRegistryContext";
+import type { IndicadorDashboard } from "./EstatusFlotaDocument";
 
 type ProyectoDisponible = { id: string; nombre: string };
 
@@ -103,6 +105,15 @@ export function EstatusFlotaModal({
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
 
+  // Los KPIs tal cual están en "Mis dashboards" en este momento (mismo
+  // registro que usaba la extinta "Exportar PDF") — se agregan al reporte
+  // para que nunca diga un número distinto al que la persona ve en pantalla.
+  // Vacío si el tab activo es "Explorador libre" en vez de "Mis dashboards".
+  const { items } = useExportRegistry();
+  const indicadoresDashboard: IndicadorDashboard[] = items
+    .filter((i) => i.type === "kpi" && i.value !== undefined)
+    .map((i) => ({ title: i.title, value: String(i.value) }));
+
   function alternarProyecto(id: string) {
     setSeleccionados((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
   }
@@ -143,7 +154,7 @@ export function EstatusFlotaModal({
         porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
         general: rehidratarFechasAlcance(res.datos.general),
       };
-      const blob = await pdf(<EstatusFlotaDocument datos={datos} />).toBlob();
+      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -166,7 +177,7 @@ export function EstatusFlotaModal({
     }
     setEnviando(true);
     setMensaje(null);
-    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra });
+    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard });
     setEnviando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }

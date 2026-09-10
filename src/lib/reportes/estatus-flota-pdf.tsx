@@ -1,5 +1,5 @@
 import { renderToBuffer } from "@react-pdf/renderer";
-import { EstatusFlotaDocument } from "@/components/dashboard/EstatusFlotaDocument";
+import { EstatusFlotaDocument, type IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import type { EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 
 // Server-only a propósito: `renderToBuffer` arrastra internals de Node
@@ -7,6 +7,6 @@ import type { EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 // separado de EstatusFlotaDocument.tsx, que sí se importa dinámicamente desde
 // el cliente (EstatusFlotaModal, para armar el PDF de descarga en el navegador
 // con `pdf(...).toBlob()`, la mitad universal de @react-pdf/renderer).
-export async function generarEstatusFlotaBuffer(datos: EstatusFlotaReporte): Promise<Buffer> {
-  return renderToBuffer(<EstatusFlotaDocument datos={datos} />);
+export async function generarEstatusFlotaBuffer(datos: EstatusFlotaReporte, indicadoresDashboard?: IndicadorDashboard[]): Promise<Buffer> {
+  return renderToBuffer(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} />);
 }

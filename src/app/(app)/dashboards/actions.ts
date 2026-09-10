@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
+import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { enviarReporteBI } from "@/lib/email";
 import {
@@ -279,13 +280,15 @@ export async function enviarEstatusFlotaAhora(input: {
   hasta: string;
   destinatarios: string[];
   camposExtra?: CampoExtraSeleccionado[];
+  /** Indicadores tal cual se ven en "Mis dashboards" al momento de pedir el envío — ver EstatusFlotaModal. Ausente en el envío automático programado (no hay dashboard abierto). */
+  indicadoresDashboard?: IndicadorDashboard[];
 }): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
 
   try {
     const datos = await calcularReporteConAlcance(input);
-    const buffer = await generarEstatusFlotaBuffer(datos);
+    const buffer = await generarEstatusFlotaBuffer(datos, input.indicadoresDashboard);
     const nombreArchivo = `estatus-flota-${input.hasta}.pdf`;
     const envio = await enviarReporteBI({
       destinatarios: input.destinatarios,

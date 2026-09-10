@@ -230,8 +230,26 @@ function ListaProximosServicios({ datos }: { datos: EstatusFlota }) {
   );
 }
 
+/**
+ * Los mismos indicadores que muestra el widget "Contador" del dashboard
+ * (título + valor tal cual se ve en pantalla) — se pasan solo para la página
+ * "General" cuando el reporte se genera desde el dashboard (ver
+ * EstatusFlotaModal), para que el PDF nunca diga un número distinto al que
+ * la persona tenía enfrente al pedirlo. En el envío automático programado no
+ * hay dashboard abierto, así que esta sección simplemente no aparece.
+ */
+export type IndicadorDashboard = { title: string; value: string };
+
+function TarjetaIndicadorDashboard({ indicador }: { indicador: IndicadorDashboard }) {
+  return (
+    <Tarjeta titulo={indicador.title}>
+      <Text style={styles.kpiValor}>{indicador.value}</Text>
+    </Tarjeta>
+  );
+}
+
 /** Una página del reporte para un alcance específico (general, selección combinada, o un proyecto individual). */
-function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
+function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; indicadoresDashboard?: IndicadorDashboard[] }) {
   const pctPresupuesto = datos.presupuestoMes.asignado > 0 ? Math.round((datos.gastoTotal / datos.presupuestoMes.asignado) * 100) : 0;
 
   return (
@@ -247,6 +265,36 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
         <Image src={KABAT_LOGO_DATA_URI} style={styles.headerLogo} />
       </View>
 
+      {indicadoresDashboard && indicadoresDashboard.length > 0 && (
+        <>
+          {enGrupos(indicadoresDashboard, TARJETAS_POR_FILA).map((grupo, i) => (
+            <View key={`dash-${i}`} style={styles.fila} wrap={false}>
+              {grupo.map((ind) => (
+                <TarjetaIndicadorDashboard key={ind.title} indicador={ind} />
+              ))}
+              {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
+                <View key={`dash-hueco-${j}`} style={{ flex: 1 }} />
+              ))}
+            </View>
+          ))}
+        </>
+      )}
+
+      <View style={styles.fila} wrap={false}>
+        <Tarjeta titulo="SLA promedio">
+          <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
+          <Text style={styles.kpiCaption}>Disponibilidad ponderada del periodo</Text>
+        </Tarjeta>
+        <Tarjeta titulo="Unidades">
+          <Text style={styles.kpiValor}>{datos.totalUnidades}</Text>
+          <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
+        </Tarjeta>
+        <Tarjeta titulo="Actividad checklists">
+          <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
+          <Text style={styles.kpiCaption}>promedio por día</Text>
+        </Tarjeta>
+      </View>
+
       <View style={styles.fila} wrap={false}>
         <Tarjeta titulo="Disponibilidad">
           <DonaDisponibilidad disponibles={datos.unidadesDisponibles} noDisponibles={datos.unidadesNoDisponibles} />
@@ -258,10 +306,7 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
           </View>
           <Text style={styles.kpiCaption}>Mes: {fmtMoneyPdf(datos.presupuestoMes.asignado)} · {pctPresupuesto}%</Text>
         </Tarjeta>
-        <Tarjeta titulo="Actividad checklists">
-          <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
-          <Text style={styles.kpiCaption}>promedio por día</Text>
-        </Tarjeta>
+        <View style={{ flex: 1 }} />
       </View>
 
       <View style={styles.fila} wrap={false}>
@@ -315,10 +360,12 @@ function PaginaEstatus({ datos }: { datos: EstatusFlota }) {
  * después el desglose individual de cada proyecto seleccionado. Ver
  * src/lib/reportes/estatus-flota.ts y EstatusFlotaModal.
  */
-export function EstatusFlotaDocument({ datos }: { datos: EstatusFlotaReporte }) {
+export function EstatusFlotaDocument({ datos, indicadoresDashboard }: { datos: EstatusFlotaReporte; indicadoresDashboard?: IndicadorDashboard[] }) {
   return (
     <Document>
-      <PaginaEstatus datos={datos.general} />
+      {/* Los indicadores del dashboard actual solo aplican al alcance general —
+          es el mismo alcance que se ve al abrir "Mis dashboards". */}
+      <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} />
       {datos.seleccion && <PaginaEstatus datos={datos.seleccion} />}
       {datos.porProyecto.map((p, i) => (
         <PaginaEstatus key={i} datos={p} />
