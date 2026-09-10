@@ -1,35 +1,52 @@
 import Link from "next/link";
-import { Plus, FolderKanban, Car, DollarSign, Wallet } from "lucide-react";
+import { Plus, FolderKanban, Car, DollarSign, Wallet, CalendarDays } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
-import { obtenerResumenPresupuestoAnual, obtenerPresupuestoAprobadoPorProyecto } from "@/lib/presupuesto";
+import { obtenerResumenPresupuestoAnual, obtenerPresupuestoAprobadoPorProyecto, obtenerGastoMesPorProyecto } from "@/lib/presupuesto";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { ProyectosLista } from "@/components/proyectos/proyectos-lista";
+import { SelectorMesAnio } from "@/components/proyectos/selector-mes-anio";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProyectosPage() {
+const MESES_LABEL = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+export default async function ProyectosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ anio?: string; mes?: string }>;
+}) {
   await requerirPermisoModulo("H");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("H");
 
-  const anioActual = new Date().getFullYear();
+  const ahora = new Date();
+  const { anio: anioParam, mes: mesParam } = await searchParams;
+  const anioActual = ahora.getFullYear();
+  const anioMes = parseInt(anioParam ?? "", 10) || anioActual;
+  const mesSeleccionado = parseInt(mesParam ?? "", 10) || ahora.getMonth() + 1;
+  const esMesActual = anioMes === ahora.getFullYear() && mesSeleccionado === ahora.getMonth() + 1;
+
   const proyectos = await prisma.proyecto.findMany({
     where: proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : undefined,
     include: { unidades: { select: { numeroEconomico: true } } },
     orderBy: { nombre: "asc" },
   });
 
-  const [resumenes, presupuestoPorProyecto] = await Promise.all([
+  const [resumenes, presupuestoPorProyecto, gastoMesPorProyecto] = await Promise.all([
     Promise.all(proyectos.map((p) => obtenerResumenPresupuestoAnual(p.id, anioActual))),
     obtenerPresupuestoAprobadoPorProyecto(anioActual),
+    obtenerGastoMesPorProyecto(proyectos.map((p) => p.id), anioMes, mesSeleccionado),
   ]);
   const resumenPorProyecto = new Map(proyectos.map((p, i) => [p.id, resumenes[i]]));
 
   const presupuestoTotal = proyectos.reduce((acc, p) => acc + (presupuestoPorProyecto.get(p.id) ?? 0), 0);
   const gastadoTotal = resumenes.reduce((acc, r) => acc + r.gastoAnual, 0);
+  const gastoMesTotal = proyectos.reduce((acc, p) => acc + (gastoMesPorProyecto.get(p.id)?.gastoMes ?? 0), 0);
   const unidadesAsignadas = proyectos.reduce((acc, p) => acc + p.unidades.length, 0);
+
+  const labelMes = esMesActual ? "Gasto del mes en curso" : `Gasto de ${MESES_LABEL[mesSeleccionado - 1]} ${anioMes}`;
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -54,12 +71,22 @@ export default async function ProyectosPage() {
         <StatCard label={`Gastado en ${anioActual}`} value={fmtMoney(gastadoTotal)} icon={DollarSign} accent="var(--color-status-revision)" />
       </div>
 
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <StatCard label={labelMes} value={fmtMoney(gastoMesTotal)} icon={CalendarDays} accent="var(--color-status-escena)" />
+        <div className="flex items-center justify-end gap-2">
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Ver gasto de:</span>
+          <SelectorMesAnio anio={anioMes} mes={mesSeleccionado} />
+        </div>
+      </div>
+
       <ProyectosLista
         anio={anioActual}
+        labelMes={labelMes}
         proyectos={proyectos.map((p) => {
           const resumen = resumenPorProyecto.get(p.id)!;
           const presupuestoAprobadoAnual = presupuestoPorProyecto.get(p.id) ?? 0;
           const pct = presupuestoAprobadoAnual > 0 ? (resumen.gastoAnual / presupuestoAprobadoAnual) * 100 : 0;
+          const gastoMes = gastoMesPorProyecto.get(p.id);
           return {
             id: p.id,
             nombre: p.nombre,
@@ -68,6 +95,7 @@ export default async function ProyectosPage() {
             presupuestoAprobadoAnual,
             gastoAnual: resumen.gastoAnual,
             pct,
+            gastoMes: gastoMes?.gastoMes ?? 0,
             estatus: p.estatus,
           };
         })}

@@ -15,10 +15,11 @@ export type ProyectoRow = {
   presupuestoAprobadoAnual: number;
   gastoAnual: number;
   pct: number;
+  gastoMes: number;
   estatus: string;
 };
 
-export function ProyectosLista({ proyectos, anio }: { proyectos: ProyectoRow[]; anio: number }) {
+export function ProyectosLista({ proyectos, anio, labelMes }: { proyectos: ProyectoRow[]; anio: number; labelMes: string }) {
   const [busqueda, setBusqueda] = useState("");
 
   const filtrados = useMemo(() => {
@@ -34,10 +35,10 @@ export function ProyectosLista({ proyectos, anio }: { proyectos: ProyectoRow[]; 
         <EmptyState>Sin proyectos que coincidan.</EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-          <table className="w-full min-w-[720px] border-collapse">
+          <table className="w-full min-w-[860px] border-collapse">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["Proyecto", "Estado", "Unidades", `Presupuesto ${anio}`, "Gastado", "Estatus"].map((h) => (
+                {["Proyecto", "Estado", "Unidades", `Presupuesto ${anio}`, "Gastado", labelMes, "Estatus"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                 ))}
               </tr>
@@ -52,6 +53,7 @@ export function ProyectosLista({ proyectos, anio }: { proyectos: ProyectoRow[]; 
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{p.numUnidades}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(p.presupuestoAprobadoAnual)}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: p.pct > 90 ? "var(--color-status-escena)" : "var(--field-text)" }}>{fmtMoney(p.gastoAnual)} ({p.pct.toFixed(0)}%)</td>
+                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtMoney(p.gastoMes)}</td>
                   <td className="px-4 py-3">
                     <Badge label={p.estatus === "ACTIVO" ? "Activo" : "Cerrado"} color={p.estatus === "ACTIVO" ? "var(--color-status-cerrado)" : "var(--sidebar-text)"} bg={p.estatus === "ACTIVO" ? "var(--status-cerrado-bg)" : "var(--chip)"} />
                   </td>

@@ -148,6 +148,43 @@ export async function obtenerPresupuestoAprobadoPorProyecto(anio: number): Promi
   return resultado;
 }
 
+export type GastoMesProyecto = { asignado: number; gastoMes: number };
+
+/**
+ * Gasto y presupuesto asignado de un mes específico, por proyecto — usado en
+ * el listado de /proyectos para la columna y el widget de "gasto del mes".
+ * Reutiliza `obtenerResumenPresupuestoPorPartida` (la misma fuente que ya se
+ * muestra en la ficha del proyecto) en vez de recalcular el gasto real por su
+ * cuenta: sumar el "real" con una atribución distinta (ej. proyecto ACTUAL de
+ * la unidad en vez del histórico) haría que esta columna no cuadrara con el
+ * desglose por partida de la ficha del proyecto para unidades reasignadas
+ * entre proyectos — la misma clase de inconsistencia que se quiere corregir.
+ */
+export async function obtenerGastoMesPorProyecto(proyectoIds: string[], anio: number, mes: number): Promise<Map<string, GastoMesProyecto>> {
+  const resultado = new Map<string, GastoMesProyecto>();
+  if (proyectoIds.length === 0) return resultado;
+
+  const [resumenes, presupuestosMensuales] = await Promise.all([
+    Promise.all(proyectoIds.map((id) => obtenerResumenPresupuestoPorPartida(id, anio))),
+    prisma.presupuestoMensual.findMany({ where: { anio, mes, proyectoId: { in: proyectoIds } }, select: { proyectoId: true, montoAsignado: true } }),
+  ]);
+  const simplePorProyecto = new Map(presupuestosMensuales.map((m) => [m.proyectoId, Number(m.montoAsignado)]));
+
+  proyectoIds.forEach((proyectoId, i) => {
+    const resumen = resumenes[i];
+    let asignadoPartida = 0;
+    let gastoMes = 0;
+    for (const p of resumen.partidas) {
+      const datosMes = p.meses[mes - 1];
+      asignadoPartida += datosMes.presupuestado;
+      gastoMes += datosMes.real;
+    }
+    const asignado = asignadoPartida > 0 ? asignadoPartida : (simplePorProyecto.get(proyectoId) ?? 0);
+    resultado.set(proyectoId, { asignado, gastoMes });
+  });
+  return resultado;
+}
+
 export type MesPartida = { mes: number; presupuestado: number; real: number; diferencia: number };
 export type GastoPorUnidad = { numeroEconomico: string; monto: number };
 export type PartidaResumen = {

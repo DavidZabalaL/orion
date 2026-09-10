@@ -116,27 +116,25 @@ export default async function FichaProyectoPage({
         {modulosActivos.has("A") && <Stat label="Unidades" value={String(proyecto.unidades.length)} />}
         {modulosActivos.has("A") && <Stat label="Disponibles" value={String(disponibles)} />}
         {modulosActivos.has("L") && <Stat label="Operadores" value={String(proyecto.operadores.length)} />}
-        {modulosActivos.has("H") && <Stat label={`Presupuesto aprobado ${anioActual}`} value={fmtMoney(presupuestoAprobadoMostrado)} mono />}
+        <Stat label={`Presupuesto aprobado ${anioActual}`} value={fmtMoney(presupuestoAprobadoMostrado)} mono />
         {mostrarGastoAcumulado && <Stat label="Gasto acumulado (histórico)" value={fmtMoney(gastoAcumulado)} mono />}
       </div>
 
-      {modulosActivos.has("H") && (
-        <div>
-          <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-            Presupuesto por partida
-          </h3>
-          <PresupuestoPartidaMes proyectoId={proyecto.id} resumen={resumenPorPartida} mes={mes} />
+      <div>
+        <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+          Presupuesto por partida
+        </h3>
+        <PresupuestoPartidaMes proyectoId={proyecto.id} resumen={resumenPorPartida} mes={mes} />
 
-          <details className="mt-4 rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-            <summary className="cursor-pointer px-5 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text)" }}>
-              Ajustar presupuesto total simple ▾
-            </summary>
-            <div className="px-5 pb-5">
-              <PresupuestoAnual proyectoId={proyecto.id} resumen={resumenPresupuestoAnual} />
-            </div>
-          </details>
-        </div>
-      )}
+        <details className="mt-4 rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+          <summary className="cursor-pointer px-5 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text)" }}>
+            Ajustar presupuesto total simple ▾
+          </summary>
+          <div className="px-5 pb-5">
+            <PresupuestoAnual proyectoId={proyecto.id} resumen={resumenPresupuestoAnual} />
+          </div>
+        </details>
+      </div>
 
       {modulosActivos.has("A") && (
         <div>
