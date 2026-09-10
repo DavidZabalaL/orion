@@ -50,7 +50,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
-    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, orientacion: s.orientacion, colorimetria: s.colorimetria, vistaPreferida: s.vistaPreferida });
+    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, orientacion: s.orientacion, colorimetria: s.colorimetria, vistaPreferida: s.vistaPreferida, filtros: s.filtros });
   }
 
   // Aplicar una métrica guardada solo pre-llena dataset/ejeY/agregación/filtros
