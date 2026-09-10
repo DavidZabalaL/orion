@@ -76,8 +76,13 @@ export function BiCard({
   const [drillDown, setDrillDown] = useState<{ campoId: "disponibilidad" | "motivoIndisponibilidad"; valor: string } | null>(null);
   const soportaDrillDown = dataset === "unidades" && (ejeX === "disponibilidad" || ejeX === "motivoIndisponibilidad");
   function manejarClicCategoria(valor: string) {
-    if (emiteFiltro) onCategoriaClick?.(ejeX, valor);
-    if (soportaDrillDown) setDrillDown({ campoId: ejeX as "disponibilidad" | "motivoIndisponibilidad", valor });
+    // El drill-down (ver qué unidades son) reemplaza al cross-filter para estos
+    // campos: un clic aquí abre el detalle de unidades, no filtra otros widgets.
+    if (soportaDrillDown) {
+      setDrillDown({ campoId: ejeX as "disponibilidad" | "motivoIndisponibilidad", valor });
+    } else if (emiteFiltro) {
+      onCategoriaClick?.(ejeX, valor);
+    }
   }
 
   // El filtro de interacción solo se fusiona si este dataset realmente tiene
