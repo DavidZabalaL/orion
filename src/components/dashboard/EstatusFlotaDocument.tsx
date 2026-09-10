@@ -1,9 +1,11 @@
 import { Document, Page, Text, View, StyleSheet, Svg, Circle, Image } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
-import type { EstatusFlota, EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
+import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
 import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
+import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 // Paleta Grupo Kabat — mismo azul/marino que el resto de la plataforma
 // (var(--color-primary) / sidebar oscuro), reproducida en hex fijo porque
@@ -58,6 +60,22 @@ const styles = StyleSheet.create({
 
   listaItem: { fontSize: 8.5, color: NAVY, marginBottom: 5, lineHeight: 1.3 },
   listaVacio: { fontSize: 8.5, color: SLATE, fontStyle: "italic" },
+
+  seccionTitulo: { fontSize: 9, fontWeight: "bold", color: NAVY, letterSpacing: 0.5, marginBottom: 8 },
+  tablaContenedor: {
+    backgroundColor: "#ffffff", borderRadius: 8, borderWidth: 1, borderColor: BORDER,
+    marginBottom: 14, overflow: "hidden",
+  },
+  tablaHeaderFila: {
+    flexDirection: "row", backgroundColor: SURFACE, paddingVertical: 6, paddingHorizontal: 12,
+    borderBottomWidth: 1, borderBottomColor: BORDER,
+  },
+  tablaFila: {
+    flexDirection: "row", paddingVertical: 5, paddingHorizontal: 12,
+    borderBottomWidth: 1, borderBottomColor: BORDER,
+  },
+  tablaCeldaHeader: { fontSize: 7.5, fontWeight: "bold", color: SLATE, letterSpacing: 0.4 },
+  tablaCeldaTexto: { fontSize: 8.5, color: NAVY },
 
   footer: {
     position: "absolute", bottom: 14, left: 24, right: 24, paddingTop: 8,
@@ -183,31 +201,81 @@ function TarjetaKpiExtra({ resultado }: { resultado: CampoExtraResultado }) {
   );
 }
 
-/** Agrupa las unidades no disponibles por motivo — mismo formato compacto que el resto de la tarjeta ("N u. - Motivo (unidades)"). */
-function ListaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
-  if (datos.indisponibilidadDetalle.length === 0) {
-    return <Text style={styles.listaVacio}>Ninguna unidad no disponible</Text>;
-  }
-  const grupos = new Map<string, string[]>();
-  for (const u of datos.indisponibilidadDetalle) {
-    const etiqueta = u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo];
-    const lista = grupos.get(etiqueta) ?? [];
-    lista.push(u.numeroEconomico);
-    grupos.set(etiqueta, lista);
-  }
-  const filas = Array.from(grupos, ([etiqueta, unidades]) => ({ etiqueta, unidades })).sort((a, b) => b.unidades.length - a.unidades.length);
+/**
+ * Detalle completo (sin truncar) de cada unidad no disponible — económico,
+ * vehículo (marca + modelo) y motivo. Se pidió explícitamente poder ver el
+ * número económico de cada una, y de ser posible qué vehículo es — antes
+ * esta sección solo mostraba un conteo agrupado con máximo 6 económicos por
+ * motivo. Es una sección propia a ancho completo (no una tarjeta de la fila
+ * de 3 columnas) porque la lista puede ser larga; al no llevar `wrap={false}`
+ * fluye a la siguiente página sola si no cabe completa.
+ */
+function TablaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
+  if (datos.indisponibilidadDetalle.length === 0) return null;
+  const filas = [...datos.indisponibilidadDetalle].sort((a, b) => {
+    const etiquetaA = a.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[a.motivo];
+    const etiquetaB = b.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[b.motivo];
+    return etiquetaA !== etiquetaB ? etiquetaA.localeCompare(etiquetaB) : a.numeroEconomico.localeCompare(b.numeroEconomico);
+  });
   return (
-    <>
-      {filas.map((f) => {
-        const MAX_MOSTRAR = 6;
-        const mostradas = f.unidades.slice(0, MAX_MOSTRAR);
-        const restantes = f.unidades.length - mostradas.length;
-        const detalle = f.etiqueta === "Sin motivo" ? "" : ` (${mostradas.join(", ")}${restantes > 0 ? ` +${restantes}` : ""})`;
-        return (
-          <Text key={f.etiqueta} style={styles.listaItem}>• {f.unidades.length} u. - {f.etiqueta}{detalle}</Text>
-        );
-      })}
-    </>
+    <View>
+      <Text style={styles.seccionTitulo}>UNIDADES NO DISPONIBLES — DETALLE ({filas.length})</Text>
+      <View style={styles.tablaContenedor}>
+        <View style={styles.tablaHeaderFila}>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 65 }}>ECONÓMICO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 200 }}>VEHÍCULO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 75 }}>TIPO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>MOTIVO</Text>
+        </View>
+        {filas.map((u, i) => (
+          <View key={`${u.numeroEconomico}-${i}`} style={styles.tablaFila}>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 65, fontWeight: "bold" }}>{u.numeroEconomico}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 200 }}>{u.vehiculo ?? "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 75 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>
+              {u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo]}
+              {u.motivoDetalle ? ` — ${u.motivoDetalle}` : ""}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const TIPOS_VEHICULO_ORDEN: TipoVehiculo[] = ["CAMIONETA", "GRUA", "AUTO", "MOTO", "OTRO"];
+
+/**
+ * Flota activa desglosada por proyecto y tipo de vehículo — mismo criterio
+ * que el widget "Flota por tipo y zona" del dashboard. Se pidió explícitamente
+ * ("sí o sí") que el reporte incluya este desglose por proyecto.
+ */
+function TablaFlotaPorProyecto({ datos }: { datos: FlotaProyecto[] }) {
+  if (datos.length === 0) return null;
+  const tiposPresentes = TIPOS_VEHICULO_ORDEN.filter((t) => datos.some((p) => (p.porTipo[t] ?? 0) > 0));
+  const totalGeneral = datos.reduce((acc, p) => acc + p.total, 0);
+  return (
+    <View>
+      <Text style={styles.seccionTitulo}>FLOTA POR PROYECTO ({totalGeneral} unidades activas)</Text>
+      <View style={styles.tablaContenedor}>
+        <View style={styles.tablaHeaderFila}>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 220 }}>PROYECTO</Text>
+          {tiposPresentes.map((t) => (
+            <Text key={t} style={{ ...styles.tablaCeldaHeader, width: 75, textAlign: "right" }}>{TIPO_VEHICULO_LABEL[t].toUpperCase()}</Text>
+          ))}
+          <Text style={{ ...styles.tablaCeldaHeader, width: 75, textAlign: "right" }}>TOTAL</Text>
+        </View>
+        {datos.map((p) => (
+          <View key={p.proyecto} style={styles.tablaFila}>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 220 }}>{p.proyecto}</Text>
+            {tiposPresentes.map((t) => (
+              <Text key={t} style={{ ...styles.tablaCeldaTexto, width: 75, textAlign: "right" }}>{p.porTipo[t] ?? 0}</Text>
+            ))}
+            <Text style={{ ...styles.tablaCeldaTexto, width: 75, textAlign: "right", fontWeight: "bold" }}>{p.total}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -306,23 +374,24 @@ function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; i
           </View>
           <Text style={styles.kpiCaption}>Mes: {fmtMoneyPdf(datos.presupuestoMes.asignado)} · {pctPresupuesto}%</Text>
         </Tarjeta>
-        <View style={{ flex: 1 }} />
-      </View>
-
-      <View style={styles.fila} wrap={false}>
         <TarjetaBarras
           titulo="Desglose de gastos"
           vacio="Sin gastos registrados en el periodo."
           formatear={fmtMoneyPdf}
           filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto }))}
         />
-        <Tarjeta titulo="Unidades no disponibles">
-          <ListaUnidadesNoDisponibles datos={datos} />
-        </Tarjeta>
+      </View>
+
+      <TablaFlotaPorProyecto datos={datos.flotaPorProyecto} />
+
+      <View style={styles.fila} wrap={false}>
         <Tarjeta titulo="Próximos servicios (7 días)">
           <ListaProximosServicios datos={datos} />
         </Tarjeta>
+        <View style={{ flex: 2 }} />
       </View>
+
+      <TablaUnidadesNoDisponibles datos={datos} />
 
       {enGrupos(datos.camposExtra, TARJETAS_POR_FILA).map((grupo, i) => (
         <View key={i} style={styles.fila} wrap={false}>

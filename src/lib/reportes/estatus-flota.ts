@@ -3,7 +3,7 @@ import { calcularSlaPorUnidadesEnRango } from "@/lib/sla-disponibilidad";
 import { obtenerPresupuestoDelMes, type ResumenPresupuestoMes } from "@/lib/presupuesto";
 import { calcularCamposExtra } from "@/lib/reportes/campos-extra";
 import type { CampoExtraSeleccionado, CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
-import type { EstatusUnidad, MotivoIndisponibilidad, CategoriaGasto } from "@/generated/prisma/enums";
+import type { EstatusUnidad, MotivoIndisponibilidad, CategoriaGasto, TipoVehiculo } from "@/generated/prisma/enums";
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const HORIZONTE_PROXIMO_SERVICIO_DIAS = 7;
@@ -11,6 +11,9 @@ const CATEGORIAS_MANTENIMIENTO: CategoriaGasto[] = ["MANTENIMIENTO_PREVENTIVO", 
 
 export type IndisponibilidadUnidad = {
   numeroEconomico: string;
+  /** Marca + modelo del vehículo (ej. "Toyota Hilux") — null si la unidad no existe más en Unidad (caso raro, dato histórico). */
+  vehiculo: string | null;
+  tipoVehiculo: TipoVehiculo | null;
   motivo: MotivoIndisponibilidad | "SIN_MOTIVO";
   motivoDetalle: string | null;
   /** Solo cuando motivo=MANTENIMIENTO: categoría del último gasto de mantenimiento registrado de la unidad en el periodo, si existe. */
@@ -21,6 +24,13 @@ export type ProximoServicio = {
   numeroEconomico: string;
   categoria: CategoriaGasto;
   fecha: Date;
+};
+
+/** Conteo de unidades activas por tipo de vehículo, para un proyecto — mismo desglose que el widget "Flota por tipo y zona" del dashboard. */
+export type FlotaProyecto = {
+  proyecto: string;
+  porTipo: Partial<Record<TipoVehiculo, number>>;
+  total: number;
 };
 
 export type EstatusFlota = {
@@ -37,6 +47,8 @@ export type EstatusFlota = {
   indisponibilidadDetalle: IndisponibilidadUnidad[];
   /** Unidades con mantenimiento programado (no realizado aún) dentro de los próximos 7 días desde `hasta`. */
   proximosServicios: ProximoServicio[];
+  /** Flota activa (no BAJA) desglosada por proyecto y tipo de vehículo — igual que "Flota por tipo y zona" del dashboard. Un renglón por proyecto con al menos una unidad en este alcance. */
+  flotaPorProyecto: FlotaProyecto[];
   gastoTotal: number;
   gastoPorCategoria: { categoria: CategoriaGasto; monto: number }[];
   /** Asignado vs. gastado del mes en curso (a la fecha `hasta`), para este alcance de proyectos. */
@@ -73,9 +85,26 @@ export async function calcularEstatusFlota({
 
   const unidades = await prisma.unidad.findMany({
     where: filtroProyecto,
-    select: { numeroEconomico: true, estatus: true },
+    select: { numeroEconomico: true, estatus: true, marca: true, unidadModelo: true, tipoVehiculo: true, proyectoId: true, proyecto: { select: { nombre: true } } },
   });
   const economicos = unidades.map((u) => u.numeroEconomico);
+  const infoPorEconomico = new Map(unidades.map((u) => [u.numeroEconomico, u]));
+
+  // Flota por proyecto y tipo — mismo desglose que "Flota por tipo y zona"
+  // del dashboard: solo unidades activas (no BAJA), agrupadas por proyecto.
+  const flotaPorProyectoMapa = new Map<string, Partial<Record<TipoVehiculo, number>>>();
+  for (const u of unidades) {
+    if (u.estatus === "BAJA") continue;
+    const etiquetaProyecto = u.proyecto?.nombre ?? "Sin proyecto";
+    const porTipo = flotaPorProyectoMapa.get(etiquetaProyecto) ?? {};
+    porTipo[u.tipoVehiculo] = (porTipo[u.tipoVehiculo] ?? 0) + 1;
+    flotaPorProyectoMapa.set(etiquetaProyecto, porTipo);
+  }
+  const flotaPorProyecto: FlotaProyecto[] = Array.from(flotaPorProyectoMapa, ([proyecto, porTipo]) => ({
+    proyecto,
+    porTipo,
+    total: Object.values(porTipo).reduce((a, b) => a + (b ?? 0), 0),
+  })).sort((a, b) => b.total - a.total);
 
   // Estatus de flota: es un estado actual (no hay historico de `estatus`,
   // solo de `disponibilidad`), igual criterio que los widgets de /unidades.
@@ -135,6 +164,11 @@ export async function calcularEstatusFlota({
   }
   const indisponibilidadDetalle: IndisponibilidadUnidad[] = noDisponibles.map((n) => ({
     ...n,
+    vehiculo: (() => {
+      const info = infoPorEconomico.get(n.numeroEconomico);
+      return info ? `${info.marca} ${info.unidadModelo}` : null;
+    })(),
+    tipoVehiculo: infoPorEconomico.get(n.numeroEconomico)?.tipoVehiculo ?? null,
     tipoMantenimiento: n.motivo === "MANTENIMIENTO" ? (tipoMantenimientoPorEconomico.get(n.numeroEconomico) ?? null) : null,
   }));
 
@@ -223,6 +257,7 @@ export async function calcularEstatusFlota({
     porMotivo,
     indisponibilidadDetalle,
     proximosServicios,
+    flotaPorProyecto,
     gastoTotal,
     gastoPorCategoria,
     presupuestoMes,
