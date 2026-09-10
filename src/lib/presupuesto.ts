@@ -210,8 +210,15 @@ export type ResumenPresupuestoPorPartida = {
  * - CASETAS sale únicamente de Tag (el módulo de Mantenimiento ya no permite capturar Casetas).
  * - VIATICOS_OPERACION sale de GastoVehicular sin pasar por unidad (proyectoReportanteId).
  * - Las demás categorías salen de GastoVehicular de las unidades del proyecto.
- * Los gastos de unidades se atribuyen al proyecto según el período histórico en que
- * la unidad estuvo asignada (UnidadHistoricoProyecto), no el proyecto actual.
+ * Los gastos de unidades se atribuyen al proyecto por el período histórico en que
+ * la unidad estuvo asignada (UnidadHistoricoProyecto) — o, si ninguno cubre esa
+ * fecha (UnidadHistoricoProyecto está lejos de completo: en la práctica cubre
+ * ~4% de los gastos de Mantenimiento), por el proyectoReportanteId que ya
+ * queda grabado en el gasto al capturarlo. Antes solo se usaba el histórico
+ * para estas categorías (a diferencia de Gasolina/Casetas, que ya hacían este
+ * mismo OR) y por eso el "gasto real" de Mantenimiento aquí no cuadraba ni de
+ * cerca con obtenerResumenPresupuestoAnual (usado en /proyectos), que sí cuenta
+ * proyectoReportanteId para cualquier categoría.
  */
 export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, anio: number): Promise<ResumenPresupuestoPorPartida> {
   const inicio = new Date(Date.UTC(anio, 0, 1));
@@ -238,12 +245,13 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
   ];
 
   const [gastosPorUnidad, viaticos, combustible, tags] = await Promise.all([
-    periodos.length === 0
-      ? ([] as { categoria: string; fecha: Date; costo: unknown; numeroEconomico: string | null }[])
-      : prisma.gastoVehicular.findMany({
-          where: { OR: periodos },
-          select: { categoria: true, fecha: true, costo: true, numeroEconomico: true },
-        }),
+    // VIATICOS_OPERACION se excluye aquí: se cuenta aparte (siguiente
+    // consulta), exclusivamente por proyectoReportanteId — nunca por
+    // histórico, aunque exista uno, para no contarlo dos veces.
+    prisma.gastoVehicular.findMany({
+      where: { OR: orConProyectoReportante, categoria: { not: "VIATICOS_OPERACION" } },
+      select: { categoria: true, fecha: true, costo: true, numeroEconomico: true },
+    }),
     prisma.gastoVehicular.findMany({
       where: { categoria: "VIATICOS_OPERACION", proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } },
       select: { fecha: true, costo: true },

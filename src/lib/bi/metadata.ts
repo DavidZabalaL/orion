@@ -506,12 +506,21 @@ export const BI_DATASETS: DatasetMeta[] = [
                 AND EXTRACT(YEAR FROM g."fecha") = pp."anio" AND EXTRACT(MONTH FROM g."fecha") = pp."mes"
             )
             ELSE (
+              -- UnidadHistoricoProyecto está lejos de completo (cubre una
+              -- fracción mínima de los gastos de Mantenimiento) — igual que
+              -- Gasolina/Casetas arriba, se cae a proyectoReportanteId (ya
+              -- grabado en el gasto al capturarlo) cuando no hay histórico
+              -- que cubra la fecha. Sin este OR, el "gasto real" de estas
+              -- categorías no cuadraba con obtenerResumenPresupuestoAnual.
               SELECT COALESCE(SUM(g."costo"), 0) FROM "GastoVehicular" g
               WHERE g."categoria" = pp."categoria"
-                AND EXISTS (
-                  SELECT 1 FROM "UnidadHistoricoProyecto" h
-                  WHERE h."numeroEconomico" = g."numeroEconomico" AND h."proyectoId" = pp."proyectoId"
-                    AND h."fechaInicio" <= g."fecha" AND (h."fechaFin" IS NULL OR h."fechaFin" > g."fecha")
+                AND (
+                  g."proyectoReportanteId" = pp."proyectoId"
+                  OR EXISTS (
+                    SELECT 1 FROM "UnidadHistoricoProyecto" h
+                    WHERE h."numeroEconomico" = g."numeroEconomico" AND h."proyectoId" = pp."proyectoId"
+                      AND h."fechaInicio" <= g."fecha" AND (h."fechaFin" IS NULL OR h."fechaFin" > g."fecha")
+                  )
                 )
                 AND EXTRACT(YEAR FROM g."fecha") = pp."anio" AND EXTRACT(MONTH FROM g."fecha") = pp."mes"
             )
