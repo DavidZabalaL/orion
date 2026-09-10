@@ -416,12 +416,39 @@ export const BI_DATASETS: DatasetMeta[] = [
   {
     id: "presupuesto_partida",
     label: "Presupuesto por partida (autorizado)",
-    from: `"PresupuestoPartida" pp LEFT JOIN "Proyecto" p ON p.id = pp."proyectoId"`,
+    // "pp" ya NO es directamente la tabla PresupuestoPartida: es un producto
+    // cruzado de todo proyecto × toda categoría × todo (año, mes) que tenga
+    // gasto real O presupuesto capturado, con el monto presupuestado pegado
+    // por LEFT JOIN (0 si no existe). Antes "pp" era la tabla real y una
+    // combinación proyecto/categoría/mes SIN presupuesto capturado
+    // simplemente no generaba fila — así que su gasto real (que si existe,
+    // vía las subconsultas de "gastoReal" más abajo) quedaba invisible en
+    // este dataset aunque SÍ se contara en /proyectos (obtenerResumenPresupuestoPorPartida,
+    // que siempre recorre las 13 categorías). Con esto, un proyecto que gastó
+    // en una categoría sin presupuesto asignado ese mes ya no desaparece del
+    // dashboard.
+    from: `(
+      SELECT proy.id AS "proyectoId", cat.categoria, meses.anio, meses.mes,
+             COALESCE(pp2."montoPresupuestado", 0) AS "montoPresupuestado"
+      FROM "Proyecto" proy
+      CROSS JOIN (SELECT unnest(enum_range(NULL::"CategoriaGasto")) AS categoria) cat
+      CROSS JOIN (
+        SELECT anio, mes FROM (
+          SELECT EXTRACT(YEAR FROM fecha)::int AS anio, EXTRACT(MONTH FROM fecha)::int AS mes FROM "GastoVehicular"
+          UNION SELECT EXTRACT(YEAR FROM fecha)::int, EXTRACT(MONTH FROM fecha)::int FROM "Combustible"
+          UNION SELECT EXTRACT(YEAR FROM fecha)::int, EXTRACT(MONTH FROM fecha)::int FROM "Tag"
+          UNION SELECT anio, mes FROM "PresupuestoPartida"
+        ) todos_los_meses
+        GROUP BY anio, mes
+      ) meses
+      LEFT JOIN "PresupuestoPartida" pp2
+        ON pp2."proyectoId" = proy.id AND pp2.categoria = cat.categoria AND pp2.anio = meses.anio AND pp2.mes = meses.mes
+    ) pp LEFT JOIN "Proyecto" p ON p.id = pp."proyectoId"`,
     proyectoScopeExpr: `pp."proyectoId"`,
     // Incluye GastoVehicular/Combustible/Tag/Unidad porque el campo
-    // "gastoReal" los lee vía subconsulta correlacionada — un gasto nuevo
-    // debe invalidar la caché de este dataset igual que uno nuevo en
-    // PresupuestoPartida.
+    // "gastoReal" los lee vía subconsulta correlacionada (y ahora también el
+    // universo de meses de "pp") — un gasto nuevo debe invalidar la caché de
+    // este dataset igual que uno nuevo en PresupuestoPartida.
     tablasBase: ["PresupuestoPartida", "Proyecto", "GastoVehicular", "Combustible", "Tag", "Unidad"],
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `pp."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
