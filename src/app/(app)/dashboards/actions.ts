@@ -9,6 +9,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
+import { sanearOrdenSecciones, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { enviarReporteBI } from "@/lib/email";
 import {
@@ -282,13 +283,15 @@ export async function enviarEstatusFlotaAhora(input: {
   camposExtra?: CampoExtraSeleccionado[];
   /** Indicadores tal cual se ven en "Mis dashboards" al momento de pedir el envío — ver EstatusFlotaModal. Ausente en el envío automático programado (no hay dashboard abierto). */
   indicadoresDashboard?: IndicadorDashboard[];
+  /** Orden de secciones elegido en el modal — ver estatus-flota-secciones.ts. */
+  ordenSecciones?: SeccionReporteId[];
 }): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
 
   try {
     const datos = await calcularReporteConAlcance(input);
-    const buffer = await generarEstatusFlotaBuffer(datos, input.indicadoresDashboard);
+    const buffer = await generarEstatusFlotaBuffer(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones));
     const nombreArchivo = `estatus-flota-${input.hasta}.pdf`;
     const envio = await enviarReporteBI({
       destinatarios: input.destinatarios,
@@ -316,6 +319,8 @@ export type ConfigEstatusFlotaProgramado = {
   activo: boolean;
   /** Datos adicionales elegidos libremente (cualquier "etiqueta" del catálogo BI) — ver campos-extra.ts. */
   camposExtra: CampoExtraSeleccionado[];
+  /** Orden de las secciones del PDF elegido en el modal — ver estatus-flota-secciones.ts. */
+  ordenSecciones: SeccionReporteId[];
 };
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
@@ -339,6 +344,7 @@ export async function guardarProgramacionEstatusFlota(input: {
   destinatarios: string[];
   activo: boolean;
   camposExtra: CampoExtraSeleccionado[];
+  ordenSecciones: SeccionReporteId[];
 }): Promise<ResultadoSimple> {
   const session = await auth();
   if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
@@ -362,7 +368,7 @@ export async function guardarProgramacionEstatusFlota(input: {
     nombre: "Estatus semanal de flota",
     tipo: TIPO_ESTATUS_FLOTA,
     camposJson: [],
-    filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos },
+    filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos, ordenSecciones: sanearOrdenSecciones(input.ordenSecciones) },
     destinatarios: input.destinatarios,
     hora: input.hora,
     diaSemana: input.diaSemana,

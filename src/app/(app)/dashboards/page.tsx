@@ -7,6 +7,7 @@ import type { MetricaDisponible } from "@/components/bi/bi-explorer";
 import type { WidgetDashboardBI } from "@/lib/bi/metadata";
 import type { VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
+import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function DashboardsPage({
     prisma.reporteProgramado.findFirst({ where: { tipo: "estatus_flota" } }),
   ]);
 
-  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[] } | null;
+  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
   const configEstatusFlota = {
     id: reporteEstatusFlota?.id ?? null,
     proyectoIds: filtrosEstatusFlota?.proyectoIds ?? [],
@@ -41,6 +42,7 @@ export default async function DashboardsPage({
     destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
     activo: reporteEstatusFlota?.activo ?? false,
     camposExtra: filtrosEstatusFlota?.camposExtra ?? [],
+    ordenSecciones: sanearOrdenSecciones(filtrosEstatusFlota?.ordenSecciones),
   };
 
   const vistas: VistaDashboard[] = vistasDb.map((v) => ({

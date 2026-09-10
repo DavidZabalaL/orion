@@ -6,6 +6,7 @@ import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
 import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 import type { TipoVehiculo } from "@/generated/prisma/enums";
+import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 
 // Paleta Grupo Kabat — mismo azul/marino que el resto de la plataforma
 // (var(--color-primary) / sidebar oscuro), reproducida en hex fijo porque
@@ -317,23 +318,24 @@ function TarjetaIndicadorDashboard({ indicador }: { indicador: IndicadorDashboar
 }
 
 /** Una página del reporte para un alcance específico (general, selección combinada, o un proyecto individual). */
-function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; indicadoresDashboard?: IndicadorDashboard[] }) {
+function PaginaEstatus({
+  datos,
+  indicadoresDashboard,
+  ordenSecciones = ORDEN_SECCIONES_DEFAULT,
+}: {
+  datos: EstatusFlota;
+  indicadoresDashboard?: IndicadorDashboard[];
+  ordenSecciones?: SeccionReporteId[];
+}) {
   const pctPresupuesto = datos.presupuestoMes.asignado > 0 ? Math.round((datos.gastoTotal / datos.presupuestoMes.asignado) * 100) : 0;
 
-  return (
-    <Page size="A4" orientation="landscape" style={styles.page}>
-      <View style={styles.headerCard}>
-        <View>
-          <Text style={styles.headerTitulo}>{datos.proyectoLabel}</Text>
-          <Text style={styles.headerSubtitulo}>
-            ESTATUS DE FLOTA · {fmtFechaPdf(datos.desde).toUpperCase()} — {fmtFechaPdf(datos.hasta).toUpperCase()}
-          </Text>
-        </View>
-        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
-        <Image src={KABAT_LOGO_DATA_URI} style={styles.headerLogo} />
-      </View>
-
-      {indicadoresDashboard && indicadoresDashboard.length > 0 && (
+  // Un renderer por sección — permite que quien configura el reporte
+  // (EstatusFlotaModal) decida el orden en que aparecen, en vez de un orden
+  // fijo en el código. Cada uno puede devolver `null` (ej. sin datos
+  // adicionales elegidos) sin dejar un hueco visible.
+  const seccionesDisponibles: Record<SeccionReporteId, () => React.ReactNode> = {
+    indicadoresDashboard: () =>
+      indicadoresDashboard && indicadoresDashboard.length > 0 ? (
         <>
           {enGrupos(indicadoresDashboard, TARJETAS_POR_FILA).map((grupo, i) => (
             <View key={`dash-${i}`} style={styles.fila} wrap={false}>
@@ -346,8 +348,9 @@ function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; i
             </View>
           ))}
         </>
-      )}
+      ) : null,
 
+    resumen: () => (
       <View style={styles.fila} wrap={false}>
         <Tarjeta titulo="SLA promedio">
           <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
@@ -362,7 +365,9 @@ function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; i
           <Text style={styles.kpiCaption}>promedio por día</Text>
         </Tarjeta>
       </View>
+    ),
 
+    disponibilidadGasto: () => (
       <View style={styles.fila} wrap={false}>
         <Tarjeta titulo="Disponibilidad">
           <DonaDisponibilidad disponibles={datos.unidadesDisponibles} noDisponibles={datos.unidadesNoDisponibles} />
@@ -381,37 +386,61 @@ function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; i
           filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto }))}
         />
       </View>
+    ),
 
-      <TablaFlotaPorProyecto datos={datos.flotaPorProyecto} />
+    flotaPorProyecto: () => <TablaFlotaPorProyecto datos={datos.flotaPorProyecto} />,
 
+    proximosServicios: () => (
       <View style={styles.fila} wrap={false}>
         <Tarjeta titulo="Próximos servicios (7 días)">
           <ListaProximosServicios datos={datos} />
         </Tarjeta>
         <View style={{ flex: 2 }} />
       </View>
+    ),
 
-      <TablaUnidadesNoDisponibles datos={datos} />
+    unidadesNoDisponibles: () => <TablaUnidadesNoDisponibles datos={datos} />,
 
-      {enGrupos(datos.camposExtra, TARJETAS_POR_FILA).map((grupo, i) => (
-        <View key={i} style={styles.fila} wrap={false}>
-          {grupo.map((c) =>
-            c.tipoVisualizacion === "kpi" ? (
-              <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} />
-            ) : (
-              <TarjetaBarras
-                key={`${c.datasetId}.${c.campoId}`}
-                titulo={c.campoLabel}
-                vacio="Sin datos."
-                filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
-              />
-            )
-          )}
-          {/* Rellena huecos de la última fila incompleta para que las tarjetas no se estiren de más. */}
-          {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
-            <View key={`hueco-${j}`} style={{ flex: 1 }} />
-          ))}
+    datosAdicionales: () =>
+      datos.camposExtra.length > 0
+        ? enGrupos(datos.camposExtra, TARJETAS_POR_FILA).map((grupo, i) => (
+            <View key={i} style={styles.fila} wrap={false}>
+              {grupo.map((c) =>
+                c.tipoVisualizacion === "kpi" ? (
+                  <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} />
+                ) : (
+                  <TarjetaBarras
+                    key={`${c.datasetId}.${c.campoId}`}
+                    titulo={c.campoLabel}
+                    vacio="Sin datos."
+                    filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+                  />
+                )
+              )}
+              {/* Rellena huecos de la última fila incompleta para que las tarjetas no se estiren de más. */}
+              {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
+                <View key={`hueco-${j}`} style={{ flex: 1 }} />
+              ))}
+            </View>
+          ))
+        : null,
+  };
+
+  return (
+    <Page size="A4" orientation="landscape" style={styles.page}>
+      <View style={styles.headerCard}>
+        <View>
+          <Text style={styles.headerTitulo}>{datos.proyectoLabel}</Text>
+          <Text style={styles.headerSubtitulo}>
+            ESTATUS DE FLOTA · {fmtFechaPdf(datos.desde).toUpperCase()} — {fmtFechaPdf(datos.hasta).toUpperCase()}
+          </Text>
         </View>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
+        <Image src={KABAT_LOGO_DATA_URI} style={styles.headerLogo} />
+      </View>
+
+      {ordenSecciones.map((id) => (
+        <View key={id}>{seccionesDisponibles[id]()}</View>
       ))}
 
       <View style={styles.footer} fixed>
@@ -429,15 +458,24 @@ function PaginaEstatus({ datos, indicadoresDashboard }: { datos: EstatusFlota; i
  * después el desglose individual de cada proyecto seleccionado. Ver
  * src/lib/reportes/estatus-flota.ts y EstatusFlotaModal.
  */
-export function EstatusFlotaDocument({ datos, indicadoresDashboard }: { datos: EstatusFlotaReporte; indicadoresDashboard?: IndicadorDashboard[] }) {
+export function EstatusFlotaDocument({
+  datos,
+  indicadoresDashboard,
+  ordenSecciones,
+}: {
+  datos: EstatusFlotaReporte;
+  indicadoresDashboard?: IndicadorDashboard[];
+  /** Orden en que se muestran las secciones — ver EstatusFlotaModal. Sin especificar, usa ORDEN_SECCIONES_DEFAULT. */
+  ordenSecciones?: SeccionReporteId[];
+}) {
   return (
     <Document>
       {/* Los indicadores del dashboard actual solo aplican al alcance general —
           es el mismo alcance que se ve al abrir "Mis dashboards". */}
-      <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} />
-      {datos.seleccion && <PaginaEstatus datos={datos.seleccion} />}
+      <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />
+      {datos.seleccion && <PaginaEstatus datos={datos.seleccion} ordenSecciones={ordenSecciones} />}
       {datos.porProyecto.map((p, i) => (
-        <PaginaEstatus key={i} datos={p} />
+        <PaginaEstatus key={i} datos={p} ordenSecciones={ordenSecciones} />
       ))}
     </Document>
   );

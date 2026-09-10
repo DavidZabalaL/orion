@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, FileDown, Mail, Loader2, CheckCircle2, Plus } from "lucide-react";
+import { X, FileDown, Mail, Loader2, CheckCircle2, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import {
   obtenerDatosEstatusFlota,
   enviarEstatusFlotaAhora,
@@ -10,6 +10,7 @@ import {
 } from "@/app/(app)/dashboards/actions";
 import { BI_DATASETS } from "@/lib/bi/metadata";
 import { VISUALIZACION_SUGERIDA, VISUALIZACION_SUGERIDA_LABEL, type CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
+import { SECCION_REPORTE_LABEL, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { useExportRegistry } from "./ExportRegistryContext";
 import type { IndicadorDashboard } from "./EstatusFlotaDocument";
 
@@ -99,6 +100,7 @@ export function EstatusFlotaModal({
   const [envioAutomaticoActivo, setEnvioAutomaticoActivo] = useState(configInicial.activo);
   const [camposExtra, setCamposExtra] = useState<CampoExtraSeleccionado[]>(configInicial.camposExtra ?? []);
   const [mostrarSelectorCampos, setMostrarSelectorCampos] = useState(false);
+  const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(configInicial.ordenSecciones);
 
   const [descargando, setDescargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -131,6 +133,16 @@ export function EstatusFlotaModal({
     setCamposExtra((prev) => prev.filter((c) => !(c.datasetId === datasetId && c.campoId === campoId)));
   }
 
+  function moverSeccion(indice: number, direccion: -1 | 1) {
+    setOrdenSecciones((prev) => {
+      const destino = indice + direccion;
+      if (destino < 0 || destino >= prev.length) return prev;
+      const copia = [...prev];
+      [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
+      return copia;
+    });
+  }
+
   const todosSeleccionados = proyectosDisponibles.length > 0 && seleccionados.length === proyectosDisponibles.length;
 
   async function descargar() {
@@ -154,7 +166,7 @@ export function EstatusFlotaModal({
         porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
         general: rehidratarFechasAlcance(res.datos.general),
       };
-      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} />).toBlob();
+      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -177,7 +189,7 @@ export function EstatusFlotaModal({
     }
     setEnviando(true);
     setMensaje(null);
-    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard });
+    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard, ordenSecciones });
     setEnviando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }
@@ -195,6 +207,7 @@ export function EstatusFlotaModal({
       destinatarios: listaDestinatarios,
       activo: envioAutomaticoActivo,
       camposExtra,
+      ordenSecciones,
     });
     setGuardando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Envío automático guardado." } : { tipo: "error", texto: res.error ?? "No se pudo guardar." });
@@ -310,6 +323,48 @@ export function EstatusFlotaModal({
                 ))}
               </div>
             )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Orden de las secciones</label>
+            <div className="flex flex-col gap-1">
+              {ordenSecciones.map((id, i) => (
+                <div
+                  key={id}
+                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5"
+                  style={{ background: "var(--chip)" }}
+                >
+                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                    {i + 1}. {SECCION_REPORTE_LABEL[id]}
+                  </span>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moverSeccion(i, -1)}
+                      disabled={i === 0}
+                      className="flex h-6 w-6 items-center justify-center rounded-md disabled:opacity-30"
+                      style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)" }}
+                      title="Subir"
+                    >
+                      <ChevronUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moverSeccion(i, 1)}
+                      disabled={i === ordenSecciones.length - 1}
+                      className="flex h-6 w-6 items-center justify-center rounded-md disabled:opacity-30"
+                      style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)" }}
+                      title="Bajar"
+                    >
+                      <ChevronDown size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              Así se acomodan las secciones en el PDF, tanto al descargarlo como al enviarlo (ahora o automático).
+            </p>
           </div>
 
           <div className="flex gap-3">

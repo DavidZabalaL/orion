@@ -13,6 +13,7 @@ import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
 import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
+import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 import { inicioDeHoyMx } from "@/lib/timezone";
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
@@ -46,7 +47,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // creadoPorId); la selección de proyectos la elige quien configuró el
       // envío en el Dashboard (filtrosJson). Cubre periodoDias hacia atrás
       // desde hoy (configurable en el modal, ej. últimos 7/30/90 días).
-      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[] } | null;
+      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = inicioDeHoyMx();
       const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS);
@@ -57,7 +58,8 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         hasta,
         camposExtraSeleccionados: filtros?.camposExtra ?? [],
       });
-      buffer = await generarEstatusFlotaBuffer(datos);
+      // Sin indicadoresDashboard: no hay sesión de navegador en el cron.
+      buffer = await generarEstatusFlotaBuffer(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones));
       nombreArchivo = `estatus-flota-${hasta.toISOString().slice(0, 10)}.pdf`;
       totalRegistros = datos.general.totalUnidades;
     } else {
