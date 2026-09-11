@@ -8,6 +8,7 @@ import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { fmtMoney } from "@/lib/formato";
+import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
@@ -275,8 +276,17 @@ export function generarEstatusFlotaHtml(
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${NAVY}; background-image:linear-gradient(135deg, ${NAVY} 0%, #16294a 55%, #1c3f78 100%); border-radius:14px; overflow:hidden;">
                   <tr>
                     <td style="padding:26px 28px; border-top:4px solid ${BLUE};">
-                      <div style="font-family:Georgia,serif; font-size:26px; font-weight:800; color:#ffffff; letter-spacing:0.3px;">Orión</div>
-                      <div style="font-size:11px; color:#a8b4c8; margin-top:2px; letter-spacing:0.4px;">CONTROL VEHICULAR · GRUPO KABAT</div>
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td valign="middle">
+                            <div style="font-family:Georgia,serif; font-size:26px; font-weight:800; color:#ffffff; letter-spacing:0.3px;">Orión</div>
+                            <div style="font-size:11px; color:#a8b4c8; margin-top:2px; letter-spacing:0.4px;">CONTROL VEHICULAR · GRUPO KABAT</div>
+                          </td>
+                          <td align="right" valign="middle" width="90">
+                            <img src="${KABAT_LOGO_DATA_URI}" width="72" height="49" alt="Grupo Kabat" style="display:block; width:72px; height:49px; object-fit:contain;" />
+                          </td>
+                        </tr>
+                      </table>
                       <div style="height:1px; background:rgba(255,255,255,0.12); margin:18px 0 16px 0;"></div>
                       <div style="font-size:19px; font-weight:bold; color:#ffffff;">Reporte semanal de flota</div>
                       <div style="font-size:11.5px; color:#c3cee2; margin-top:5px;">Periodo ${esc(rangoGeneral)} · Generado el ${esc(fechaGeneracion)}</div>
