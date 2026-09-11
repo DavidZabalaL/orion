@@ -7,11 +7,11 @@ import { tienePermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
-import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
+import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { sanearOrdenSecciones, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
-import { enviarReporteBI } from "@/lib/email";
+import { enviarReporteEstatusFlotaHtml } from "@/lib/email";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import type { MotivoIndisponibilidad } from "@/generated/prisma/enums";
@@ -294,15 +294,8 @@ export async function enviarEstatusFlotaAhora(input: {
 
   try {
     const datos = await calcularReporteConAlcance(input);
-    const buffer = await generarEstatusFlotaBuffer(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones));
-    const nombreArchivo = `estatus-flota-${input.hasta}.pdf`;
-    const envio = await enviarReporteBI({
-      destinatarios: input.destinatarios,
-      nombreReporte: "Estatus de flota",
-      buffer,
-      nombreArchivo,
-      mime: "application/pdf",
-    });
+    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones));
+    const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html });
     if (!envio.enviado) return { ok: false, error: envio.error ?? "No se pudo enviar el correo." };
     return { ok: true };
   } catch (e) {

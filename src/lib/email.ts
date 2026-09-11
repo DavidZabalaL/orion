@@ -198,6 +198,38 @@ export async function enviarReporteBI({
   }
 }
 
+/**
+ * Envío del reporte "Estatus de flota" con el contenido en el cuerpo del
+ * correo (ver src/lib/reportes/estatus-flota-html.ts) — a diferencia de
+ * enviarReporteBI, no lleva PDF adjunto: se pidió explícitamente mostrar los
+ * datos directamente en el correo, en un formato pensado para clientes de
+ * correo, en vez de un archivo que hay que abrir aparte.
+ */
+export async function enviarReporteEstatusFlotaHtml({
+  destinatarios,
+  html,
+}: {
+  destinatarios: string[];
+  html: string;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
+  }
+  if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
+      to: destinatarios,
+      subject: "Reporte programado — Estatus de flota",
+      html,
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
 const PRIORIDAD_RESCATE_LABEL: Record<string, string> = { BAJA: "Baja", MEDIA: "Media", ALTA: "Alta", URGENTE: "Urgente" };
 
 export async function enviarNotificacionTicketRescate({

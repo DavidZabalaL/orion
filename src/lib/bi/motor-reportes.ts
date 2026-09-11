@@ -8,10 +8,10 @@ import { proyectosPermitidosParaModuloDeUsuario } from "@/lib/proyectos-usuario"
 import { resolverFilasReporte } from "@/lib/bi/ejecutar-reporte";
 import { generarExcelReporte } from "@/lib/bi/excel-export";
 import { generarPdfReporte } from "@/lib/bi/pdf/reporte-tabla-pdf";
-import { enviarReporteBI } from "@/lib/email";
+import { enviarReporteBI, enviarReporteEstatusFlotaHtml } from "@/lib/email";
 import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
 import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
-import { generarEstatusFlotaBuffer } from "@/lib/reportes/estatus-flota-pdf";
+import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 import { inicioDeHoyMx } from "@/lib/timezone";
@@ -33,12 +33,8 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
 
   try {
     let proyectoIds: string[] | null;
-    let buffer: Buffer;
-    let nombreArchivo: string;
     let totalRegistros: number;
-    const mime = reporte.tipo === TIPO_ESTATUS_FLOTA || reporte.formato === "PDF"
-      ? "application/pdf"
-      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    let envio: { enviado: boolean; error?: string };
 
     if (reporte.tipo === TIPO_ESTATUS_FLOTA) {
       // Reporte de estatus de flota (ver src/lib/reportes/estatus-flota.ts):
@@ -47,6 +43,8 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // creadoPorId); la selección de proyectos la elige quien configuró el
       // envío en el Dashboard (filtrosJson). Cubre periodoDias hacia atrás
       // desde hoy (configurable en el modal, ej. últimos 7/30/90 días).
+      // Va en el cuerpo del correo (HTML), sin PDF adjunto — ver
+      // src/lib/reportes/estatus-flota-html.ts.
       const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = inicioDeHoyMx();
@@ -59,21 +57,22 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         camposExtraSeleccionados: filtros?.camposExtra ?? [],
       });
       // Sin indicadoresDashboard: no hay sesión de navegador en el cron.
-      buffer = await generarEstatusFlotaBuffer(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones));
-      nombreArchivo = `estatus-flota-${hasta.toISOString().slice(0, 10)}.pdf`;
+      const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones));
       totalRegistros = datos.general.totalUnidades;
+      envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html });
     } else {
       proyectoIds = await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "J");
       const campos = Array.isArray(reporte.camposJson) ? (reporte.camposJson as unknown[]).filter((c): c is string => typeof c === "string") : [];
       const { columnas, filas } = await resolverFilasReporte(reporte.tipo, campos, proyectoIds);
 
       const esPdf = reporte.formato === "PDF";
-      buffer = esPdf ? await generarPdfReporte(reporte.nombre, columnas, filas) : generarExcelReporte(reporte.nombre, columnas, filas);
-      nombreArchivo = `${reporte.nombre.replace(/[^a-z0-9-_]+/gi, "_")}.${esPdf ? "pdf" : "xlsx"}`;
+      const buffer = esPdf ? await generarPdfReporte(reporte.nombre, columnas, filas) : generarExcelReporte(reporte.nombre, columnas, filas);
+      const nombreArchivo = `${reporte.nombre.replace(/[^a-z0-9-_]+/gi, "_")}.${esPdf ? "pdf" : "xlsx"}`;
+      const mime = esPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
       totalRegistros = filas.length;
+      envio = await enviarReporteBI({ destinatarios, nombreReporte: reporte.nombre, buffer, nombreArchivo, mime });
     }
 
-    const envio = await enviarReporteBI({ destinatarios, nombreReporte: reporte.nombre, buffer, nombreArchivo, mime });
     if (!envio.enviado) {
       await registrarEjecucion(reporteId, "error", envio.error ?? "No se pudo enviar el correo.", destinatarios.length);
       return { ok: false, estatus: "error", error: envio.error };
