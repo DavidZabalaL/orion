@@ -259,6 +259,9 @@ export function generarEstatusFlotaHtml(
     ...datos.porProyecto.map((p) => bloqueEstatus(p, undefined, ordenSecciones)),
   ].join("");
 
+  const rangoGeneral = `${fmtFechaHtml(datos.desde).toUpperCase()} — ${fmtFechaHtml(datos.hasta).toUpperCase()}`;
+  const fechaGeneracion = new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -268,9 +271,18 @@ export function generarEstatusFlotaHtml(
         <td align="center">
           <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px; width:100%;">
             <tr>
-              <td style="padding-bottom:16px; text-align:center;">
-                <div style="font-family:Georgia,serif; font-size:22px; font-weight:800; color:${NAVY};">Orión</div>
-                <div style="font-size:11px; color:${SLATE}; margin-top:2px;">Control Vehicular · Grupo Kabat</div>
+              <td style="padding-bottom:16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${NAVY}; background-image:linear-gradient(135deg, ${NAVY} 0%, #16294a 55%, #1c3f78 100%); border-radius:14px; overflow:hidden;">
+                  <tr>
+                    <td style="padding:26px 28px; border-top:4px solid ${BLUE};">
+                      <div style="font-family:Georgia,serif; font-size:26px; font-weight:800; color:#ffffff; letter-spacing:0.3px;">Orión</div>
+                      <div style="font-size:11px; color:#a8b4c8; margin-top:2px; letter-spacing:0.4px;">CONTROL VEHICULAR · GRUPO KABAT</div>
+                      <div style="height:1px; background:rgba(255,255,255,0.12); margin:18px 0 16px 0;"></div>
+                      <div style="font-size:19px; font-weight:bold; color:#ffffff;">Reporte semanal de flota</div>
+                      <div style="font-size:11.5px; color:#c3cee2; margin-top:5px;">Periodo ${esc(rangoGeneral)} · Generado el ${esc(fechaGeneracion)}</div>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
