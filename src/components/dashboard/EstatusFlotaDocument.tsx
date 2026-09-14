@@ -99,11 +99,11 @@ function fmtMoneyPdf(valor: number): string {
 }
 
 function fmtFechaPdf(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" }).replace(".", "");
+  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
 function fmtFechaCorta(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric" }).replace(".", "");
+  return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
 function Tarjeta({ titulo, children, flexBasis }: { titulo: string; children: React.ReactNode; flexBasis?: number }) {

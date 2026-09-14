@@ -29,11 +29,11 @@ function esc(v: string): string {
 }
 
 function fmtFechaHtml(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" }).replace(".", "");
+  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
 function fmtFechaCorta(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric" }).replace(".", "");
+  return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
 /** Fila de 1 a 3 tarjetas de igual ancho — misma agrupación que TARJETAS_POR_FILA en el PDF. */

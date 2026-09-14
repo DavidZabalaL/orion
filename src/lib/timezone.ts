@@ -45,3 +45,16 @@ export function parseFechaLocalMx(valor: string | null | undefined): Date | null
     Date.UTC(Number(anio), Number(mes) - 1, Number(dia), OFFSET_MX_HORAS + Number(hora ?? 0), Number(min ?? 0))
   );
 }
+
+/**
+ * Fin del día (23:59:59.999 hora de México) de un valor "YYYY-MM-DD" — para
+ * el límite "hasta" de un filtro de rango de fechas: sin esto, un filtro
+ * `lte: parseFechaLocalMx(hasta)` cae en la MEDIANOCHE de ese día (su inicio,
+ * no su fin), excluyendo casi todos los registros del día seleccionado.
+ * Vacío/inválido → null.
+ */
+export function finDelDiaMx(valor: string | null | undefined): Date | null {
+  const inicio = parseFechaLocalMx(valor);
+  if (!inicio) return null;
+  return new Date(inicio.getTime() + 24 * HORA_MS - 1);
+}

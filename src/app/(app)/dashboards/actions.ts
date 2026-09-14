@@ -14,6 +14,7 @@ import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { enviarReporteEstatusFlotaHtml } from "@/lib/email";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import { parseFechaLocalMx, finDelDiaMx } from "@/lib/timezone";
 import type { MotivoIndisponibilidad } from "@/generated/prisma/enums";
 import {
   obtenerDataset,
@@ -258,8 +259,8 @@ async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: 
   return calcularEstatusFlotaReporte({
     proyectoIdsPermitidos: permitidos,
     proyectoIdsSeleccionados: seleccionValidada,
-    desde: new Date(input.desde),
-    hasta: new Date(input.hasta),
+    desde: parseFechaLocalMx(input.desde)!,
+    hasta: finDelDiaMx(input.hasta)!,
     camposExtraSeleccionados: (input.camposExtra ?? []).slice(0, MAX_CAMPOS_EXTRA),
   });
 }
