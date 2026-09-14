@@ -184,6 +184,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const total = ITEMS_INSPECCION.length;
   const guiaItem = ITEMS_INSPECCION[idx];
 
+  // Solo una foto a la vez en todo el checklist — evita acumular varias
+  // subidas simultáneas si se va rápido tocando "tomar foto" en distintos
+  // campos antes de que termine la anterior.
+  const bloqueoGlobalFoto = subiendoFoto || subiendoFotoHorometro || subiendoFotoPunto || subiendoExtra !== null;
+
   // ─── Upload helpers ───────────────────────────────────────────────────────
 
   function iniciarFotoExtra(key: string) {
@@ -380,13 +385,14 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   function rFoto(clave: string, label: string, requerido = true, permitirGaleria = false) {
     const url = fotosExtra[clave];
     const sub = subiendoExtra === clave;
+    const deshabilitado = bloqueoGlobalFoto && !sub;
     if (url) {
       return (
         <div key={clave}>
           <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
           <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
-            <Camera size={15} color="#16a34a" className="shrink-0" />
-            <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+            <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
+            <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto completa</span>
             <button type="button" onClick={() => setFotosExtra((p) => { const c = { ...p }; delete c[clave]; return c; })} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
               <X size={14} />
             </button>
@@ -399,28 +405,34 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
         <div key={clave}>
           <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
           <div className="flex gap-2">
-            <button type="button" onClick={iniciarFotoLicenciaCamara} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
-              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+            <button type="button" disabled={deshabilitado} onClick={iniciarFotoLicenciaCamara} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
+              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
               {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
               {sub ? "Subiendo…" : "Tomar foto"}
             </button>
-            <button type="button" onClick={iniciarFotoLicenciaGaleria} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
-              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+            <button type="button" disabled={deshabilitado} onClick={iniciarFotoLicenciaGaleria} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
+              style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
               {sub ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
               {sub ? "Subiendo…" : "Elegir de galería"}
             </button>
           </div>
+          {deshabilitado && (
+            <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>Espera a que termine la foto anterior…</p>
+          )}
         </div>
       );
     }
     return (
       <div key={clave}>
         <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
-        <button type="button" onClick={() => iniciarFotoExtra(clave)} className="flex items-center justify-center gap-2 rounded-xl w-full"
-          style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+        <button type="button" disabled={deshabilitado} onClick={() => iniciarFotoExtra(clave)} className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"
+          style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
           {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
           {sub ? "Subiendo…" : "Tomar foto"}
         </button>
+        {deshabilitado && (
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>Espera a que termine la foto anterior…</p>
+        )}
       </div>
     );
   }
@@ -695,15 +707,15 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
                 </p>
                 {fotosPorPunto[guiaItem.key] ? (
                   <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
-                    <Camera size={15} color="#16a34a" className="shrink-0" />
-                    <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+                    <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
+                    <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto completa</span>
                     <button type="button" onClick={() => setFotosPorPunto((p) => { const c = { ...p }; delete c[guiaItem.key]; return c; })} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
                       <X size={14} />
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => abrirFotoPunto(guiaItem.key)} className="flex items-center justify-center gap-2 rounded-xl w-full"
-                    style={{ height: 48, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+                  <button type="button" disabled={subiendoFotoPunto} onClick={() => abrirFotoPunto(guiaItem.key)} className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"
+                    style={{ height: 48, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: subiendoFotoPunto ? "not-allowed" : "pointer" }}>
                     {subiendoFotoPunto ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                     {subiendoFotoPunto ? "Subiendo…" : "Tomar foto del problema"}
                   </button>
@@ -856,13 +868,13 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
               <label style={labelStyle}>Foto del odómetro *</label>
               {fotoUrl ? (
                 <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
-                  <Camera size={15} color="#16a34a" className="shrink-0" />
-                  <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+                  <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
+                  <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto completa</span>
                   <button type="button" onClick={() => setFotoUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
                 </div>
               ) : (
-                <button type="button" onClick={() => fotoInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full"
-                  style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+                <button type="button" disabled={bloqueoGlobalFoto && !subiendoFoto} onClick={() => fotoInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"
+                  style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: bloqueoGlobalFoto && !subiendoFoto ? "not-allowed" : "pointer" }}>
                   {subiendoFoto ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                   {subiendoFoto ? "Subiendo…" : "Tomar foto del odómetro"}
                 </button>
@@ -874,13 +886,13 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
                 <label style={labelStyle}>Foto del horómetro *</label>
                 {fotoHorometroUrl ? (
                   <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
-                    <Camera size={15} color="#16a34a" className="shrink-0" />
-                    <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto adjuntada</span>
+                    <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
+                    <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto completa</span>
                     <button type="button" onClick={() => setFotoHorometroUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => fotoHorometroInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full"
-                    style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+                  <button type="button" disabled={bloqueoGlobalFoto && !subiendoFotoHorometro} onClick={() => fotoHorometroInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"
+                    style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: bloqueoGlobalFoto && !subiendoFotoHorometro ? "not-allowed" : "pointer" }}>
                     {subiendoFotoHorometro ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                     {subiendoFotoHorometro ? "Subiendo…" : "Tomar foto del horómetro"}
                   </button>
