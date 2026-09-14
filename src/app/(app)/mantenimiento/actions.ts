@@ -155,8 +155,12 @@ export async function buscarHistorialGastos(query: string): Promise<GastoRow[]> 
   return JSON.parse(JSON.stringify(gastos));
 }
 
-export async function marcarRealizado(formData: FormData) {
-  await exigirPermisoModulo("C", "aprobar");
+export async function marcarRealizado(formData: FormData): Promise<ResultadoEliminarGasto> {
+  try {
+    await exigirPermisoModulo("C", "aprobar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
+  }
 
   const id = String(formData.get("id") ?? "");
 
@@ -167,7 +171,9 @@ export async function marcarRealizado(formData: FormData) {
       select: { proyectoReportanteId: true, unidad: { select: { proyectoId: true } } },
     });
     const proyectoId = actual?.unidad?.proyectoId ?? actual?.proyectoReportanteId ?? null;
-    if (!proyectoId || !permitidos.includes(proyectoId)) throw new Error("No tienes permiso para realizar esta acción.");
+    if (!proyectoId || !permitidos.includes(proyectoId)) {
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
+    }
   }
 
   const gasto = await prisma.gastoVehicular.update({ where: { id }, data: { estatus: "REALIZADO" } });
@@ -187,6 +193,7 @@ export async function marcarRealizado(formData: FormData) {
   revalidatePath("/mantenimiento");
   invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
   if (gasto.numeroEconomico) revalidatePath(`/unidades/${gasto.numeroEconomico}`);
+  return { ok: true };
 }
 
 export async function actualizarGasto(formData: FormData) {
