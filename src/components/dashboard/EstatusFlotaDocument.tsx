@@ -197,7 +197,9 @@ function TarjetaKpiExtra({ resultado }: { resultado: CampoExtraResultado }) {
   return (
     <Tarjeta titulo={resultado.campoLabel}>
       <Text style={styles.kpiValor}>{(resultado.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
-      <Text style={styles.kpiCaption}>Suma total · {resultado.datasetLabel} (histórico del alcance)</Text>
+      <Text style={styles.kpiCaption}>
+        Suma total · {resultado.datasetLabel} ({resultado.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})
+      </Text>
     </Tarjeta>
   );
 }

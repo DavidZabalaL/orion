@@ -130,6 +130,17 @@ export type DatasetMeta = {
    *  estas tablas. Es metadata pura, no cambia el whitelist de seguridad. */
   tablasBase: string[];
   /**
+   * Expresión SQL de la fecha en que ocurre cada registro de este dataset
+   * (ej. la fecha del gasto, no la fecha de alta de la unidad) — presente
+   * solo en datasets de "bitácora de eventos" (mantenimiento, combustible,
+   * checklist, etc.), no en los de estado/snapshot (unidades, proyectos,
+   * seguros) donde acotar por rango de fechas no tendría el mismo
+   * significado. La usan los "datos adicionales" del reporte de Estatus de
+   * flota (ver src/lib/reportes/campos-extra.ts) para acotar sus totales al
+   * mismo periodo que el resto del reporte, en vez de sumar todo el histórico.
+   */
+  fechaActividadExpr?: string;
+  /**
    * Habilita análisis de cohortes (tipoAnalisis: "cohorte") para este
    * dataset — deliberadamente acotado a cohorte + evento repetible DENTRO
    * del mismo `from` (no cohortes cross-dataset, ya que el catálogo modela
@@ -315,6 +326,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"GastoVehicular" g LEFT JOIN "Unidad" u ON u."numeroEconomico" = g."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u."proyectoId", g."proyectoReportanteId")`,
     proyectoScopeExpr: `COALESCE(u."proyectoId", g."proyectoReportanteId")`,
     tablasBase: ["GastoVehicular", "Unidad", "Proyecto"],
+    fechaActividadExpr: `g."fecha"`,
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `g."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `g."estatus"`, opciones: opcionesDe(ESTATUS_GASTO_LABEL) },
@@ -333,6 +345,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"Combustible" c LEFT JOIN "Unidad" u3 ON u3."numeroEconomico" = c."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u3."proyectoId", c."proyectoReportanteId")`,
     proyectoScopeExpr: `COALESCE(u3."proyectoId", c."proyectoReportanteId")`,
     tablasBase: ["Combustible", "Proyecto", "Unidad"],
+    fechaActividadExpr: `c."fecha"`,
     cohorteConfig: {
       campoOrigenExpr: `u3."fechaAlta"`,
       campoEventoExpr: `c."fecha"`,
@@ -407,6 +420,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"Tag" t LEFT JOIN "Unidad" u ON u."numeroEconomico" = t."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u."proyectoId", t."proyectoReportanteId")`,
     proyectoScopeExpr: `COALESCE(u."proyectoId", t."proyectoReportanteId")`,
     tablasBase: ["Tag", "Unidad", "Proyecto"],
+    fechaActividadExpr: `t."fecha"`,
     campos: [
       { id: "proveedorTag", label: "Proveedor de TAG", tipo: "texto", expr: `t."proveedorTag"`, opciones: [{ valor: "IAVE", label: "IAVE" }, { valor: "PASE", label: "PASE" }, { valor: "TELEVIA", label: "Televía" }] },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
@@ -551,6 +565,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"Siniestro" s LEFT JOIN "Unidad" u ON u."numeroEconomico" = s."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = u."proyectoId"`,
     proyectoScopeExpr: `u."proyectoId"`,
     tablasBase: ["Siniestro", "Unidad", "Proyecto"],
+    fechaActividadExpr: `s."fecha"`,
     campos: [
       {
         id: "tipo",
@@ -594,6 +609,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"Accidente" a LEFT JOIN "Unidad" u ON u."numeroEconomico" = a."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = u."proyectoId"`,
     proyectoScopeExpr: `u."proyectoId"`,
     tablasBase: ["Accidente", "Unidad", "Proyecto"],
+    fechaActividadExpr: `a."fecha"`,
     campos: [
       { id: "tipo", label: "Tipo", tipo: "texto", expr: `a."tipo"` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
@@ -607,6 +623,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"TicketRescate" tr LEFT JOIN "CatalogoMotivoRescate" m ON m.id = tr."motivoId" LEFT JOIN "Proyecto" p ON p.id = tr."proyectoId"`,
     proyectoScopeExpr: `tr."proyectoId"`,
     tablasBase: ["TicketRescate", "CatalogoMotivoRescate", "Proyecto"],
+    fechaActividadExpr: `tr."createdAt"`,
     campos: [
       {
         id: "estatus",
@@ -662,6 +679,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"Checklist" ch LEFT JOIN "Unidad" u ON u."numeroEconomico" = ch."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = u."proyectoId"`,
     proyectoScopeExpr: `u."proyectoId"`,
     tablasBase: ["Checklist", "Unidad", "Proyecto"],
+    fechaActividadExpr: `ch."fecha"`,
     campos: [
       { id: "tipo", label: "Tipo", tipo: "texto", expr: `ch."tipo"`, opciones: [{ valor: "DIARIO", label: "Diario" }, { valor: "SEMANAL", label: "Semanal" }, { valor: "CARGA_COMBUSTIBLE", label: "Carga de combustible" }, { valor: "REPORTE_FALLA", label: "Reporte de falla" }] },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
@@ -688,6 +706,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     // ejeX de fecha (mes/día) — LIMITE_DISPERSION en route.ts ya acota el
     // caso de dispersión sin agrupar.
     tablasBase: ["PosicionGPS", "Unidad", "Proyecto"],
+    fechaActividadExpr: `g."timestamp"`,
     campos: [
       { id: "fuente", label: "Fuente", tipo: "texto", expr: `g."fuente"::text`, opciones: [{ valor: "API", label: "API" }, { valor: "WEBHOOK", label: "Webhook" }] },
       {
@@ -719,6 +738,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"HuecoSenalGPS" h LEFT JOIN "Unidad" u ON u."numeroEconomico" = h."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = u."proyectoId"`,
     proyectoScopeExpr: `u."proyectoId"`,
     tablasBase: ["HuecoSenalGPS", "Unidad", "Proyecto"],
+    fechaActividadExpr: `h."timestampInicio"`,
     campos: [
       {
         id: "patronRecurrente",
@@ -739,6 +759,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     from: `"ConsumoInsumo" ci LEFT JOIN "InsumoInventario" i ON i.id = ci."insumoId" LEFT JOIN "Proyecto" p ON p.id = i."proyectoId"`,
     proyectoScopeExpr: `i."proyectoId"`,
     tablasBase: ["ConsumoInsumo", "InsumoInventario", "Proyecto"],
+    fechaActividadExpr: `ci."fecha"`,
     campos: [
       { id: "insumo", label: "Insumo", tipo: "texto", expr: `COALESCE(i."nombre", 'Sin insumo')` },
       { id: "categoria", label: "Categoría", tipo: "texto", expr: `COALESCE(i."categoria", 'Sin categoría')` },

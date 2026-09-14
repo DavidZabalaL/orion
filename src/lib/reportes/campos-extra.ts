@@ -26,10 +26,19 @@ function condicionAlcance(proyectoScopeExpr: string, proyectoIds: string[] | nul
  * cada bloque (general/selección/por proyecto) del reporte de Estatus de
  * flota. Selecciones inválidas (dataset/campo ya no existe) se ignoran en
  * silencio en vez de romper el reporte completo.
+ *
+ * Si el dataset tiene `fechaActividadExpr` (una bitácora de eventos: gastos,
+ * combustible, checklists, etc.), el resultado se acota a [desde, hasta] —
+ * el mismo periodo que el resto del reporte — en vez de sumar/agrupar todo
+ * el histórico. Los datasets de estado/snapshot (unidades, seguros, etc.,
+ * sin `fechaActividadExpr`) siguen siendo históricos: acotarlos por fecha no
+ * tendría el mismo significado (ej. "km oficial" no es un evento fechado).
  */
 export async function calcularCamposExtra(
   seleccionados: CampoExtraSeleccionado[],
-  proyectoIds: string[] | null
+  proyectoIds: string[] | null,
+  desde: Date,
+  hasta: Date
 ): Promise<CampoExtraResultado[]> {
   const resultados: CampoExtraResultado[] = [];
 
@@ -39,7 +48,17 @@ export async function calcularCamposExtra(
     const campo = obtenerCampo(dataset, sel.campoId);
     if (!campo) continue;
 
-    const { condicion, llave } = condicionAlcance(dataset.proyectoScopeExpr, proyectoIds);
+    const { condicion: condicionProyecto, llave: llaveProyecto } = condicionAlcance(dataset.proyectoScopeExpr, proyectoIds);
+    const periodoAcotado = dataset.fechaActividadExpr !== undefined;
+    const condicionFecha = periodoAcotado
+      ? Prisma.sql`${Prisma.raw(dataset.fechaActividadExpr!)} BETWEEN ${desde} AND ${hasta}`
+      : Prisma.empty;
+    const condicionesCombinadas = [condicionProyecto, condicionFecha].filter((c) => c !== Prisma.empty);
+    const condicion = condicionesCombinadas.length > 0 ? Prisma.join(condicionesCombinadas, " AND ") : Prisma.empty;
+    // El rango de fechas debe formar parte de la llave de caché de
+    // `ejecutarSimple` (ver cachearConsultaBI) — si no, dos periodos
+    // distintos sobre el mismo dataset/proyecto colisionarían en caché.
+    const llave = periodoAcotado ? `${llaveProyecto}|${desde.toISOString().slice(0, 10)}..${hasta.toISOString().slice(0, 10)}` : llaveProyecto;
     const tipoVisualizacion = VISUALIZACION_SUGERIDA[campo.tipo];
 
     if (tipoVisualizacion === "kpi") {
@@ -52,6 +71,7 @@ export async function calcularCamposExtra(
         datasetLabel: dataset.label,
         campoLabel: campo.label,
         tipoVisualizacion,
+        periodoAcotado,
         valorKpi: Number(filas[0]?.v ?? 0),
       });
       continue;
@@ -69,6 +89,7 @@ export async function calcularCamposExtra(
       datasetLabel: dataset.label,
       campoLabel: campo.label,
       tipoVisualizacion,
+      periodoAcotado,
       filas: simple.datos.slice(0, MAX_FILAS_BARRAS).map((d) => ({ label: labelPorValor.get(d.dimension) ?? d.dimension, valor: d.valor })),
     });
   }

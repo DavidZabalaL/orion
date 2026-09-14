@@ -34,7 +34,13 @@ export type CampoExtraResultado = {
   datasetLabel: string;
   campoLabel: string;
   tipoVisualizacion: TipoVisualizacionExtra;
-  /** Solo si tipoVisualizacion="kpi": suma total en el alcance de proyectos del reporte (histórico, no acotado al periodo). */
+  /** true si el dataset de este campo tiene una fecha de actividad propia
+   *  (ver DatasetMeta.fechaActividadExpr) y por lo tanto `valorKpi`/`filas`
+   *  están acotados al mismo periodo [desde, hasta] que el resto del
+   *  reporte; false si el dataset es de estado/snapshot (ej. unidades,
+   *  seguros) y el valor es histórico completo, sin acotar. */
+  periodoAcotado: boolean;
+  /** Solo si tipoVisualizacion="kpi": suma total en el alcance de proyectos del reporte (acotada al periodo si `periodoAcotado`, histórica si no). */
   valorKpi?: number;
   /** Solo si tipoVisualizacion="barras": conteo agrupado, ya limitado a un máximo de filas para el PDF. */
   filas?: { label: string; valor: number }[];

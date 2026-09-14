@@ -231,7 +231,7 @@ export async function calcularEstatusFlota({
     economicos.length > 0
       ? prisma.checklist.count({ where: { numeroEconomico: { in: economicos }, fecha: { gte: desde, lte: hasta } } })
       : Promise.resolve(0),
-    calcularCamposExtra(camposExtraSeleccionados, proyectoIds),
+    calcularCamposExtra(camposExtraSeleccionados, proyectoIds, desde, hasta),
   ]);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
 

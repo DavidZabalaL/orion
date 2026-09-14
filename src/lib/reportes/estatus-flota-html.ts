@@ -224,7 +224,7 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
               filaTarjetas(
                 datos.camposExtra.slice(i * 3, i * 3 + 3).map((c) =>
                   c.tipoVisualizacion === "kpi"
-                    ? tarjeta(c.campoLabel, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel}`))
+                    ? tarjeta(c.campoLabel, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`))
                     : tarjeta(c.campoLabel, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v)))
                 )
               )

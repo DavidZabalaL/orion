@@ -411,7 +411,7 @@ export function EstatusFlotaModal({
                 Envío automático semanal
               </p>
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                Se envía el día y hora que elijas, cada semana, a los proyectos y destinatarios de arriba, con los datos del periodo y los datos adicionales seleccionados.
+                Se envía el día y hora que elijas, cada semana, a los proyectos y destinatarios de arriba y a los datos adicionales seleccionados — pero con su propio &ldquo;Periodo de datos&rdquo; (abajo), no con las fechas Desde/Hasta de arriba, que solo aplican a la descarga o el envío inmediato.
               </p>
               <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
                 <input type="checkbox" checked={envioAutomaticoActivo} onChange={(e) => setEnvioAutomaticoActivo(e.target.checked)} />
