@@ -98,7 +98,7 @@ export function Sidebar({
           className={clsx("flex items-center gap-2 shrink-0", colapsado ? "md:justify-center md:px-0 px-5" : "px-5")}
           style={{ height: "var(--header-height)" }}
         >
-          <Link href="/unidades" onClick={onClose} className={clsx("flex items-center gap-2 min-w-0", colapsado && "md:justify-center")}>
+          <Link href="/unidades" onClick={onClose} prefetch={false} className={clsx("flex items-center gap-2 min-w-0", colapsado && "md:justify-center")}>
             <OrionIcon size={32} />
             <div className={clsx("leading-tight overflow-hidden", colapsado && "md:hidden")}>
               <div style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--sidebar-text-active)" }}>
@@ -146,6 +146,7 @@ export function Sidebar({
                       key={m.id}
                       href={m.href}
                       onClick={onClose}
+                      prefetch={false}
                       title={m.label}
                       className={clsx(
                         "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",

@@ -118,7 +118,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (usuarioId) {
           try {
-            const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { rol: true } });
+            // Este callback corre en CADA petición autenticada (incluida cada
+            // prefetch de <Link> del sidebar, que dispara ~15-20 en simultáneo
+            // en cada navegación) — un hiccup pasajero de conexión con Neon aquí
+            // no debe verse como "sesión perdida". Un reintento rápido absorbe
+            // la enorme mayoría de esos blips antes de rendirse.
+            let usuario;
+            try {
+              usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { rol: true } });
+            } catch {
+              await new Promise((resolve) => setTimeout(resolve, 200));
+              usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { rol: true } });
+            }
 
             // Sesión forzada a cerrar desde el panel de Analítica de Uso y Trazabilidad:
             // cualquier JWT emitido antes de `sesionInvalidadaEn` deja de ser válido. Se

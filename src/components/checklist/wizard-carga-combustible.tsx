@@ -119,6 +119,7 @@ export function WizardCargaCombustible({
   // Fase carga
   const [tipoCombustible, setTipoCombustible] = useState<string>(TIPOS_COMBUSTIBLE_CARGA[0]);
   const [observaciones, setObservaciones] = useState("");
+  const [subiendoFotoCarga, setSubiendoFotoCarga] = useState(false);
 
   const municipiosDisponibles = MUNICIPIOS_POR_ESTADO[zona] ?? [];
   const personalDisponible = PERSONAL_POR_AREA[area] ?? [];
@@ -339,12 +340,14 @@ export function WizardCargaCombustible({
             </label>
             <div className="flex gap-2 mt-1">
               <label
-                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 cursor-pointer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
                 style={{
                   background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
                   color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
                   fontFamily: "var(--font-ui)",
                   fontSize: "var(--text-sm)",
+                  opacity: subiendoFotoLicencia ? 0.6 : 1,
+                  cursor: subiendoFotoLicencia ? "not-allowed" : "pointer",
                 }}
               >
                 {subiendoFotoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <Camera size={15} className="shrink-0" />}
@@ -354,16 +357,19 @@ export function WizardCargaCombustible({
                   accept="image/*"
                   capture="environment"
                   className="hidden"
+                  disabled={subiendoFotoLicencia}
                   onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
                 />
               </label>
               <label
-                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 cursor-pointer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
                 style={{
                   background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
                   color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
                   fontFamily: "var(--font-ui)",
                   fontSize: "var(--text-sm)",
+                  opacity: subiendoFotoLicencia ? 0.6 : 1,
+                  cursor: subiendoFotoLicencia ? "not-allowed" : "pointer",
                 }}
               >
                 {subiendoFotoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <ImageIcon size={15} className="shrink-0" />}
@@ -372,6 +378,7 @@ export function WizardCargaCombustible({
                   type="file"
                   accept="image/*"
                   className="hidden"
+                  disabled={subiendoFotoLicencia}
                   onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
                 />
               </label>
@@ -488,19 +495,19 @@ export function WizardCargaCombustible({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido />
+              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido />
+              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido />
+              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} />
+              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido />
+              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
           </div>
 

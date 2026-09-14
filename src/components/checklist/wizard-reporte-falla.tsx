@@ -65,6 +65,7 @@ export function WizardReporteFalla({
   const [tipoFalla, setTipoFalla] = useState<string>(TIPOS_FALLA[0]);
   const [descripcionFalla, setDescripcionFalla] = useState("");
   const [observaciones, setObservaciones] = useState("");
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   function enviar(formData: FormData) {
     setError(null);
@@ -233,7 +234,14 @@ export function WizardReporteFalla({
         <label style={labelStyle}>Fotos (opcional, hasta {MAX_FOTOS_REPORTE_FALLA})</label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: MAX_FOTOS_REPORTE_FALLA }, (_, i) => i + 1).map((n) => (
-            <CampoFotoSemanal key={n} name={`foto_${n}`} label={`Foto ${n}`} requerido={false} />
+            <CampoFotoSemanal
+              key={n}
+              name={`foto_${n}`}
+              label={`Foto ${n}`}
+              requerido={false}
+              bloqueado={subiendoFoto}
+              onSubiendoChange={setSubiendoFoto}
+            />
           ))}
         </div>
       </div>

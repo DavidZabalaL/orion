@@ -161,22 +161,28 @@ function BarraProgreso({ actual, total, seccion }: { actual: number; total: numb
 }
 
 function SubirFoto({
-  clave, label, requerido, url, onUrl, permitirGaleria = false,
+  clave, label, requerido, url, onUrl, permitirGaleria = false, bloqueado = false, onSubiendoChange,
 }: {
   clave: string; label: string; requerido: boolean;
   url: string | undefined;
   onUrl: (url: string | null) => void;
   /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
   permitirGaleria?: boolean;
+  /** true si OTRA foto del mismo checklist se está subiendo ahora mismo — bloquea este campo mientras tanto. */
+  bloqueado?: boolean;
+  /** Avisa al wizard cuándo esta foto empieza/termina de subir, para que bloquee las demás mientras tanto. */
+  onSubiendoChange?: (subiendo: boolean) => void;
 }) {
   const [subiendo, setSubiendo] = useState(false);
   const [errFoto, setErrFoto] = useState<string | null>(null);
   const ref = useRef<HTMLInputElement>(null);
   const refGaleria = useRef<HTMLInputElement>(null);
+  const deshabilitado = bloqueado && !subiendo;
 
   async function alSeleccionar(file: File | undefined) {
     if (!file) return;
     setSubiendo(true);
+    onSubiendoChange?.(true);
     setErrFoto(null);
     try {
       const blob = await upload(file.name, file, { access: "private", handleUploadUrl: "/api/checklist-upload" });
@@ -185,6 +191,7 @@ function SubirFoto({
       setErrFoto(e instanceof Error ? e.message : "No se pudo subir la foto.");
     } finally {
       setSubiendo(false);
+      onSubiendoChange?.(false);
     }
   }
 
@@ -194,9 +201,9 @@ function SubirFoto({
         className="flex items-center gap-2 rounded-xl px-3 py-2.5"
         style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}
       >
-        <Camera size={15} color="#16a34a" className="shrink-0" />
+        <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
         <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>
-          {label} — adjuntada
+          {label} — completa
         </span>
         <button type="button" onClick={() => onUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
           <X size={14} />
@@ -216,17 +223,22 @@ function SubirFoto({
           {label}{requerido ? " *" : " (opcional)"}
         </label>
         <div className="flex gap-2">
-          <button type="button" onClick={() => ref.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
-            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+          <button type="button" disabled={deshabilitado} onClick={() => ref.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
+            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
             {subiendo ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
             {subiendo ? "Subiendo…" : "Tomar foto"}
           </button>
-          <button type="button" onClick={() => refGaleria.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl"
-            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}>
+          <button type="button" disabled={deshabilitado} onClick={() => refGaleria.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
+            style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
             {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
             {subiendo ? "Subiendo…" : "Elegir de galería"}
           </button>
         </div>
+        {deshabilitado && (
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+            Espera a que termine la foto anterior…
+          </p>
+        )}
         {errFoto && (
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
             {errFoto}
@@ -248,8 +260,9 @@ function SubirFoto({
       />
       <button
         type="button"
+        disabled={deshabilitado}
         onClick={() => ref.current?.click()}
-        className="flex items-center justify-center gap-2 rounded-xl w-full"
+        className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"
         style={{
           height: 52,
           background: "var(--field-bg)",
@@ -257,12 +270,17 @@ function SubirFoto({
           color: "var(--sidebar-text)",
           fontFamily: "var(--font-ui)",
           fontSize: "var(--text-sm)",
-          cursor: "pointer",
+          cursor: deshabilitado ? "not-allowed" : "pointer",
         }}
       >
         {subiendo ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
         {subiendo ? "Subiendo…" : `${label}${requerido ? " *" : " (opcional)"}`}
       </button>
+      {deshabilitado && (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+          Espera a que termine la foto anterior…
+        </p>
+      )}
       {errFoto && (
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
           {errFoto}
@@ -309,6 +327,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   const unidadesFiltradas = useMemo(
     () => (proyectoFiltro ? unidades.filter((u) => u.proyectoId === proyectoFiltro) : unidades),
@@ -719,6 +738,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               url={fotos[item.key]}
               onUrl={(url) => setFoto(item.key, url)}
               permitirGaleria
+              bloqueado={subiendoFoto}
+              onSubiendoChange={setSubiendoFoto}
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
@@ -768,6 +789,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               requerido
               url={fotos[item.fotoKey]}
               onUrl={(url) => setFoto(item.fotoKey, url)}
+              bloqueado={subiendoFoto}
+              onSubiendoChange={setSubiendoFoto}
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
@@ -827,6 +850,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
                 requerido={!!item.fotoRequerido}
                 url={fotos[item.fotoKey]}
                 onUrl={(url) => setFoto(item.fotoKey!, url)}
+                bloqueado={subiendoFoto}
+                onSubiendoChange={setSubiendoFoto}
               />
             )}
 
@@ -876,6 +901,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               requerido={item.requerido}
               url={fotos[item.key]}
               onUrl={(url) => setFoto(item.key, url)}
+              bloqueado={subiendoFoto}
+              onSubiendoChange={setSubiendoFoto}
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
