@@ -1,15 +1,26 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { marcarRealizado } from "@/app/(app)/mantenimiento/actions";
 
 export function MarcarRealizadoButton({ id }: { id: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <form
       action={(formData) => {
-        startTransition(() => marcarRealizado(formData));
+        setError(null);
+        startTransition(async () => {
+          const res = await marcarRealizado(formData);
+          if (res.ok) {
+            router.refresh();
+          } else {
+            setError(res.error ?? "No se pudo marcar como realizado.");
+          }
+        });
       }}
     >
       <input type="hidden" name="id" value={id} />
@@ -21,6 +32,11 @@ export function MarcarRealizadoButton({ id }: { id: string }) {
       >
         {pending ? "…" : "Marcar realizado"}
       </button>
+      {error && (
+        <p className="mt-1" style={{ color: "var(--color-error)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}>
+          {error}
+        </p>
+      )}
     </form>
   );
 }
