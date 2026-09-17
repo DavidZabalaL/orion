@@ -42,6 +42,7 @@ import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
 import { DocumentosUnidad } from "@/components/unidades/documentos-unidad";
+import { RutaMapLazy } from "@/components/mapa/ruta-map-lazy";
 import { VALORES_ALERTA_SEMANAL } from "@/lib/checklist-semanal";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
@@ -399,13 +400,6 @@ export function FichaUnidad({
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <Link
-              href={`/mapa/historial?unidad=${unidad.numeroEconomico}`}
-              className="flex items-center gap-2 rounded-md px-3 h-9"
-              style={{ ...panelStyle, color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-            >
-              <History size={15} /> Historial GPS
-            </Link>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 rounded-md px-3 h-9"
@@ -510,7 +504,7 @@ export function FichaUnidad({
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
           {tab === "documentos" && <DocumentosUnidad numeroEconomico={unidad.numeroEconomico} documentos={unidad.documentos ?? []} />}
-          {tab === "gps" && <TabGps posiciones={unidad.posicionesGps ?? []} />}
+          {tab === "gps" && <TabGps numeroEconomico={unidad.numeroEconomico} posiciones={unidad.posicionesGps ?? []} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
           {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} bloqueada={!unidad.proyectoId} />}
@@ -951,13 +945,20 @@ function TabSeguro({ seguros, numeroEconomico, puedeVerPoliza }: { seguros: Unid
   );
 }
 
-function TabGps({ posiciones }: { posiciones: Unidad[] }) {
+function TabGps({ numeroEconomico, posiciones }: { numeroEconomico: string; posiciones: Unidad[] }) {
   const [busqueda, setBusqueda] = useState("");
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
     if (!q) return posiciones;
     return posiciones.filter((p) => new Date(p.timestamp).toLocaleString("es-MX").toUpperCase().includes(q));
   }, [posiciones, busqueda]);
+
+  // posiciones viene ordenado desc (más reciente primero) — el mapa necesita
+  // orden ascendente para dibujar la ruta en el sentido correcto.
+  const ruta = useMemo(
+    () => [...posiciones].reverse().map((p) => ({ lat: Number(p.lat), lng: Number(p.lng), timestamp: new Date(p.timestamp).toISOString() })),
+    [posiciones]
+  );
 
   if (!posiciones.length)
     return (
@@ -967,6 +968,19 @@ function TabGps({ posiciones }: { posiciones: Unidad[] }) {
     );
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Últimas {posiciones.length} lecturas
+        </span>
+        <Link
+          href={`/mapa/historial?unidad=${numeroEconomico}`}
+          className="flex items-center gap-2 rounded-md px-3 h-9"
+          style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+        >
+          <History size={15} /> Ver historial completo
+        </Link>
+      </div>
+      <RutaMapLazy ruta={ruta} />
       <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar fecha…" />
       <Table headers={["Fecha / hora", "Lat", "Lng", "Velocidad", "Km validado", "Anómalo"]}>
       {filtradas.map((p) => (
