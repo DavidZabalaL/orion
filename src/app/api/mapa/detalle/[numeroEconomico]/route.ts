@@ -100,11 +100,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ nume
     combustible,
     rangoDias: dias,
     kmRango: Math.round(kmRango),
-    ruta: posicionesRango.map((p) => ({
-      lat: Number(p.lat),
-      lng: Number(p.lng),
-      timestamp: p.timestamp.toISOString(),
-      velocidad: p.velocidad != null ? Number(p.velocidad) : null,
-    })),
+    // Si el rango pedido no trae ninguna lectura (unidad sin movimiento
+    // reciente, o cuyo GPS dejó de reportar hace semanas/meses — ver
+    // diagnóstico de unidades con "última posición vieja"), igual mandamos
+    // su última posición conocida como único punto: así el mapa la centra
+    // y el panel no se queda sin nada que mostrar solo por el filtro de fecha.
+    ruta:
+      posicionesRango.length > 0
+        ? posicionesRango.map((p) => ({
+            lat: Number(p.lat),
+            lng: Number(p.lng),
+            timestamp: p.timestamp.toISOString(),
+            velocidad: p.velocidad != null ? Number(p.velocidad) : null,
+          }))
+        : ultima
+          ? [{ lat: Number(ultima.lat), lng: Number(ultima.lng), timestamp: ultima.timestamp.toISOString(), velocidad: ultima.velocidad != null ? Number(ultima.velocidad) : null }]
+          : [],
   });
 }

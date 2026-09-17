@@ -11,6 +11,8 @@ import Link from "next/link";
 import "leaflet/dist/leaflet.css";
 import { fmtFechaHora } from "@/lib/formato";
 
+const ZOOM_UNIDAD_SELECCIONADA = 13;
+
 export type PuntoMapa = {
   numeroEconomico: string;
   proyecto: string | null;
@@ -43,11 +45,20 @@ function icono(color: string, grande: boolean): L.DivIcon {
   });
 }
 
-/** Encuadra el mapa en la ruta de la unidad seleccionada cada vez que cambia. */
+/**
+ * Encuadra el mapa en la unidad seleccionada cada vez que cambia — con 2+
+ * puntos ajusta a la ruta completa; con 1 solo punto (ej. unidad con una
+ * única lectura GPS) simplemente centra y hace zoom ahí, porque fitBounds
+ * con un solo punto no mueve el mapa en absoluto.
+ */
 function AjustarVistaRuta({ ruta }: { ruta: PuntoRuta[] }) {
   const map = useMap();
   useEffect(() => {
     if (ruta.length === 0) return;
+    if (ruta.length === 1) {
+      map.setView([ruta[0].lat, ruta[0].lng], ZOOM_UNIDAD_SELECCIONADA);
+      return;
+    }
     map.fitBounds(
       ruta.map((p) => [p.lat, p.lng] as [number, number]),
       { padding: [40, 40], maxZoom: 14 }
@@ -93,11 +104,9 @@ export function FlotaMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {ruta.length > 0 && <AjustarVistaRuta ruta={ruta} />}
       {ruta.length > 1 && (
-        <>
-          <Polyline positions={ruta.map((p) => [p.lat, p.lng])} pathOptions={{ color: "var(--color-primary, #2563eb)", weight: 3, opacity: 0.8 }} />
-          <AjustarVistaRuta ruta={ruta} />
-        </>
+        <Polyline positions={ruta.map((p) => [p.lat, p.lng])} pathOptions={{ color: "var(--color-primary, #2563eb)", weight: 3, opacity: 0.8 }} />
       )}
       {puntos.map((p) => (
         <Marker
@@ -106,17 +115,20 @@ export function FlotaMap({
           icon={iconos(p)}
           eventHandlers={onSeleccionar ? { click: () => onSeleccionar(p.numeroEconomico) } : undefined}
         >
-          <Popup>
-            <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, display: "flex", flexDirection: "column", gap: 4 }}>
-              <Link href={`/unidades/${p.numeroEconomico}`} style={{ fontWeight: 700 }}>
-                {p.numeroEconomico}
-              </Link>
-              {p.proyecto && <span>{p.proyecto}</span>}
-              <span>{fmtFechaHora(p.timestamp)}</span>
-              {p.velocidad != null && <span>{p.velocidad.toFixed(0)} km/h</span>}
-              {p.esAnomalo && <span style={{ color: "#c0392b", fontWeight: 600 }}>{p.motivoAnomalia ?? "Lectura anómala"}</span>}
-            </div>
-          </Popup>
+          {/* Sin onSeleccionar (no hay panel flotante que lo reemplace) sí mostramos el popup nativo de Leaflet. */}
+          {!onSeleccionar && (
+            <Popup>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, display: "flex", flexDirection: "column", gap: 4 }}>
+                <Link href={`/unidades/${p.numeroEconomico}`} style={{ fontWeight: 700 }}>
+                  {p.numeroEconomico}
+                </Link>
+                {p.proyecto && <span>{p.proyecto}</span>}
+                <span>{fmtFechaHora(p.timestamp)}</span>
+                {p.velocidad != null && <span>{p.velocidad.toFixed(0)} km/h</span>}
+                {p.esAnomalo && <span style={{ color: "#c0392b", fontWeight: 600 }}>{p.motivoAnomalia ?? "Lectura anómala"}</span>}
+              </div>
+            </Popup>
+          )}
         </Marker>
       ))}
     </MapContainer>

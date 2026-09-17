@@ -110,7 +110,11 @@ export function UnidadPanel({
           <div className="flex items-center justify-between gap-2 rounded-lg p-2.5" style={{ background: "var(--chip)" }}>
             {detalle.rangoDias <= 1 ? (
               <>
-                <span style={filaStyle}>La ruta en el mapa muestra solo hoy.</span>
+                <span style={filaStyle}>
+                  {detalle.ruta.length > 1
+                    ? "La ruta en el mapa muestra solo hoy."
+                    : "Sin movimiento hoy — mostrando solo la última posición conocida."}
+                </span>
                 <button
                   onClick={onAmpliarHistorial}
                   className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 h-8"
@@ -121,7 +125,11 @@ export function UnidadPanel({
               </>
             ) : (
               <>
-                <span style={filaStyle}>Mostrando los últimos {detalle.rangoDias} días en el mapa.</span>
+                <span style={filaStyle}>
+                  {detalle.ruta.length > 1
+                    ? `Mostrando los últimos ${detalle.rangoDias} días en el mapa.`
+                    : `Sin movimiento en los últimos ${detalle.rangoDias} días — mostrando solo la última posición conocida.`}
+                </span>
                 <Link
                   href={`/mapa/historial?unidad=${detalle.numeroEconomico}`}
                   className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 h-8"
