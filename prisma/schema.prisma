@@ -446,6 +446,11 @@ model Unidad {
   numeroEconomico       String          @id
   placas                String          @unique
   numeroSerie           String          @unique
+  /// vehicleId del vehículo en la Intellihub API (GPS, módulo G). Nulo mientras
+  /// la unidad no tenga dispositivo GPS dado de alta en esa plataforma —
+  /// el cron de sincronización (src/app/api/cron/gps-intellihub) omite las
+  /// unidades con este campo nulo en vez de fallar.
+  intellihubVehicleId   Int?            @unique
   marca                 String
   unidadModelo          String
   anio                  Int

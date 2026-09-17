@@ -1,13 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { evaluarAnomalia } from "@/lib/gps";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
-import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { registrarPosicionGPS } from "@/lib/gps-registro";
 
 export async function registrarPosicion(formData: FormData) {
   await exigirPermisoModulo("G", "editar");
@@ -31,71 +29,25 @@ export async function registrarPosicion(formData: FormData) {
 
   const fechaPunto = new Date(timestamp);
 
-  const anterior = await prisma.posicionGPS.findFirst({
-    where: { numeroEconomico },
-    orderBy: { timestamp: "desc" },
+  const resultado = await registrarPosicionGPS({
+    numeroEconomico,
+    lat,
+    lng,
+    velocidad,
+    kmReportado,
+    timestamp: fechaPunto,
+    fuente: "API",
   });
-
-  const { esAnomalo, motivo } = evaluarAnomalia(
-    { lat, lng, timestamp: fechaPunto },
-    anterior ? { lat: Number(anterior.lat), lng: Number(anterior.lng), timestamp: anterior.timestamp } : null
-  );
-
-  await prisma.posicionGPS.create({
-    data: {
-      numeroEconomico,
-      lat,
-      lng,
-      velocidad,
-      timestamp: fechaPunto,
-      fuente: "API",
-      kmReportado,
-      kmValidado: esAnomalo ? null : kmReportado,
-      esAnomalo,
-      motivoAnomalia: motivo,
-    },
-  });
-
-  let huecoRegistrado = false;
-  if (anterior) {
-    const minutos = (fechaPunto.getTime() - anterior.timestamp.getTime()) / 60_000;
-    if (minutos > 15) {
-      await prisma.huecoSenalGPS.create({
-        data: {
-          numeroEconomico,
-          ultimaPosicionLat: anterior.lat,
-          ultimaPosicionLng: anterior.lng,
-          timestampInicio: anterior.timestamp,
-          timestampFin: fechaPunto,
-          duracionMinutos: Math.round(minutos),
-          primeraPosicionLat: lat,
-          primeraPosicionLng: lng,
-        },
-      });
-      huecoRegistrado = true;
-    }
-  }
-
-  let kmActualizado = false;
-  if (!esAnomalo && kmReportado) {
-    await prisma.unidad.update({ where: { numeroEconomico }, data: { kmOficial: kmReportado } });
-    kmActualizado = true;
-  }
 
   const session = await auth();
-  if (session?.user?.id) {
+  if (session?.user?.id && !resultado.omitido) {
     await logActivity({
       userId: session.user.id,
       modulo: "mapa",
       accion: "create",
       entidad: "PosicionGPS",
       entidadId: numeroEconomico,
-      detalle: { lat, lng, esAnomalo },
+      detalle: { lat, lng, esAnomalo: resultado.esAnomalo },
     });
   }
-
-  revalidatePath("/mapa");
-  revalidatePath("/mapa/integridad");
-  revalidatePath(`/unidades/${numeroEconomico}`);
-  invalidarCacheBI(["gps_posiciones", ...(huecoRegistrado ? ["gps_huecos_senal"] : []), ...(kmActualizado ? ["unidades"] : [])]);
 }
