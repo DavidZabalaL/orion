@@ -4,8 +4,8 @@
 // su propio archivo para poder cargarlo con next/dynamic({ ssr: false }) —
 // Leaflet toca `window`/`document` al importarse y truena en el render de
 // servidor de Next.
-import { useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useMemo } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import Link from "next/link";
 import "leaflet/dist/leaflet.css";
@@ -22,32 +22,60 @@ export type PuntoMapa = {
   motivoAnomalia: string | null;
 };
 
+export type PuntoRuta = { lat: number; lng: number };
+
 const CENTRO_MEXICO: [number, number] = [23.6345, -102.5528];
 
-function colorDePunto(p: PuntoMapa): string {
+function colorDePunto(p: PuntoMapa, seleccionado: boolean): string {
   if (p.esAnomalo) return "var(--color-status-escena)";
+  if (seleccionado) return "var(--color-primary)";
   return "var(--color-status-cerrado)";
 }
 
-function icono(color: string): L.DivIcon {
+function icono(color: string, grande: boolean): L.DivIcon {
+  const tam = grande ? 18 : 14;
   return L.divIcon({
     className: "",
-    html: `<span style="display:block;width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25)"></span>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-    popupAnchor: [0, -7],
+    html: `<span style="display:block;width:${tam}px;height:${tam}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25)"></span>`,
+    iconSize: [tam, tam],
+    iconAnchor: [tam / 2, tam / 2],
+    popupAnchor: [0, -tam / 2],
   });
 }
 
-export function FlotaMap({ puntos }: { puntos: PuntoMapa[] }) {
+/** Encuadra el mapa en la ruta de la unidad seleccionada cada vez que cambia. */
+function AjustarVistaRuta({ ruta }: { ruta: PuntoRuta[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (ruta.length === 0) return;
+    map.fitBounds(
+      ruta.map((p) => [p.lat, p.lng] as [number, number]),
+      { padding: [40, 40], maxZoom: 14 }
+    );
+  }, [ruta, map]);
+  return null;
+}
+
+export function FlotaMap({
+  puntos,
+  ruta = [],
+  seleccionado,
+  onSeleccionar,
+}: {
+  puntos: PuntoMapa[];
+  ruta?: PuntoRuta[];
+  seleccionado?: string;
+  onSeleccionar?: (numeroEconomico: string) => void;
+}) {
   const iconos = useMemo(() => {
     const cache = new Map<string, L.DivIcon>();
     return (p: PuntoMapa) => {
-      const color = colorDePunto(p);
-      if (!cache.has(color)) cache.set(color, icono(color));
-      return cache.get(color)!;
+      const esSeleccionado = p.numeroEconomico === seleccionado;
+      const clave = colorDePunto(p, esSeleccionado) + (esSeleccionado ? ":sel" : "");
+      if (!cache.has(clave)) cache.set(clave, icono(colorDePunto(p, esSeleccionado), esSeleccionado));
+      return cache.get(clave)!;
     };
-  }, []);
+  }, [seleccionado]);
 
   const centro: [number, number] =
     puntos.length > 0
@@ -65,8 +93,19 @@ export function FlotaMap({ puntos }: { puntos: PuntoMapa[] }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {ruta.length > 1 && (
+        <>
+          <Polyline positions={ruta.map((p) => [p.lat, p.lng])} pathOptions={{ color: "var(--color-primary, #2563eb)", weight: 3, opacity: 0.8 }} />
+          <AjustarVistaRuta ruta={ruta} />
+        </>
+      )}
       {puntos.map((p) => (
-        <Marker key={p.numeroEconomico} position={[p.lat, p.lng]} icon={iconos(p)}>
+        <Marker
+          key={p.numeroEconomico}
+          position={[p.lat, p.lng]}
+          icon={iconos(p)}
+          eventHandlers={onSeleccionar ? { click: () => onSeleccionar(p.numeroEconomico) } : undefined}
+        >
           <Popup>
             <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, display: "flex", flexDirection: "column", gap: 4 }}>
               <Link href={`/unidades/${p.numeroEconomico}`} style={{ fontWeight: 700 }}>

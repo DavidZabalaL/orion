@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPin, Satellite, Radio } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { PosicionesLista, type PosicionRow } from "@/components/mapa/posiciones-lista";
-import type { PuntoMapa } from "@/components/mapa/flota-map";
+import { UnidadPanel, type DetalleUnidad } from "@/components/mapa/unidad-panel";
+import type { PuntoMapa, PuntoRuta } from "@/components/mapa/flota-map";
 
 // Leaflet toca `window` al importarse — debe cargar solo en cliente.
 const FlotaMap = dynamic(() => import("@/components/mapa/flota-map").then((m) => m.FlotaMap), {
@@ -28,6 +29,23 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
   const [proyectosSeleccionados, setProyectosSeleccionados] = useState<string[]>([]);
   const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([]);
   const [estatusGps, setEstatusGps] = useState<EstatusGps | null>(null);
+  const [seleccionada, setSeleccionada] = useState<string | null>(null);
+  const [detalle, setDetalle] = useState<DetalleUnidad | null>(null);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
+
+  const cargarDetalle = useCallback(async (numeroEconomico: string) => {
+    setSeleccionada(numeroEconomico);
+    setCargandoDetalle(true);
+    setDetalle(null);
+    try {
+      const res = await fetch(`/api/mapa/detalle/${encodeURIComponent(numeroEconomico)}`);
+      if (res.ok) setDetalle(await res.json());
+    } finally {
+      setCargandoDetalle(false);
+    }
+  }, []);
+
+  const ruta: PuntoRuta[] = useMemo(() => detalle?.ruta.map((p) => ({ lat: p.lat, lng: p.lng })) ?? [], [detalle]);
 
   const proyectos = useMemo(() => {
     const set = new Set(unidades.map((u) => u.proyecto ?? "Sin proyecto"));
@@ -166,7 +184,19 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
         )}
       </div>
 
-      <FlotaMap puntos={puntosMapa} />
+      <div className="relative">
+        <FlotaMap puntos={puntosMapa} ruta={ruta} seleccionado={seleccionada ?? undefined} onSeleccionar={cargarDetalle} />
+        {seleccionada && (
+          <UnidadPanel
+            detalle={detalle}
+            cargando={cargandoDetalle}
+            onCerrar={() => {
+              setSeleccionada(null);
+              setDetalle(null);
+            }}
+          />
+        )}
+      </div>
 
       <div>
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
