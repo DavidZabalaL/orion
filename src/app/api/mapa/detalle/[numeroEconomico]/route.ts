@@ -12,7 +12,7 @@ import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ numeroEconomico: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ numeroEconomico: string }> }) {
   try {
     await exigirPermisoModulo("G", "ver");
   } catch {
@@ -21,6 +21,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ num
 
   const { numeroEconomico } = await params;
   const proyectosPermitidos = await proyectosPermitidosParaModulo("G");
+
+  // dias=1 (default): solo la ruta/km de hoy. dias>1: amplía la ventana de la
+  // ruta y el gráfico de movimiento a los últimos N días — lo usa el botón
+  // "Ver últimos 7 días" del panel flotante, para no forzar al usuario a
+  // salirse a /mapa/historial solo para ver un rango un poco más amplio.
+  const dias = Math.max(1, Math.min(30, parseInt(new URL(request.url).searchParams.get("dias") ?? "1", 10) || 1));
 
   const unidad = await prisma.unidad.findUnique({
     where: { numeroEconomico },
@@ -45,12 +51,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ num
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 
-  const inicioHoy = inicioDeHoyMx();
+  const inicioRango = dias <= 1 ? inicioDeHoyMx() : new Date(Date.now() - dias * 86_400_000);
 
-  const [ultima, posicionesHoy, ultimaCarga] = await Promise.all([
+  const [ultima, posicionesRango, ultimaCarga] = await Promise.all([
     prisma.posicionGPS.findFirst({ where: { numeroEconomico }, orderBy: { timestamp: "desc" } }),
     prisma.posicionGPS.findMany({
-      where: { numeroEconomico, timestamp: { gte: inicioHoy } },
+      where: { numeroEconomico, timestamp: { gte: inicioRango } },
       orderBy: { timestamp: "asc" },
     }),
     prisma.combustible.findFirst({
@@ -59,8 +65,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ num
     }),
   ]);
 
-  const kmValidadosHoy = posicionesHoy.map((p) => p.kmValidado).filter((v): v is number => v !== null);
-  const kmHoy = kmValidadosHoy.length > 1 ? Math.max(...kmValidadosHoy) - Math.min(...kmValidadosHoy) : 0;
+  const kmValidadosRango = posicionesRango.map((p) => p.kmValidado).filter((v): v is number => v !== null);
+  const kmRango = kmValidadosRango.length > 1 ? Math.max(...kmValidadosRango) - Math.min(...kmValidadosRango) : 0;
 
   let combustible: { porcentaje: number; litros: number; capacidad: number } | null = null;
   const capacidad = unidad.capacidadTanqueLitros ? Number(unidad.capacidadTanqueLitros) : null;
@@ -92,8 +98,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ num
         }
       : null,
     combustible,
-    kmHoy: Math.round(kmHoy),
-    ruta: posicionesHoy.map((p) => ({
+    rangoDias: dias,
+    kmRango: Math.round(kmRango),
+    ruta: posicionesRango.map((p) => ({
       lat: Number(p.lat),
       lng: Number(p.lng),
       timestamp: p.timestamp.toISOString(),

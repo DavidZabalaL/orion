@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { X, Fuel, Route, Radio } from "lucide-react";
+import { X, Fuel, Route, Radio, History } from "lucide-react";
 import { GaugeCircular } from "@/components/mapa/gauge-circular";
 import { MovimientoChart } from "@/components/mapa/movimiento-chart";
 import { fmtFechaHora } from "@/lib/formato";
+
+const DIAS_HISTORIAL_AMPLIADO = 7;
 
 export type DetalleUnidad = {
   numeroEconomico: string;
@@ -17,14 +19,25 @@ export type DetalleUnidad = {
   conductor: string | null;
   ultima: { lat: number; lng: number; timestamp: string; velocidad: number | null; esAnomalo: boolean; motivoAnomalia: string | null } | null;
   combustible: { porcentaje: number; litros: number; capacidad: number } | null;
-  kmHoy: number;
+  rangoDias: number;
+  kmRango: number;
   ruta: { lat: number; lng: number; timestamp: string; velocidad: number | null }[];
 };
 
 const filaStyle: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" };
 const valorStyle: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" };
 
-export function UnidadPanel({ detalle, cargando, onCerrar }: { detalle: DetalleUnidad | null; cargando: boolean; onCerrar: () => void }) {
+export function UnidadPanel({
+  detalle,
+  cargando,
+  onCerrar,
+  onAmpliarHistorial,
+}: {
+  detalle: DetalleUnidad | null;
+  cargando: boolean;
+  onCerrar: () => void;
+  onAmpliarHistorial: () => void;
+}) {
   return (
     <div
       className="w-full md:w-[340px] md:absolute md:top-4 md:right-4 md:z-[1000] flex flex-col gap-4 rounded-xl p-5 mt-4 md:mt-0 max-h-[80vh] overflow-y-auto"
@@ -86,15 +99,43 @@ export function UnidadPanel({ detalle, cargando, onCerrar }: { detalle: DetalleU
             <div className="flex flex-col items-center justify-center gap-1 rounded-lg p-3" style={{ background: "var(--chip)" }}>
               <Route size={22} color="var(--color-primary)" />
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-                {detalle.kmHoy.toLocaleString("es-MX")} km
+                {detalle.kmRango.toLocaleString("es-MX")} km
               </div>
-              <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>Recorridos hoy</div>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                {detalle.rangoDias <= 1 ? "Recorridos hoy" : `Recorridos en ${detalle.rangoDias} días`}
+              </div>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 rounded-lg p-2.5" style={{ background: "var(--chip)" }}>
+            {detalle.rangoDias <= 1 ? (
+              <>
+                <span style={filaStyle}>La ruta en el mapa muestra solo hoy.</span>
+                <button
+                  onClick={onAmpliarHistorial}
+                  className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 h-8"
+                  style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                >
+                  <History size={13} /> Ver {DIAS_HISTORIAL_AMPLIADO} días
+                </button>
+              </>
+            ) : (
+              <>
+                <span style={filaStyle}>Mostrando los últimos {detalle.rangoDias} días en el mapa.</span>
+                <Link
+                  href={`/mapa/historial?unidad=${detalle.numeroEconomico}`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 h-8"
+                  style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                >
+                  Historial completo →
+                </Link>
+              </>
+            )}
           </div>
 
           <div>
             <div className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-              Movimiento de hoy
+              {detalle.rangoDias <= 1 ? "Movimiento de hoy" : `Movimiento (${detalle.rangoDias} días)`}
             </div>
             <MovimientoChart puntos={detalle.ruta} />
           </div>

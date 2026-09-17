@@ -33,12 +33,12 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
   const [detalle, setDetalle] = useState<DetalleUnidad | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  const cargarDetalle = useCallback(async (numeroEconomico: string) => {
+  const cargarDetalle = useCallback(async (numeroEconomico: string, dias = 1) => {
     setSeleccionada(numeroEconomico);
     setCargandoDetalle(true);
-    setDetalle(null);
+    if (dias <= 1) setDetalle(null);
     try {
-      const res = await fetch(`/api/mapa/detalle/${encodeURIComponent(numeroEconomico)}`);
+      const res = await fetch(`/api/mapa/detalle/${encodeURIComponent(numeroEconomico)}?dias=${dias}`);
       if (res.ok) setDetalle(await res.json());
     } finally {
       setCargandoDetalle(false);
@@ -197,6 +197,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
               setSeleccionada(null);
               setDetalle(null);
             }}
+            onAmpliarHistorial={() => cargarDetalle(seleccionada, 7)}
           />
         )}
       </div>
