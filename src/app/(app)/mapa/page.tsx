@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { MapPin, Satellite, History, Radio } from "lucide-react";
+import { Satellite, History } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { StatCard } from "@/components/ui/stat-card";
-import { PosicionForm } from "@/components/mapa/posicion-form";
-import { PosicionesLista } from "@/components/mapa/posiciones-lista";
+import { MapaFlota, type UnidadMapaRow } from "@/components/mapa/mapa-flota";
+import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 
@@ -17,15 +16,29 @@ export default async function MapaPage() {
     where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
     select: {
       numeroEconomico: true,
+      tipoVehiculo: true,
       proyecto: { select: { nombre: true } },
       posicionesGps: { orderBy: { timestamp: "desc" }, take: 1 },
     },
     orderBy: { numeroEconomico: "asc" },
   });
 
-  const conSenal = unidadesActivas.filter((u) => u.posicionesGps.length > 0);
-  const sinSenal = unidadesActivas.filter((u) => u.posicionesGps.length === 0);
-  const conAnomalia = conSenal.filter((u) => u.posicionesGps[0].esAnomalo);
+  const filas: UnidadMapaRow[] = unidadesActivas.map((u) => {
+    const p = u.posicionesGps[0];
+    return {
+      numeroEconomico: u.numeroEconomico,
+      tipoVehiculo: TIPO_VEHICULO_LABEL[u.tipoVehiculo] ?? u.tipoVehiculo,
+      proyecto: u.proyecto?.nombre ?? null,
+      timestamp: p ? p.timestamp.toISOString() : null,
+      lat: p ? Number(p.lat) : null,
+      lng: p ? Number(p.lng) : null,
+      velocidad: p?.velocidad != null ? Number(p.velocidad) : null,
+      esAnomalo: p?.esAnomalo ?? null,
+      motivoAnomalia: p?.motivoAnomalia ?? null,
+    };
+  });
+
+  const tipos = Array.from(new Set(filas.map((f) => f.tipoVehiculo))).sort();
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -35,7 +48,7 @@ export default async function MapaPage() {
             Geolocalización
           </h1>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-            Última posición conocida por unidad. El mapa en tiempo real se activa al conectar IntelliHub (Fase 2).
+            Posición en vivo de la flota, sincronizada desde Intellihub cada 10 minutos.
           </p>
         </div>
         <div className="flex gap-2">
@@ -48,35 +61,7 @@ export default async function MapaPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Unidades activas" value={unidadesActivas.length} icon={MapPin} accent="var(--color-primary)" />
-        <StatCard label="Con señal reciente" value={conSenal.length} icon={Radio} accent="var(--color-status-cerrado)" />
-        <StatCard label="Sin señal registrada" value={sinSenal.length} icon={Radio} accent="var(--color-status-revision)" />
-        <StatCard label="Con anomalía en último punto" value={conAnomalia.length} icon={Satellite} accent="var(--color-status-escena)" />
-      </div>
-
-      <PosicionForm unidades={unidadesActivas.map((u) => ({ numeroEconomico: u.numeroEconomico }))} />
-
-      <div>
-        <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Última posición conocida
-        </h3>
-        <PosicionesLista
-          posiciones={unidadesActivas.map((u) => {
-            const p = u.posicionesGps[0];
-            return {
-              numeroEconomico: u.numeroEconomico,
-              proyecto: u.proyecto?.nombre ?? null,
-              timestamp: p ? p.timestamp.toISOString() : null,
-              lat: p ? Number(p.lat) : null,
-              lng: p ? Number(p.lng) : null,
-              velocidad: p?.velocidad != null ? Number(p.velocidad) : null,
-              esAnomalo: p?.esAnomalo ?? null,
-              motivoAnomalia: p?.motivoAnomalia ?? null,
-            };
-          })}
-        />
-      </div>
+      <MapaFlota unidades={filas} tipos={tipos} />
     </div>
   );
 }

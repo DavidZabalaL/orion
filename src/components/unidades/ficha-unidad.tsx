@@ -955,7 +955,7 @@ function TabGps({ posiciones }: { posiciones: Unidad[] }) {
   if (!posiciones.length)
     return (
       <EmptyState>
-        Sin posiciones GPS registradas todavía. Esta pantalla se alimentará de IntelliHub en la Fase 2.
+        Sin posiciones GPS registradas todavía — esta unidad no tiene dispositivo de Intellihub dado de alta.
       </EmptyState>
     );
   return (
