@@ -7,6 +7,7 @@ import { fmtFechaHora } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { parseFechaLocalMx, finDelDiaMx } from "@/lib/timezone";
+import { RutaMapLazy } from "@/components/mapa/ruta-map-lazy";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,12 @@ export default async function HistorialRecorridoPage({
       <div className="rounded-xl p-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
         Distancia validada en el rango: <strong style={{ color: "var(--sidebar-text-active)", fontFamily: "var(--font-mono)" }}>{distanciaKm.toLocaleString("es-MX")} km</strong> · {posiciones.length} lecturas ({validos.length} válidas)
       </div>
+
+      <RutaMapLazy
+        ruta={[...posiciones]
+          .reverse()
+          .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng), timestamp: p.timestamp.toISOString() }))}
+      />
 
       {posiciones.length === 0 ? (
         <EmptyState>Sin lecturas GPS en el rango seleccionado.</EmptyState>

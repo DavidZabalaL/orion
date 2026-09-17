@@ -88,8 +88,8 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Unidades activas" value={filtradas.length} icon={MapPin} accent="var(--color-primary)" />
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <StatCard label="Unidades activas" value={filtradas.length} icon={MapPin} accent="var(--color-primary)" compacto />
         <StatCard
           label="Con señal reciente"
           value={conSenal.length - conAnomalia.length}
@@ -97,6 +97,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           accent="var(--color-status-cerrado)"
           onClick={() => setEstatusGps((v) => (v === "conSenal" ? null : "conSenal"))}
           seleccionado={estatusGps === "conSenal"}
+          compacto
         />
         <StatCard
           label="Sin señal registrada"
@@ -105,6 +106,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           accent="var(--color-status-revision)"
           onClick={() => setEstatusGps((v) => (v === "sinSenal" ? null : "sinSenal"))}
           seleccionado={estatusGps === "sinSenal"}
+          compacto
         />
         <StatCard
           label="Con anomalía en último punto"
@@ -113,6 +115,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           accent="var(--color-status-escena)"
           onClick={() => setEstatusGps((v) => (v === "anomalo" ? null : "anomalo"))}
           seleccionado={estatusGps === "anomalo"}
+          compacto
         />
       </div>
 

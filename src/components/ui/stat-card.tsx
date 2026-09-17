@@ -7,6 +7,7 @@ export function StatCard({
   accent,
   onClick,
   seleccionado,
+  compacto,
 }: {
   label: string;
   value: string | number;
@@ -14,12 +15,14 @@ export function StatCard({
   accent: string;
   onClick?: () => void;
   seleccionado?: boolean;
+  /** Versión reducida (menos padding, ícono y tipografía más chicos) — para paneles donde estas tarjetas son secundarias, ej. el mapa de flota. */
+  compacto?: boolean;
 }) {
   const Tag = onClick ? "button" : "div";
   return (
     <Tag
       onClick={onClick}
-      className="flex items-center gap-4 rounded-xl p-4 text-left w-full"
+      className={`flex items-center text-left w-full ${compacto ? "gap-2.5 rounded-lg p-2.5" : "gap-4 rounded-xl p-4"}`}
       style={{
         background: "var(--panel-bg)",
         boxShadow: "var(--shadow-sm)",
@@ -32,10 +35,10 @@ export function StatCard({
       }}
     >
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
+        className={`flex shrink-0 items-center justify-center rounded-lg ${compacto ? "h-8 w-8" : "h-11 w-11"}`}
         style={{ background: `${accent}1f` }}
       >
-        <Icon size={20} color={accent} />
+        <Icon size={compacto ? 15 : 20} color={accent} />
       </div>
       <div className="min-w-0 flex-1">
         <div
@@ -45,7 +48,7 @@ export function StatCard({
             // clamp entre un piso legible y el tamaño normal — cuando el
             // contenedor es angosto, cqw lo encoge antes de que desborde;
             // "truncate" (arriba) cubre el caso extremo con "…".
-            fontSize: "clamp(15px, 9cqw, var(--text-2xl))",
+            fontSize: compacto ? "clamp(13px, 8cqw, var(--text-lg))" : "clamp(15px, 9cqw, var(--text-2xl))",
             fontWeight: 700,
             color: "var(--sidebar-text-active)",
           }}
@@ -55,7 +58,7 @@ export function StatCard({
         <div
           style={{
             fontFamily: "var(--font-ui)",
-            fontSize: "var(--text-sm)",
+            fontSize: compacto ? "var(--text-xs)" : "var(--text-sm)",
             color: "var(--sidebar-text)",
             // Etiquetas cortas (2-3 palabras): que hagan wrap a una segunda
             // línea en vez de truncarse con "…" — el ancho de la tarjeta
@@ -63,7 +66,7 @@ export function StatCard({
             // información. line-clamp de respaldo por si algún label llega a
             // ser inusualmente largo.
             display: "-webkit-box",
-            WebkitLineClamp: 3,
+            WebkitLineClamp: compacto ? 1 : 3,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
           }}
