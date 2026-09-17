@@ -86,7 +86,7 @@ export function UnidadPanel({ detalle, cargando, onCerrar }: { detalle: DetalleU
             <div className="flex flex-col items-center justify-center gap-1 rounded-lg p-3" style={{ background: "var(--chip)" }}>
               <Route size={22} color="var(--color-primary)" />
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-                {detalle.kmHoy} km
+                {detalle.kmHoy.toLocaleString("es-MX")} km
               </div>
               <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>Recorridos hoy</div>
             </div>

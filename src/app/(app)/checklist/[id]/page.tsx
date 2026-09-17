@@ -284,7 +284,7 @@ function DetalleSemanal({ respuestas }: { respuestas: Record<string, string> }) 
     { label: "Modelo", value: respuestas.modelo },
     { label: "Tipo de vehículo", value: respuestas.tipoVehiculo },
     { label: "Licencia permanente", value: respuestas.licenciaPermanente },
-    { label: "Odómetro", value: respuestas.gen_odometro ? `${respuestas.gen_odometro} km` : undefined },
+    { label: "Odómetro", value: respuestas.gen_odometro ? `${Number(respuestas.gen_odometro).toLocaleString("es-MX")} km` : undefined },
     { label: "Horómetro", value: respuestas.gen_horometro ? `${respuestas.gen_horometro} h` : undefined },
   ].filter((c) => c.value);
 

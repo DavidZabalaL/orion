@@ -41,7 +41,7 @@ export function ChecklistLista({ checklists }: { checklists: ChecklistRow[] }) {
               <tr style={{ borderBottom: expandido === c.id ? "none" : "1px solid var(--field-border)" }}>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{fmtFechaHora(c.fecha)}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{c.unidad.numeroEconomico}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{c.odometro} km</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{c.odometro.toLocaleString("es-MX")} km</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(c.puntosInspeccion).map(([k, v]) => (
@@ -70,7 +70,7 @@ export function ChecklistLista({ checklists }: { checklists: ChecklistRow[] }) {
                         <Detalle label="Unidad" value={`${c.unidad.numeroEconomico} — ${c.unidad.marca} ${c.unidad.unidadModelo}`} />
                         <Detalle label="Fecha y hora" value={fmtFechaHora(c.fecha)} />
                         <Detalle label="Capturado por" value={c.capturadoPor?.nombre ?? "—"} />
-                        <Detalle label="Odómetro" value={`${c.odometro} km`} />
+                        <Detalle label="Odómetro" value={`${c.odometro.toLocaleString("es-MX")} km`} />
                         {c.horometro !== null && <Detalle label="Horómetro" value={`${c.horometro} hrs`} />}
                         {Object.entries(c.puntosInspeccion).map(([k, v]) => (
                           <Detalle key={k} label={k} value={v === "ok" ? "OK" : "Revisar"} />

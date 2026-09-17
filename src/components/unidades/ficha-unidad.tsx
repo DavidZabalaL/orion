@@ -399,6 +399,13 @@ export function FichaUnidad({
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <Link
+              href={`/mapa/historial?unidad=${unidad.numeroEconomico}`}
+              className="flex items-center gap-2 rounded-md px-3 h-9"
+              style={{ ...panelStyle, color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <History size={15} /> Historial GPS
+            </Link>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 rounded-md px-3 h-9"
@@ -817,7 +824,7 @@ function TabCombustible({ registros, numeroEconomico }: { registros: Unidad[]; n
           <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.litros} L</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(r.costo)}</td>
-          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual}</td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual != null ? r.kmActual.toLocaleString("es-MX") : "—"}</td>
           <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
           <td className="px-4 py-3" style={td}>{r.rendimientoCalculado ? `${r.rendimientoCalculado} km/L` : "—"}</td>
           <td className="px-4 py-3">
@@ -968,7 +975,7 @@ function TabGps({ posiciones }: { posiciones: Unidad[] }) {
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.lat}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.lng}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.velocidad ?? "—"}</td>
-          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.kmValidado ?? "—"}</td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.kmValidado != null ? p.kmValidado.toLocaleString("es-MX") : "—"}</td>
           <td className="px-4 py-3">
             {p.esAnomalo ? (
               <Badge label={p.motivoAnomalia ?? "Anómalo"} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />

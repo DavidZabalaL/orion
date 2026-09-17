@@ -111,7 +111,7 @@ export default async function HistorialRecorridoPage({
               <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{Number(p.lat).toFixed(4)}</td>
               <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{Number(p.lng).toFixed(4)}</td>
               <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p.velocidad ? `${p.velocidad} km/h` : "—"}</td>
-              <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p.kmValidado ?? "—"}</td>
+              <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{p.kmValidado != null ? p.kmValidado.toLocaleString("es-MX") : "—"}</td>
               <td className="px-4 py-3">
                 {p.esAnomalo ? (
                   <Badge label={p.motivoAnomalia ?? "Anómalo"} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
