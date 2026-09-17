@@ -9,6 +9,7 @@ import { fmtFechaHora } from "@/lib/formato";
 
 export type PosicionRow = {
   numeroEconomico: string;
+  descripcion: string;
   proyecto: string | null;
   timestamp: string | null;
   lat: number | null;
@@ -37,7 +38,7 @@ export function PosicionesLista({ posiciones }: { posiciones: PosicionRow[] }) {
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                {["Unidad", "Proyecto", "Última actualización", "Lat", "Lng", "Velocidad", "Estatus GPS"].map((h) => (
+                {["Unidad", "Descripción", "Proyecto", "Última actualización", "Velocidad", "Estatus GPS"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                 ))}
               </tr>
@@ -50,10 +51,9 @@ export function PosicionesLista({ posiciones }: { posiciones: PosicionRow[] }) {
                       {u.numeroEconomico}
                     </Link>
                   </td>
+                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.descripcion}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.proyecto ?? "—"}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.timestamp ? fmtFechaHora(u.timestamp) : "—"}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.lat != null ? u.lat.toFixed(4) : "—"}</td>
-                  <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.lng != null ? u.lng.toFixed(4) : "—"}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{u.velocidad != null ? `${u.velocidad} km/h` : "—"}</td>
                   <td className="px-4 py-3">
                     {u.timestamp === null ? (

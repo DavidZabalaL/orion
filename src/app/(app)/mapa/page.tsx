@@ -17,6 +17,8 @@ export default async function MapaPage() {
     select: {
       numeroEconomico: true,
       tipoVehiculo: true,
+      marca: true,
+      unidadModelo: true,
       proyecto: { select: { nombre: true } },
       posicionesGps: { orderBy: { timestamp: "desc" }, take: 1 },
     },
@@ -28,6 +30,7 @@ export default async function MapaPage() {
     return {
       numeroEconomico: u.numeroEconomico,
       tipoVehiculo: TIPO_VEHICULO_LABEL[u.tipoVehiculo] ?? u.tipoVehiculo,
+      descripcion: `${u.marca} ${u.unidadModelo}`,
       proyecto: u.proyecto?.nombre ?? null,
       timestamp: p ? p.timestamp.toISOString() : null,
       lat: p ? Number(p.lat) : null,
