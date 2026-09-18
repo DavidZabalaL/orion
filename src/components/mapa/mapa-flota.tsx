@@ -21,7 +21,7 @@ const FlotaMap = dynamic(() => import("@/components/mapa/flota-map").then((m) =>
   ),
 });
 
-export type UnidadMapaRow = PosicionRow & { tipoVehiculo: string };
+export type UnidadMapaRow = PosicionRow & { tipoVehiculo: string; disponibilidad: boolean };
 
 type EstatusGps = "conSenal" | "sinSenal" | "anomalo";
 
@@ -76,6 +76,8 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
     .map((u) => ({
       numeroEconomico: u.numeroEconomico,
       proyecto: u.proyecto,
+      tipoVehiculo: u.tipoVehiculo,
+      disponibilidad: u.disponibilidad,
       lat: u.lat as number,
       lng: u.lng as number,
       timestamp: u.timestamp as string,

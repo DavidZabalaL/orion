@@ -5,9 +5,11 @@
 // Leaflet toca `window`/`document` al importarse y truena en el render de
 // servidor de Next.
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import Link from "next/link";
+import { Car, Truck, Construction, Bike } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { fmtFechaHora } from "@/lib/formato";
 
@@ -16,6 +18,8 @@ const ZOOM_UNIDAD_SELECCIONADA = 13;
 export type PuntoMapa = {
   numeroEconomico: string;
   proyecto: string | null;
+  tipoVehiculo: string;
+  disponibilidad: boolean;
   lat: number;
   lng: number;
   timestamp: string;
@@ -28,20 +32,35 @@ export type PuntoRuta = { lat: number; lng: number };
 
 const CENTRO_MEXICO: [number, number] = [23.6345, -102.5528];
 
-function colorDePunto(p: PuntoMapa, seleccionado: boolean): string {
-  if (p.esAnomalo) return "var(--color-status-escena)";
-  if (seleccionado) return "var(--color-primary)";
-  return "var(--color-status-cerrado)";
+/** Disponible = verde, no disponible = rojo — el color del ícono manda sobre
+ *  cualquier otro estado; una lectura anómala se marca aparte con un anillo
+ *  ámbar (ver `icono`), para no competir por el mismo canal de color. */
+function colorDePunto(p: PuntoMapa): string {
+  return p.disponibilidad ? "var(--color-status-cerrado)" : "var(--color-status-escena)";
 }
 
-function icono(color: string, grande: boolean): L.DivIcon {
-  const tam = grande ? 18 : 14;
+// PuntoMapa.tipoVehiculo llega como la etiqueta en español (TIPO_VEHICULO_LABEL,
+// ya resuelta en mapa/page.tsx), no el enum crudo — se indexa igual aquí.
+const ICONO_POR_TIPO: Record<string, typeof Car> = {
+  Auto: Car,
+  Camioneta: Truck,
+  Grúa: Construction,
+  Moto: Bike,
+  Otro: Car,
+};
+
+function icono(p: PuntoMapa, color: string, seleccionado: boolean): L.DivIcon {
+  const tam = seleccionado ? 30 : 24;
+  const IconoTipo = ICONO_POR_TIPO[p.tipoVehiculo] ?? Car;
+  const svg = renderToStaticMarkup(<IconoTipo color="#fff" size={Math.round(tam * 0.58)} strokeWidth={2.5} />);
+  const anillo = p.esAnomalo ? "0 0 0 2px #fff, 0 0 0 4px var(--color-status-revision, #f59e0b)" : "0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,0.2)";
   return L.divIcon({
     className: "",
-    html: `<span style="display:block;width:${tam}px;height:${tam}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25)"></span>`,
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:${tam}px;height:${tam}px;border-radius:50%;background:${color};box-shadow:${anillo}">${svg}</span>`,
     iconSize: [tam, tam],
     iconAnchor: [tam / 2, tam / 2],
     popupAnchor: [0, -tam / 2],
+    tooltipAnchor: [0, -tam / 2],
   });
 }
 
@@ -82,8 +101,8 @@ export function FlotaMap({
     const cache = new Map<string, L.DivIcon>();
     return (p: PuntoMapa) => {
       const esSeleccionado = p.numeroEconomico === seleccionado;
-      const clave = colorDePunto(p, esSeleccionado) + (esSeleccionado ? ":sel" : "");
-      if (!cache.has(clave)) cache.set(clave, icono(colorDePunto(p, esSeleccionado), esSeleccionado));
+      const clave = `${p.tipoVehiculo}:${colorDePunto(p)}:${p.esAnomalo}:${esSeleccionado}`;
+      if (!cache.has(clave)) cache.set(clave, icono(p, colorDePunto(p), esSeleccionado));
       return cache.get(clave)!;
     };
   }, [seleccionado]);
@@ -115,6 +134,14 @@ export function FlotaMap({
           icon={iconos(p)}
           eventHandlers={onSeleccionar ? { click: () => onSeleccionar(p.numeroEconomico) } : undefined}
         >
+          {/* Al pasar el mouse: número económico, proyecto y tipo de vehículo — independiente del click (Popup/panel). */}
+          <Tooltip direction="top" offset={[0, -4]} opacity={1} className="orion-map-tooltip">
+            <div style={{ fontFamily: "var(--font-ui)", fontSize: 12, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 700, color: "var(--sidebar-text-active)" }}>{p.numeroEconomico}</div>
+              {p.proyecto && <div style={{ color: "var(--sidebar-text)" }}>{p.proyecto}</div>}
+              <div style={{ color: "var(--sidebar-text)" }}>{p.tipoVehiculo}</div>
+            </div>
+          </Tooltip>
           {/* Sin onSeleccionar (no hay panel flotante que lo reemplace) sí mostramos el popup nativo de Leaflet. */}
           {!onSeleccionar && (
             <Popup>
@@ -131,6 +158,10 @@ export function FlotaMap({
           )}
         </Marker>
       ))}
+      <style>{`
+        .orion-map-tooltip { background: var(--panel-bg); border: none; border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-sm); padding: 6px 10px; }
+        .orion-map-tooltip::before { display: none; }
+      `}</style>
     </MapContainer>
   );
 }

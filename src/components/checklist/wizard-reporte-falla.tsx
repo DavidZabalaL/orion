@@ -45,10 +45,13 @@ function horaActual() {
 
 export function WizardReporteFalla({
   unidades,
+  permitirGaleriaFotos = false,
   onTerminar,
   onCancelar,
 }: {
   unidades: UnidadWizard[];
+  /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp); el resto de roles solo puede usar la cámara. */
+  permitirGaleriaFotos?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 }) {
@@ -238,6 +241,7 @@ export function WizardReporteFalla({
               key={n}
               name={`foto_${n}`}
               label={`Foto ${n}`}
+              permitirGaleria={permitirGaleriaFotos}
               requerido={false}
               bloqueado={subiendoFoto}
               onSubiendoChange={setSubiendoFoto}

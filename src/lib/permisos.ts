@@ -99,6 +99,22 @@ export async function requerirDescargarPolizaSeguro(): Promise<void> {
 }
 
 /**
+ * El resto de fotos del checklist (daños, niveles, exterior, interior, equipo
+ * de seguridad) fuerzan cámara para que sean evidencia real del momento de la
+ * inspección, no una foto vieja de galería. Gerencial y Control Vehicular
+ * necesitan poder adjuntar fotos ya tomadas (ej. enviadas por el operador por
+ * WhatsApp) al capturar un checklist en su nombre, así que para esos roles se
+ * habilita también la galería.
+ */
+const ROLES_GALERIA_CHECKLIST = ["Control Vehicular", "Gerente administrativo"];
+
+export async function puedeUsarGaleriaChecklist(): Promise<boolean> {
+  if (await esRolGlobal()) return true;
+  const session = await auth();
+  return !!session?.user?.rol && ROLES_GALERIA_CHECKLIST.includes(session.user.rol);
+}
+
+/**
  * Forzar el cierre de una sesión de "Mi Turno" que tomó OTRA persona (ej. un
  * operador que en ese momento no puede liberarla él mismo) — más sensible que
  * solo consultar la bitácora, por eso no basta con el "editar" genérico del

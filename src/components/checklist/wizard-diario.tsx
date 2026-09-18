@@ -30,6 +30,8 @@ type Props = {
   proyectos: { id: string; nombre: string }[];
   esAdmin: boolean;
   fechaHoraActual: string;
+  /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp) para cualquier evidencia; el resto de roles solo puede usar la cámara, salvo la licencia (siempre permite galería). */
+  permitirGaleriaFotos?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 };
@@ -113,7 +115,7 @@ function BarraProgreso({ actual, total }: { actual: number; total: number }) {
 
 // ─── componente principal ─────────────────────────────────────────────────────
 
-export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, onTerminar, onCancelar }: Props) {
+export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, onTerminar, onCancelar }: Props) {
   const [fase, setFase] = useState<Fase>("identificacion");
   const [idx, setIdx] = useState(0);
   const [proyectoFiltro, setProyectoFiltro] = useState(proyectos[0]?.id ?? "");
@@ -146,14 +148,14 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
   const fotoPuntoInputRef = useRef<HTMLInputElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const fotoHorometroInputRef = useRef<HTMLInputElement>(null);
-  // A diferencia del resto de fotos del checklist (que fuerzan la cámara con
-  // `capture`): la licencia normalmente ya existe como foto en la galería del
-  // operador, así que aquí se ofrecen las dos opciones explícitas — un input
-  // con `capture` (cámara) y otro sin él (galería) — en vez de un solo botón
-  // que deje la elección al selector nativo del sistema operativo, que no se
-  // comporta igual en todos los dispositivos.
-  const licenciaGaleriaInputRef = useRef<HTMLInputElement>(null);
-  const licenciaCamaraInputRef = useRef<HTMLInputElement>(null);
+  // Cuando un campo permite galería (la licencia siempre; el resto solo para
+  // Gerencial/Control Vehicular vía permitirGaleriaFotos) se ofrecen dos
+  // opciones explícitas — un input con `capture` (cámara) y otro sin él
+  // (galería) — en vez de un solo botón que deje la elección al selector
+  // nativo del sistema operativo, que no se comporta igual en todos los
+  // dispositivos. Comparten el mismo extraFotoKeyRef que el input de solo
+  // cámara para saber a qué campo pertenece la foto seleccionada.
+  const extraGaleriaInputRef = useRef<HTMLInputElement>(null);
   const extraFotoKeyRef = useRef("");
   const puntoFotoActualRef = useRef<string | null>(null);
 
@@ -197,16 +199,10 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
     extraFotoInputRef.current?.click();
   }
 
-  function iniciarFotoLicenciaGaleria() {
-    extraFotoKeyRef.current = "gen_foto_licencia";
-    if (licenciaGaleriaInputRef.current) licenciaGaleriaInputRef.current.value = "";
-    licenciaGaleriaInputRef.current?.click();
-  }
-
-  function iniciarFotoLicenciaCamara() {
-    extraFotoKeyRef.current = "gen_foto_licencia";
-    if (licenciaCamaraInputRef.current) licenciaCamaraInputRef.current.value = "";
-    licenciaCamaraInputRef.current?.click();
+  function iniciarFotoExtraGaleria(key: string) {
+    extraFotoKeyRef.current = key;
+    if (extraGaleriaInputRef.current) extraGaleriaInputRef.current.value = "";
+    extraGaleriaInputRef.current?.click();
   }
 
   async function handleExtraFoto(file: File | undefined) {
@@ -382,7 +378,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
 
   // ─── Render helpers ───────────────────────────────────────────────────────
 
-  function rFoto(clave: string, label: string, requerido = true, permitirGaleria = false) {
+  function rFoto(clave: string, label: string, requerido = true, permitirGaleria = permitirGaleriaFotos) {
     const url = fotosExtra[clave];
     const sub = subiendoExtra === clave;
     const deshabilitado = bloqueoGlobalFoto && !sub;
@@ -405,12 +401,12 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
         <div key={clave}>
           <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
           <div className="flex gap-2">
-            <button type="button" disabled={deshabilitado} onClick={iniciarFotoLicenciaCamara} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
+            <button type="button" disabled={deshabilitado} onClick={() => iniciarFotoExtra(clave)} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
               style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
               {sub ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
               {sub ? "Subiendo…" : "Tomar foto"}
             </button>
-            <button type="button" disabled={deshabilitado} onClick={iniciarFotoLicenciaGaleria} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
+            <button type="button" disabled={deshabilitado} onClick={() => iniciarFotoExtraGaleria(clave)} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
               style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
               {sub ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
               {sub ? "Subiendo…" : "Elegir de galería"}
@@ -502,10 +498,8 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, on
       {/* Inputs ocultos — siempre montados para estabilidad de refs */}
       <input ref={extraFotoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
-      {/* Dos inputs explícitos para la licencia: uno fuerza cámara, el otro (sin `capture`) abre la galería. */}
-      <input ref={licenciaCamaraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
-        onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
-      <input ref={licenciaGaleriaInputRef} type="file" accept="image/*" className="hidden"
+      {/* Input sin `capture` para los campos con galería habilitada (abre la galería en vez de forzar la cámara). */}
+      <input ref={extraGaleriaInputRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => handleExtraFoto(e.target.files?.[0])} />
       <input ref={fotoPuntoInputRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => subirFotoPunto(e.target.files?.[0])} />

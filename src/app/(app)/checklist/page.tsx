@@ -6,7 +6,7 @@ import { ChecklistSemanalLista } from "@/components/checklist/checklist-semanal-
 import { ChecklistCargaCombustibleLista } from "@/components/checklist/checklist-carga-combustible-lista";
 import { ChecklistReporteFallaLista } from "@/components/checklist/checklist-reporte-falla-lista";
 import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirPermisoModulo, puedeUsarGaleriaChecklist } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
 import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
@@ -97,17 +97,44 @@ export default async function ChecklistPage() {
     }),
   ]);
 
+  // De las unidades sin checklist hoy, solo alertar por las que sí se
+  // movieron (según GPS) — una unidad que no se movió no tuvo actividad que
+  // reportar, así que no debe generar la alerta de "falta checklist".
+  const posicionesHoy = sinCapturaHoy.length
+    ? await prisma.posicionGPS.findMany({
+        where: { numeroEconomico: { in: sinCapturaHoy.map((u) => u.numeroEconomico) }, timestamp: { gte: inicioHoy }, kmValidado: { not: null } },
+        select: { numeroEconomico: true, kmValidado: true },
+      })
+    : [];
+  const kmPorUnidad = new Map<string, { min: number; max: number }>();
+  for (const p of posicionesHoy) {
+    const km = p.kmValidado!;
+    const actual = kmPorUnidad.get(p.numeroEconomico);
+    if (!actual) kmPorUnidad.set(p.numeroEconomico, { min: km, max: km });
+    else {
+      actual.min = Math.min(actual.min, km);
+      actual.max = Math.max(actual.max, km);
+    }
+  }
+  // Umbral de 1km para no marcar como "se movió" el ruido normal del GPS.
+  const UMBRAL_MOVIMIENTO_KM = 1;
+  const sinCapturaMovieron = sinCapturaHoy.filter((u) => {
+    const rango = kmPorUnidad.get(u.numeroEconomico);
+    return rango && rango.max - rango.min >= UMBRAL_MOVIMIENTO_KM;
+  });
+
   // Quién tiene activa cada unidad en "Mi Turno" ahora mismo — se autocompleta
   // como responsable del checklist en vez de un catálogo de personal por área
   // (ver WizardDiario), porque quien hace el checklist es quien tomó la unidad,
   // no un dato administrativo aparte. Solo esa misma persona puede completar
   // su checklist (se revalida server-side en crearChecklist).
-  const [sesionesAbiertas, identidadPropia] = await Promise.all([
+  const [sesionesAbiertas, identidadPropia, permitirGaleriaFotos] = await Promise.all([
     prisma.bitacoraUsoUnidad.findMany({
       where: { numeroEconomico: { in: unidades.map((u) => u.numeroEconomico) }, fin: null },
       include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
     }),
     resolverIdentidadTurno(),
+    puedeUsarGaleriaChecklist(),
   ]);
   const responsablePorUnidad = new Map(
     sesionesAbiertas.map((s) => [
@@ -171,9 +198,10 @@ export default async function ChecklistPage() {
         proyectos={proyectos}
         esAdmin={esAdmin}
         fechaHoraActual={fechaHoraActual}
+        permitirGaleriaFotos={permitirGaleriaFotos}
       />
 
-      {sinCapturaHoy.length > 0 && (
+      {sinCapturaMovieron.length > 0 && (
         <div
           className="rounded-md px-4 py-3"
           style={{
@@ -183,8 +211,8 @@ export default async function ChecklistPage() {
             color: "var(--color-status-revision)",
           }}
         >
-          {sinCapturaHoy.length} unidad(es) activa(s) sin checklist diario hoy:{" "}
-          {sinCapturaHoy.map((u) => u.numeroEconomico).join(", ")}
+          {sinCapturaMovieron.length} unidad(es) se movieron hoy (según GPS) sin checklist diario:{" "}
+          {sinCapturaMovieron.map((u) => u.numeroEconomico).join(", ")}
         </div>
       )}
 

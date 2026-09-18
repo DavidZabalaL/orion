@@ -17,6 +17,7 @@ export default async function MapaPage() {
     select: {
       numeroEconomico: true,
       tipoVehiculo: true,
+      disponibilidad: true,
       marca: true,
       unidadModelo: true,
       proyecto: { select: { nombre: true } },
@@ -30,6 +31,7 @@ export default async function MapaPage() {
     return {
       numeroEconomico: u.numeroEconomico,
       tipoVehiculo: TIPO_VEHICULO_LABEL[u.tipoVehiculo] ?? u.tipoVehiculo,
+      disponibilidad: u.disponibilidad,
       descripcion: `${u.marca} ${u.unidadModelo}`,
       proyecto: u.proyecto?.nombre ?? null,
       timestamp: p ? p.timestamp.toISOString() : null,

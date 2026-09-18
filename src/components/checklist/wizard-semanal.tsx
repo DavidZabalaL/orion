@@ -25,6 +25,8 @@ type Props = {
   proyectos: { id: string; nombre: string }[];
   esAdmin: boolean;
   fechaHoraActual: string;
+  /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp) para cualquier evidencia; el resto de roles solo puede usar la cámara, salvo la licencia (siempre permite galería). */
+  permitirGaleriaFotos?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 };
@@ -318,7 +320,7 @@ function BtnSiguiente({
 
 // ─── componente principal ─────────────────────────────────────────────────────
 
-export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, onTerminar, onCancelar }: Props) {
+export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, onTerminar, onCancelar }: Props) {
   const [fase, setFase] = useState<"identificacion" | "guia" | "exito">("identificacion");
   const [idx, setIdx] = useState(0);
   const [proyectoFiltro, setProyectoFiltro] = useState(proyectos[0]?.id ?? "");
@@ -789,6 +791,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               requerido
               url={fotos[item.fotoKey]}
               onUrl={(url) => setFoto(item.fotoKey, url)}
+              permitirGaleria={permitirGaleriaFotos}
               bloqueado={subiendoFoto}
               onSubiendoChange={setSubiendoFoto}
             />
@@ -850,6 +853,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
                 requerido={!!item.fotoRequerido}
                 url={fotos[item.fotoKey]}
                 onUrl={(url) => setFoto(item.fotoKey!, url)}
+                permitirGaleria={permitirGaleriaFotos}
                 bloqueado={subiendoFoto}
                 onSubiendoChange={setSubiendoFoto}
               />
@@ -901,6 +905,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, o
               requerido={item.requerido}
               url={fotos[item.key]}
               onUrl={(url) => setFoto(item.key, url)}
+              permitirGaleria={permitirGaleriaFotos}
               bloqueado={subiendoFoto}
               onSubiendoChange={setSubiendoFoto}
             />

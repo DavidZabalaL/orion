@@ -25,9 +25,10 @@ type Props = {
   proyectos: { id: string; nombre: string }[];
   esAdmin: boolean;
   fechaHoraActual: string;
+  permitirGaleriaFotos: boolean;
 };
 
-export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual }: Props) {
+export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos }: Props) {
   const router = useRouter();
   const [activo, setActivo] = useState<null | "diario" | "semanal" | "carga_combustible" | "reporte_falla">(null);
 
@@ -43,6 +44,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         proyectos={proyectos}
         esAdmin={esAdmin}
         fechaHoraActual={fechaHoraActual}
+        permitirGaleriaFotos={permitirGaleriaFotos}
         onTerminar={alTerminar}
         onCancelar={() => setActivo(null)}
       />
@@ -56,6 +58,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         proyectos={proyectos}
         esAdmin={esAdmin}
         fechaHoraActual={fechaHoraActual}
+        permitirGaleriaFotos={permitirGaleriaFotos}
         onTerminar={alTerminar}
         onCancelar={() => setActivo(null)}
       />
@@ -66,6 +69,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
     return (
       <WizardCargaCombustible
         unidades={unidades}
+        permitirGaleriaFotos={permitirGaleriaFotos}
         onTerminar={alTerminar}
         onCancelar={() => setActivo(null)}
       />
@@ -76,6 +80,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
     return (
       <WizardReporteFalla
         unidades={unidades}
+        permitirGaleriaFotos={permitirGaleriaFotos}
         onTerminar={alTerminar}
         onCancelar={() => setActivo(null)}
       />

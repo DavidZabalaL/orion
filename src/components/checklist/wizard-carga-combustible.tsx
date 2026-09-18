@@ -90,10 +90,13 @@ function BarraProgreso({ fase }: { fase: Fase }) {
 
 export function WizardCargaCombustible({
   unidades,
+  permitirGaleriaFotos = false,
   onTerminar,
   onCancelar,
 }: {
   unidades: UnidadWizard[];
+  /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp); el resto de roles solo puede usar la cámara. */
+  permitirGaleriaFotos?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 }) {
@@ -495,19 +498,19 @@ export function WizardCargaCombustible({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
             </div>
           </div>
 
