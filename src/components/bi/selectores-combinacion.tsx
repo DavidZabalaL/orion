@@ -334,7 +334,7 @@ export function SelectoresCombinacion({
       </div>
 
       <AlcanceProyecto combinacion={combinacion} onChange={onChange} proyectosDisponibles={proyectosDisponibles} />
-      <FiltrosCombinacion combinacion={combinacion} onChange={onChange} dataset={dataset} />
+      <FiltrosCombinacion combinacion={combinacion} onChange={onChange} dataset={dataset} proyectosDisponibles={proyectosDisponibles} />
 
       <div>
         <label style={labelStyle}>Tipo de gráfica</label>
@@ -439,10 +439,12 @@ function FiltrosCombinacion({
   combinacion,
   onChange,
   dataset,
+  proyectosDisponibles,
 }: {
   combinacion: CombinacionBI;
   onChange: (siguiente: CombinacionBI) => void;
   dataset: DatasetMeta;
+  proyectosDisponibles: ProyectoDisponible[];
 }) {
   const filtros = combinacion.filtros ?? [];
 
@@ -484,7 +486,7 @@ function FiltrosCombinacion({
       ) : (
         <div className="flex flex-col gap-3">
           {filtros.map((f, i) => (
-            <FilaFiltro key={i} filtro={f} dataset={dataset} onCambiarCampo={(campoId) => cambiarCampo(i, campoId)} onCambiarValores={(v) => cambiarValores(i, v)} onQuitar={() => quitarFiltro(i)} />
+            <FilaFiltro key={i} filtro={f} dataset={dataset} proyectosDisponibles={proyectosDisponibles} onCambiarCampo={(campoId) => cambiarCampo(i, campoId)} onCambiarValores={(v) => cambiarValores(i, v)} onQuitar={() => quitarFiltro(i)} />
           ))}
         </div>
       )}
@@ -600,12 +602,14 @@ function SelectorMes({ valores, onCambiar }: { valores: string[]; onCambiar: (va
 function FilaFiltro({
   filtro,
   dataset,
+  proyectosDisponibles,
   onCambiarCampo,
   onCambiarValores,
   onQuitar,
 }: {
   filtro: FiltroGuardable;
   dataset: DatasetMeta;
+  proyectosDisponibles: ProyectoDisponible[];
   onCambiarCampo: (campoId: string) => void;
   onCambiarValores: (valores: string[]) => void;
   onQuitar: () => void;
@@ -633,6 +637,26 @@ function FilaFiltro({
       </div>
       {campo.tipo === "fecha_mes" ? (
         <SelectorMes valores={filtro.valores} onCambiar={onCambiarValores} />
+      ) : campo.id === "proyecto" ? (
+        // El campo "proyecto" es texto libre por dataset (nombre real, no un id) sin
+        // `opciones` estáticas registradas en metadata.ts — se resuelve aquí con los
+        // proyectos reales del usuario en vez de dejar un input de texto libre donde
+        // habría que escribir el nombre exacto a mano.
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+          {proyectosDisponibles.length === 0 && (
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>No tienes proyectos asignados.</span>
+          )}
+          {proyectosDisponibles.map((p) => (
+            <label key={p.id} className="flex items-center gap-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+              <input
+                type="checkbox"
+                checked={filtro.valores.includes(p.nombre)}
+                onChange={(e) => onCambiarValores(e.target.checked ? [...filtro.valores, p.nombre] : filtro.valores.filter((v) => v !== p.nombre))}
+              />
+              {p.nombre}
+            </label>
+          ))}
+        </div>
       ) : campo.opciones ? (
         <div className="flex flex-wrap gap-x-3 gap-y-1.5">
           {campo.opciones.map((o) => (

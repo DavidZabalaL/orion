@@ -8,6 +8,7 @@ import type { WidgetDashboardBI } from "@/lib/bi/metadata";
 import type { VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
+import type { ConfigEstatusFlotaProgramado } from "@/app/(app)/dashboards/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function DashboardsPage({
   const { tab } = await searchParams;
 
   const proyectosPermitidos = await proyectosPermitidosParaModulo("M");
-  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reporteEstatusFlota] = await Promise.all([
+  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reportesEstatusFlota] = await Promise.all([
     prisma.vistaDashboardBI.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, nombre: true, widgets: true } }),
     tienePermisoModulo("M", "editar"),
     prisma.proyecto.findMany({
@@ -29,21 +30,27 @@ export default async function DashboardsPage({
       orderBy: { nombre: "asc" },
     }),
     prisma.metricaBI.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
-    prisma.reporteProgramado.findFirst({ where: { tipo: "estatus_flota" } }),
+    prisma.reporteProgramado.findMany({ where: { tipo: "estatus_flota" }, orderBy: { createdAt: "asc" } }),
   ]);
 
-  const filtrosEstatusFlota = reporteEstatusFlota?.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
-  const configEstatusFlota = {
-    id: reporteEstatusFlota?.id ?? null,
-    proyectoIds: filtrosEstatusFlota?.proyectoIds ?? [],
-    hora: reporteEstatusFlota?.hora ?? "08",
-    diaSemana: reporteEstatusFlota?.diaSemana ?? 1,
-    periodoDias: reporteEstatusFlota?.periodoDias ?? 7,
-    destinatarios: Array.isArray(reporteEstatusFlota?.destinatarios) ? (reporteEstatusFlota.destinatarios as string[]) : [],
-    activo: reporteEstatusFlota?.activo ?? false,
-    camposExtra: filtrosEstatusFlota?.camposExtra ?? [],
-    ordenSecciones: sanearOrdenSecciones(filtrosEstatusFlota?.ordenSecciones),
-  };
+  // Uno o más envíos automáticos (a pedido: poder tener un 2do/3er reporte
+  // con su propio día/hora/periodo/destinatarios/proyectos) — ver
+  // guardarProgramacionEstatusFlota en dashboards/actions.ts.
+  const configuracionesEstatusFlota: ConfigEstatusFlotaProgramado[] = reportesEstatusFlota.map((r) => {
+    const filtros = r.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
+    return {
+      id: r.id,
+      nombre: r.nombre,
+      proyectoIds: filtros?.proyectoIds ?? [],
+      hora: r.hora,
+      diaSemana: r.diaSemana,
+      periodoDias: r.periodoDias,
+      destinatarios: Array.isArray(r.destinatarios) ? (r.destinatarios as string[]) : [],
+      activo: r.activo,
+      camposExtra: filtros?.camposExtra ?? [],
+      ordenSecciones: sanearOrdenSecciones(filtros?.ordenSecciones),
+    };
+  });
 
   const vistas: VistaDashboard[] = vistasDb.map((v) => ({
     id: v.id,
@@ -66,7 +73,7 @@ export default async function DashboardsPage({
       proyectosDisponibles={proyectosDisponibles}
       metricasDisponibles={metricasDisponibles}
       tabInicial={tab === "explorador" ? "explorador" : "propios"}
-      configEstatusFlota={configEstatusFlota}
+      configuracionesEstatusFlota={configuracionesEstatusFlota}
     />
   );
 }

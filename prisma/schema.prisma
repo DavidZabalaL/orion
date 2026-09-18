@@ -152,6 +152,7 @@ enum OrigenPresupuesto {
 enum EstatusGasto {
   PROGRAMADO
   REALIZADO
+  PENDIENTE_DE_PAGO
   PAGADO
   CANCELADO
 }

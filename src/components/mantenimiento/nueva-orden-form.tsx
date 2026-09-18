@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { crearGasto } from "@/app/(app)/mantenimiento/actions";
 import { CamposCategoriaGasto } from "@/components/mantenimiento/campos-categoria-gasto";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
+import { ESTATUS_GASTO_LABEL } from "@/lib/categorias-gasto";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -93,10 +94,9 @@ export function NuevaOrdenForm({
         <div>
           <CampoAyuda style={labelStyle} texto="Etapa administrativa en la que se encuentra este gasto.">Estatus</CampoAyuda>
           <select name="estatus" style={fieldStyle} defaultValue="PROGRAMADO">
-            <option value="PROGRAMADO">Programado</option>
-            <option value="REALIZADO">Realizado</option>
-            <option value="PAGADO">Pagado</option>
-            <option value="CANCELADO">Cancelado</option>
+            {Object.entries(ESTATUS_GASTO_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
           </select>
         </div>
         <div>

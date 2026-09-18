@@ -33,7 +33,7 @@ export default async function UnidadesPage() {
     }),
     prisma.gastoVehicular.groupBy({
       by: ["numeroEconomico"],
-      where: { categoria: { in: [...CATEGORIAS_MANTENIMIENTO] }, estatus: { in: ["REALIZADO", "PAGADO"] } },
+      where: { categoria: { in: [...CATEGORIAS_MANTENIMIENTO] }, estatus: { in: ["REALIZADO", "PENDIENTE_DE_PAGO", "PAGADO"] } },
       _max: { fecha: true },
     }),
     prisma.gastoVehicular.groupBy({

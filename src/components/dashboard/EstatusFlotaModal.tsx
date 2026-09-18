@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { X, FileDown, Mail, Loader2, CheckCircle2, Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { X, FileDown, Mail, Loader2, CheckCircle2, Plus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import {
   obtenerDatosEstatusFlota,
   enviarEstatusFlotaAhora,
   guardarProgramacionEstatusFlota,
+  eliminarProgramacionEstatusFlota,
   type ConfigEstatusFlotaProgramado,
 } from "@/app/(app)/dashboards/actions";
 import { BI_DATASETS } from "@/lib/bi/metadata";
 import { VISUALIZACION_SUGERIDA, VISUALIZACION_SUGERIDA_LABEL, type CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
-import { SECCION_REPORTE_LABEL, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
+import { SECCION_REPORTE_LABEL, ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { useExportRegistry } from "./ExportRegistryContext";
 import type { IndicadorDashboard } from "./EstatusFlotaDocument";
 
@@ -79,32 +80,69 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
+/**
+ * Un envío automático guardado (o aún sin guardar, `id: null`) — cada uno con
+ * su propio nombre, proyectos, día/hora/periodo, destinatarios y estatus.
+ * `destinatarios` se edita como texto libre (no el array ya separado) por lo
+ * mismo que el campo de destinatarios de arriba: separar por coma en cada
+ * tecleo borraría lo que se está escribiendo después de una coma.
+ */
+type ProgramacionItem = Omit<ConfigEstatusFlotaProgramado, "destinatarios"> & {
+  /** Clave local estable para el `key` de React mientras no tiene `id` (aún no se guarda) — nunca se envía al servidor. */
+  claveLocal: string;
+  destinatariosTexto: string;
+};
+
+let contadorClaveLocal = 0;
+function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtraSeleccionado[]; ordenSecciones: SeccionReporteId[] }): ProgramacionItem {
+  contadorClaveLocal += 1;
+  return {
+    claveLocal: `nueva-${contadorClaveLocal}`,
+    id: null,
+    nombre: "",
+    proyectoIds: base.proyectoIds,
+    hora: "08",
+    diaSemana: 1,
+    periodoDias: 7,
+    destinatariosTexto: "",
+    activo: true,
+    camposExtra: base.camposExtra,
+    ordenSecciones: base.ordenSecciones,
+  };
+}
+
 export function EstatusFlotaModal({
   onClose,
   proyectosDisponibles,
-  configInicial,
+  configuracionesIniciales,
   puedeEditar,
 }: {
   onClose: () => void;
   proyectosDisponibles: ProyectoDisponible[];
-  configInicial: ConfigEstatusFlotaProgramado;
+  configuracionesIniciales: ConfigEstatusFlotaProgramado[];
   puedeEditar: boolean;
 }) {
-  const [seleccionados, setSeleccionados] = useState<string[]>(configInicial.proyectoIds ?? []);
+  const primera = configuracionesIniciales[0];
+  const [seleccionados, setSeleccionados] = useState<string[]>(primera?.proyectoIds ?? []);
   const [desde, setDesde] = useState(hoyISO(-7));
   const [hasta, setHasta] = useState(hoyISO());
-  const [destinatarios, setDestinatarios] = useState(configInicial.destinatarios.join(", "));
-  const [horaAutomatica, setHoraAutomatica] = useState(configInicial.hora);
-  const [diaSemanaAutomatico, setDiaSemanaAutomatico] = useState(configInicial.diaSemana);
-  const [periodoDiasAutomatico, setPeriodoDiasAutomatico] = useState(configInicial.periodoDias);
-  const [envioAutomaticoActivo, setEnvioAutomaticoActivo] = useState(configInicial.activo);
-  const [camposExtra, setCamposExtra] = useState<CampoExtraSeleccionado[]>(configInicial.camposExtra ?? []);
+  const [destinatarios, setDestinatarios] = useState(primera?.destinatarios.join(", ") ?? "");
+  const [camposExtra, setCamposExtra] = useState<CampoExtraSeleccionado[]>(primera?.camposExtra ?? []);
   const [mostrarSelectorCampos, setMostrarSelectorCampos] = useState(false);
-  const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(configInicial.ordenSecciones);
+  const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(primera?.ordenSecciones ?? ORDEN_SECCIONES_DEFAULT);
+
+  const [programaciones, setProgramaciones] = useState<ProgramacionItem[]>(
+    configuracionesIniciales.map((c) => {
+      const { destinatarios, ...resto } = c;
+      return { ...resto, claveLocal: c.id!, destinatariosTexto: destinatarios.join(", ") };
+    })
+  );
+  const [guardandoIdx, setGuardandoIdx] = useState<number | null>(null);
+  const [eliminandoIdx, setEliminandoIdx] = useState<number | null>(null);
+  const [mensajePorIdx, setMensajePorIdx] = useState<Record<number, { tipo: "ok" | "error"; texto: string }>>({});
 
   const [descargando, setDescargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
 
   // Los KPIs tal cual están en "Mis dashboards" en este momento (mismo
@@ -194,23 +232,57 @@ export function EstatusFlotaModal({
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }
 
-  async function guardarAutomatico() {
-    const listaDestinatarios = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
-    setGuardando(true);
-    setMensaje(null);
+  function agregarProgramacion() {
+    setProgramaciones((prev) => [...prev, nuevaProgramacion({ proyectoIds: seleccionados, camposExtra, ordenSecciones })]);
+  }
+
+  function actualizarProgramacion(idx: number, patch: Partial<ProgramacionItem>) {
+    setProgramaciones((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  }
+
+  async function guardarProgramacion(idx: number) {
+    const item = programaciones[idx];
+    if (!item) return;
+    setGuardandoIdx(idx);
+    setMensajePorIdx((prev) => { const c = { ...prev }; delete c[idx]; return c; });
+    const listaDestinatarios = item.destinatariosTexto.split(",").map((d) => d.trim()).filter(Boolean);
+    if (listaDestinatarios.length === 0) {
+      setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Indica al menos un destinatario." } }));
+      return;
+    }
     const res = await guardarProgramacionEstatusFlota({
-      id: configInicial.id,
-      proyectoIds: seleccionados,
-      hora: horaAutomatica,
-      diaSemana: diaSemanaAutomatico,
-      periodoDias: periodoDiasAutomatico,
+      id: item.id,
+      nombre: item.nombre,
+      proyectoIds: item.proyectoIds,
+      hora: item.hora,
+      diaSemana: item.diaSemana,
+      periodoDias: item.periodoDias,
       destinatarios: listaDestinatarios,
-      activo: envioAutomaticoActivo,
-      camposExtra,
-      ordenSecciones,
+      activo: item.activo,
+      camposExtra: item.camposExtra,
+      ordenSecciones: item.ordenSecciones,
     });
-    setGuardando(false);
-    setMensaje(res.ok ? { tipo: "ok", texto: "Envío automático guardado." } : { tipo: "error", texto: res.error ?? "No se pudo guardar." });
+    setGuardandoIdx(null);
+    if (res.ok) {
+      // Guarda el id real que devolvió el create para que un siguiente guardado
+      // de este mismo item actualice esa fila en vez de crear una nueva.
+      setProgramaciones((prev) => prev.map((p, i) => (i === idx ? { ...p, id: res.id } : p)));
+    }
+    setMensajePorIdx((prev) => ({ ...prev, [idx]: res.ok ? { tipo: "ok", texto: "Guardado." } : { tipo: "error", texto: res.error ?? "No se pudo guardar." } }));
+  }
+
+  async function eliminarProgramacion(idx: number) {
+    const item = programaciones[idx];
+    if (!item) return;
+    if (!item.id) {
+      setProgramaciones((prev) => prev.filter((_, i) => i !== idx));
+      return;
+    }
+    setEliminandoIdx(idx);
+    const res = await eliminarProgramacionEstatusFlota(item.id);
+    setEliminandoIdx(null);
+    if (res.ok) setProgramaciones((prev) => prev.filter((_, i) => i !== idx));
+    else setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: res.error ?? "No se pudo eliminar." } }));
   }
 
   return (
@@ -406,60 +478,132 @@ export function EstatusFlotaModal({
           </button>
 
           {puedeEditar && (
-            <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--chip)" }}>
+            <div className="flex flex-col gap-3">
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                Envío automático semanal
+                Envíos automáticos
               </p>
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                Se envía el día y hora que elijas, cada semana, a los proyectos y destinatarios de arriba y a los datos adicionales seleccionados — pero con su propio &ldquo;Periodo de datos&rdquo; (abajo), no con las fechas Desde/Hasta de arriba, que solo aplican a la descarga o el envío inmediato.
+                Cada envío tiene su propio día, hora, periodo de datos, proyectos y destinatarios — puedes tener más de uno (ej. uno semanal para toda la flota y otro mensual solo para un proyecto). Todos usan los mismos &ldquo;Datos adicionales&rdquo; y &ldquo;Orden de las secciones&rdquo; de arriba; las fechas Desde/Hasta de arriba solo aplican a la descarga o el envío inmediato.
               </p>
-              <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
-                <input type="checkbox" checked={envioAutomaticoActivo} onChange={(e) => setEnvioAutomaticoActivo(e.target.checked)} />
-                Activar envío automático
-              </label>
-              <div className="flex flex-wrap gap-3">
-                <div className="max-w-[180px]">
-                  <label style={labelStyle}>Día de la semana</label>
-                  <select
-                    value={diaSemanaAutomatico}
-                    onChange={(e) => setDiaSemanaAutomatico(Number(e.target.value))}
-                    style={fieldStyle}
-                  >
-                    {DIAS_SEMANA.map((d) => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="max-w-[160px]">
-                  <label style={labelStyle}>Hora (México)</label>
-                  <input
-                    type="time"
-                    value={`${horaAutomatica.padStart(2, "0")}:00`}
-                    onChange={(e) => setHoraAutomatica(e.target.value.split(":")[0])}
-                    style={fieldStyle}
-                  />
-                </div>
-                <div className="max-w-[200px]">
-                  <label style={labelStyle}>Periodo de datos</label>
-                  <select
-                    value={periodoDiasAutomatico}
-                    onChange={(e) => setPeriodoDiasAutomatico(Number(e.target.value))}
-                    style={fieldStyle}
-                  >
-                    {PERIODOS_DIAS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+
+              {programaciones.map((item, idx) => {
+                const todosSeleccionadosItem = proyectosDisponibles.length > 0 && item.proyectoIds.length === proyectosDisponibles.length;
+                const msg = mensajePorIdx[idx];
+                return (
+                  <div key={item.claveLocal} className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--chip)" }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <input
+                        value={item.nombre}
+                        onChange={(e) => actualizarProgramacion(idx, { nombre: e.target.value })}
+                        placeholder="Nombre de este envío (ej. Estatus semanal de flota)"
+                        style={{ ...fieldStyle, fontWeight: 600 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => eliminarProgramacion(idx)}
+                        disabled={eliminandoIdx === idx}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg disabled:opacity-50"
+                        style={{ background: "var(--panel-bg)", color: "var(--color-status-escena)" }}
+                        title="Eliminar este envío automático"
+                      >
+                        {eliminandoIdx === idx ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                      <input type="checkbox" checked={item.activo} onChange={(e) => actualizarProgramacion(idx, { activo: e.target.checked })} />
+                      Activo
+                    </label>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label style={{ ...labelStyle, marginBottom: 0 }}>Proyectos a desglosar (opcional)</label>
+                        <button
+                          type="button"
+                          onClick={() => actualizarProgramacion(idx, { proyectoIds: todosSeleccionadosItem ? [] : proyectosDisponibles.map((p) => p.id) })}
+                          style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer" }}
+                        >
+                          {todosSeleccionadosItem ? "Quitar selección" : "Seleccionar todos"}
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-1 pl-1 max-h-28 overflow-y-auto rounded-md p-1.5" style={{ background: "var(--panel-bg)" }}>
+                        {proyectosDisponibles.map((p) => (
+                          <label key={p.id} className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                            <input
+                              type="checkbox"
+                              checked={item.proyectoIds.includes(p.id)}
+                              onChange={() => actualizarProgramacion(idx, { proyectoIds: item.proyectoIds.includes(p.id) ? item.proyectoIds.filter((x) => x !== p.id) : [...item.proyectoIds, p.id] })}
+                            />
+                            {p.nombre}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Destinatarios (separados por coma)</label>
+                      <input
+                        value={item.destinatariosTexto}
+                        onChange={(e) => actualizarProgramacion(idx, { destinatariosTexto: e.target.value })}
+                        placeholder="nombre@grupokabat.com"
+                        style={fieldStyle}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <div className="max-w-[180px]">
+                        <label style={labelStyle}>Día de la semana</label>
+                        <select value={item.diaSemana} onChange={(e) => actualizarProgramacion(idx, { diaSemana: Number(e.target.value) })} style={fieldStyle}>
+                          {DIAS_SEMANA.map((d) => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="max-w-[160px]">
+                        <label style={labelStyle}>Hora (México)</label>
+                        <input
+                          type="time"
+                          value={`${item.hora.padStart(2, "0")}:00`}
+                          onChange={(e) => actualizarProgramacion(idx, { hora: e.target.value.split(":")[0] })}
+                          style={fieldStyle}
+                        />
+                      </div>
+                      <div className="max-w-[200px]">
+                        <label style={labelStyle}>Periodo de datos</label>
+                        <select value={item.periodoDias} onChange={(e) => actualizarProgramacion(idx, { periodoDias: Number(e.target.value) })} style={fieldStyle}>
+                          {PERIODOS_DIAS.map((p) => (
+                            <option key={p.value} value={p.value}>{p.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => guardarProgramacion(idx)}
+                      disabled={guardandoIdx === idx}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg disabled:opacity-50 w-fit"
+                      style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+                    >
+                      {guardandoIdx === idx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      Guardar este envío
+                    </button>
+
+                    {msg && (
+                      <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: msg.tipo === "ok" ? "var(--color-status-cerrado)" : "var(--color-error)" }}>
+                        {msg.texto}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
               <button
-                onClick={guardarAutomatico}
-                disabled={guardando}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg disabled:opacity-50 w-fit"
-                style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+                type="button"
+                onClick={agregarProgramacion}
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg w-fit"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
               >
-                {guardando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                Guardar envío automático
+                <Plus className="w-4 h-4" /> Agregar otro envío automático
               </button>
             </div>
           )}

@@ -16,7 +16,7 @@ async function calcularAlerta(
   config: { intervaloKm: number; intervaloHoras: number | null }
 ): Promise<AlertaPreventiva | null> {
   const ultimoMantenimiento = await prisma.gastoVehicular.findFirst({
-    where: { numeroEconomico: unidad.numeroEconomico, categoria: "MANTENIMIENTO_PREVENTIVO", estatus: { in: ["REALIZADO", "PAGADO"] } },
+    where: { numeroEconomico: unidad.numeroEconomico, categoria: "MANTENIMIENTO_PREVENTIVO", estatus: { in: ["REALIZADO", "PENDIENTE_DE_PAGO", "PAGADO"] } },
     orderBy: { fecha: "desc" },
     select: { fecha: true, kmAlMomento: true },
   });

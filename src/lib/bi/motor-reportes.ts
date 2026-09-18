@@ -41,14 +41,17 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // el "general" es siempre la flota completa sin restricción (no hay
       // sesión en el cron, así que no se deriva de los permisos de
       // creadoPorId); la selección de proyectos la elige quien configuró el
-      // envío en el Dashboard (filtrosJson). Cubre periodoDias hacia atrás
-      // desde hoy (configurable en el modal, ej. últimos 7/30/90 días).
-      // Va en el cuerpo del correo (HTML), sin PDF adjunto — ver
-      // src/lib/reportes/estatus-flota-html.ts.
+      // envío en el Dashboard (filtrosJson). Cubre periodoDias completos
+      // ANTERIORES a hoy (configurable en el modal, ej. últimos 7/30/90 días)
+      // — el envío automático es "lo que pasó en el periodo ya cerrado", no
+      // un parcial de hoy que aún puede cambiar; el selector manual de
+      // fechas (calcularReporteConAlcance, sí incluye el día seleccionado
+      // completo) es un caso distinto y no cambia. Va en el cuerpo del
+      // correo (HTML), sin PDF adjunto — ver src/lib/reportes/estatus-flota-html.ts.
       const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
-      const hasta = inicioDeHoyMx();
-      const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS);
+      const hasta = new Date(inicioDeHoyMx().getTime() - 1); // 23:59:59.999 MX de ayer — excluye lo capturado hoy
+      const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS + 1);
       const datos = await calcularEstatusFlotaReporte({
         proyectoIdsPermitidos: null,
         proyectoIdsSeleccionados: proyectoIds,

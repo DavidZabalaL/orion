@@ -306,6 +306,7 @@ export async function enviarEstatusFlotaAhora(input: {
 
 export type ConfigEstatusFlotaProgramado = {
   id: string | null;
+  nombre: string;
   proyectoIds: string[];
   hora: string;
   /** Día de la semana: 0 = domingo … 6 = sábado (getUTCDay, hora México). */
@@ -324,16 +325,19 @@ const TIPO_ESTATUS_FLOTA = "estatus_flota";
 const MAX_CAMPOS_EXTRA = 18;
 
 /**
- * Envío automático semanal — un único ReporteProgramado (tipo "estatus_flota"),
- * administrado desde este modal en vez de listarse en /reportes/generador
- * (a pedido explícito: no debe verse como un módulo aparte). Corre el día de
- * la semana configurado, igual que cualquier otro reporte SEMANAL de la
- * plataforma (ver src/app/api/cron/reportes-programados/route.ts).
+ * Envío automático semanal — uno o más ReporteProgramado (tipo "estatus_flota"),
+ * administrados desde este modal en vez de listarse en /reportes/generador
+ * (a pedido explícito: no debe verse como un módulo aparte). Cada uno corre el
+ * día de la semana configurado, igual que cualquier otro reporte SEMANAL de la
+ * plataforma (ver src/app/api/cron/reportes-programados/route.ts). No hay
+ * límite de cuántos puede haber — el cron ya itera todos los ReporteProgramado
+ * vencidos por id, sin asumir que solo existe uno.
  */
 const PERIODOS_DIAS_VALIDOS = [7, 15, 30, 60, 90];
 
 export async function guardarProgramacionEstatusFlota(input: {
   id: string | null;
+  nombre: string;
   proyectoIds: string[];
   hora: string;
   diaSemana: number;
@@ -342,12 +346,13 @@ export async function guardarProgramacionEstatusFlota(input: {
   activo: boolean;
   camposExtra: CampoExtraSeleccionado[];
   ordenSecciones: SeccionReporteId[];
-}): Promise<ResultadoSimple> {
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await auth();
   if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
     return { ok: false, error: "No tienes permiso para configurar el envío automático." };
   }
 
+  const nombre = input.nombre.trim() || "Estatus semanal de flota";
   if (!Number.isInteger(input.diaSemana) || input.diaSemana < 0 || input.diaSemana > 6) {
     return { ok: false, error: "Día de la semana inválido." };
   }
@@ -362,7 +367,7 @@ export async function guardarProgramacionEstatusFlota(input: {
     .slice(0, MAX_CAMPOS_EXTRA);
 
   const data = {
-    nombre: "Estatus semanal de flota",
+    nombre,
     tipo: TIPO_ESTATUS_FLOTA,
     camposJson: [],
     filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos, ordenSecciones: sanearOrdenSecciones(input.ordenSecciones) },
@@ -377,15 +382,26 @@ export async function guardarProgramacionEstatusFlota(input: {
   };
 
   try {
-    if (input.id) {
-      await prisma.reporteProgramado.update({ where: { id: input.id }, data });
-    } else {
-      await prisma.reporteProgramado.create({ data });
-    }
+    const fila = input.id
+      ? await prisma.reporteProgramado.update({ where: { id: input.id }, data })
+      : await prisma.reporteProgramado.create({ data });
+    revalidatePath("/dashboards");
+    return { ok: true, id: fila.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar la programación." };
+  }
+}
+
+export async function eliminarProgramacionEstatusFlota(id: string): Promise<ResultadoSimple> {
+  if (!(await tienePermisoModulo("M", "editar"))) {
+    return { ok: false, error: "No tienes permiso para eliminar el envío automático." };
+  }
+  try {
+    await prisma.reporteProgramado.deleteMany({ where: { id, tipo: TIPO_ESTATUS_FLOTA } });
     revalidatePath("/dashboards");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar la programación." };
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo eliminar la programación." };
   }
 }
 

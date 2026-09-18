@@ -28,14 +28,14 @@ export function DashboardsUnificado({
   proyectosDisponibles,
   metricasDisponibles,
   tabInicial,
-  configEstatusFlota,
+  configuracionesEstatusFlota,
 }: {
   vistas: VistaDashboard[];
   puedeEditar: boolean;
   proyectosDisponibles: ProyectoDisponible[];
   metricasDisponibles: MetricaDisponible[];
   tabInicial: TabId;
-  configEstatusFlota: ConfigEstatusFlotaProgramado;
+  configuracionesEstatusFlota: ConfigEstatusFlotaProgramado[];
 }) {
   const [tab, setTab] = useState<TabId>(tabInicial);
   const [mostrarEstatusFlota, setMostrarEstatusFlota] = useState(false);
@@ -102,7 +102,7 @@ export function DashboardsUnificado({
           <EstatusFlotaModal
             onClose={() => setMostrarEstatusFlota(false)}
             proyectosDisponibles={proyectosDisponibles}
-            configInicial={configEstatusFlota}
+            configuracionesIniciales={configuracionesEstatusFlota}
             puedeEditar={puedeEditar}
           />
         )}
