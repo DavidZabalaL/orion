@@ -9,12 +9,12 @@ import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } fr
 import { actualizarConfiguracionWidgets } from "@/app/(app)/usuarios/widgets/actions";
 import { COLS_WIDGETS, conAlturaSegura, type DefinicionWidget, type WidgetConfigItem } from "@/lib/widgets";
 
-// Mínimo que se puede arrastrar aquí, por tipo — este editor muestra
-// tarjetas de relleno (sin los chips reales de datos), así que no hay forma
-// de notar en vivo si un tamaño queda demasiado chico; MIN_ALTURA evita que
-// se pueda guardar un valor que luego corte contenido real en Inventario de
-// Unidades (ver conAlturaSegura, que además autocorrige lo ya guardado).
-const MIN_ALTURA: Record<DefinicionWidget["tipo"], number> = { contador: 3, desglose: 8 };
+// Mínimo que se puede arrastrar aquí, por tipo — mismo piso que ALTO_DEFAULT
+// en lib/widgets.ts (conAlturaSegura), solo para evitar un tamaño
+// literalmente ilegible. Este editor muestra tarjetas de relleno, no los
+// datos reales; para juzgar si un tamaño se ve bien, redimensiona en
+// Inventario de Unidades directamente, que sí muestra el contenido real.
+const MIN_ALTURA: Record<DefinicionWidget["tipo"], number> = { contador: 2, desglose: 4 };
 
 // Mismo esquema de breakpoints que el dashboard de BI: un solo corte, muy por
 // debajo de cualquier ancho de escritorio real, para que el colapso del

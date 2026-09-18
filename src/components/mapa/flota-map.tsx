@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import Link from "next/link";
-import { Car, Truck, Construction, Bike } from "lucide-react";
+import { Car, Truck, Forklift, Scooter } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { fmtFechaHora } from "@/lib/formato";
 
@@ -41,11 +41,15 @@ function colorDePunto(p: PuntoMapa): string {
 
 // PuntoMapa.tipoVehiculo llega como la etiqueta en español (TIPO_VEHICULO_LABEL,
 // ya resuelta en mapa/page.tsx), no el enum crudo — se indexa igual aquí.
+// lucide-react no tiene un ícono dedicado de grúa ni de moto — se usan los más
+// parecidos por silueta: Forklift (brazo/mástil vertical) en vez de
+// Construction (que es un cono de obra, no un vehículo), y Scooter (moto
+// scooter) en vez de Bike (bicicleta de pedales).
 const ICONO_POR_TIPO: Record<string, typeof Car> = {
   Auto: Car,
   Camioneta: Truck,
-  Grúa: Construction,
-  Moto: Bike,
+  Grúa: Forklift,
+  Moto: Scooter,
   Otro: Car,
 };
 

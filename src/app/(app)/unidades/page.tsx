@@ -122,20 +122,24 @@ export default async function UnidadesPage() {
 
   const widgetsGuardados = configWidgets?.widgets as WidgetConfigItem[] | undefined;
   const layoutsPorDefecto = generarLayoutsPorDefecto(CATALOGO_WIDGETS_UNIDADES);
-  const widgetsActivos: WidgetActivo[] = CATALOGO_WIDGETS_UNIDADES
-    .map((w) => {
-      const guardado = widgetsGuardados?.find((g) => g.id === w.id);
-      return {
-        id: w.id,
-        label: w.labelDefault,
-        tipo: w.tipo,
-        activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
-        layout: esLayoutValido(guardado?.layout) ? conAlturaSegura(w.tipo, guardado.layout) : layoutsPorDefecto[w.id],
-      };
-    })
-    // El widget de SLA por proyecto respeta el mismo permiso especial que la
-    // columna, además del on/off global de Configurar widgets.
-    .filter((w) => w.activo && (w.id !== "slaPorProyecto" || puedeVerSla));
+  // Catálogo completo (activos e inactivos) — necesario para poder guardar un
+  // cambio de tamaño/posición arrastrado en esta misma página sin pisar el
+  // layout ya guardado de los widgets que están apagados (ver
+  // InventarioUnidades: al arrastrar solo se envían los visibles, y esto es
+  // lo que permite reconstruir el resto tal cual estaban).
+  const configuracionCompleta: WidgetActivo[] = CATALOGO_WIDGETS_UNIDADES.map((w) => {
+    const guardado = widgetsGuardados?.find((g) => g.id === w.id);
+    return {
+      id: w.id,
+      label: w.labelDefault,
+      tipo: w.tipo,
+      activo: guardado ? guardado.activo : WIDGETS_DEFAULT_UNIDADES.includes(w.id),
+      layout: esLayoutValido(guardado?.layout) ? conAlturaSegura(w.tipo, guardado.layout) : layoutsPorDefecto[w.id],
+    };
+  });
+  // El widget de SLA por proyecto respeta el mismo permiso especial que la
+  // columna, además del on/off global de Configurar widgets.
+  const widgetsActivos: WidgetActivo[] = configuracionCompleta.filter((w) => w.activo && (w.id !== "slaPorProyecto" || puedeVerSla));
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -155,7 +159,15 @@ export default async function UnidadesPage() {
         )}
       </div>
 
-      <InventarioUnidades rows={rows} widgetsActivos={widgetsActivos} gastoHoy={gastoHoy} puedeVerSla={puedeVerSla} slaOcultoInicial={slaOculto} />
+      <InventarioUnidades
+        rows={rows}
+        widgetsActivos={widgetsActivos}
+        configuracionCompleta={configuracionCompleta}
+        puedeConfigurar={puedeConfigurar}
+        gastoHoy={gastoHoy}
+        puedeVerSla={puedeVerSla}
+        slaOcultoInicial={slaOculto}
+      />
     </div>
   );
 }

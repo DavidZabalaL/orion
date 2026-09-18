@@ -2,13 +2,14 @@
 
 import "react-grid-layout/css/styles.css";
 
-import { useMemo, useState } from "react";
-import { Car, CheckCircle2, XCircle, Ban, PauseCircle, Layers } from "lucide-react";
-import { Responsive, useContainerWidth, type ResponsiveLayouts } from "react-grid-layout";
+import { useMemo, useState, useTransition } from "react";
+import { Car, CheckCircle2, XCircle, Ban, PauseCircle, Layers, GripVertical } from "lucide-react";
+import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { UnidadesTable, type UnidadRow } from "@/components/unidades/unidades-table";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
-import { valorWidgetUnidades, COLS_WIDGETS, type WidgetActivo } from "@/lib/widgets";
+import { valorWidgetUnidades, COLS_WIDGETS, type WidgetActivo, type WidgetConfigItem } from "@/lib/widgets";
+import { actualizarConfiguracionWidgets } from "@/app/(app)/usuarios/widgets/actions";
 
 // Antes solo había dos escalones (< 600px = 1 columna, ≥ 600px = las 12
 // completas): cualquier ancho intermedio (tablet, laptop chica, ventana no
@@ -37,12 +38,18 @@ function tipoLabelDe(r: UnidadRow): string {
 export function InventarioUnidades({
   rows,
   widgetsActivos,
+  configuracionCompleta,
+  puedeConfigurar = false,
   gastoHoy,
   puedeVerSla = false,
   slaOcultoInicial = false,
 }: {
   rows: UnidadRow[];
   widgetsActivos: WidgetActivo[];
+  /** Catálogo completo (activos e inactivos), tal como está guardado — para no perder el layout de los widgets apagados al guardar un cambio de tamaño hecho aquí. */
+  configuracionCompleta: WidgetActivo[];
+  /** Solo Administrador puede arrastrar/redimensionar directo en esta página (mismo permiso que /usuarios/widgets). */
+  puedeConfigurar?: boolean;
   gastoHoy: number;
   puedeVerSla?: boolean;
   slaOcultoInicial?: boolean;
@@ -52,6 +59,12 @@ export function InventarioUnidades({
   const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([]);
   const [disponibilidad, setDisponibilidad] = useState<Disponibilidad | null>(null);
   const [categoriaEstatus, setCategoriaEstatus] = useState<CategoriaEstatus | null>(null);
+  const [layoutsWidgets, setLayoutsWidgets] = useState<Record<string, { x: number; y: number; w: number; h: number }>>(() =>
+    Object.fromEntries(widgetsActivos.map((w) => [w.id, w.layout]))
+  );
+  const [layoutSinGuardar, setLayoutSinGuardar] = useState(false);
+  const [guardandoLayout, startTransitionLayout] = useTransition();
+  const [layoutGuardadoOk, setLayoutGuardadoOk] = useState(false);
 
   const hayFiltrosActivos =
     proyectosSeleccionados.length > 0 || tiposSeleccionados.length > 0 || disponibilidad !== null || categoriaEstatus !== null;
@@ -205,11 +218,62 @@ export function InventarioUnidades({
   }
 
   const layouts: ResponsiveLayouts = {
-    lg: widgetsActivos.map((w) => ({ i: w.id, x: w.layout.x, y: w.layout.y, w: w.layout.w, h: w.layout.h })),
+    lg: widgetsActivos.map((w) => {
+      const l = layoutsWidgets[w.id] ?? w.layout;
+      return { i: w.id, x: l.x, y: l.y, w: l.w, h: l.h, minW: 2, minH: 2 };
+    }),
   };
+
+  function manejarCambioLayout(actual: Layout, todos: ResponsiveLayouts) {
+    if (!puedeConfigurar) return;
+    const referencia = todos.lg ?? actual;
+    setLayoutsWidgets((prev) => {
+      const siguiente = { ...prev };
+      for (const item of referencia) siguiente[item.i] = { x: item.x, y: item.y, w: item.w, h: item.h };
+      return siguiente;
+    });
+    setLayoutSinGuardar(true);
+  }
+
+  function guardarLayout() {
+    setLayoutGuardadoOk(false);
+    startTransitionLayout(async () => {
+      // Se reconstruye el catálogo COMPLETO (no solo lo visible aquí) para no
+      // pisar el layout guardado de los widgets apagados.
+      const widgetsAGuardar: WidgetConfigItem[] = configuracionCompleta.map((w) => ({
+        id: w.id,
+        activo: w.activo,
+        layout: layoutsWidgets[w.id] ?? w.layout,
+      }));
+      const res = await actualizarConfiguracionWidgets("A", widgetsAGuardar);
+      if (res.ok) {
+        setLayoutSinGuardar(false);
+        setLayoutGuardadoOk(true);
+        setTimeout(() => setLayoutGuardadoOk(false), 2500);
+      }
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6">
+      {puedeConfigurar && widgetsActivos.length > 0 && (
+        <div className="flex items-center gap-3" data-no-print>
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+            Arrastra un widget desde su título para moverlo, o desde la esquina inferior derecha para cambiar su tamaño.
+          </span>
+          {layoutSinGuardar && (
+            <button
+              type="button"
+              onClick={guardarLayout}
+              disabled={guardandoLayout}
+              className="flex shrink-0 items-center gap-1.5 rounded-md px-3 h-8 font-semibold disabled:opacity-60"
+              style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+            >
+              {layoutGuardadoOk ? <><CheckCircle2 size={13} /> Guardado</> : guardandoLayout ? "Guardando…" : "Guardar tamaño"}
+            </button>
+          )}
+        </div>
+      )}
       {widgetsActivos.length > 0 && (
         <div ref={containerRef}>
           {mounted && (
@@ -221,8 +285,9 @@ export function InventarioUnidades({
               rowHeight={32}
               margin={[16, 16]}
               containerPadding={[0, 0]}
-              dragConfig={{ enabled: false }}
-              resizeConfig={{ enabled: false }}
+              dragConfig={{ enabled: puedeConfigurar, handle: ".widget-drag-handle" }}
+              resizeConfig={{ enabled: puedeConfigurar }}
+              onLayoutChange={manejarCambioLayout}
             >
               {widgetsActivos.map((w) => {
                 const valor = valorWidgetUnidades(w.id, datosWidgets);
@@ -236,8 +301,9 @@ export function InventarioUnidades({
                   return (
                     <div key={w.id}>
                       <div className="flex h-full flex-col overflow-auto rounded-xl p-4" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-                        <div className="mb-2 flex items-center justify-between">
-                          <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
+                        <div className={`mb-2 flex items-center justify-between gap-2 ${puedeConfigurar ? "widget-drag-handle" : ""}`} style={puedeConfigurar ? { cursor: "move" } : undefined}>
+                          {puedeConfigurar && <GripVertical size={13} color="var(--sidebar-text)" className="shrink-0" />}
+                          <span className="flex-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
                             {w.label}
                           </span>
                         </div>
@@ -271,15 +337,22 @@ export function InventarioUnidades({
                   );
                 }
                 return (
-                  <div key={w.id} className="flex h-full items-center">
-                    <StatCard
-                      label={w.label}
-                      value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
-                      icon={ICONO_WIDGET[w.id] ?? Car}
-                      accent="var(--color-primary)"
-                      onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
-                      seleccionado={widgetSeleccionado(w.id)}
-                    />
+                  <div key={w.id} className="flex h-full flex-col">
+                    {puedeConfigurar && (
+                      <div className="widget-drag-handle flex items-center justify-center" style={{ cursor: "move", height: 14 }}>
+                        <GripVertical size={13} color="var(--sidebar-text)" />
+                      </div>
+                    )}
+                    <div className="flex flex-1 items-center">
+                      <StatCard
+                        label={w.label}
+                        value={w.id === "gastoHoy" ? `$${valor.toLocaleString("es-MX")}` : valor}
+                        icon={ICONO_WIDGET[w.id] ?? Car}
+                        accent="var(--color-primary)"
+                        onClick={w.id === "gastoHoy" ? undefined : () => alClicWidget(w.id)}
+                        seleccionado={widgetSeleccionado(w.id)}
+                      />
+                    </div>
                   </div>
                 );
               })}
