@@ -191,7 +191,7 @@ export async function registrarPosicionesGPSBatch(inputs: RegistroPosicionInput[
       UPDATE "Unidad" AS u
       SET "kmOficial" = c.km
       FROM (VALUES ${Prisma.join(
-        kmActualizaciones.map((k) => Prisma.sql`(${k.numeroEconomico}, ${k.km})`)
+        kmActualizaciones.map((k) => Prisma.sql`(${k.numeroEconomico}::text, ${k.km}::int)`)
       )}) AS c("numeroEconomico", km)
       WHERE u."numeroEconomico" = c."numeroEconomico"
     `);
