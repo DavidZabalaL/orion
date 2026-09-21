@@ -1,9 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/table";
-import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 
@@ -19,19 +17,13 @@ export type PosicionRow = {
   motivoAnomalia: string | null;
 };
 
+// La búsqueda por número económico vive en MapaFlota (arriba del mapa) para
+// que filtre a la vez la lista, el mapa y las tarjetas de resumen — este
+// componente solo recibe el resultado ya filtrado.
 export function PosicionesLista({ posiciones }: { posiciones: PosicionRow[] }) {
-  const [busqueda, setBusqueda] = useState("");
-
-  const filtradas = useMemo(() => {
-    const q = busqueda.trim().toUpperCase();
-    if (!q) return posiciones;
-    return posiciones.filter((p) => p.numeroEconomico.toUpperCase().includes(q));
-  }, [posiciones, busqueda]);
-
   return (
     <div className="flex flex-col gap-3">
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar número económico…" />
-      {filtradas.length === 0 ? (
+      {posiciones.length === 0 ? (
         <EmptyState>Sin unidades que coincidan.</EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-xl" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
@@ -44,7 +36,7 @@ export function PosicionesLista({ posiciones }: { posiciones: PosicionRow[] }) {
               </tr>
             </thead>
             <tbody>
-              {filtradas.map((u) => (
+              {posiciones.map((u) => (
                 <tr key={u.numeroEconomico} style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td className="px-4 py-3">
                     <Link href={`/unidades/${u.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>

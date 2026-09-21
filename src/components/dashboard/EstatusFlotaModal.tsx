@@ -94,7 +94,7 @@ type ProgramacionItem = Omit<ConfigEstatusFlotaProgramado, "destinatarios"> & {
 };
 
 let contadorClaveLocal = 0;
-function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtraSeleccionado[]; ordenSecciones: SeccionReporteId[] }): ProgramacionItem {
+function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtraSeleccionado[]; ordenSecciones: SeccionReporteId[]; incluirGeneral: boolean }): ProgramacionItem {
   contadorClaveLocal += 1;
   return {
     claveLocal: `nueva-${contadorClaveLocal}`,
@@ -108,6 +108,7 @@ function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtr
     activo: true,
     camposExtra: base.camposExtra,
     ordenSecciones: base.ordenSecciones,
+    incluirGeneral: base.incluirGeneral,
   };
 }
 
@@ -130,6 +131,7 @@ export function EstatusFlotaModal({
   const [camposExtra, setCamposExtra] = useState<CampoExtraSeleccionado[]>(primera?.camposExtra ?? []);
   const [mostrarSelectorCampos, setMostrarSelectorCampos] = useState(false);
   const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(primera?.ordenSecciones ?? ORDEN_SECCIONES_DEFAULT);
+  const [incluirGeneral, setIncluirGeneral] = useState(primera?.incluirGeneral ?? true);
 
   const [programaciones, setProgramaciones] = useState<ProgramacionItem[]>(
     configuracionesIniciales.map((c) => {
@@ -184,6 +186,10 @@ export function EstatusFlotaModal({
   const todosSeleccionados = proyectosDisponibles.length > 0 && seleccionados.length === proyectosDisponibles.length;
 
   async function descargar() {
+    if (!incluirGeneral && seleccionados.length === 0) {
+      setMensaje({ tipo: "error", texto: "Selecciona al menos un proyecto o incluye el resumen general." });
+      return;
+    }
     setDescargando(true);
     setMensaje(null);
     try {
@@ -204,7 +210,7 @@ export function EstatusFlotaModal({
         porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
         general: rehidratarFechasAlcance(res.datos.general),
       };
-      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />).toBlob();
+      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} incluirGeneral={incluirGeneral} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -220,6 +226,10 @@ export function EstatusFlotaModal({
   }
 
   async function enviarAhora() {
+    if (!incluirGeneral && seleccionados.length === 0) {
+      setMensaje({ tipo: "error", texto: "Selecciona al menos un proyecto o incluye el resumen general." });
+      return;
+    }
     const listaDestinatarios = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
     if (listaDestinatarios.length === 0) {
       setMensaje({ tipo: "error", texto: "Indica al menos un destinatario para enviar por correo." });
@@ -227,13 +237,13 @@ export function EstatusFlotaModal({
     }
     setEnviando(true);
     setMensaje(null);
-    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard, ordenSecciones });
+    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard, ordenSecciones, incluirGeneral });
     setEnviando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }
 
   function agregarProgramacion() {
-    setProgramaciones((prev) => [...prev, nuevaProgramacion({ proyectoIds: seleccionados, camposExtra, ordenSecciones })]);
+    setProgramaciones((prev) => [...prev, nuevaProgramacion({ proyectoIds: seleccionados, camposExtra, ordenSecciones, incluirGeneral })]);
   }
 
   function actualizarProgramacion(idx: number, patch: Partial<ProgramacionItem>) {
@@ -250,6 +260,10 @@ export function EstatusFlotaModal({
       setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Indica al menos un destinatario." } }));
       return;
     }
+    if (!item.incluirGeneral && item.proyectoIds.length === 0) {
+      setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Selecciona al menos un proyecto o incluye el resumen general." } }));
+      return;
+    }
     const res = await guardarProgramacionEstatusFlota({
       id: item.id,
       nombre: item.nombre,
@@ -261,6 +275,7 @@ export function EstatusFlotaModal({
       activo: item.activo,
       camposExtra: item.camposExtra,
       ordenSecciones: item.ordenSecciones,
+      incluirGeneral: item.incluirGeneral,
     });
     setGuardandoIdx(null);
     if (res.ok) {
@@ -298,6 +313,11 @@ export function EstatusFlotaModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+          <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+            <input type="checkbox" checked={incluirGeneral} onChange={(e) => setIncluirGeneral(e.target.checked)} />
+            Incluir resumen general (toda la plataforma, no solo lo seleccionado abajo)
+          </label>
+
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label style={{ ...labelStyle, marginBottom: 0 }}>Proyectos a desglosar (opcional)</label>
@@ -318,7 +338,7 @@ export function EstatusFlotaModal({
               ))}
             </div>
             <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              El reporte siempre incluye el resumen general. Si eliges proyectos aquí, también incluye el resumen combinado de la selección y el desglose de cada uno.
+              Si eliges proyectos aquí, el reporte también incluye el resumen combinado de la selección y el desglose de cada uno.
             </p>
           </div>
 
@@ -513,6 +533,11 @@ export function EstatusFlotaModal({
                     <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
                       <input type="checkbox" checked={item.activo} onChange={(e) => actualizarProgramacion(idx, { activo: e.target.checked })} />
                       Activo
+                    </label>
+
+                    <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                      <input type="checkbox" checked={item.incluirGeneral} onChange={(e) => actualizarProgramacion(idx, { incluirGeneral: e.target.checked })} />
+                      Incluir resumen general (toda la plataforma)
                     </label>
 
                     <div>

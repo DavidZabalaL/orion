@@ -252,10 +252,11 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
 export function generarEstatusFlotaHtml(
   datos: EstatusFlotaReporte,
   indicadoresDashboard?: IndicadorDashboard[],
-  ordenSecciones: SeccionReporteId[] = ORDEN_SECCIONES_DEFAULT
+  ordenSecciones: SeccionReporteId[] = ORDEN_SECCIONES_DEFAULT,
+  incluirGeneral = true
 ): string {
   const bloques = [
-    bloqueEstatus(datos.general, indicadoresDashboard, ordenSecciones),
+    incluirGeneral ? bloqueEstatus(datos.general, indicadoresDashboard, ordenSecciones) : "",
     datos.seleccion ? bloqueEstatus(datos.seleccion, undefined, ordenSecciones) : "",
     ...datos.porProyecto.map((p) => bloqueEstatus(p, undefined, ordenSecciones)),
   ].join("");

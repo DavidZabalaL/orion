@@ -9,6 +9,8 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeMesMx, parseFechaLocalMx } from "@/lib/timezone";
 import { fmtFechaHora } from "@/lib/formato";
 import { Table, EmptyState, tdStyle } from "@/components/ui/table";
+import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,7 @@ function duracionTexto(inicio: Date, fin: Date | null): string {
 export default async function PageTurnoOperador({
   searchParams,
 }: {
-  searchParams: Promise<{ proyectoId?: string; desde?: string; hasta?: string }>;
+  searchParams: Promise<{ proyectoId?: string; tipoVehiculo?: string; estatus?: string; desde?: string; hasta?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/iniciar-sesion");
@@ -47,9 +49,10 @@ export default async function PageTurnoOperador({
   let seccionConsulta = null;
   if (puedeConsultarTodos) {
     const proyectosPermitidos = await proyectosPermitidosParaModulo("O");
-    const { proyectoId, desde: desdeParam, hasta: hastaParam } = await searchParams;
+    const { proyectoId, tipoVehiculo, estatus, desde: desdeParam, hasta: hastaParam } = await searchParams;
     const desde = parseFechaLocalMx(desdeParam) ?? inicioDeMesMx();
     const hasta = parseFechaLocalMx(hastaParam) ?? new Date();
+    const estatusFiltro = estatus === "tomada" || estatus === "liberada" ? estatus : undefined;
 
     const [proyectos, registros, puedeLiberar] = await Promise.all([
       prisma.proyecto.findMany({
@@ -57,7 +60,14 @@ export default async function PageTurnoOperador({
         select: { id: true, nombre: true },
         orderBy: { nombre: "asc" },
       }),
-      obtenerBitacoraUsoTodos({ proyectoId: proyectoId || undefined, proyectosPermitidos, desde, hasta }),
+      obtenerBitacoraUsoTodos({
+        proyectoId: proyectoId || undefined,
+        tipoVehiculo: (tipoVehiculo as TipoVehiculo) || undefined,
+        estatus: estatusFiltro,
+        proyectosPermitidos,
+        desde,
+        hasta,
+      }),
       puedeLiberarUnidadAjena(),
     ]);
 
@@ -85,6 +95,33 @@ export default async function PageTurnoOperador({
               {proyectos.map((p) => (
                 <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Tipo de unidad</label>
+            <select
+              name="tipoVehiculo"
+              defaultValue={tipoVehiculo ?? ""}
+              className="rounded-md px-3"
+              style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <option value="">Todos los tipos</option>
+              {Object.entries(TIPO_VEHICULO_LABEL).map(([valor, label]) => (
+                <option key={valor} value={valor}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Estatus</label>
+            <select
+              name="estatus"
+              defaultValue={estatusFiltro ?? ""}
+              className="rounded-md px-3"
+              style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <option value="">Tomadas y liberadas</option>
+              <option value="tomada">Tomadas (en uso ahora)</option>
+              <option value="liberada">Liberadas</option>
             </select>
           </div>
           <div>

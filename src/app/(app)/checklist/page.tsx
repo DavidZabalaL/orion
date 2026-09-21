@@ -6,19 +6,37 @@ import { ChecklistSemanalLista } from "@/components/checklist/checklist-semanal-
 import { ChecklistCargaCombustibleLista } from "@/components/checklist/checklist-carga-combustible-lista";
 import { ChecklistReporteFallaLista } from "@/components/checklist/checklist-reporte-falla-lista";
 import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
+import { TomadasSinChecklistLista } from "@/components/checklist/tomadas-sin-checklist-lista";
 import { requerirPermisoModulo, puedeUsarGaleriaChecklist } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
 import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
+import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChecklistPage() {
+export default async function ChecklistPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ proyectoId?: string; tipoVehiculo?: string }>;
+}) {
   await requerirPermisoModulo("A.1");
 
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A.1");
-  const filtroProyecto = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
   const esAdmin = proyectosPermitidos === null;
+  const { proyectoId, tipoVehiculo } = await searchParams;
+
+  // Filtro de permisos (siempre) + lo que la persona haya elegido en el
+  // selector de arriba (opcional) — se combinan para las listas de abajo, sin
+  // afectar a `unidadesWizard` (el checklist se puede capturar para cualquier
+  // unidad permitida, filtrar esa lista sería una restricción no pedida).
+  const filtroProyecto = proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {};
+  const filtroSeleccion = {
+    ...(proyectoId ? { proyectoId } : {}),
+    ...(tipoVehiculo ? { tipoVehiculo: tipoVehiculo as TipoVehiculo } : {}),
+  };
+  const filtroListas = { ...filtroProyecto, ...filtroSeleccion };
 
   const inicioHoy = inicioDeHoy();
   const fechaHoraActual = new Date().toISOString();
@@ -43,11 +61,7 @@ export default async function ChecklistPage() {
       orderBy: { nombre: "asc" },
     }),
     prisma.checklist.findMany({
-      where: {
-        tipo: "DIARIO",
-        fecha: { gte: inicioHoy },
-        ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}),
-      },
+      where: { tipo: "DIARIO", fecha: { gte: inicioHoy }, unidad: filtroListas },
       include: {
         unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
         evidencia: { select: { url: true } },
@@ -56,11 +70,7 @@ export default async function ChecklistPage() {
       orderBy: { fecha: "desc" },
     }),
     prisma.checklist.findMany({
-      where: {
-        tipo: "SEMANAL",
-        fecha: { gte: inicioHoy },
-        ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}),
-      },
+      where: { tipo: "SEMANAL", fecha: { gte: inicioHoy }, unidad: filtroListas },
       include: {
         unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
         capturadoPor: { select: { nombre: true } },
@@ -68,11 +78,7 @@ export default async function ChecklistPage() {
       orderBy: { fecha: "desc" },
     }),
     prisma.checklist.findMany({
-      where: {
-        tipo: "CARGA_COMBUSTIBLE",
-        fecha: { gte: inicioHoy },
-        ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}),
-      },
+      where: { tipo: "CARGA_COMBUSTIBLE", fecha: { gte: inicioHoy }, unidad: filtroListas },
       include: {
         unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
         capturadoPor: { select: { nombre: true } },
@@ -80,11 +86,7 @@ export default async function ChecklistPage() {
       orderBy: { fecha: "desc" },
     }),
     prisma.checklist.findMany({
-      where: {
-        tipo: "REPORTE_FALLA",
-        fecha: { gte: inicioHoy },
-        ...(proyectosPermitidos !== null ? { unidad: filtroProyecto } : {}),
-      },
+      where: { tipo: "REPORTE_FALLA", fecha: { gte: inicioHoy }, unidad: filtroListas },
       include: {
         unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
         capturadoPor: { select: { nombre: true } },
@@ -92,8 +94,8 @@ export default async function ChecklistPage() {
       orderBy: { fecha: "desc" },
     }),
     prisma.unidad.findMany({
-      where: { estatus: { not: "BAJA" }, checklists: { none: { tipo: "DIARIO", fecha: { gte: inicioHoy } } }, ...filtroProyecto },
-      select: { numeroEconomico: true },
+      where: { estatus: { not: "BAJA" }, checklists: { none: { tipo: "DIARIO", fecha: { gte: inicioHoy } } }, ...filtroListas },
+      select: { numeroEconomico: true, marca: true, unidadModelo: true, tipoVehiculo: true, proyecto: { select: { nombre: true } } },
     }),
   ]);
 
@@ -145,6 +147,20 @@ export default async function ChecklistPage() {
       },
     ])
   );
+
+  // Unidades tomadas (sesión abierta en "Mi Turno") que a esta hora siguen sin
+  // checklist diario capturado — intersección entre sinCapturaHoy (ya filtrado
+  // por proyecto/tipo elegidos) y responsablePorUnidad (sesiones abiertas).
+  const tomadasSinChecklist = sinCapturaHoy
+    .filter((u) => responsablePorUnidad.has(u.numeroEconomico))
+    .map((u) => ({
+      numeroEconomico: u.numeroEconomico,
+      marca: u.marca,
+      unidadModelo: u.unidadModelo,
+      tipoVehiculo: TIPO_VEHICULO_LABEL[u.tipoVehiculo] ?? u.tipoVehiculo,
+      proyectoNombre: u.proyecto?.nombre ?? null,
+      responsable: responsablePorUnidad.get(u.numeroEconomico)?.nombre ?? null,
+    }));
 
   const unidadesWizard = unidades.map((u) => {
     const responsable = responsablePorUnidad.get(u.numeroEconomico) ?? null;
@@ -216,7 +232,56 @@ export default async function ChecklistPage() {
         </div>
       )}
 
+      <form className="flex flex-wrap items-end gap-2" data-no-print>
+        <div>
+          <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Proyecto</label>
+          <select
+            name="proyectoId"
+            defaultValue={proyectoId ?? ""}
+            className="rounded-md px-3"
+            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+          >
+            <option value="">Todos los proyectos</option>
+            {proyectos.map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Tipo de unidad</label>
+          <select
+            name="tipoVehiculo"
+            defaultValue={tipoVehiculo ?? ""}
+            className="rounded-md px-3"
+            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+          >
+            <option value="">Todos los tipos</option>
+            {Object.entries(TIPO_VEHICULO_LABEL).map(([valor, label]) => (
+              <option key={valor} value={valor}>{label}</option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="rounded-md px-5 h-9 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+          Filtrar
+        </button>
+      </form>
+
       <div className="flex flex-col gap-6">
+        <div>
+          <h3
+            className="mb-3"
+            style={{
+              fontFamily: "var(--font)",
+              fontSize: "var(--text-lg)",
+              fontWeight: 600,
+              color: "var(--sidebar-text-active)",
+            }}
+          >
+            Tomadas sin checklist ({tomadasSinChecklist.length})
+          </h3>
+          <TomadasSinChecklistLista unidades={tomadasSinChecklist} />
+        </div>
+
         <div>
           <h3
             className="mb-3"

@@ -37,7 +37,7 @@ export default async function DashboardsPage({
   // con su propio día/hora/periodo/destinatarios/proyectos) — ver
   // guardarProgramacionEstatusFlota en dashboards/actions.ts.
   const configuracionesEstatusFlota: ConfigEstatusFlotaProgramado[] = reportesEstatusFlota.map((r) => {
-    const filtros = r.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
+    const filtros = r.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown; incluirGeneral?: boolean } | null;
     return {
       id: r.id,
       nombre: r.nombre,
@@ -49,6 +49,8 @@ export default async function DashboardsPage({
       activo: r.activo,
       camposExtra: filtros?.camposExtra ?? [],
       ordenSecciones: sanearOrdenSecciones(filtros?.ordenSecciones),
+      // Configuraciones guardadas antes de este campo no lo tienen — se asumen "sí" (comportamiento previo).
+      incluirGeneral: filtros?.incluirGeneral ?? true,
     };
   });
 

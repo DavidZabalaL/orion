@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPin, Satellite, Radio } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
+import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { PosicionesLista, type PosicionRow } from "@/components/mapa/posiciones-lista";
 import { UnidadPanel, type DetalleUnidad } from "@/components/mapa/unidad-panel";
 import type { PuntoMapa, PuntoRuta } from "@/components/mapa/flota-map";
@@ -26,6 +27,7 @@ export type UnidadMapaRow = PosicionRow & { tipoVehiculo: string; disponibilidad
 type EstatusGps = "conSenal" | "sinSenal" | "anomalo";
 
 export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipos: string[] }) {
+  const [busqueda, setBusqueda] = useState("");
   const [proyectosSeleccionados, setProyectosSeleccionados] = useState<string[]>([]);
   const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([]);
   const [estatusGps, setEstatusGps] = useState<EstatusGps | null>(null);
@@ -57,7 +59,9 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
   }
 
   const filtradas = useMemo(() => {
+    const q = busqueda.trim().toUpperCase();
     return unidades.filter((u) => {
+      if (q && !u.numeroEconomico.toUpperCase().includes(q)) return false;
       if (proyectosSeleccionados.length && !proyectosSeleccionados.includes(u.proyecto ?? "Sin proyecto")) return false;
       if (tiposSeleccionados.length && !tiposSeleccionados.includes(u.tipoVehiculo)) return false;
       if (estatusGps === "sinSenal" && u.timestamp !== null) return false;
@@ -65,7 +69,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
       if (estatusGps === "anomalo" && !u.esAnomalo) return false;
       return true;
     });
-  }, [unidades, proyectosSeleccionados, tiposSeleccionados, estatusGps]);
+  }, [unidades, busqueda, proyectosSeleccionados, tiposSeleccionados, estatusGps]);
 
   const conSenal = filtradas.filter((u) => u.timestamp !== null);
   const sinSenal = filtradas.filter((u) => u.timestamp === null);
@@ -86,7 +90,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
       motivoAnomalia: u.motivoAnomalia,
     }));
 
-  const hayFiltros = proyectosSeleccionados.length > 0 || tiposSeleccionados.length > 0 || estatusGps !== null;
+  const hayFiltros = busqueda.trim() !== "" || proyectosSeleccionados.length > 0 || tiposSeleccionados.length > 0 || estatusGps !== null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -176,6 +180,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           <div>
             <button
               onClick={() => {
+                setBusqueda("");
                 setProyectosSeleccionados([]);
                 setTiposSeleccionados([]);
                 setEstatusGps(null);
@@ -188,6 +193,8 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           </div>
         )}
       </div>
+
+      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar número económico…" />
 
       <div className="relative">
         <FlotaMap puntos={puntosMapa} ruta={ruta} seleccionado={seleccionada ?? undefined} onSeleccionar={cargarDetalle} />

@@ -48,7 +48,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // fechas (calcularReporteConAlcance, sí incluye el día seleccionado
       // completo) es un caso distinto y no cambia. Va en el cuerpo del
       // correo (HTML), sin PDF adjunto — ver src/lib/reportes/estatus-flota-html.ts.
-      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown } | null;
+      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown; incluirGeneral?: boolean } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = new Date(inicioDeHoyMx().getTime() - 1); // 23:59:59.999 MX de ayer — excluye lo capturado hoy
       const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS + 1);
@@ -60,7 +60,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         camposExtraSeleccionados: filtros?.camposExtra ?? [],
       });
       // Sin indicadoresDashboard: no hay sesión de navegador en el cron.
-      const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones));
+      const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true);
       totalRegistros = datos.general.totalUnidades;
       envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html });
     } else {

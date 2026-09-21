@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo, puedeLiberarUnidadAjena } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { resolverIdentidadTurno as resolverIdentidad } from "@/lib/identidad-turno";
+import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 export type ResultadoTurno = { ok: boolean; error?: string };
 
@@ -184,12 +185,16 @@ export type RegistroBitacoraAdmin = {
   proyectoNombre: string;
   numeroEconomico: string;
   marcaModelo: string;
+  tipoVehiculo: TipoVehiculo;
   inicio: Date;
   fin: Date | null;
 };
 
 export type FiltrosBitacoraAdmin = {
   proyectoId?: string;
+  tipoVehiculo?: TipoVehiculo;
+  /** "tomada" = sesión abierta (fin null) ahora mismo; "liberada" = ya cerrada; sin especificar = ambas. */
+  estatus?: "tomada" | "liberada";
   /** Proyectos a los que el usuario tiene acceso para el módulo "O" — null = sin restricción (rol global). */
   proyectosPermitidos: string[] | null;
   desde: Date;
@@ -217,12 +222,16 @@ export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Pr
   const registros = await prisma.bitacoraUsoUnidad.findMany({
     where: {
       inicio: { gte: filtros.desde, lte: filtros.hasta },
-      unidad: proyectosIds ? { proyectoId: { in: proyectosIds } } : undefined,
+      unidad: {
+        ...(proyectosIds ? { proyectoId: { in: proyectosIds } } : {}),
+        ...(filtros.tipoVehiculo ? { tipoVehiculo: filtros.tipoVehiculo } : {}),
+      },
+      ...(filtros.estatus === "tomada" ? { fin: null } : filtros.estatus === "liberada" ? { fin: { not: null } } : {}),
     },
     include: {
       operador: { select: { nombre: true } },
       usuario: { select: { nombre: true } },
-      unidad: { select: { marca: true, unidadModelo: true, proyecto: { select: { nombre: true } } } },
+      unidad: { select: { marca: true, unidadModelo: true, tipoVehiculo: true, proyecto: { select: { nombre: true } } } },
     },
     orderBy: { inicio: "desc" },
     take: 500,
@@ -234,6 +243,7 @@ export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Pr
     proyectoNombre: r.unidad.proyecto?.nombre ?? "Sin proyecto",
     numeroEconomico: r.numeroEconomico,
     marcaModelo: `${r.unidad.marca} ${r.unidad.unidadModelo}`,
+    tipoVehiculo: r.unidad.tipoVehiculo,
     inicio: r.inicio,
     fin: r.fin,
   }));

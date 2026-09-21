@@ -289,13 +289,15 @@ export async function enviarEstatusFlotaAhora(input: {
   indicadoresDashboard?: IndicadorDashboard[];
   /** Orden de secciones elegido en el modal — ver estatus-flota-secciones.ts. */
   ordenSecciones?: SeccionReporteId[];
+  /** Incluir el bloque de alcance global (todo lo permitido, no solo los proyectos seleccionados) — default true. */
+  incluirGeneral?: boolean;
 }): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
 
   try {
     const datos = await calcularReporteConAlcance(input);
-    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones));
+    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones), input.incluirGeneral ?? true);
     const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html });
     if (!envio.enviado) return { ok: false, error: envio.error ?? "No se pudo enviar el correo." };
     return { ok: true };
@@ -319,6 +321,8 @@ export type ConfigEstatusFlotaProgramado = {
   camposExtra: CampoExtraSeleccionado[];
   /** Orden de las secciones del PDF elegido en el modal — ver estatus-flota-secciones.ts. */
   ordenSecciones: SeccionReporteId[];
+  /** Incluir el bloque de alcance global (todo lo permitido, no solo los proyectos seleccionados) — default true, configuraciones guardadas antes de este campo lo asumen así. */
+  incluirGeneral: boolean;
 };
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
@@ -346,6 +350,7 @@ export async function guardarProgramacionEstatusFlota(input: {
   activo: boolean;
   camposExtra: CampoExtraSeleccionado[];
   ordenSecciones: SeccionReporteId[];
+  incluirGeneral: boolean;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await auth();
   if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
@@ -370,7 +375,7 @@ export async function guardarProgramacionEstatusFlota(input: {
     nombre,
     tipo: TIPO_ESTATUS_FLOTA,
     camposJson: [],
-    filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos, ordenSecciones: sanearOrdenSecciones(input.ordenSecciones) },
+    filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos, ordenSecciones: sanearOrdenSecciones(input.ordenSecciones), incluirGeneral: input.incluirGeneral },
     destinatarios: input.destinatarios,
     hora: input.hora,
     diaSemana: input.diaSemana,

@@ -7,10 +7,13 @@
 import { useEffect, useMemo } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import Link from "next/link";
 import { Car, Truck, Forklift, Scooter } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { fmtFechaHora } from "@/lib/formato";
 
 const ZOOM_UNIDAD_SELECCIONADA = 13;
@@ -65,6 +68,24 @@ function icono(p: PuntoMapa, color: string, seleccionado: boolean): L.DivIcon {
     iconAnchor: [tam / 2, tam / 2],
     popupAnchor: [0, -tam / 2],
     tooltipAnchor: [0, -tam / 2],
+  });
+}
+
+/**
+ * Ícono del globo que agrupa varias unidades cercanas (mismo estilo que los
+ * de unidad individual, pero con el conteo en vez de un ícono de vehículo).
+ * Al hacer clic, leaflet.markercluster hace zoom a los límites del grupo — y
+ * si aun así siguen amontonadas al máximo zoom, las "abre en abanico"
+ * (spiderfy) para que cada una quede clickeable por separado.
+ */
+function iconoCluster(cluster: { getChildCount: () => number }): L.DivIcon {
+  const cantidad = cluster.getChildCount();
+  const tam = 32;
+  return L.divIcon({
+    className: "",
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:${tam}px;height:${tam}px;border-radius:50%;background:var(--color-primary, #2563eb);color:#fff;font:700 13px var(--font-ui, sans-serif);box-shadow:0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,0.2)">${cantidad}</span>`,
+    iconSize: [tam, tam],
+    iconAnchor: [tam / 2, tam / 2],
   });
 }
 
@@ -131,37 +152,39 @@ export function FlotaMap({
       {ruta.length > 1 && (
         <Polyline positions={ruta.map((p) => [p.lat, p.lng])} pathOptions={{ color: "var(--color-primary, #2563eb)", weight: 3, opacity: 0.8 }} />
       )}
-      {puntos.map((p) => (
-        <Marker
-          key={p.numeroEconomico}
-          position={[p.lat, p.lng]}
-          icon={iconos(p)}
-          eventHandlers={onSeleccionar ? { click: () => onSeleccionar(p.numeroEconomico) } : undefined}
-        >
-          {/* Al pasar el mouse: número económico, proyecto y tipo de vehículo — independiente del click (Popup/panel). */}
-          <Tooltip direction="top" offset={[0, -4]} opacity={1} className="orion-map-tooltip">
-            <div style={{ fontFamily: "var(--font-ui)", fontSize: 12, lineHeight: 1.5 }}>
-              <div style={{ fontWeight: 700, color: "var(--sidebar-text-active)" }}>{p.numeroEconomico}</div>
-              {p.proyecto && <div style={{ color: "var(--sidebar-text)" }}>{p.proyecto}</div>}
-              <div style={{ color: "var(--sidebar-text)" }}>{p.tipoVehiculo}</div>
-            </div>
-          </Tooltip>
-          {/* Sin onSeleccionar (no hay panel flotante que lo reemplace) sí mostramos el popup nativo de Leaflet. */}
-          {!onSeleccionar && (
-            <Popup>
-              <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, display: "flex", flexDirection: "column", gap: 4 }}>
-                <Link href={`/unidades/${p.numeroEconomico}`} style={{ fontWeight: 700 }}>
-                  {p.numeroEconomico}
-                </Link>
-                {p.proyecto && <span>{p.proyecto}</span>}
-                <span>{fmtFechaHora(p.timestamp)}</span>
-                {p.velocidad != null && <span>{p.velocidad.toFixed(0)} km/h</span>}
-                {p.esAnomalo && <span style={{ color: "#c0392b", fontWeight: 600 }}>{p.motivoAnomalia ?? "Lectura anómala"}</span>}
+      <MarkerClusterGroup chunkedLoading iconCreateFunction={iconoCluster} showCoverageOnHover={false} maxClusterRadius={50}>
+        {puntos.map((p) => (
+          <Marker
+            key={p.numeroEconomico}
+            position={[p.lat, p.lng]}
+            icon={iconos(p)}
+            eventHandlers={onSeleccionar ? { click: () => onSeleccionar(p.numeroEconomico) } : undefined}
+          >
+            {/* Al pasar el mouse: número económico, proyecto y tipo de vehículo — independiente del click (Popup/panel). */}
+            <Tooltip direction="top" offset={[0, -4]} opacity={1} className="orion-map-tooltip">
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, color: "var(--sidebar-text-active)" }}>{p.numeroEconomico}</div>
+                {p.proyecto && <div style={{ color: "var(--sidebar-text)" }}>{p.proyecto}</div>}
+                <div style={{ color: "var(--sidebar-text)" }}>{p.tipoVehiculo}</div>
               </div>
-            </Popup>
-          )}
-        </Marker>
-      ))}
+            </Tooltip>
+            {/* Sin onSeleccionar (no hay panel flotante que lo reemplace) sí mostramos el popup nativo de Leaflet. */}
+            {!onSeleccionar && (
+              <Popup>
+                <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <Link href={`/unidades/${p.numeroEconomico}`} style={{ fontWeight: 700 }}>
+                    {p.numeroEconomico}
+                  </Link>
+                  {p.proyecto && <span>{p.proyecto}</span>}
+                  <span>{fmtFechaHora(p.timestamp)}</span>
+                  {p.velocidad != null && <span>{p.velocidad.toFixed(0)} km/h</span>}
+                  {p.esAnomalo && <span style={{ color: "#c0392b", fontWeight: 600 }}>{p.motivoAnomalia ?? "Lectura anómala"}</span>}
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
       <style>{`
         .orion-map-tooltip { background: var(--panel-bg); border: none; border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-sm); padding: 6px 10px; }
         .orion-map-tooltip::before { display: none; }

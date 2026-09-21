@@ -464,17 +464,20 @@ export function EstatusFlotaDocument({
   datos,
   indicadoresDashboard,
   ordenSecciones,
+  incluirGeneral = true,
 }: {
   datos: EstatusFlotaReporte;
   indicadoresDashboard?: IndicadorDashboard[];
   /** Orden en que se muestran las secciones — ver EstatusFlotaModal. Sin especificar, usa ORDEN_SECCIONES_DEFAULT. */
   ordenSecciones?: SeccionReporteId[];
+  /** Alcance completo de la plataforma (o de todo lo permitido al usuario) — independiente de qué proyectos se hayan seleccionado para desglosar. Se sigue calculando siempre (ver calcularEstatusFlotaReporte); esto solo decide si se incluye en el documento. */
+  incluirGeneral?: boolean;
 }) {
   return (
     <Document>
       {/* Los indicadores del dashboard actual solo aplican al alcance general —
           es el mismo alcance que se ve al abrir "Mis dashboards". */}
-      <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />
+      {incluirGeneral && <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />}
       {datos.seleccion && <PaginaEstatus datos={datos.seleccion} ordenSecciones={ordenSecciones} />}
       {datos.porProyecto.map((p, i) => (
         <PaginaEstatus key={i} datos={p} ordenSecciones={ordenSecciones} />
