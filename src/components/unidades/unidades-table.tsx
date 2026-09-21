@@ -132,8 +132,12 @@ export function UnidadesTable({
     setRows(rowsIniciales);
   }, [rowsIniciales]);
 
+  // Antes cada 60s — con muchas pestañas abiertas en background eso mantenía
+  // la base de datos activa casi sin descanso (ver cuota de cómputo de Neon).
+  // 5 minutos sigue siendo razonable para una vista de inventario, no es un
+  // tablero en tiempo real.
   useEffect(() => {
-    const id = setInterval(() => router.refresh(), 60_000);
+    const id = setInterval(() => router.refresh(), 300_000);
     return () => clearInterval(id);
   }, [router]);
 

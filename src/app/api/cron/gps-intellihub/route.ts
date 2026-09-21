@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenerEstatusVehiculos, mphAKmh, millasAKm } from "@/lib/intellihub";
-import { registrarPosicionGPS } from "@/lib/gps-registro";
+import { registrarPosicionesGPSBatch, type RegistroPosicionInput } from "@/lib/gps-registro";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -33,12 +33,9 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const estatus = await obtenerEstatusVehiculos();
 
-  let procesados = 0;
   let omitidosSinMapeo = 0;
   let omitidosSinPosicion = 0;
-  let omitidosNoMasRecientes = 0;
-  let anomalos = 0;
-  const errores: { numeroEconomico: string; error: string }[] = [];
+  const inputs: RegistroPosicionInput[] = [];
 
   for (const v of estatus) {
     const numeroEconomico = porVehicleId.get(v.vehicleId);
@@ -52,35 +49,38 @@ export async function GET(request: Request): Promise<NextResponse> {
       continue;
     }
 
-    try {
-      const resultado = await registrarPosicionGPS({
-        numeroEconomico,
-        lat: v.lat,
-        lng: v.lon,
-        velocidad: v.velocity != null ? mphAKmh(v.velocity) : null,
-        kmReportado: v.odometer != null ? Math.round(millasAKm(v.odometer)) : null,
-        timestamp: new Date(v.lastupdate),
-        fuente: "API",
-      });
-
-      if (resultado.omitido) omitidosNoMasRecientes++;
-      else {
-        procesados++;
-        if (resultado.esAnomalo) anomalos++;
-      }
-    } catch (error) {
-      errores.push({ numeroEconomico, error: error instanceof Error ? error.message : String(error) });
-    }
+    inputs.push({
+      numeroEconomico,
+      lat: v.lat,
+      lng: v.lon,
+      velocidad: v.velocity != null ? mphAKmh(v.velocity) : null,
+      kmReportado: v.odometer != null ? Math.round(millasAKm(v.odometer)) : null,
+      timestamp: new Date(v.lastupdate),
+      fuente: "API",
+    });
   }
 
-  return NextResponse.json({
-    totalIntellihub: estatus.length,
-    unidadesMapeadas: porVehicleId.size,
-    procesados,
-    anomalos,
-    omitidosSinMapeo,
-    omitidosSinPosicion,
-    omitidosNoMasRecientes,
-    errores,
-  });
+  try {
+    const { procesados, omitidos: omitidosNoMasRecientes, anomalos } = await registrarPosicionesGPSBatch(inputs);
+
+    return NextResponse.json({
+      totalIntellihub: estatus.length,
+      unidadesMapeadas: porVehicleId.size,
+      procesados,
+      anomalos,
+      omitidosSinMapeo,
+      omitidosSinPosicion,
+      omitidosNoMasRecientes,
+    });
+  } catch (error) {
+    // Antes cada unidad se registraba por separado, así que una fila con datos
+    // raros solo tumbaba esa unidad. Ahora el registro va en un solo batch, así
+    // que un error aquí puede tumbar la corrida completa — se reporta explícito
+    // en vez de un 500 genérico, para poder diagnosticarlo en los logs del cron.
+    console.error("cron gps-intellihub: fallo al registrar el batch", error);
+    return NextResponse.json(
+      { error: "No se pudo registrar el batch de posiciones GPS.", detalle: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
 }
