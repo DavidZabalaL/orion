@@ -1,14 +1,20 @@
-# Orión — ecosistema gráfico
+# Suite de aplicaciones Kabat — íconos (línea 2b)
 
-Sub-marca de Kdispatch. Azul primario #2b7fff, acento #00d492, tipografía Public Sans.
+Fondo marino con degradado diagonal #202e4b → #0b1529, filo #2b7fff al 45%, radio 20 sobre 96.
+Dibujo en retícula de 96 con zona útil de 58, escalado 120%. Blanco para la estructura y un solo acento por producto.
 
-## svg/
-- orion-marca.svg — marca completa (con halo). Uso ≥ 40 px.
-- orion-marca-32.svg — sin halo. Uso 20–39 px.
-- orion-favicon-16.svg — cruce engrosado + unidad activa. Uso ≤ 19 px.
-- orion-icono-windows.svg — radio 12 para íconos de Windows.
-- orion-mono-claro.svg / orion-mono-oscuro.svg — una tinta.
-- orion-logotipo-horizontal.svg / orion-logotipo-vertical.svg — lockups. El texto va como texto vivo en Public Sans; conviértelo a trazos antes de mandar a imprenta.
+| App | Acento |
+|---|---|
+| Kabat Clipper | #00b4d8 |
+| Orión | #00d492 |
+| Órbita | #f59e0b |
+| Help Desk | #ff5263 |
+| MKT Hub | #ffc229 |
 
-## png/
-Marca con fondo transparente fuera del cuadro redondeado: 1024, 512, 256, 128, 64, 32 (sin halo), 16 (favicon), y 256 con radio Windows.
+Cada carpeta contiene:
+- svg/*-marca.svg — ícono principal, para ≥ 24 px.
+- svg/*-favicon-16.svg — versión simplificada, sin filo, para ≤ 20 px.
+- svg/*-icono-windows.svg — radio 12.
+- svg/*-mono-claro.svg / *-mono-oscuro.svg — una tinta, sin fondo.
+- svg/*-logotipo-horizontal.svg / *-logotipo-vertical.svg — texto vivo en Public Sans; convertir a trazos antes de imprenta.
+- png/ — marca en 1024, 512, 256, 128, 64 y 32; favicon de 16 y 32; Windows de 256. Todo con fondo transparente fuera del cuadro.
