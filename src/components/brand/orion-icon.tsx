@@ -1,5 +1,5 @@
 import Image from "next/image";
-import logo from "../../../public/orion_fn.png";
+import logo from "../../../public/orion-marca.svg";
 
 export function OrionIcon({ size = 40 }: { size?: number }) {
   return (
