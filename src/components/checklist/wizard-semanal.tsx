@@ -7,6 +7,7 @@ import { crearChecklistSemanal } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import { comprimirImagen } from "@/lib/comprimir-imagen";
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -187,7 +188,8 @@ function SubirFoto({
     onSubiendoChange?.(true);
     setErrFoto(null);
     try {
-      const blob = await upload(file.name, file, { access: "private", handleUploadUrl: "/api/checklist-upload" });
+      const comprimido = await comprimirImagen(file);
+      const blob = await upload(comprimido.name, comprimido, { access: "private", handleUploadUrl: "/api/checklist-upload" });
       onUrl(blob.url);
     } catch (e) {
       setErrFoto(e instanceof Error ? e.message : "No se pudo subir la foto.");
