@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { upload } from "@vercel/blob/client";
 import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
-import { crearChecklistSemanal } from "@/app/(app)/checklist/actions";
+import { crearChecklistSemanal, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
@@ -164,42 +163,39 @@ function BarraProgreso({ actual, total, seccion }: { actual: number; total: numb
 }
 
 function SubirFoto({
-  clave, label, requerido, url, onUrl, permitirGaleria = false, bloqueado = false, onSubiendoChange,
+  clave, label, requerido, archivo, onArchivo, permitirGaleria = false, bloqueado = false, onProcesandoChange,
 }: {
   clave: string; label: string; requerido: boolean;
-  url: string | undefined;
-  onUrl: (url: string | null) => void;
+  archivo: File | undefined;
+  onArchivo: (archivo: File | null) => void;
   /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
   permitirGaleria?: boolean;
-  /** true si OTRA foto del mismo checklist se está subiendo ahora mismo — bloquea este campo mientras tanto. */
+  /** true si OTRA foto del mismo checklist se está procesando ahora mismo — bloquea este campo mientras tanto. */
   bloqueado?: boolean;
-  /** Avisa al wizard cuándo esta foto empieza/termina de subir, para que bloquee las demás mientras tanto. */
-  onSubiendoChange?: (subiendo: boolean) => void;
+  /** Avisa al wizard cuándo esta foto empieza/termina de comprimirse, para que bloquee las demás mientras tanto. */
+  onProcesandoChange?: (procesando: boolean) => void;
 }) {
-  const [subiendo, setSubiendo] = useState(false);
-  const [errFoto, setErrFoto] = useState<string | null>(null);
+  const [procesando, setProcesando] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const refGaleria = useRef<HTMLInputElement>(null);
-  const deshabilitado = bloqueado && !subiendo;
+  const deshabilitado = bloqueado && !procesando;
 
+  // La foto se comprime aquí mismo, en el navegador, y se guarda en memoria —
+  // ya no se sube a Vercel Blob en este momento. La subida real de todas las
+  // fotos del checklist pasa una sola vez, en bloque, al finalizar (ver
+  // enviar() en WizardSemanal) — así una conexión inestable a la mitad del
+  // checklist no puede trabar el avance entre pasos.
   async function alSeleccionar(file: File | undefined) {
     if (!file) return;
-    setSubiendo(true);
-    onSubiendoChange?.(true);
-    setErrFoto(null);
-    try {
-      const comprimido = await comprimirImagen(file);
-      const blob = await upload(comprimido.name, comprimido, { access: "private", handleUploadUrl: "/api/checklist-upload" });
-      onUrl(blob.url);
-    } catch (e) {
-      setErrFoto(e instanceof Error ? e.message : "No se pudo subir la foto.");
-    } finally {
-      setSubiendo(false);
-      onSubiendoChange?.(false);
-    }
+    setProcesando(true);
+    onProcesandoChange?.(true);
+    const comprimido = await comprimirImagen(file);
+    onArchivo(comprimido);
+    setProcesando(false);
+    onProcesandoChange?.(false);
   }
 
-  if (url) {
+  if (archivo) {
     return (
       <div
         className="flex items-center gap-2 rounded-xl px-3 py-2.5"
@@ -207,9 +203,9 @@ function SubirFoto({
       >
         <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
         <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>
-          {label} — completa
+          {label} — lista
         </span>
-        <button type="button" onClick={() => onUrl(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
+        <button type="button" onClick={() => onArchivo(null)} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
           <X size={14} />
         </button>
       </div>
@@ -229,23 +225,18 @@ function SubirFoto({
         <div className="flex gap-2">
           <button type="button" disabled={deshabilitado} onClick={() => ref.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
             style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
-            {subiendo ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-            {subiendo ? "Subiendo…" : "Tomar foto"}
+            {procesando ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            {procesando ? "Procesando…" : "Tomar foto"}
           </button>
           <button type="button" disabled={deshabilitado} onClick={() => refGaleria.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-xl disabled:opacity-50"
             style={{ height: 52, background: "var(--field-bg)", border: "1px dashed var(--field-border)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: deshabilitado ? "not-allowed" : "pointer" }}>
-            {subiendo ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
-            {subiendo ? "Subiendo…" : "Elegir de galería"}
+            {procesando ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+            {procesando ? "Procesando…" : "Elegir de galería"}
           </button>
         </div>
         {deshabilitado && (
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
             Espera a que termine la foto anterior…
-          </p>
-        )}
-        {errFoto && (
-          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
-            {errFoto}
           </p>
         )}
       </div>
@@ -277,17 +268,12 @@ function SubirFoto({
           cursor: deshabilitado ? "not-allowed" : "pointer",
         }}
       >
-        {subiendo ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-        {subiendo ? "Subiendo…" : `${label}${requerido ? " *" : " (opcional)"}`}
+        {procesando ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+        {procesando ? "Procesando…" : `${label}${requerido ? " *" : " (opcional)"}`}
       </button>
       {deshabilitado && (
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
           Espera a que termine la foto anterior…
-        </p>
-      )}
-      {errFoto && (
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>
-          {errFoto}
         </p>
       )}
     </div>
@@ -295,28 +281,37 @@ function SubirFoto({
 }
 
 function BtnSiguiente({
-  label, onClick, disabled, pending,
+  label, onClick, disabled, pending, progreso,
 }: {
   label: string; onClick: () => void; disabled: boolean; pending: boolean;
+  /** Progreso de la subida en bloque de fotos al finalizar — ver enviar() en WizardSemanal. */
+  progreso?: { actual: number; total: number } | null;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || pending}
-      className="w-full rounded-xl h-12 font-semibold flex items-center justify-center gap-2 transition-colors"
-      style={{
-        background: disabled ? "var(--chip)" : "var(--color-primary)",
-        color: disabled ? "var(--sidebar-text)" : "#fff",
-        fontFamily: "var(--font-ui)",
-        fontSize: "var(--text-base)",
-        cursor: disabled ? "default" : "pointer",
-        opacity: pending ? 0.7 : 1,
-      }}
-    >
-      {pending && <Loader2 size={16} className="animate-spin" />}
-      {label}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled || pending}
+        className="w-full rounded-xl h-12 font-semibold flex items-center justify-center gap-2 transition-colors"
+        style={{
+          background: disabled ? "var(--chip)" : "var(--color-primary)",
+          color: disabled ? "var(--sidebar-text)" : "#fff",
+          fontFamily: "var(--font-ui)",
+          fontSize: "var(--text-base)",
+          cursor: disabled ? "default" : "pointer",
+          opacity: pending ? 0.7 : 1,
+        }}
+      >
+        {pending && <Loader2 size={16} className="animate-spin" />}
+        {pending && progreso ? `Subiendo evidencias… ${progreso.actual}/${progreso.total}` : pending ? "Guardando…" : label}
+      </button>
+      {pending && progreso && (
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center" }}>
+          No cierres ni recargues la página — esto puede tardar un poco si la señal es débil.
+        </p>
+      )}
+    </>
   );
 }
 
@@ -328,10 +323,14 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
   const [proyectoFiltro, setProyectoFiltro] = useState(proyectos[0]?.id ?? "");
   const [numeroEconomico, setNumeroEconomico] = useState("");
   const [respuestas, setRespuestas] = useState<Record<string, string>>({ gen_licencia_permanente: "Y" });
-  const [fotos, setFotos] = useState<Record<string, string>>({});
+  // Las fotos se comprimen y se guardan en memoria al tomarlas; la subida a
+  // Vercel Blob pasa una sola vez, en bloque, al finalizar — ver enviar().
+  const [archivos, setArchivos] = useState<Record<string, File>>({});
+  const [urlsSubidas, setUrlsSubidas] = useState<Record<string, string>>({});
+  const [progresoSubida, setProgresoSubida] = useState<{ actual: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [procesandoFoto, setProcesandoFoto] = useState(false);
 
   const unidadesFiltradas = useMemo(
     () => (proyectoFiltro ? unidades.filter((u) => u.proyectoId === proyectoFiltro) : unidades),
@@ -357,15 +356,16 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
     }
   })();
 
-  function setFoto(clave: string, url: string | null) {
-    setFotos((prev) => {
-      if (url === null) {
-        const next = { ...prev };
-        delete next[clave];
-        return next;
-      }
-      return { ...prev, [clave]: url };
+  function setArchivo(clave: string, archivo: File | null) {
+    setArchivos((prev) => {
+      const next = { ...prev };
+      if (archivo === null) delete next[clave];
+      else next[clave] = archivo;
+      return next;
     });
+    // Si se retoma una foto (se borró y se va a volver a tomar), la URL ya
+    // subida de la versión anterior queda obsoleta.
+    setUrlsSubidas((prev) => { const c = { ...prev }; delete c[clave]; return c; });
   }
 
   // ── puedeAvanzar ─────────────────────────────────────────────────────────
@@ -375,17 +375,17 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
       case "toggle_gen":
         return !!respuestas[item.key];
       case "foto_gen":
-        return !!fotos[item.key];
+        return !!archivos[item.key];
       case "lectura":
-        return !!(respuestas[item.key] && Number(respuestas[item.key]) >= 0) && !!fotos[item.fotoKey];
+        return !!(respuestas[item.key] && Number(respuestas[item.key]) >= 0) && !!archivos[item.fotoKey];
       case "radio": {
         const val = respuestas[item.key];
         if (!val) return false;
-        if (item.fotoKey && item.fotoRequerido) return !!fotos[item.fotoKey];
+        if (item.fotoKey && item.fotoRequerido) return !!archivos[item.fotoKey];
         return true;
       }
       case "foto":
-        return item.requerido ? !!fotos[item.key] : true;
+        return item.requerido ? !!archivos[item.key] : true;
       case "numero":
         return item.requerido
           ? !!(respuestas[item.key] && respuestas[item.key] !== "")
@@ -448,14 +448,40 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
   }
 
   // ── envío ─────────────────────────────────────────────────────────────────
+  // Único momento que necesita red de verdad: aquí se suben en bloque todas
+  // las fotos ya comprimidas y guardadas localmente durante el wizard.
+  // `urlsSubidas` conserva lo que ya se haya subido con éxito en un intento
+  // previo, así un reintento tras una falla de conexión no las vuelve a subir.
   function enviar() {
     startTransition(async () => {
+      const pendientes = Object.entries(archivos).filter(([clave]) => !urlsSubidas[clave]);
+      const urls = { ...urlsSubidas };
+      if (pendientes.length > 0) {
+        setProgresoSubida({ actual: 0, total: pendientes.length });
+        for (let i = 0; i < pendientes.length; i++) {
+          const [clave, archivo] = pendientes[i];
+          const fdFoto = new FormData();
+          fdFoto.set("file", archivo);
+          const r = await subirFotoChecklist(fdFoto);
+          if (!r.ok) {
+            setUrlsSubidas(urls);
+            setProgresoSubida(null);
+            setError(`No se pudo subir una evidencia fotográfica: ${r.error} Puedes intentar de nuevo — lo ya subido no se repite.`);
+            return;
+          }
+          urls[clave] = r.url;
+          setProgresoSubida({ actual: i + 1, total: pendientes.length });
+        }
+        setUrlsSubidas(urls);
+      }
+      setProgresoSubida(null);
+
       const fd = new FormData();
       fd.set("gen_numero_economico", numeroEconomico);
       fd.set("gen_fecha", fechaHoraActual);
       fd.set("gen_oficina_sede", proyectoNombre);
       for (const [k, v] of Object.entries(respuestas)) fd.set(k, v);
-      for (const [k, v] of Object.entries(fotos)) fd.set(k, v);
+      for (const [k, url] of Object.entries(urls)) fd.set(k, url);
       const res = await crearChecklistSemanal(fd);
       if (!res.ok) {
         setError(res.error);
@@ -739,11 +765,11 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               clave={item.key}
               label={item.label}
               requerido
-              url={fotos[item.key]}
-              onUrl={(url) => setFoto(item.key, url)}
+              archivo={archivos[item.key]}
+              onArchivo={(archivo) => setArchivo(item.key, archivo)}
               permitirGaleria
-              bloqueado={subiendoFoto}
-              onSubiendoChange={setSubiendoFoto}
+              bloqueado={procesandoFoto}
+              onProcesandoChange={setProcesandoFoto}
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
@@ -755,6 +781,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               onClick={siguiente}
               disabled={!puedeAvanzar()}
               pending={pending}
+              progreso={progresoSubida}
             />
           </>
         )}
@@ -791,11 +818,11 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               clave={item.fotoKey}
               label={item.fotoLabel}
               requerido
-              url={fotos[item.fotoKey]}
-              onUrl={(url) => setFoto(item.fotoKey, url)}
+              archivo={archivos[item.fotoKey]}
+              onArchivo={(archivo) => setArchivo(item.fotoKey, archivo)}
               permitirGaleria={permitirGaleriaFotos}
-              bloqueado={subiendoFoto}
-              onSubiendoChange={setSubiendoFoto}
+              bloqueado={procesandoFoto}
+              onProcesandoChange={setProcesandoFoto}
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
@@ -807,6 +834,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               onClick={siguiente}
               disabled={!puedeAvanzar()}
               pending={pending}
+              progreso={progresoSubida}
             />
           </>
         )}
@@ -853,11 +881,11 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
                 clave={item.fotoKey}
                 label={item.fotoLabel ?? "Evidencia fotográfica"}
                 requerido={!!item.fotoRequerido}
-                url={fotos[item.fotoKey]}
-                onUrl={(url) => setFoto(item.fotoKey!, url)}
+                archivo={archivos[item.fotoKey]}
+                onArchivo={(archivo) => setArchivo(item.fotoKey!, archivo)}
                 permitirGaleria={permitirGaleriaFotos}
-                bloqueado={subiendoFoto}
-                onSubiendoChange={setSubiendoFoto}
+                bloqueado={procesandoFoto}
+                onProcesandoChange={setProcesandoFoto}
               />
             )}
 
@@ -879,6 +907,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
                 onClick={siguiente}
                 disabled={!puedeAvanzar()}
                 pending={pending}
+                progreso={progresoSubida}
               />
             )}
           </>
@@ -905,11 +934,11 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               clave={item.key}
               label={item.label}
               requerido={item.requerido}
-              url={fotos[item.key]}
-              onUrl={(url) => setFoto(item.key, url)}
+              archivo={archivos[item.key]}
+              onArchivo={(archivo) => setArchivo(item.key, archivo)}
               permitirGaleria={permitirGaleriaFotos}
-              bloqueado={subiendoFoto}
-              onSubiendoChange={setSubiendoFoto}
+              bloqueado={procesandoFoto}
+              onProcesandoChange={setProcesandoFoto}
             />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
@@ -921,6 +950,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               onClick={siguiente}
               disabled={!puedeAvanzar()}
               pending={pending}
+              progreso={progresoSubida}
             />
           </>
         )}
@@ -970,6 +1000,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               onClick={siguiente}
               disabled={!puedeAvanzar()}
               pending={pending}
+              progreso={progresoSubida}
             />
           </>
         )}
@@ -1053,6 +1084,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               onClick={siguiente}
               disabled={false}
               pending={pending}
+              progreso={progresoSubida}
             />
           </>
         )}
