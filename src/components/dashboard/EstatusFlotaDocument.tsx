@@ -193,9 +193,14 @@ function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String
   );
 }
 
-function TarjetaKpiExtra({ resultado }: { resultado: CampoExtraResultado }) {
+/** "General" es la etiqueta interna del alcance sin restricción de proyecto — se muestra como "Todos los proyectos", más claro para quien lee el reporte. */
+function etiquetaAlcance(proyectoLabel: string): string {
+  return proyectoLabel === "General" ? "Todos los proyectos" : proyectoLabel;
+}
+
+function TarjetaKpiExtra({ resultado, proyectoLabel }: { resultado: CampoExtraResultado; proyectoLabel: string }) {
   return (
-    <Tarjeta titulo={resultado.campoLabel}>
+    <Tarjeta titulo={`${resultado.campoLabel} — ${etiquetaAlcance(proyectoLabel)}`}>
       <Text style={styles.kpiValor}>{(resultado.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
       <Text style={styles.kpiCaption}>
         Suma total · {resultado.datasetLabel} ({resultado.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})
@@ -411,11 +416,11 @@ function PaginaEstatus({
             <View key={i} style={styles.fila} wrap={false}>
               {grupo.map((c) =>
                 c.tipoVisualizacion === "kpi" ? (
-                  <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} />
+                  <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} proyectoLabel={datos.proyectoLabel} />
                 ) : (
                   <TarjetaBarras
                     key={`${c.datasetId}.${c.campoId}`}
-                    titulo={c.campoLabel}
+                    titulo={`${c.campoLabel} — ${etiquetaAlcance(datos.proyectoLabel)}`}
                     vacio="Sin datos."
                     filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
                   />

@@ -24,6 +24,11 @@ const SURFACE = "#f6f9fc";
 const PALETA_BARRAS = ["#f59e0b", "#22c55e", "#6366f1", "#38bdf8", "#ef4444", "#a855f7", "#14b8a6", "#f43f5e"];
 const TIPOS_VEHICULO_ORDEN: TipoVehiculo[] = ["CAMIONETA", "GRUA", "AUTO", "MOTO", "OTRO"];
 
+/** "General" es la etiqueta interna del alcance sin restricción de proyecto — se muestra como "Todos los proyectos", más claro para quien lee el reporte. */
+function etiquetaAlcance(proyectoLabel: string): string {
+  return proyectoLabel === "General" ? "Todos los proyectos" : proyectoLabel;
+}
+
 function esc(v: string): string {
   return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -226,8 +231,8 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
               filaTarjetas(
                 datos.camposExtra.slice(i * 3, i * 3 + 3).map((c) =>
                   c.tipoVisualizacion === "kpi"
-                    ? tarjeta(c.campoLabel, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`))
-                    : tarjeta(c.campoLabel, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v)))
+                    ? tarjeta(`${c.campoLabel} — ${etiquetaAlcance(datos.proyectoLabel)}`, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`))
+                    : tarjeta(`${c.campoLabel} — ${etiquetaAlcance(datos.proyectoLabel)}`, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v)))
                 )
               )
             )
