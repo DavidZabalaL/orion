@@ -124,7 +124,7 @@ export default async function FichaPolizaPage({ params }: { params: Promise<{ id
       )}
       {seguro.documento && !puedeDescargar && (
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-          Solo Administrador, Dirección o Jurídico pueden descargar el PDF de la póliza.
+          Solo Administrador, Dirección, Gerente administrativo o Jurídico pueden descargar el PDF de la póliza.
         </p>
       )}
 
