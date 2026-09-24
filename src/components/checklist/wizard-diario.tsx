@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { ESTADOS_CARGA, MUNICIPIOS_POR_ESTADO, AREAS_CARGA } from "@/lib/checklist-carga-combustible";
-import { comprimirImagen } from "@/lib/comprimir-imagen";
+import { prepararFotoDiferida } from "@/lib/foto-diferida";
 import { FirmaPad } from "@/components/checklist/firma-pad";
+import { leerBorrador, guardarBorrador, borrarBorrador } from "@/lib/borrador-checklist";
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,23 @@ type Fase =
   | "exito";
 
 const ITEMS_INSPECCION = PUNTOS_INSPECCION.map((p) => ({ tipo: "punto" as const, key: p.key, label: p.label }));
+
+// Borrador en localStorage — ver src/lib/borrador-checklist.ts. Solo se
+// guardan datos y URLs ya subidas, nunca archivos (un File no sobrevive una
+// recarga de página de todas formas).
+const CLAVE_BORRADOR = "diario";
+type Borrador = {
+  fase: Fase;
+  idx: number;
+  proyectoFiltro: string;
+  numeroEconomico: string;
+  estados: Record<string, "ok" | "revisar">;
+  odometro: string;
+  horometro: string;
+  respuestasExtra: Record<string, string>;
+  firmaBase64: string;
+  urlsSubidas: Record<string, string>;
+};
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -116,13 +134,15 @@ function BarraProgreso({ actual, total }: { actual: number; total: number }) {
 // ─── componente principal ─────────────────────────────────────────────────────
 
 export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, onTerminar, onCancelar }: Props) {
-  const [fase, setFase] = useState<Fase>("identificacion");
-  const [idx, setIdx] = useState(0);
-  const [proyectoFiltro, setProyectoFiltro] = useState(proyectos[0]?.id ?? "");
-  const [numeroEconomico, setNumeroEconomico] = useState("");
+  const [borradorInicial] = useState(() => leerBorrador<Borrador>(CLAVE_BORRADOR));
+
+  const [fase, setFase] = useState<Fase>(borradorInicial?.fase ?? "identificacion");
+  const [idx, setIdx] = useState(borradorInicial?.idx ?? 0);
+  const [proyectoFiltro, setProyectoFiltro] = useState(borradorInicial?.proyectoFiltro ?? proyectos[0]?.id ?? "");
+  const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
 
   // Guia phase
-  const [estados, setEstados] = useState<Record<string, "ok" | "revisar">>({});
+  const [estados, setEstados] = useState<Record<string, "ok" | "revisar">>(borradorInicial?.estados ?? {});
   // Las fotos ya NO se suben al tomarlas — se comprimen y se guardan en
   // memoria (archivo comprimido, unos cientos de KB) hasta que se envía todo
   // el checklist al final. Así ningún paso intermedio depende de tener buena
@@ -130,8 +150,8 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
   const [archivosPorPunto, setArchivosPorPunto] = useState<Record<string, File>>({});
 
   // Lecturas phase
-  const [odometro, setOdometro] = useState("");
-  const [horometro, setHorometro] = useState("");
+  const [odometro, setOdometro] = useState(borradorInicial?.odometro ?? "");
+  const [horometro, setHorometro] = useState(borradorInicial?.horometro ?? "");
   const [fotoArchivo, setFotoArchivo] = useState<File | null>(null);
   const [fotoHorometroArchivo, setFotoHorometroArchivo] = useState<File | null>(null);
   const [procesandoFoto, setProcesandoFoto] = useState(false);
@@ -139,20 +159,44 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
   const [procesandoFotoPunto, setProcesandoFotoPunto] = useState(false);
 
   // Extra sections
-  const [respuestasExtra, setRespuestasExtra] = useState<Record<string, string>>({});
+  const [respuestasExtra, setRespuestasExtra] = useState<Record<string, string>>(borradorInicial?.respuestasExtra ?? {});
   const [archivosExtra, setArchivosExtra] = useState<Record<string, File>>({});
-  const [firmaBase64, setFirmaBase64] = useState("");
+  const [firmaBase64, setFirmaBase64] = useState(borradorInicial?.firmaBase64 ?? "");
   const [procesandoExtra, setProcesandoExtra] = useState<string | null>(null);
 
   // Subida en bloque al enviar — ver enviar(). `urlsSubidas` persiste entre
   // reintentos (si el envío falla a la mitad, no se vuelve a subir lo que ya
   // se subió con éxito), indexado por el mismo nombre de campo que usa
   // crearChecklist (ej. "evidenciaUrl", "foto_horometro", "gen_foto_licencia").
-  const [urlsSubidas, setUrlsSubidas] = useState<Record<string, string>>({});
+  // También es la parte más valiosa del borrador en localStorage: son fotos
+  // que ya se subieron de verdad y que no habría que repetir si el navegador
+  // recarga la página a medio checklist.
+  const [urlsSubidas, setUrlsSubidas] = useState<Record<string, string>>(borradorInicial?.urlsSubidas ?? {});
   const [progresoSubida, setProgresoSubida] = useState<{ actual: number; total: number } | null>(null);
+
+  // Guarda el borrador en localStorage cada vez que cambia algo relevante —
+  // así, si Android recarga la pestaña por falta de memoria mientras estaba
+  // en segundo plano, el wizard recupera dónde se había quedado en vez de
+  // volver a "identificación". No incluye archivos locales (no sobreviven una
+  // recarga); solo datos y URLs ya subidas.
+  useEffect(() => {
+    if (fase === "exito") return;
+    guardarBorrador<Borrador>(CLAVE_BORRADOR, {
+      fase, idx, proyectoFiltro, numeroEconomico, estados, odometro, horometro, respuestasExtra, firmaBase64, urlsSubidas,
+    });
+  }, [fase, idx, proyectoFiltro, numeroEconomico, estados, odometro, horometro, respuestasExtra, firmaBase64, urlsSubidas]);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Copia "viva" de qué archivo es el vigente por campo — para que, si la
+  // subida en segundo plano de una foto ya reemplazada por una más nueva
+  // termina tarde, no pise el estado con una URL obsoleta. Ver los handlers
+  // de abajo (handleExtraFoto, subirFotoPunto, subirFoto, subirFotoHorometro).
+  const archivoVigenteExtraRef = useRef<Record<string, File>>({});
+  const archivoVigentePuntoRef = useRef<Record<string, File>>({});
+  const archivoVigenteOdometroRef = useRef<File | null>(null);
+  const archivoVigenteHorometroRef = useRef<File | null>(null);
 
   // File input refs
   const extraFotoInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +232,21 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
     }
   })();
 
+  // Una foto "cuenta" tanto si todavía está en memoria esperando su turno de
+  // subir como si ya se subió (y por eso ya se soltó de `archivosExtra`/
+  // `archivosPorPunto`/`fotoArchivo`/`fotoHorometroArchivo` — ver los
+  // handlers de arriba). Las validaciones y el render usan esto, nunca el
+  // estado local a secas, para no "perder" una foto ya lista de vista apenas
+  // termina de subirse en segundo plano.
+  function tieneFotoExtra(clave: string): boolean {
+    return !!archivosExtra[clave] || !!urlsSubidas[clave];
+  }
+  function tieneFotoPunto(key: string): boolean {
+    return !!archivosPorPunto[key] || !!urlsSubidas[`foto_${key}`];
+  }
+  const tieneOdometro = !!fotoArchivo || !!urlsSubidas["evidenciaUrl"];
+  const tieneHorometro = !!fotoHorometroArchivo || !!urlsSubidas["foto_horometro"];
+
   const zona = respuestasExtra["gen_zona"] ?? "";
   const area = respuestasExtra["gen_area"] ?? "";
   const municipiosDisponibles = zona ? ((MUNICIPIOS_POR_ESTADO as Record<string, string[]>)[zona] ?? []) : [];
@@ -203,11 +262,15 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
   // anterior. Ya no depende de la red (la subida real es hasta el final).
   const bloqueoGlobalFoto = procesandoFoto || procesandoFotoHorometro || procesandoFotoPunto || procesandoExtra !== null;
 
-  // ─── Captura + compresión local (sin red) ─────────────────────────────────
-  // Cada foto se comprime aquí mismo y se guarda en memoria; la subida real a
-  // Vercel Blob pasa una sola vez, en bloque, al enviar el checklist completo
-  // (ver enviar()) — así una conexión inestable a la mitad del checklist ya
-  // no puede trabar el avance entre pasos, solo importa tener señal al final.
+  // ─── Captura + compresión local + subida en segundo plano ─────────────────
+  // Cada foto se comprime aquí mismo (rápido, sin red) y de inmediato marca
+  // el campo como "listo" para poder avanzar — la subida real a Vercel Blob
+  // corre en segundo plano, sin bloquear. En cuanto esa subida termina, el
+  // archivo local se suelta de memoria (solo se conserva la URL) — así nunca
+  // se acumulan todas las fotos de la sesión en RAM a la vez, a diferencia de
+  // subirlas todas hasta el final. Si la subida falla (sin señal en ese
+  // momento), el archivo se queda tal cual para reintentarse al enviar() el
+  // checklist completo.
 
   function iniciarFotoExtra(key: string) {
     extraFotoKeyRef.current = key;
@@ -226,12 +289,18 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
     if (!file || !key) return;
     setProcesandoExtra(key);
     setError(null);
-    const comprimido = await comprimirImagen(file);
-    setArchivosExtra((p) => ({ ...p, [key]: comprimido }));
-    // Si ya se había subido una versión anterior de esta foto (ej. se
-    // retomó tras un intento fallido), se invalida — la nueva es la que cuenta.
+    const { archivo, subida } = await prepararFotoDiferida(file);
+    archivoVigenteExtraRef.current[key] = archivo;
+    setArchivosExtra((p) => ({ ...p, [key]: archivo }));
     setUrlsSubidas((p) => { const c = { ...p }; delete c[key]; return c; });
     setProcesandoExtra(null);
+    subida.then((r) => {
+      if (archivoVigenteExtraRef.current[key] !== archivo) return; // se retomó la foto mientras subía
+      if (r.ok) {
+        setArchivosExtra((p) => { const c = { ...p }; delete c[key]; return c; });
+        setUrlsSubidas((p) => ({ ...p, [key]: r.url }));
+      }
+    });
   }
 
   function abrirFotoPunto(key: string) {
@@ -245,30 +314,54 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
     if (!file || !key) return;
     setProcesandoFotoPunto(true);
     setError(null);
-    const comprimido = await comprimirImagen(file);
-    setArchivosPorPunto((p) => ({ ...p, [key]: comprimido }));
+    const { archivo, subida } = await prepararFotoDiferida(file);
+    archivoVigentePuntoRef.current[key] = archivo;
+    setArchivosPorPunto((p) => ({ ...p, [key]: archivo }));
     setUrlsSubidas((p) => { const c = { ...p }; delete c[`foto_${key}`]; return c; });
     setProcesandoFotoPunto(false);
+    subida.then((r) => {
+      if (archivoVigentePuntoRef.current[key] !== archivo) return;
+      if (r.ok) {
+        setArchivosPorPunto((p) => { const c = { ...p }; delete c[key]; return c; });
+        setUrlsSubidas((p) => ({ ...p, [`foto_${key}`]: r.url }));
+      }
+    });
   }
 
   async function subirFoto(file: File | undefined) {
     if (!file) return;
     setProcesandoFoto(true);
     setError(null);
-    const comprimido = await comprimirImagen(file);
-    setFotoArchivo(comprimido);
+    const { archivo, subida } = await prepararFotoDiferida(file);
+    archivoVigenteOdometroRef.current = archivo;
+    setFotoArchivo(archivo);
     setUrlsSubidas((p) => { const c = { ...p }; delete c["evidenciaUrl"]; return c; });
     setProcesandoFoto(false);
+    subida.then((r) => {
+      if (archivoVigenteOdometroRef.current !== archivo) return;
+      if (r.ok) {
+        setFotoArchivo(null);
+        setUrlsSubidas((p) => ({ ...p, evidenciaUrl: r.url }));
+      }
+    });
   }
 
   async function subirFotoHorometro(file: File | undefined) {
     if (!file) return;
     setProcesandoFotoHorometro(true);
     setError(null);
-    const comprimido = await comprimirImagen(file);
-    setFotoHorometroArchivo(comprimido);
+    const { archivo, subida } = await prepararFotoDiferida(file);
+    archivoVigenteHorometroRef.current = archivo;
+    setFotoHorometroArchivo(archivo);
     setUrlsSubidas((p) => { const c = { ...p }; delete c["foto_horometro"]; return c; });
     setProcesandoFotoHorometro(false);
+    subida.then((r) => {
+      if (archivoVigenteHorometroRef.current !== archivo) return;
+      if (r.ok) {
+        setFotoHorometroArchivo(null);
+        setUrlsSubidas((p) => ({ ...p, foto_horometro: r.url }));
+      }
+    });
   }
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -292,51 +385,51 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
     if (!responsableActivo) return "Esta unidad no tiene un responsable activo — debe tomarse primero desde \"Mi Turno\".";
     if (!puedeCompletarla) return `Esta unidad la tiene tomada ${responsableActivo}. Solo esa persona puede completar este checklist.`;
     if (!respuestasExtra["gen_tipo_licencia"]) return "Indica el tipo de licencia.";
-    if (!archivosExtra["gen_foto_licencia"]) return "La foto de licencia es obligatoria.";
+    if (!tieneFotoExtra("gen_foto_licencia")) return "La foto de licencia es obligatoria.";
     return null;
   }
 
   function validarNivelesExtra(): string | null {
     if (!respuestasExtra["niv_luz_check"]) return "Indica si hay luz de check encendida.";
-    if (!archivosExtra["niv_evidencia_luz_check"]) return "La foto de la luz de check es obligatoria.";
+    if (!tieneFotoExtra("niv_evidencia_luz_check")) return "La foto de la luz de check es obligatoria.";
     if (!respuestasExtra["niv_nivel_combustible"]) return "Indica el nivel de combustible.";
-    if (!archivosExtra["niv_evidencia_combustible"]) return "La foto del nivel de combustible es obligatoria.";
+    if (!tieneFotoExtra("niv_evidencia_combustible")) return "La foto del nivel de combustible es obligatoria.";
     return null;
   }
 
   function validarExterior(): string | null {
     if (!respuestasExtra["ext_tiene_golpes"]) return "Indica si el vehículo tiene golpes.";
-    if (respuestasExtra["ext_tiene_golpes"] === "SÍ" && !archivosExtra["ext_evidencia_golpes_1"]) return "Adjunta al menos una foto de evidencia de los golpes.";
-    if (!archivosExtra["ext_evidencia_frente"]) return "La foto del frente es obligatoria.";
+    if (respuestasExtra["ext_tiene_golpes"] === "SÍ" && !tieneFotoExtra("ext_evidencia_golpes_1")) return "Adjunta al menos una foto de evidencia de los golpes.";
+    if (!tieneFotoExtra("ext_evidencia_frente")) return "La foto del frente es obligatoria.";
     if (!respuestasExtra["ext_parabrisas_espejos"]) return "Indica el estado del parabrisas y espejos.";
-    if (!archivosExtra["ext_evidencia_parabrisas_espejos"]) return "La foto de parabrisas/espejos es obligatoria.";
-    if (!archivosExtra["ext_evidencia_lado_derecho"]) return "La foto del lado derecho es obligatoria.";
-    if (!archivosExtra["ext_evidencia_parte_trasera"]) return "La foto de la parte trasera es obligatoria.";
-    if (!archivosExtra["ext_evidencia_lado_izquierdo"]) return "La foto del lado izquierdo es obligatoria.";
-    if (esGrua && !archivosExtra["ext_brazo_grua"]) return "La foto del brazo de grúa es obligatoria.";
+    if (!tieneFotoExtra("ext_evidencia_parabrisas_espejos")) return "La foto de parabrisas/espejos es obligatoria.";
+    if (!tieneFotoExtra("ext_evidencia_lado_derecho")) return "La foto del lado derecho es obligatoria.";
+    if (!tieneFotoExtra("ext_evidencia_parte_trasera")) return "La foto de la parte trasera es obligatoria.";
+    if (!tieneFotoExtra("ext_evidencia_lado_izquierdo")) return "La foto del lado izquierdo es obligatoria.";
+    if (esGrua && !tieneFotoExtra("ext_brazo_grua")) return "La foto del brazo de grúa es obligatoria.";
     return null;
   }
 
   function validarInterior(): string | null {
-    if (!archivosExtra["int_evidencia_tarjeta_circulacion"]) return "La foto de la tarjeta de circulación es obligatoria.";
-    if (!archivosExtra["int_evidencia_tarjeta_combustible"]) return "La foto de la tarjeta de combustible es obligatoria.";
+    if (!tieneFotoExtra("int_evidencia_tarjeta_circulacion")) return "La foto de la tarjeta de circulación es obligatoria.";
+    if (!tieneFotoExtra("int_evidencia_tarjeta_combustible")) return "La foto de la tarjeta de combustible es obligatoria.";
     return null;
   }
 
   function validarLecturas(): string | null {
     if (!odometro || Number(odometro) <= 0) return "Ingresa una lectura de odómetro válida.";
-    if (!fotoArchivo) return "La foto del odómetro es obligatoria.";
-    if (esGrua && !fotoHorometroArchivo) return "La foto del horómetro es obligatoria para grúas.";
+    if (!tieneOdometro) return "La foto del odómetro es obligatoria.";
+    if (esGrua && !tieneHorometro) return "La foto del horómetro es obligatoria para grúas.";
     return null;
   }
 
   function validarSeguridad(): string | null {
     if (!respuestasExtra["seg_llanta_refaccion"]) return "Indica si cuenta con llanta de refacción.";
-    if (!archivosExtra["seg_evidencia_llanta_refaccion"]) return "La foto de la llanta de refacción es obligatoria.";
+    if (!tieneFotoExtra("seg_evidencia_llanta_refaccion")) return "La foto de la llanta de refacción es obligatoria.";
     if (!respuestasExtra["seg_gato"]) return "Indica si cuenta con gato.";
-    if (!archivosExtra["seg_evidencia_gato"]) return "La foto del gato es obligatoria.";
+    if (!tieneFotoExtra("seg_evidencia_gato")) return "La foto del gato es obligatoria.";
     if (!respuestasExtra["seg_cables_corriente"]) return "Indica si cuenta con cables de corriente.";
-    if (!archivosExtra["seg_evidencia_cables_corriente"]) return "La foto de los cables es obligatoria.";
+    if (!tieneFotoExtra("seg_evidencia_cables_corriente")) return "La foto de los cables es obligatoria.";
     if (!firmaBase64) return "La firma del responsable es obligatoria.";
     return null;
   }
@@ -348,11 +441,12 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
     if (errSeg) { setError(errSeg); return; }
     setError(null);
     startTransition(async () => {
-      // Único momento del checklist que de verdad necesita red: se suben
-      // aquí, en bloque, todas las fotos que se fueron comprimiendo y
-      // guardando localmente durante el wizard. `urlsSubidas` ya trae las
-      // que hubieran quedado de un intento anterior fallido, así un
-      // reintento no vuelve a subir lo que ya se subió con éxito.
+      // Cada foto ya se subió en segundo plano apenas se tomó (ver los
+      // handlers arriba) — lo normal es que aquí ya no quede nada pendiente.
+      // Esto es solo la red de seguridad para las que no hayan alcanzado a
+      // subir (sin señal en su momento): se reintentan aquí, en bloque, antes
+      // de guardar el checklist. `urlsSubidas` ya trae las que sí se subieron,
+      // así no se repite ninguna subida exitosa.
       const pendientes: { campo: string; archivo: File }[] = [];
       if (fotoArchivo && !urlsSubidas["evidenciaUrl"]) pendientes.push({ campo: "evidenciaUrl", archivo: fotoArchivo });
       if (esGrua && fotoHorometroArchivo && !urlsSubidas["foto_horometro"]) pendientes.push({ campo: "foto_horometro", archivo: fotoHorometroArchivo });
@@ -405,6 +499,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
       if (firmaBase64) fd.set("seg_firma_responsable", firmaBase64);
       const res = await crearChecklist(fd);
       if (!res.ok) { setError(res.error); return; }
+      borrarBorrador(CLAVE_BORRADOR);
       setFase("exito");
     });
   }
@@ -412,10 +507,10 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
   // ─── Render helpers ───────────────────────────────────────────────────────
 
   function rFoto(clave: string, label: string, requerido = true, permitirGaleria = permitirGaleriaFotos) {
-    const url = archivosExtra[clave];
+    const lista = tieneFotoExtra(clave);
     const sub = procesandoExtra === clave;
     const deshabilitado = bloqueoGlobalFoto && !sub;
-    if (url) {
+    if (lista) {
       return (
         <div key={clave}>
           <label style={labelStyle}>{label}{requerido ? " *" : ""}</label>
@@ -423,6 +518,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
             <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
             <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto lista</span>
             <button type="button" onClick={() => {
+              delete archivoVigenteExtraRef.current[clave];
               setArchivosExtra((p) => { const c = { ...p }; delete c[clave]; return c; });
               setUrlsSubidas((p) => { const c = { ...p }; delete c[clave]; return c; });
             }} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
@@ -548,7 +644,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
       {fase === "identificacion" && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onCancelar} className="flex items-center gap-1 rounded-md px-2 h-8" style={navBtnStyle}>
+            <button type="button" onClick={() => { borrarBorrador(CLAVE_BORRADOR); onCancelar(); }} className="flex items-center gap-1 rounded-md px-2 h-8" style={navBtnStyle}>
               <ChevronLeft size={14} /> Volver
             </button>
           </div>
@@ -735,11 +831,12 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
                 <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)", fontWeight: 600 }}>
                   Foto del problema (opcional)
                 </p>
-                {archivosPorPunto[guiaItem.key] ? (
+                {tieneFotoPunto(guiaItem.key) ? (
                   <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
                     <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
                     <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto lista</span>
                     <button type="button" onClick={() => {
+                      delete archivoVigentePuntoRef.current[guiaItem.key];
                       setArchivosPorPunto((p) => { const c = { ...p }; delete c[guiaItem.key]; return c; });
                       setUrlsSubidas((p) => { const c = { ...p }; delete c[`foto_${guiaItem.key}`]; return c; });
                     }} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}>
@@ -899,11 +996,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
 
             <div>
               <label style={labelStyle}>Foto del odómetro *</label>
-              {fotoArchivo ? (
+              {tieneOdometro ? (
                 <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
                   <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
                   <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto lista</span>
-                  <button type="button" onClick={() => { setFotoArchivo(null); setUrlsSubidas((p) => { const c = { ...p }; delete c["evidenciaUrl"]; return c; }); }} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
+                  <button type="button" onClick={() => { archivoVigenteOdometroRef.current = null; setFotoArchivo(null); setUrlsSubidas((p) => { const c = { ...p }; delete c["evidenciaUrl"]; return c; }); }} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
                 </div>
               ) : (
                 <button type="button" disabled={bloqueoGlobalFoto && !procesandoFoto} onClick={() => fotoInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"
@@ -917,11 +1014,11 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
             {esGrua && (
               <div>
                 <label style={labelStyle}>Foto del horómetro *</label>
-                {fotoHorometroArchivo ? (
+                {tieneHorometro ? (
                   <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
                     <CheckCircle2 size={15} color="#16a34a" className="shrink-0" />
                     <span className="flex-1 truncate" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#16a34a" }}>Foto lista</span>
-                    <button type="button" onClick={() => { setFotoHorometroArchivo(null); setUrlsSubidas((p) => { const c = { ...p }; delete c["foto_horometro"]; return c; }); }} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
+                    <button type="button" onClick={() => { archivoVigenteHorometroRef.current = null; setFotoHorometroArchivo(null); setUrlsSubidas((p) => { const c = { ...p }; delete c["foto_horometro"]; return c; }); }} style={{ color: "#16a34a", opacity: 0.6, cursor: "pointer" }}><X size={14} /></button>
                   </div>
                 ) : (
                   <button type="button" disabled={bloqueoGlobalFoto && !procesandoFotoHorometro} onClick={() => fotoHorometroInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl w-full disabled:opacity-50"

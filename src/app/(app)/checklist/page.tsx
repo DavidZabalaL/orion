@@ -16,6 +16,13 @@ import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
+// Tope defensivo para las listas de "hoy" en esta página — en un día normal
+// nunca se acerca, pero evita que la carga inicial de /checklist crezca sin
+// límite si algún día la flota o el volumen de checklists diarios es mucho
+// mayor (un equipo con poca memoria puede tronar con una carga de página ya
+// de por sí pesada, aunque no tenga nada que ver con las fotos).
+const LIMITE_CHECKLISTS_HOY = 300;
+
 export default async function ChecklistPage({
   searchParams,
 }: {
@@ -68,6 +75,7 @@ export default async function ChecklistPage({
         capturadoPor: { select: { nombre: true } },
       },
       orderBy: { fecha: "desc" },
+      take: LIMITE_CHECKLISTS_HOY,
     }),
     prisma.checklist.findMany({
       where: { tipo: "SEMANAL", fecha: { gte: inicioHoy }, unidad: filtroListas },
@@ -76,6 +84,7 @@ export default async function ChecklistPage({
         capturadoPor: { select: { nombre: true } },
       },
       orderBy: { fecha: "desc" },
+      take: LIMITE_CHECKLISTS_HOY,
     }),
     prisma.checklist.findMany({
       where: { tipo: "CARGA_COMBUSTIBLE", fecha: { gte: inicioHoy }, unidad: filtroListas },
@@ -84,6 +93,7 @@ export default async function ChecklistPage({
         capturadoPor: { select: { nombre: true } },
       },
       orderBy: { fecha: "desc" },
+      take: LIMITE_CHECKLISTS_HOY,
     }),
     prisma.checklist.findMany({
       where: { tipo: "REPORTE_FALLA", fecha: { gte: inicioHoy }, unidad: filtroListas },
@@ -92,6 +102,7 @@ export default async function ChecklistPage({
         capturadoPor: { select: { nombre: true } },
       },
       orderBy: { fecha: "desc" },
+      take: LIMITE_CHECKLISTS_HOY,
     }),
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, checklists: { none: { tipo: "DIARIO", fecha: { gte: inicioHoy } } }, ...filtroListas },

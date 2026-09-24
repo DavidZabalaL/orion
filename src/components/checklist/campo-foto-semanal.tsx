@@ -13,6 +13,8 @@ export function CampoFotoSemanal({
   permitirGaleria = false,
   bloqueado = false,
   onSubiendoChange,
+  onSubidaPendienteChange,
+  onUrlChange,
 }: {
   name: string;
   label: string;
@@ -20,43 +22,64 @@ export function CampoFotoSemanal({
   initialUrl?: string;
   /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
   permitirGaleria?: boolean;
-  /** true si OTRA foto del mismo checklist se está subiendo ahora mismo — bloquea este campo mientras tanto, para no acumular varias subidas al mismo tiempo. */
+  /** true si OTRA foto del mismo checklist se está comprimiendo ahora mismo — bloquea este campo mientras tanto, para no acumular varias compresiones al mismo tiempo. */
   bloqueado?: boolean;
-  /** Avisa al wizard cuándo esta foto empieza/termina de subir, para que bloquee las demás mientras tanto. */
+  /** Avisa al wizard cuándo esta foto empieza/termina de comprimirse (rápido, sin red), para que bloquee las demás mientras tanto. */
   onSubiendoChange?: (subiendo: boolean) => void;
+  /** Avisa al wizard cuándo esta foto empieza/termina de subirse EN SEGUNDO PLANO — el wizard usa esto para no dejar enviar el formulario mientras alguna subida siga en curso, sin bloquear la captura de más fotos mientras tanto. */
+  onSubidaPendienteChange?: (pendiente: boolean) => void;
+  /** Avisa al wizard la URL ya subida de este campo (o null si aún no hay/se quitó) — para poder guardarla en el borrador de localStorage y recuperarla si la página se recarga a medio checklist. */
+  onUrlChange?: (url: string | null) => void;
 }) {
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(initialUrl ? "foto anterior" : null);
   const [url, setUrl] = useState<string | null>(initialUrl ?? null);
-  const [subiendo, setSubiendo] = useState(false);
+  const [listo, setListo] = useState(!!initialUrl);
+  const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function actualizarUrl(nuevaUrl: string | null) {
+    setUrl(nuevaUrl);
+    onUrlChange?.(nuevaUrl);
+  }
+
+  // La foto se comprime aquí (rápido, sin red) y de inmediato se marca el
+  // campo como "listo" para poder avanzar — la subida real a Vercel Blob
+  // corre después, en segundo plano, sin bloquear la captura de las demás
+  // fotos. Solo el envío final del formulario espera a que no quede ninguna
+  // subida pendiente (ver onSubidaPendienteChange, usado por el wizard).
   async function alSeleccionar(file: File | undefined) {
     if (!file) {
       setNombreArchivo(null);
-      setUrl(null);
+      actualizarUrl(null);
+      setListo(false);
       return;
     }
     setNombreArchivo(file.name);
-    setUrl(null);
-    setSubiendo(true);
+    actualizarUrl(null);
+    setProcesando(true);
     onSubiendoChange?.(true);
     setError(null);
+    const comprimido = await comprimirImagen(file);
+    setListo(true);
+    setProcesando(false);
+    onSubiendoChange?.(false);
+    onSubidaPendienteChange?.(true);
     try {
       const fd = new FormData();
-      fd.set("file", await comprimirImagen(file));
+      fd.set("file", comprimido);
       const result = await subirFotoChecklist(fd);
       if (!result.ok) throw new Error(result.error);
-      setUrl(result.url);
+      actualizarUrl(result.url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
+      setListo(false);
       setNombreArchivo(null);
     } finally {
-      setSubiendo(false);
-      onSubiendoChange?.(false);
+      onSubidaPendienteChange?.(false);
     }
   }
 
-  const deshabilitado = bloqueado && !subiendo;
+  const deshabilitado = bloqueado && !procesando;
 
   return (
     <div>
@@ -64,23 +87,23 @@ export function CampoFotoSemanal({
       <label
         className="flex items-center gap-2 rounded-md px-3 py-2.5"
         style={{
-          background: url ? "var(--status-cerrado-bg)" : "var(--field-bg)",
-          color: url ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+          background: listo ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+          color: listo ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
           fontFamily: "var(--font-ui)",
           fontSize: "var(--text-sm)",
           opacity: deshabilitado ? 0.5 : 1,
           cursor: deshabilitado ? "not-allowed" : "pointer",
         }}
       >
-        {subiendo ? (
+        {procesando ? (
           <Loader2 size={15} className="animate-spin shrink-0" />
-        ) : url ? (
+        ) : listo ? (
           <CheckCircle2 size={15} className="shrink-0" />
         ) : (
           <Camera size={15} className="shrink-0" />
         )}
         <span className="truncate">
-          {subiendo ? `Subiendo ${nombreArchivo}…` : url ? `${label} — completa` : `${label}${requerido ? " *" : ""}`}
+          {procesando ? `Procesando ${nombreArchivo}…` : listo ? `${label} — lista` : `${label}${requerido ? " *" : ""}`}
         </span>
         <input
           type="file"

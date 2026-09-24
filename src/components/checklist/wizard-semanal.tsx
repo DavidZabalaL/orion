@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklistSemanal, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
+import { leerBorrador, guardarBorrador, borrarBorrador } from "@/lib/borrador-checklist";
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -163,10 +164,11 @@ function BarraProgreso({ actual, total, seccion }: { actual: number; total: numb
 }
 
 function SubirFoto({
-  clave, label, requerido, archivo, onArchivo, permitirGaleria = false, bloqueado = false, onProcesandoChange,
+  clave, label, requerido, listo, onArchivo, permitirGaleria = false, bloqueado = false, onProcesandoChange,
 }: {
   clave: string; label: string; requerido: boolean;
-  archivo: File | undefined;
+  /** true si ya hay una foto capturada para este campo (subida o todavía subiéndose en segundo plano) — ver tieneFoto() en WizardSemanal. */
+  listo: boolean;
   onArchivo: (archivo: File | null) => void;
   /** Solo para la licencia: permite elegir de la galería, no solo tomar una foto nueva. */
   permitirGaleria?: boolean;
@@ -180,11 +182,10 @@ function SubirFoto({
   const refGaleria = useRef<HTMLInputElement>(null);
   const deshabilitado = bloqueado && !procesando;
 
-  // La foto se comprime aquí mismo, en el navegador, y se guarda en memoria —
-  // ya no se sube a Vercel Blob en este momento. La subida real de todas las
-  // fotos del checklist pasa una sola vez, en bloque, al finalizar (ver
-  // enviar() en WizardSemanal) — así una conexión inestable a la mitad del
-  // checklist no puede trabar el avance entre pasos.
+  // La foto se comprime aquí mismo, en el navegador (rápido, sin red), y de
+  // inmediato se avisa al wizard (onArchivo) para poder avanzar — la subida
+  // real a Vercel Blob la maneja el wizard en segundo plano (ver setArchivo
+  // en WizardSemanal), sin bloquear este paso.
   async function alSeleccionar(file: File | undefined) {
     if (!file) return;
     setProcesando(true);
@@ -195,7 +196,7 @@ function SubirFoto({
     onProcesandoChange?.(false);
   }
 
-  if (archivo) {
+  if (listo) {
     return (
       <div
         className="flex items-center gap-2 rounded-xl px-3 py-2.5"
@@ -317,20 +318,42 @@ function BtnSiguiente({
 
 // ─── componente principal ─────────────────────────────────────────────────────
 
+// Borrador en localStorage — ver src/lib/borrador-checklist.ts. Solo se
+// guardan datos y URLs ya subidas, nunca archivos (un File no sobrevive una
+// recarga de página de todas formas).
+const CLAVE_BORRADOR = "semanal";
+type BorradorSemanal = {
+  fase: "identificacion" | "guia" | "exito";
+  idx: number;
+  proyectoFiltro: string;
+  numeroEconomico: string;
+  respuestas: Record<string, string>;
+  urlsSubidas: Record<string, string>;
+};
+
 export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, onTerminar, onCancelar }: Props) {
-  const [fase, setFase] = useState<"identificacion" | "guia" | "exito">("identificacion");
-  const [idx, setIdx] = useState(0);
-  const [proyectoFiltro, setProyectoFiltro] = useState(proyectos[0]?.id ?? "");
-  const [numeroEconomico, setNumeroEconomico] = useState("");
-  const [respuestas, setRespuestas] = useState<Record<string, string>>({ gen_licencia_permanente: "Y" });
+  const [borradorInicial] = useState(() => leerBorrador<BorradorSemanal>(CLAVE_BORRADOR));
+
+  const [fase, setFase] = useState<"identificacion" | "guia" | "exito">(borradorInicial?.fase ?? "identificacion");
+  const [idx, setIdx] = useState(borradorInicial?.idx ?? 0);
+  const [proyectoFiltro, setProyectoFiltro] = useState(borradorInicial?.proyectoFiltro ?? proyectos[0]?.id ?? "");
+  const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
+  const [respuestas, setRespuestas] = useState<Record<string, string>>(borradorInicial?.respuestas ?? { gen_licencia_permanente: "Y" });
   // Las fotos se comprimen y se guardan en memoria al tomarlas; la subida a
   // Vercel Blob pasa una sola vez, en bloque, al finalizar — ver enviar().
   const [archivos, setArchivos] = useState<Record<string, File>>({});
-  const [urlsSubidas, setUrlsSubidas] = useState<Record<string, string>>({});
+  const [urlsSubidas, setUrlsSubidas] = useState<Record<string, string>>(borradorInicial?.urlsSubidas ?? {});
   const [progresoSubida, setProgresoSubida] = useState<{ actual: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [procesandoFoto, setProcesandoFoto] = useState(false);
+
+  // Ver la nota equivalente en WizardDiario — recupera el progreso si Android
+  // recarga la pestaña en segundo plano por falta de memoria.
+  useEffect(() => {
+    if (fase === "exito") return;
+    guardarBorrador<BorradorSemanal>(CLAVE_BORRADOR, { fase, idx, proyectoFiltro, numeroEconomico, respuestas, urlsSubidas });
+  }, [fase, idx, proyectoFiltro, numeroEconomico, respuestas, urlsSubidas]);
 
   const unidadesFiltradas = useMemo(
     () => (proyectoFiltro ? unidades.filter((u) => u.proyectoId === proyectoFiltro) : unidades),
@@ -356,16 +379,39 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
     }
   })();
 
+  // Copia "viva" de qué archivo es el vigente por campo — si la subida en
+  // segundo plano de una foto ya reemplazada por una más nueva termina
+  // tarde, esto evita que pise el estado con una URL obsoleta.
+  const archivoVigenteRef = useRef<Record<string, File>>({});
+
   function setArchivo(clave: string, archivo: File | null) {
-    setArchivos((prev) => {
-      const next = { ...prev };
-      if (archivo === null) delete next[clave];
-      else next[clave] = archivo;
-      return next;
-    });
+    if (archivo === null) {
+      delete archivoVigenteRef.current[clave];
+      setArchivos((prev) => { const c = { ...prev }; delete c[clave]; return c; });
+      setUrlsSubidas((prev) => { const c = { ...prev }; delete c[clave]; return c; });
+      return;
+    }
+    archivoVigenteRef.current[clave] = archivo;
+    setArchivos((prev) => ({ ...prev, [clave]: archivo }));
     // Si se retoma una foto (se borró y se va a volver a tomar), la URL ya
     // subida de la versión anterior queda obsoleta.
     setUrlsSubidas((prev) => { const c = { ...prev }; delete c[clave]; return c; });
+    // La subida real corre en segundo plano, sin bloquear el avance — apenas
+    // termina, se suelta el archivo de memoria (solo se conserva la URL). Si
+    // falla (sin señal en ese momento), se queda tal cual para reintentarse
+    // en bloque al enviar() el checklist completo.
+    subirFotoChecklist((() => { const fd = new FormData(); fd.set("file", archivo); return fd; })()).then((r) => {
+      if (archivoVigenteRef.current[clave] !== archivo) return; // se retomó la foto mientras subía
+      if (r.ok) {
+        setArchivos((prev) => { const c = { ...prev }; delete c[clave]; return c; });
+        setUrlsSubidas((prev) => ({ ...prev, [clave]: r.url }));
+      }
+    });
+  }
+
+  /** Una foto "cuenta" ya sea que esté en memoria esperando subir o que ya se haya subido (y por eso se soltó de `archivos`). */
+  function tieneFoto(clave: string): boolean {
+    return !!archivos[clave] || !!urlsSubidas[clave];
   }
 
   // ── puedeAvanzar ─────────────────────────────────────────────────────────
@@ -375,17 +421,17 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
       case "toggle_gen":
         return !!respuestas[item.key];
       case "foto_gen":
-        return !!archivos[item.key];
+        return tieneFoto(item.key);
       case "lectura":
-        return !!(respuestas[item.key] && Number(respuestas[item.key]) >= 0) && !!archivos[item.fotoKey];
+        return !!(respuestas[item.key] && Number(respuestas[item.key]) >= 0) && tieneFoto(item.fotoKey);
       case "radio": {
         const val = respuestas[item.key];
         if (!val) return false;
-        if (item.fotoKey && item.fotoRequerido) return !!archivos[item.fotoKey];
+        if (item.fotoKey && item.fotoRequerido) return tieneFoto(item.fotoKey);
         return true;
       }
       case "foto":
-        return item.requerido ? !!archivos[item.key] : true;
+        return item.requerido ? tieneFoto(item.key) : true;
       case "numero":
         return item.requerido
           ? !!(respuestas[item.key] && respuestas[item.key] !== "")
@@ -487,6 +533,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
         setError(res.error);
         return;
       }
+      borrarBorrador(CLAVE_BORRADOR);
       setFase("exito");
     });
   }
@@ -545,7 +592,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onCancelar}
+            onClick={() => { borrarBorrador(CLAVE_BORRADOR); onCancelar(); }}
             className="flex items-center gap-1 rounded-md px-2 h-8"
             style={{
               background: "var(--chip)",
@@ -765,7 +812,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               clave={item.key}
               label={item.label}
               requerido
-              archivo={archivos[item.key]}
+              listo={tieneFoto(item.key)}
               onArchivo={(archivo) => setArchivo(item.key, archivo)}
               permitirGaleria
               bloqueado={procesandoFoto}
@@ -818,7 +865,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               clave={item.fotoKey}
               label={item.fotoLabel}
               requerido
-              archivo={archivos[item.fotoKey]}
+              listo={tieneFoto(item.fotoKey)}
               onArchivo={(archivo) => setArchivo(item.fotoKey, archivo)}
               permitirGaleria={permitirGaleriaFotos}
               bloqueado={procesandoFoto}
@@ -881,7 +928,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
                 clave={item.fotoKey}
                 label={item.fotoLabel ?? "Evidencia fotográfica"}
                 requerido={!!item.fotoRequerido}
-                archivo={archivos[item.fotoKey]}
+                listo={tieneFoto(item.fotoKey!)}
                 onArchivo={(archivo) => setArchivo(item.fotoKey!, archivo)}
                 permitirGaleria={permitirGaleriaFotos}
                 bloqueado={procesandoFoto}
@@ -934,7 +981,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               clave={item.key}
               label={item.label}
               requerido={item.requerido}
-              archivo={archivos[item.key]}
+              listo={tieneFoto(item.key)}
               onArchivo={(archivo) => setArchivo(item.key, archivo)}
               permitirGaleria={permitirGaleriaFotos}
               bloqueado={procesandoFoto}

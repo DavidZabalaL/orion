@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useEffect, useRef, useState, useTransition, useMemo } from "react";
 import { ChevronLeft, CheckCircle2, Loader2, Camera, Image as ImageIcon } from "lucide-react";
 import { crearChecklistCargaCombustible, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { FirmaPad } from "@/components/checklist/firma-pad";
-import { comprimirImagen } from "@/lib/comprimir-imagen";
+import { prepararFotoDiferida } from "@/lib/foto-diferida";
+import { leerBorrador, guardarBorrador, borrarBorrador } from "@/lib/borrador-checklist";
 import {
   ESTADOS_CARGA,
   MUNICIPIOS_POR_ESTADO,
@@ -49,6 +50,26 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.03em",
   display: "block",
   marginBottom: 4,
+};
+
+// Borrador en localStorage — ver src/lib/borrador-checklist.ts. Solo se
+// guardan datos y URLs ya subidas, nunca archivos (un File no sobrevive una
+// recarga de página de todas formas).
+const CLAVE_BORRADOR = "carga_combustible";
+type BorradorCargaCombustible = {
+  fase: Fase;
+  fecha: string;
+  zona: EstadoCarga;
+  municipio: string;
+  area: AreaCarga;
+  responsable: string;
+  tipoLicencia: string;
+  urlLicencia: string | null;
+  tipoVehiculo: string;
+  numeroEconomico: string;
+  tipoCombustible: string;
+  observaciones: string;
+  urlsFotosCarga: Record<string, string>;
 };
 
 const FASES: Fase[] = ["generales", "vehiculo", "carga", "exito"];
@@ -100,29 +121,60 @@ export function WizardCargaCombustible({
   onTerminar: () => void;
   onCancelar: () => void;
 }) {
-  const [fase, setFase] = useState<Fase>("generales");
+  const [borradorInicial] = useState(() => leerBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR));
+
+  const [fase, setFase] = useState<Fase>(borradorInicial?.fase ?? "generales");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   // Fase generales
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
-  const [zona, setZona] = useState<EstadoCarga>(ESTADOS_CARGA[0]);
-  const [municipio, setMunicipio] = useState(MUNICIPIOS_POR_ESTADO[ESTADOS_CARGA[0]][0] ?? "");
-  const [area, setArea] = useState<AreaCarga>(AREAS_CARGA[0]);
-  const [responsable, setResponsable] = useState("");
-  const [tipoLicencia, setTipoLicencia] = useState<string>(TIPOS_LICENCIA_CARGA[0]);
-  // Foto de licencia — rastreada en estado porque está fuera del <form> final
-  const [fotoLicenciaUrl, setFotoLicenciaUrl] = useState<string | null>(null);
-  const [subiendoFotoLicencia, setSubiendoFotoLicencia] = useState(false);
+  const [fecha, setFecha] = useState(borradorInicial?.fecha ?? new Date().toISOString().slice(0, 10));
+  const [zona, setZona] = useState<EstadoCarga>(borradorInicial?.zona ?? ESTADOS_CARGA[0]);
+  const [municipio, setMunicipio] = useState(borradorInicial?.municipio ?? MUNICIPIOS_POR_ESTADO[ESTADOS_CARGA[0]][0] ?? "");
+  const [area, setArea] = useState<AreaCarga>(borradorInicial?.area ?? AREAS_CARGA[0]);
+  const [responsable, setResponsable] = useState(borradorInicial?.responsable ?? "");
+  const [tipoLicencia, setTipoLicencia] = useState<string>(borradorInicial?.tipoLicencia ?? TIPOS_LICENCIA_CARGA[0]);
+  // Foto de licencia — rastreada en estado porque está fuera del <form> final.
+  // Se comprime y se marca "lista" de inmediato; la subida real corre en
+  // segundo plano (ver alSeleccionarFotoLicencia) — si para cuando se envía
+  // el formulario completo todavía no ha terminado, enviar() la reintenta.
+  const [fotoLicenciaArchivo, setFotoLicenciaArchivo] = useState<File | null>(null);
+  const [urlLicencia, setUrlLicencia] = useState<string | null>(borradorInicial?.urlLicencia ?? null);
+  const [procesandoLicencia, setProcesandoLicencia] = useState(false);
+  const archivoVigenteLicenciaRef = useRef<File | null>(null);
+  const tieneLicencia = !!fotoLicenciaArchivo || !!urlLicencia;
 
   // Fase vehiculo
-  const [tipoVehiculo, setTipoVehiculo] = useState("CAMIONETA");
-  const [numeroEconomico, setNumeroEconomico] = useState("");
+  const [tipoVehiculo, setTipoVehiculo] = useState(borradorInicial?.tipoVehiculo ?? "CAMIONETA");
+  const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
 
   // Fase carga
-  const [tipoCombustible, setTipoCombustible] = useState<string>(TIPOS_COMBUSTIBLE_CARGA[0]);
-  const [observaciones, setObservaciones] = useState("");
-  const [subiendoFotoCarga, setSubiendoFotoCarga] = useState(false);
+  const [tipoCombustible, setTipoCombustible] = useState<string>(borradorInicial?.tipoCombustible ?? TIPOS_COMBUSTIBLE_CARGA[0]);
+  const [observaciones, setObservaciones] = useState(borradorInicial?.observaciones ?? "");
+  const [procesandoFotoCarga, setProcesandoFotoCarga] = useState(false);
+  // Cuántas de las fotos de esta fase siguen subiéndose en segundo plano —
+  // no bloquea tomar más fotos, solo el botón final de enviar (ver más abajo),
+  // para no mandar el formulario con un campo de foto todavía vacío.
+  const [subidasPendientesCarga, setSubidasPendientesCarga] = useState(0);
+  const [urlsFotosCarga, setUrlsFotosCarga] = useState<Record<string, string>>(borradorInicial?.urlsFotosCarga ?? {});
+
+  function actualizarUrlFotoCarga(campo: string, url: string | null) {
+    setUrlsFotosCarga((prev) => {
+      const c = { ...prev };
+      if (url) c[campo] = url; else delete c[campo];
+      return c;
+    });
+  }
+
+  // Ver la nota equivalente en WizardDiario — recupera el progreso si Android
+  // recarga la pestaña en segundo plano por falta de memoria.
+  useEffect(() => {
+    if (fase === "exito") return;
+    guardarBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR, {
+      fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia,
+      tipoVehiculo, numeroEconomico, tipoCombustible, observaciones, urlsFotosCarga,
+    });
+  }, [fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia, tipoVehiculo, numeroEconomico, tipoCombustible, observaciones, urlsFotosCarga]);
 
   const municipiosDisponibles = MUNICIPIOS_POR_ESTADO[zona] ?? [];
   const personalDisponible = PERSONAL_POR_AREA[area] ?? [];
@@ -149,27 +201,34 @@ export function WizardCargaCombustible({
   }
 
   async function alSeleccionarFotoLicencia(file: File | undefined) {
-    if (!file) { setFotoLicenciaUrl(null); return; }
-    setSubiendoFotoLicencia(true);
-    setError(null);
-    try {
-      const fd = new FormData();
-      fd.set("file", await comprimirImagen(file));
-      const result = await subirFotoChecklist(fd);
-      if (!result.ok) throw new Error(result.error);
-      setFotoLicenciaUrl(result.url);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
-    } finally {
-      setSubiendoFotoLicencia(false);
+    if (!file) {
+      archivoVigenteLicenciaRef.current = null;
+      setFotoLicenciaArchivo(null);
+      setUrlLicencia(null);
+      return;
     }
+    setProcesandoLicencia(true);
+    setError(null);
+    const { archivo, subida } = await prepararFotoDiferida(file);
+    archivoVigenteLicenciaRef.current = archivo;
+    setFotoLicenciaArchivo(archivo);
+    setUrlLicencia(null);
+    setProcesandoLicencia(false);
+    subida.then((r) => {
+      if (archivoVigenteLicenciaRef.current !== archivo) return; // se retomó la foto mientras subía
+      if (r.ok) {
+        setFotoLicenciaArchivo(null);
+        setUrlLicencia(r.url);
+      }
+      // si falla, se queda en fotoLicenciaArchivo — enviar() la reintenta al final.
+    });
   }
 
   function validarGenerales() {
     if (!fecha) return "La fecha es obligatoria.";
     if (!municipio) return "El municipio es obligatorio.";
     if (!responsable.trim()) return "El nombre del responsable es obligatorio.";
-    if (!fotoLicenciaUrl) return "La foto de licencia es obligatoria.";
+    if (!tieneLicencia) return "La foto de licencia es obligatoria.";
     return null;
   }
 
@@ -194,23 +253,41 @@ export function WizardCargaCombustible({
 
   function enviar(formData: FormData) {
     setError(null);
-    // Agregar campos de estado
-    formData.set("gen_fecha", fecha);
-    formData.set("gen_zona", zona);
-    formData.set("gen_municipio", municipio);
-    formData.set("gen_area", area);
-    formData.set("gen_responsable", responsable);
-    formData.set("gen_tipo_licencia", tipoLicencia);
-    formData.set("gen_foto_licencia", fotoLicenciaUrl ?? "");
-    formData.set("veh_tipo_vehiculo", tipoVehiculo);
-    formData.set("veh_numero_economico", numeroEconomico);
-    formData.set("veh_modelo", unidadSeleccionada ? `${unidadSeleccionada.marca} ${unidadSeleccionada.unidadModelo}` : "");
-    formData.set("carg_tipo_combustible", tipoCombustible);
-    formData.set("carg_observaciones", observaciones);
-
     startTransition(async () => {
+      // Red de seguridad: si la foto de licencia se comprimió pero su subida
+      // en segundo plano no alcanzó a terminar, se reintenta aquí antes de
+      // guardar — el resto de las fotos de esta fase (CampoFotoSemanal) ya
+      // vienen resueltas en `formData` porque el botón de enviar espera a
+      // que no queden subidas pendientes (ver subidasPendientesCarga).
+      let urlLicenciaFinal = urlLicencia;
+      if (!urlLicenciaFinal && fotoLicenciaArchivo) {
+        const fd = new FormData();
+        fd.set("file", fotoLicenciaArchivo);
+        const r = await subirFotoChecklist(fd);
+        if (!r.ok) {
+          setError(`No se pudo subir la foto de licencia: ${r.error}`);
+          return;
+        }
+        urlLicenciaFinal = r.url;
+        setUrlLicencia(r.url);
+      }
+
+      formData.set("gen_fecha", fecha);
+      formData.set("gen_zona", zona);
+      formData.set("gen_municipio", municipio);
+      formData.set("gen_area", area);
+      formData.set("gen_responsable", responsable);
+      formData.set("gen_tipo_licencia", tipoLicencia);
+      formData.set("gen_foto_licencia", urlLicenciaFinal ?? "");
+      formData.set("veh_tipo_vehiculo", tipoVehiculo);
+      formData.set("veh_numero_economico", numeroEconomico);
+      formData.set("veh_modelo", unidadSeleccionada ? `${unidadSeleccionada.marca} ${unidadSeleccionada.unidadModelo}` : "");
+      formData.set("carg_tipo_combustible", tipoCombustible);
+      formData.set("carg_observaciones", observaciones);
+
       const res = await crearChecklistCargaCombustible(formData);
       if (!res.ok) { setError(res.error); return; }
+      borrarBorrador(CLAVE_BORRADOR);
       setFase("exito");
     });
   }
@@ -245,7 +322,7 @@ export function WizardCargaCombustible({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={fase === "generales" ? onCancelar : () => setFase(FASES[FASES.indexOf(fase) - 1])}
+          onClick={fase === "generales" ? () => { borrarBorrador(CLAVE_BORRADOR); onCancelar(); } : () => setFase(FASES[FASES.indexOf(fase) - 1])}
           className="rounded-full p-1.5"
           style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
         >
@@ -339,49 +416,49 @@ export function WizardCargaCombustible({
               Dos opciones explícitas (cámara / galería) en vez de un solo picker nativo. */}
           <div>
             <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-              {fotoLicenciaUrl ? "Foto de licencia adjuntada *" : "Foto de licencia *"}
+              {tieneLicencia ? "Foto de licencia adjuntada *" : "Foto de licencia *"}
             </label>
             <div className="flex gap-2 mt-1">
               <label
                 className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
                 style={{
-                  background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
-                  color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+                  background: tieneLicencia ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+                  color: tieneLicencia ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
                   fontFamily: "var(--font-ui)",
                   fontSize: "var(--text-sm)",
-                  opacity: subiendoFotoLicencia ? 0.6 : 1,
-                  cursor: subiendoFotoLicencia ? "not-allowed" : "pointer",
+                  opacity: procesandoLicencia ? 0.6 : 1,
+                  cursor: procesandoLicencia ? "not-allowed" : "pointer",
                 }}
               >
-                {subiendoFotoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <Camera size={15} className="shrink-0" />}
-                <span className="truncate">{subiendoFotoLicencia ? "Subiendo…" : "Tomar foto"}</span>
+                {procesandoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <Camera size={15} className="shrink-0" />}
+                <span className="truncate">{procesandoLicencia ? "Procesando…" : "Tomar foto"}</span>
                 <input
                   type="file"
                   accept="image/*"
                   capture="environment"
                   className="hidden"
-                  disabled={subiendoFotoLicencia}
+                  disabled={procesandoLicencia}
                   onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
                 />
               </label>
               <label
                 className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
                 style={{
-                  background: fotoLicenciaUrl ? "var(--status-cerrado-bg)" : "var(--field-bg)",
-                  color: fotoLicenciaUrl ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+                  background: tieneLicencia ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+                  color: tieneLicencia ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
                   fontFamily: "var(--font-ui)",
                   fontSize: "var(--text-sm)",
-                  opacity: subiendoFotoLicencia ? 0.6 : 1,
-                  cursor: subiendoFotoLicencia ? "not-allowed" : "pointer",
+                  opacity: procesandoLicencia ? 0.6 : 1,
+                  cursor: procesandoLicencia ? "not-allowed" : "pointer",
                 }}
               >
-                {subiendoFotoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <ImageIcon size={15} className="shrink-0" />}
-                <span className="truncate">{subiendoFotoLicencia ? "Subiendo…" : "Elegir de galería"}</span>
+                {procesandoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <ImageIcon size={15} className="shrink-0" />}
+                <span className="truncate">{procesandoLicencia ? "Procesando…" : "Elegir de galería"}</span>
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  disabled={subiendoFotoLicencia}
+                  disabled={procesandoLicencia}
                   onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
                 />
               </label>
@@ -498,19 +575,19 @@ export function WizardCargaCombustible({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_antes} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_antes", url)} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_despues} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_despues", url)} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_1} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_evidencia_bomba_1", url)} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_2} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_evidencia_bomba_2", url)} />
             </div>
             <div>
-              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido permitirGaleria={permitirGaleriaFotos} bloqueado={subiendoFotoCarga} onSubiendoChange={setSubiendoFotoCarga} />
+              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_ticket} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_ticket", url)} />
             </div>
           </div>
 
@@ -532,11 +609,17 @@ export function WizardCargaCombustible({
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || subidasPendientesCarga > 0}
             className="flex items-center justify-center gap-2 rounded-md px-6 h-10 font-semibold disabled:opacity-60"
             style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
           >
-            {pending ? <><Loader2 size={16} className="animate-spin" /> Guardando…</> : "Registrar carga de combustible"}
+            {pending ? (
+              <><Loader2 size={16} className="animate-spin" /> Guardando…</>
+            ) : subidasPendientesCarga > 0 ? (
+              <><Loader2 size={16} className="animate-spin" /> Terminando de subir fotos…</>
+            ) : (
+              "Registrar carga de combustible"
+            )}
           </button>
         </form>
       )}

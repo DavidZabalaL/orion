@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { crearChecklistReporteFalla } from "@/app/(app)/checklist/actions";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { DEPARTAMENTOS_FALLA, TIPOS_FALLA, MAX_FOTOS_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
+import { leerBorrador, guardarBorrador, borrarBorrador } from "@/lib/borrador-checklist";
 
 type UnidadWizard = {
   numeroEconomico: string;
@@ -43,6 +44,23 @@ function horaActual() {
   return new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
+// Borrador en localStorage — ver src/lib/borrador-checklist.ts. Solo se
+// guardan datos y URLs ya subidas, nunca archivos (un File no sobrevive una
+// recarga de página de todas formas).
+const CLAVE_BORRADOR = "reporte_falla";
+type BorradorReporteFalla = {
+  numeroEconomico: string;
+  kilometraje: string;
+  fecha: string;
+  hora: string;
+  nombreConductor: string;
+  departamento: string;
+  tipoFalla: string;
+  descripcionFalla: string;
+  observaciones: string;
+  urlsFotos: Record<string, string>;
+};
+
 export function WizardReporteFalla({
   unidades,
   permitirGaleriaFotos = false,
@@ -59,16 +77,31 @@ export function WizardReporteFalla({
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
 
-  const [numeroEconomico, setNumeroEconomico] = useState("");
-  const [kilometraje, setKilometraje] = useState("");
-  const [fecha, setFecha] = useState(hoyISO());
-  const [hora, setHora] = useState(horaActual());
-  const [nombreConductor, setNombreConductor] = useState("");
-  const [departamento, setDepartamento] = useState<string>(DEPARTAMENTOS_FALLA[0]);
-  const [tipoFalla, setTipoFalla] = useState<string>(TIPOS_FALLA[0]);
-  const [descripcionFalla, setDescripcionFalla] = useState("");
-  const [observaciones, setObservaciones] = useState("");
-  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [borradorInicial] = useState(() => leerBorrador<BorradorReporteFalla>(CLAVE_BORRADOR));
+
+  const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
+  const [kilometraje, setKilometraje] = useState(borradorInicial?.kilometraje ?? "");
+  const [fecha, setFecha] = useState(borradorInicial?.fecha ?? hoyISO());
+  const [hora, setHora] = useState(borradorInicial?.hora ?? horaActual());
+  const [nombreConductor, setNombreConductor] = useState(borradorInicial?.nombreConductor ?? "");
+  const [departamento, setDepartamento] = useState<string>(borradorInicial?.departamento ?? DEPARTAMENTOS_FALLA[0]);
+  const [tipoFalla, setTipoFalla] = useState<string>(borradorInicial?.tipoFalla ?? TIPOS_FALLA[0]);
+  const [descripcionFalla, setDescripcionFalla] = useState(borradorInicial?.descripcionFalla ?? "");
+  const [observaciones, setObservaciones] = useState(borradorInicial?.observaciones ?? "");
+  const [procesandoFoto, setProcesandoFoto] = useState(false);
+  // Cuántas fotos siguen subiéndose en segundo plano — no bloquea tomar más
+  // fotos, solo el botón de enviar, para no mandar el reporte con un campo
+  // de foto todavía vacío mientras su subida no ha terminado.
+  const [subidasPendientes, setSubidasPendientes] = useState(0);
+  const [urlsFotos, setUrlsFotos] = useState<Record<string, string>>(borradorInicial?.urlsFotos ?? {});
+
+  // Ver la nota equivalente en WizardDiario — recupera el progreso si Android
+  // recarga la pestaña en segundo plano por falta de memoria.
+  useEffect(() => {
+    guardarBorrador<BorradorReporteFalla>(CLAVE_BORRADOR, {
+      numeroEconomico, kilometraje, fecha, hora, nombreConductor, departamento, tipoFalla, descripcionFalla, observaciones, urlsFotos,
+    });
+  }, [numeroEconomico, kilometraje, fecha, hora, nombreConductor, departamento, tipoFalla, descripcionFalla, observaciones, urlsFotos]);
 
   function enviar(formData: FormData) {
     setError(null);
@@ -88,6 +121,7 @@ export function WizardReporteFalla({
     startTransition(async () => {
       const res = await crearChecklistReporteFalla(formData);
       if (!res.ok) { setError(res.error); return; }
+      borrarBorrador(CLAVE_BORRADOR);
       setExito(true);
     });
   }
@@ -126,7 +160,7 @@ export function WizardReporteFalla({
         <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
           Reporte de falla de vehículo
         </h2>
-        <button type="button" onClick={onCancelar} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+        <button type="button" onClick={() => { borrarBorrador(CLAVE_BORRADOR); onCancelar(); }} style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
           Cancelar
         </button>
       </div>
@@ -243,8 +277,15 @@ export function WizardReporteFalla({
               label={`Foto ${n}`}
               permitirGaleria={permitirGaleriaFotos}
               requerido={false}
-              bloqueado={subiendoFoto}
-              onSubiendoChange={setSubiendoFoto}
+              initialUrl={borradorInicial?.urlsFotos[`foto_${n}`]}
+              bloqueado={procesandoFoto}
+              onSubiendoChange={setProcesandoFoto}
+              onSubidaPendienteChange={(p) => setSubidasPendientes((n) => n + (p ? 1 : -1))}
+              onUrlChange={(url) => setUrlsFotos((prev) => {
+                const c = { ...prev };
+                if (url) c[`foto_${n}`] = url; else delete c[`foto_${n}`];
+                return c;
+              })}
             />
           ))}
         </div>
@@ -254,11 +295,17 @@ export function WizardReporteFalla({
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || subidasPendientes > 0}
         className="flex items-center justify-center gap-2 rounded-md px-6 h-10 font-semibold disabled:opacity-60"
         style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
       >
-        {pending ? <><Loader2 size={16} className="animate-spin" /> Guardando…</> : "Registrar reporte de falla"}
+        {pending ? (
+          <><Loader2 size={16} className="animate-spin" /> Guardando…</>
+        ) : subidasPendientes > 0 ? (
+          <><Loader2 size={16} className="animate-spin" /> Terminando de subir fotos…</>
+        ) : (
+          "Registrar reporte de falla"
+        )}
       </button>
     </form>
   );
