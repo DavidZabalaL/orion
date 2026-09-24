@@ -111,6 +111,7 @@ function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">ECONÓMICO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">VEHÍCULO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">TIPO</td>
+          <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PROYECTO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">MOTIVO</td>
         </tr>
         ${filas
@@ -120,6 +121,7 @@ function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
             <td style="padding:5px 12px; font-weight:bold; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.numeroEconomico)}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.vehiculo ?? "—")}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.tipoVehiculo ? esc(TIPO_VEHICULO_LABEL[u.tipoVehiculo]) : "—"}</td>
+            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.proyecto ?? "—")}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo])}${u.motivoDetalle ? ` — ${esc(u.motivoDetalle)}` : ""}</td>
           </tr>`
           )
@@ -165,12 +167,12 @@ function listaProximosServicios(datos: EstatusFlota): string {
   const abrev: Record<string, string> = { MANTENIMIENTO_PREVENTIVO: "Prev", MANTENIMIENTO_CORRECTIVO: "Corr" };
   return `
     ${filas
-      .map((f) => `<div style="font-size:11px; color:${NAVY}; margin-bottom:4px;">• ${esc(f.numeroEconomico)} (${esc(abrev[f.categoria] ?? CATEGORIA_GASTO_LABEL[f.categoria] ?? f.categoria)}) - ${esc(fmtFechaCorta(f.fecha))}</div>`)
+      .map((f) => `<div style="font-size:11px; color:${NAVY}; margin-bottom:4px;">• ${esc(f.numeroEconomico)}${f.proyecto ? ` (${esc(f.proyecto)})` : ""} — ${esc(abrev[f.categoria] ?? CATEGORIA_GASTO_LABEL[f.categoria] ?? f.categoria)} - ${esc(fmtFechaCorta(f.fecha))}</div>`)
       .join("")}
     ${restantes > 0 ? `<div style="font-size:11px; color:${SLATE}; font-style:italic;">+ ${restantes} más</div>` : ""}`;
 }
 
-/** Bloque completo (todas las secciones, en el orden elegido) para un alcance — general, selección combinada, o un proyecto individual. */
+/** Bloque completo (todas las secciones, en el orden elegido) para un alcance — general o un proyecto individual. */
 function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashboard[] | undefined, ordenSecciones: SeccionReporteId[]): string {
   const pctPresupuesto = datos.presupuestoMes.asignado > 0 ? Math.round((datos.gastoTotal / datos.presupuestoMes.asignado) * 100) : 0;
   const totalDisp = datos.unidadesDisponibles + datos.unidadesNoDisponibles;
@@ -186,9 +188,9 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
 
     resumen: () =>
       filaTarjetas([
-        tarjeta("SLA promedio", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")),
+        tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")),
         tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)),
-        tarjeta("Actividad checklists", kpi(String(datos.checklistsPromedioDiario), "promedio por día")),
+        tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")),
       ]),
 
     disponibilidadGasto: () =>
@@ -201,14 +203,14 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
            </div>`
         ),
         tarjeta(
-          "Gasto vs. presupuesto",
+          "Gasto del periodo vs. presupuesto",
           `${kpi(esc(fmtMoney(datos.gastoTotal)))}
            <div style="background:${SURFACE}; border-radius:4px; height:7px; overflow:hidden; margin-top:10px;">
              <div style="background:${pctPresupuesto > 90 ? RED : BLUE}; width:${Math.min(100, pctPresupuesto)}%; height:7px;"></div>
            </div>
            <div style="font-size:11px; color:${SLATE}; margin-top:4px;">Mes: ${esc(fmtMoney(datos.presupuestoMes.asignado))} · ${pctPresupuesto}%</div>`
         ),
-        tarjeta("Desglose de gastos", barrasHorizontal(datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto })), "Sin gastos registrados en el periodo.", (v) => fmtMoney(v))),
+        tarjeta("Desglose de gastos del periodo", barrasHorizontal(datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto })), "Sin gastos registrados en el periodo.", (v) => fmtMoney(v))),
       ]),
 
     flotaPorProyecto: () => tablaFlotaPorProyecto(datos.flotaPorProyecto),
@@ -245,8 +247,8 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
 
 /**
  * Cuerpo HTML completo del correo de "Estatus de flota" — un bloque por
- * alcance (general, selección combinada, cada proyecto), mismo contenido y
- * orden de secciones que la versión PDF de descarga (EstatusFlotaDocument).
+ * alcance (general, cada proyecto seleccionado), mismo contenido y orden de
+ * secciones que la versión PDF de descarga (EstatusFlotaDocument).
  * Reemplaza al adjunto PDF en el envío por correo (manual y programado).
  */
 export function generarEstatusFlotaHtml(
@@ -257,7 +259,6 @@ export function generarEstatusFlotaHtml(
 ): string {
   const bloques = [
     incluirGeneral ? bloqueEstatus(datos.general, indicadoresDashboard, ordenSecciones) : "",
-    datos.seleccion ? bloqueEstatus(datos.seleccion, undefined, ordenSecciones) : "",
     ...datos.porProyecto.map((p) => bloqueEstatus(p, undefined, ordenSecciones)),
   ].join("");
 

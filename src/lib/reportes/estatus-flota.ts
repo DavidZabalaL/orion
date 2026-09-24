@@ -14,6 +14,8 @@ export type IndisponibilidadUnidad = {
   /** Marca + modelo del vehículo (ej. "Toyota Hilux") — null si la unidad no existe más en Unidad (caso raro, dato histórico). */
   vehiculo: string | null;
   tipoVehiculo: TipoVehiculo | null;
+  /** Nombre del proyecto al que pertenece la unidad — null si no tiene proyecto asignado. */
+  proyecto: string | null;
   motivo: MotivoIndisponibilidad | "SIN_MOTIVO";
   motivoDetalle: string | null;
   /** Solo cuando motivo=MANTENIMIENTO: categoría del último gasto de mantenimiento registrado de la unidad en el periodo, si existe. */
@@ -24,6 +26,8 @@ export type ProximoServicio = {
   numeroEconomico: string;
   categoria: CategoriaGasto;
   fecha: Date;
+  /** Nombre del proyecto al que pertenece la unidad — null si no tiene proyecto asignado. */
+  proyecto: string | null;
 };
 
 /** Conteo de unidades activas por tipo de vehículo, para un proyecto — mismo desglose que el widget "Flota por tipo y zona" del dashboard. */
@@ -169,6 +173,7 @@ export async function calcularEstatusFlota({
       return info ? `${info.marca} ${info.unidadModelo}` : null;
     })(),
     tipoVehiculo: infoPorEconomico.get(n.numeroEconomico)?.tipoVehiculo ?? null,
+    proyecto: infoPorEconomico.get(n.numeroEconomico)?.proyecto?.nombre ?? null,
     tipoMantenimiento: n.motivo === "MANTENIMIENTO" ? (tipoMantenimientoPorEconomico.get(n.numeroEconomico) ?? null) : null,
   }));
 
@@ -188,7 +193,7 @@ export async function calcularEstatusFlota({
     : [];
   const proximosServicios: ProximoServicio[] = proximosServiciosRaw
     .filter((p): p is { numeroEconomico: string; categoria: CategoriaGasto; fecha: Date } => p.numeroEconomico !== null)
-    .map((p) => ({ numeroEconomico: p.numeroEconomico, categoria: p.categoria, fecha: p.fecha }));
+    .map((p) => ({ numeroEconomico: p.numeroEconomico, categoria: p.categoria, fecha: p.fecha, proyecto: infoPorEconomico.get(p.numeroEconomico)?.proyecto?.nombre ?? null }));
 
   // SLA promedio del periodo — mismo motor que ya usa /unidades, solo que
   // aquí el rango es el elegido en vez del mes en curso.
@@ -271,18 +276,17 @@ export type EstatusFlotaReporte = {
   hasta: Date;
   /** Alcance completo permitido (todos los proyectos del usuario, o toda la flota sin restricción) — siempre presente, sin importar qué se haya seleccionado. */
   general: EstatusFlota;
-  /** Combinado de los proyectos seleccionados — null si no se seleccionó ninguno (el reporte entonces solo trae `general`). */
-  seleccion: EstatusFlota | null;
   /** Un bloque por cada proyecto seleccionado, mismo orden que se seleccionaron. */
   porProyecto: EstatusFlota[];
 };
 
 /**
- * Reporte completo de "Estatus semanal de flota": resumen general, resumen
- * combinado de la selección y desglose individual por proyecto seleccionado —
- * un único cálculo reutilizado tanto por la descarga/envío inmediato como por
- * el envío automático programado (ver src/app/(app)/dashboards/actions.ts y
- * src/lib/bi/motor-reportes.ts).
+ * Reporte completo de "Estatus semanal de flota": resumen general y desglose
+ * individual por proyecto seleccionado — un único cálculo reutilizado tanto
+ * por la descarga/envío inmediato como por el envío automático programado
+ * (ver src/app/(app)/dashboards/actions.ts y src/lib/bi/motor-reportes.ts).
+ * (Antes también incluía un resumen combinado de la selección — se quitó por
+ * duplicar el resumen general cuando ambos se mostraban a la vez.)
  */
 export async function calcularEstatusFlotaReporte({
   proyectoIdsPermitidos,
@@ -305,17 +309,12 @@ export async function calcularEstatusFlotaReporte({
     : [];
   const nombrePorId = new Map(proyectos.map((p) => [p.id, p.nombre]));
 
-  const [general, seleccionCombinada, porProyecto] = await Promise.all([
+  const [general, porProyecto] = await Promise.all([
     calcularEstatusFlota({ proyectoIds: proyectoIdsPermitidos, desde, hasta, proyectoLabel: "General", camposExtraSeleccionados }),
-    // Con exactamente 1 proyecto seleccionado, el combinado sería idéntico al
-    // desglose de ese único proyecto (solo con otro título) — se omite.
-    seleccion.length > 1
-      ? calcularEstatusFlota({ proyectoIds: seleccion, desde, hasta, proyectoLabel: `Selección (${seleccion.length} proyectos)`, camposExtraSeleccionados })
-      : Promise.resolve(null),
     Promise.all(
       seleccion.map((id) => calcularEstatusFlota({ proyectoIds: [id], desde, hasta, proyectoLabel: nombrePorId.get(id) ?? id, camposExtraSeleccionados }))
     ),
   ]);
 
-  return { desde, hasta, general, seleccion: seleccionCombinada, porProyecto };
+  return { desde, hasta, general, porProyecto };
 }

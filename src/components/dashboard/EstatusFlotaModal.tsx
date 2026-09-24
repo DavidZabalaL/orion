@@ -206,7 +206,6 @@ export function EstatusFlotaModal({
         ...res.datos,
         desde: new Date(res.datos.desde),
         hasta: new Date(res.datos.hasta),
-        seleccion: res.datos.seleccion ? rehidratarFechasAlcance(res.datos.seleccion) : null,
         porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
         general: rehidratarFechasAlcance(res.datos.general),
       };
@@ -338,7 +337,7 @@ export function EstatusFlotaModal({
               ))}
             </div>
             <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              Si eliges proyectos aquí, el reporte también incluye el resumen combinado de la selección y el desglose de cada uno.
+              Si eliges proyectos aquí, el reporte incluye el desglose individual de cada uno.
             </p>
           </div>
 

@@ -206,8 +206,8 @@ function TarjetaKpiExtra({ resultado }: { resultado: CampoExtraResultado }) {
 
 /**
  * Detalle completo (sin truncar) de cada unidad no disponible — económico,
- * vehículo (marca + modelo) y motivo. Se pidió explícitamente poder ver el
- * número económico de cada una, y de ser posible qué vehículo es — antes
+ * vehículo (marca + modelo), proyecto y motivo. Se pidió explícitamente poder
+ * ver el número económico de cada una, y de ser posible qué vehículo es — antes
  * esta sección solo mostraba un conteo agrupado con máximo 6 económicos por
  * motivo. Es una sección propia a ancho completo (no una tarjeta de la fila
  * de 3 columnas) porque la lista puede ser larga; al no llevar `wrap={false}`
@@ -226,15 +226,17 @@ function TablaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
       <View style={styles.tablaContenedor}>
         <View style={styles.tablaHeaderFila}>
           <Text style={{ ...styles.tablaCeldaHeader, width: 65 }}>ECONÓMICO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 200 }}>VEHÍCULO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 75 }}>TIPO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 170 }}>VEHÍCULO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 65 }}>TIPO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 120 }}>PROYECTO</Text>
           <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>MOTIVO</Text>
         </View>
         {filas.map((u, i) => (
           <View key={`${u.numeroEconomico}-${i}`} style={styles.tablaFila}>
             <Text style={{ ...styles.tablaCeldaTexto, width: 65, fontWeight: "bold" }}>{u.numeroEconomico}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 200 }}>{u.vehiculo ?? "—"}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 75 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 170 }}>{u.vehiculo ?? "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 65 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 120 }}>{u.proyecto ?? "—"}</Text>
             <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>
               {u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo]}
               {u.motivoDetalle ? ` — ${u.motivoDetalle}` : ""}
@@ -293,7 +295,7 @@ function ListaProximosServicios({ datos }: { datos: EstatusFlota }) {
     <>
       {filas.map((f, i) => (
         <Text key={`${f.numeroEconomico}-${i}`} style={styles.listaItem}>
-          • {f.numeroEconomico} ({CATEGORIA_MANTENIMIENTO_ABREV[f.categoria] ?? CATEGORIA_GASTO_LABEL[f.categoria]}) - {fmtFechaCorta(f.fecha)}
+          • {f.numeroEconomico}{f.proyecto ? ` (${f.proyecto})` : ""} — {CATEGORIA_MANTENIMIENTO_ABREV[f.categoria] ?? CATEGORIA_GASTO_LABEL[f.categoria]} - {fmtFechaCorta(f.fecha)}
         </Text>
       ))}
       {restantes > 0 && <Text style={styles.listaVacio}>+ {restantes} más</Text>}
@@ -354,7 +356,7 @@ function PaginaEstatus({
 
     resumen: () => (
       <View style={styles.fila} wrap={false}>
-        <Tarjeta titulo="SLA promedio">
+        <Tarjeta titulo="SLA promedio del periodo">
           <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
           <Text style={styles.kpiCaption}>Disponibilidad ponderada del periodo</Text>
         </Tarjeta>
@@ -362,7 +364,7 @@ function PaginaEstatus({
           <Text style={styles.kpiValor}>{datos.totalUnidades}</Text>
           <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
         </Tarjeta>
-        <Tarjeta titulo="Actividad checklists">
+        <Tarjeta titulo="Actividad checklists del periodo">
           <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
           <Text style={styles.kpiCaption}>promedio por día</Text>
         </Tarjeta>
@@ -374,7 +376,7 @@ function PaginaEstatus({
         <Tarjeta titulo="Disponibilidad">
           <DonaDisponibilidad disponibles={datos.unidadesDisponibles} noDisponibles={datos.unidadesNoDisponibles} />
         </Tarjeta>
-        <Tarjeta titulo="Gasto vs. presupuesto">
+        <Tarjeta titulo="Gasto del periodo vs. presupuesto">
           <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.gastoTotal)}</Text>
           <View style={styles.barraFondo}>
             <View style={{ width: `${Math.min(100, pctPresupuesto)}%`, height: "100%", backgroundColor: pctPresupuesto > 90 ? RED : BLUE }} />
@@ -382,7 +384,7 @@ function PaginaEstatus({
           <Text style={styles.kpiCaption}>Mes: {fmtMoneyPdf(datos.presupuestoMes.asignado)} · {pctPresupuesto}%</Text>
         </Tarjeta>
         <TarjetaBarras
-          titulo="Desglose de gastos"
+          titulo="Desglose de gastos del periodo"
           vacio="Sin gastos registrados en el periodo."
           formatear={fmtMoneyPdf}
           filas={datos.gastoPorCategoria.map((g) => ({ label: CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria, valor: g.monto }))}
@@ -455,10 +457,9 @@ function PaginaEstatus({
 
 /**
  * Documento PDF del reporte "Estatus semanal de flota" — una página por
- * alcance: primero el resumen general (todos los proyectos permitidos), luego
- * el resumen combinado de la selección (si se eligió algún proyecto), y
- * después el desglose individual de cada proyecto seleccionado. Ver
- * src/lib/reportes/estatus-flota.ts y EstatusFlotaModal.
+ * alcance: primero el resumen general (todos los proyectos permitidos, si se
+ * incluyó), y después el desglose individual de cada proyecto seleccionado.
+ * Ver src/lib/reportes/estatus-flota.ts y EstatusFlotaModal.
  */
 export function EstatusFlotaDocument({
   datos,
@@ -478,7 +479,6 @@ export function EstatusFlotaDocument({
       {/* Los indicadores del dashboard actual solo aplican al alcance general —
           es el mismo alcance que se ve al abrir "Mis dashboards". */}
       {incluirGeneral && <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />}
-      {datos.seleccion && <PaginaEstatus datos={datos.seleccion} ordenSecciones={ordenSecciones} />}
       {datos.porProyecto.map((p, i) => (
         <PaginaEstatus key={i} datos={p} ordenSecciones={ordenSecciones} />
       ))}
