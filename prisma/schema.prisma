@@ -742,6 +742,7 @@ model GastoVehicular {
   proveedor            String?
   servicio             String?
   empresa              String?
+  notas                String?
 
   sc               String?
   odc              String?

@@ -138,6 +138,12 @@ function OrdenDetalle({ g, isAdmin, onGuardado }: { g: GastoRow; isAdmin: boolea
             <Detalle label="Salida estimada" value={g.fechaEstimadaSalida ? fmtFecha(g.fechaEstimadaSalida) : null} />
           </div>
         )}
+        {g.notas && (
+          <div className="rounded-md px-4 py-3" style={{ background: "var(--field-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", whiteSpace: "pre-wrap" }}>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em", display: "block", marginBottom: 4 }}>Notas adicionales</span>
+            {g.notas}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Detalle label="Proveedor" value={g.proveedor} />
           <Detalle label="Servicio" value={g.servicio} />
@@ -193,6 +199,10 @@ function OrdenDetalle({ g, isAdmin, onGuardado }: { g: GastoRow; isAdmin: boolea
         <div>
           <label style={labelStyle}>Descripción</label>
           <input name="descripcion" defaultValue={g.descripcion ?? ""} style={fieldStyle} />
+        </div>
+        <div className="col-span-2 md:col-span-4">
+          <label style={labelStyle}>Notas adicionales</label>
+          <textarea name="notas" rows={3} defaultValue={g.notas ?? ""} style={{ ...fieldStyle, height: "auto", padding: "8px 12px", resize: "vertical" }} />
         </div>
         <div>
           <label style={labelStyle}>Costo *</label>

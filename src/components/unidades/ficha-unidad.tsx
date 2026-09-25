@@ -735,7 +735,14 @@ function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numer
             <tr key={g.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
               <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(g.fecha)}</td>
               <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.categoria.replaceAll("_", " ")}</td>
-              <td className="px-4 py-3" style={td}>{g.descripcion ?? "—"}</td>
+              <td className="px-4 py-3" style={td}>
+                {g.descripcion ?? "—"}
+                {g.notas && (
+                  <span style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginTop: 2, whiteSpace: "pre-wrap" }}>
+                    {g.notas}
+                  </span>
+                )}
+              </td>
               <td className="px-4 py-3 whitespace-nowrap" style={td}>{g.fechaIngresoTaller ? fmtFecha(g.fechaIngresoTaller) : "—"}</td>
               <td className="px-4 py-3 whitespace-nowrap" style={td}>
                 <div className="flex items-center gap-2">

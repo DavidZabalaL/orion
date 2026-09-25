@@ -29,6 +29,7 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   const costo = parseFloat(String(formData.get("costo") ?? "0"));
   const kmAlMomento = formData.get("kmAlMomento") ? parseInt(String(formData.get("kmAlMomento")), 10) : null;
   const proveedor = String(formData.get("proveedor") ?? "").trim() || null;
+  const notas = String(formData.get("notas") ?? "").trim() || null;
   const sc = String(formData.get("sc") ?? "").trim() || null;
   const odc = String(formData.get("odc") ?? "").trim() || null;
   const estatus = String(formData.get("estatus") ?? "PROGRAMADO");
@@ -85,6 +86,7 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
       costo,
       kmAlMomento,
       proveedor,
+      notas,
       sc,
       odc,
       estatus: estatus as never,
@@ -203,6 +205,7 @@ export async function actualizarGasto(formData: FormData) {
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const costo = parseFloat(String(formData.get("costo") ?? "0"));
   const proveedor = String(formData.get("proveedor") ?? "").trim() || null;
+  const notas = String(formData.get("notas") ?? "").trim() || null;
   const servicio = String(formData.get("servicio") ?? "").trim() || null;
   const empresa = String(formData.get("empresa") ?? "").trim() || null;
   const sc = String(formData.get("sc") ?? "").trim() || null;
@@ -237,6 +240,7 @@ export async function actualizarGasto(formData: FormData) {
       descripcion,
       costo,
       proveedor,
+      notas,
       servicio,
       empresa,
       sc,
