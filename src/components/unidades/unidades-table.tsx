@@ -334,6 +334,15 @@ export function UnidadesTable({
                     numeroEconomico={r.numeroEconomico}
                     disponible={r.disponibilidad}
                     onCambio={(nuevo, motivo, motivoDetalle) => alCambiarDisponibilidad(r.numeroEconomico, nuevo, motivo, motivoDetalle)}
+                    onMotivoActualizado={(motivo, motivoDetalle) =>
+                      setRows((prev) =>
+                        prev.map((row) =>
+                          row.numeroEconomico === r.numeroEconomico
+                            ? { ...row, motivoIndisponibilidad: (motivo ?? null) as UnidadRow["motivoIndisponibilidad"], motivoIndisponibilidadDetalle: motivoDetalle ?? null }
+                            : row
+                        )
+                      )
+                    }
                     deshabilitado={r.estatus === "BAJA"}
                   />
                 </td>

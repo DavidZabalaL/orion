@@ -310,6 +310,14 @@ function BotonAgregarSeguro({ numeroEconomico }: { numeroEconomico: string }) {
   );
 }
 
+type HistoricoIndisponibilidad = {
+  id: string;
+  desde: string;
+  hasta: string | null;
+  motivo: string | null;
+  motivoDetalle: string | null;
+};
+
 export function FichaUnidad({
   unidad,
   puedeEditarCapacidad,
@@ -319,6 +327,7 @@ export function FichaUnidad({
   puedeVerSla = false,
   slaMensual = [],
   puedeVerPolizaSeguro = false,
+  historicoIndisponibilidad = [],
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -328,6 +337,7 @@ export function FichaUnidad({
   puedeVerSla?: boolean;
   slaMensual?: SlaMensual[];
   puedeVerPolizaSeguro?: boolean;
+  historicoIndisponibilidad?: HistoricoIndisponibilidad[];
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -338,6 +348,7 @@ export function FichaUnidad({
   const [fechaCambioLocal, setFechaCambioLocal] = useState<Date | null>(null);
   const [motivoIndisponibilidad, setMotivoIndisponibilidad] = useState(unidad.motivoIndisponibilidad ?? null);
   const [motivoIndisponibilidadDetalle, setMotivoIndisponibilidadDetalle] = useState(unidad.motivoIndisponibilidadDetalle ?? null);
+  const [historial, setHistorial] = useState<HistoricoIndisponibilidad[]>(historicoIndisponibilidad);
 
   const seguroVigente = unidad.seguros?.[0];
   const diasSeguro = diasPara(seguroVigente?.fechaVencimiento);
@@ -415,6 +426,15 @@ export function FichaUnidad({
                 setFechaCambioLocal(new Date());
                 setMotivoIndisponibilidad(motivo ?? null);
                 setMotivoIndisponibilidadDetalle(motivoDetalle ?? null);
+              }}
+              onMotivoActualizado={(motivo, motivoDetalle) => {
+                setMotivoIndisponibilidad(motivo);
+                setMotivoIndisponibilidadDetalle(motivoDetalle);
+                const ahora = new Date().toISOString();
+                setHistorial((prev) => {
+                  const cerrados = prev.map((h) => h.hasta === null ? { ...h, hasta: ahora } : h);
+                  return [{ id: `local-${Date.now()}`, desde: ahora, hasta: null, motivo, motivoDetalle }, ...cerrados];
+                });
               }}
               deshabilitado={unidad.estatus === "BAJA"}
               variante="completo"
@@ -518,7 +538,7 @@ export function FichaUnidad({
               bloqueada={!unidad.proyectoId}
             />
           )}
-          {tab === "sla" && puedeVerSla && <TabSla meses={slaMensual} />}
+          {tab === "sla" && puedeVerSla && <TabSla meses={slaMensual} historial={historial} />}
         </div>
       </div>
     </div>
@@ -1279,7 +1299,7 @@ function TabHistorico({ historicos }: { historicos: Unidad[] }) {
   );
 }
 
-function TabSla({ meses }: { meses: SlaMensual[] }) {
+function TabSla({ meses, historial }: { meses: SlaMensual[]; historial: HistoricoIndisponibilidad[] }) {
   if (!meses.length)
     return (
       <EmptyState>
@@ -1288,25 +1308,57 @@ function TabSla({ meses }: { meses: SlaMensual[] }) {
       </EmptyState>
     );
   return (
-    <div className="flex flex-col gap-3">
-      <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-        % de días activa cada mes. El mes en curso está parcial (se corta al día de hoy) — se cierra al terminar el mes.
-      </p>
-      <Table headers={["Mes", "Días activa", "Días inactiva", "% SLA"]}>
-        {meses.map((m, i) => (
-          <tr key={`${m.anio}-${m.mes}`} style={{ borderBottom: "1px solid var(--field-border)" }}>
-            <td className="px-4 py-3" style={{ ...td, fontWeight: 600 }}>
-              {NOMBRE_MES[m.mes - 1]} {m.anio}
-              {i === 0 && <span style={{ color: "var(--sidebar-text)", fontWeight: 400 }}> (en curso)</span>}
-            </td>
-            <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{m.diasActivo}</td>
-            <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{m.diasInactivo}</td>
-            <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: m.porcentaje !== null && m.porcentaje < 90 ? "var(--priority-alta)" : "var(--field-text)" }}>
-              {m.porcentaje !== null ? `${m.porcentaje}%` : "—"}
-            </td>
-          </tr>
-        ))}
-      </Table>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          % de días activa cada mes. El mes en curso está parcial (se corta al día de hoy) — se cierra al terminar el mes.
+        </p>
+        <Table headers={["Mes", "Días activa", "Días inactiva", "% SLA"]}>
+          {meses.map((m, i) => (
+            <tr key={`${m.anio}-${m.mes}`} style={{ borderBottom: "1px solid var(--field-border)" }}>
+              <td className="px-4 py-3" style={{ ...td, fontWeight: 600 }}>
+                {NOMBRE_MES[m.mes - 1]} {m.anio}
+                {i === 0 && <span style={{ color: "var(--sidebar-text)", fontWeight: 400 }}> (en curso)</span>}
+              </td>
+              <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{m.diasActivo}</td>
+              <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{m.diasInactivo}</td>
+              <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", color: m.porcentaje !== null && m.porcentaje < 90 ? "var(--priority-alta)" : "var(--field-text)" }}>
+                {m.porcentaje !== null ? `${m.porcentaje}%` : "—"}
+              </td>
+            </tr>
+          ))}
+        </Table>
+      </div>
+
+      {historial.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            Historial de motivos de indisponibilidad
+          </h3>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+            Cada vez que se registra o actualiza el motivo de indisponibilidad se genera un sub-periodo. Esto permite mapear qué le ocurrió a la unidad durante cada evento sin afectar el SLA.
+          </p>
+          <Table headers={["Motivo", "Desde", "Hasta", ""]}>
+            {historial.map((h) => (
+              <tr key={h.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
+                <td className="px-4 py-3" style={{ ...td, fontWeight: 600 }}>
+                  {h.motivo ? (LABEL_MOTIVO[h.motivo as keyof typeof LABEL_MOTIVO] ?? h.motivo) : "Sin motivo"}
+                  {h.motivoDetalle && (
+                    <span style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)", fontWeight: 400 }}>
+                      {h.motivoDetalle}
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={td}>{fmtFecha(h.desde)}</td>
+                <td className="px-4 py-3 whitespace-nowrap" style={td}>{h.hasta ? fmtFecha(h.hasta) : "—"}</td>
+                <td className="px-4 py-3">
+                  {!h.hasta && <Badge label="Activo" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

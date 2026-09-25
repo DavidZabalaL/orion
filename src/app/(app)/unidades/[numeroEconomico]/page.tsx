@@ -89,6 +89,14 @@ export default async function FichaUnidadPage({
 
   const slaMensual = puedeVerSla ? await calcularSlaMensualPorUnidad(numeroEconomico) : [];
 
+  const historicoIndisponibilidad = puedeVerSla
+    ? await prisma.historicoDisponibilidadUnidad.findMany({
+        where: { numeroEconomico, disponible: false },
+        orderBy: { desde: "desc" },
+        take: 50,
+      })
+    : [];
+
   // FichaUnidad es un Client Component: cualquier campo que viaje en `unidad` llega al
   // navegador aunque el JSX no lo pinte. Si el rol no puede ver el detalle comercial de la
   // póliza, se recorta aquí (no solo se oculta en el render) para no filtrar aseguradora/costo/coberturas.
@@ -107,6 +115,7 @@ export default async function FichaUnidadPage({
 
   const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
+  const historicoSerializado = JSON.parse(JSON.stringify(historicoIndisponibilidad));
 
   return (
     <FichaUnidad
@@ -118,6 +127,7 @@ export default async function FichaUnidadPage({
       puedeVerSla={puedeVerSla}
       slaMensual={slaMensual}
       puedeVerPolizaSeguro={puedeVerPoliza}
+      historicoIndisponibilidad={historicoSerializado}
     />
   );
 }

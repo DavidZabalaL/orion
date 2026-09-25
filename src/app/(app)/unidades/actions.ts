@@ -181,6 +181,77 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
   return { ok: true };
 }
 
+/** Actualiza el motivo de indisponibilidad de una unidad ya apagada sin tocar el toggle
+ *  (sin crear un periodo "disponible" ficticio que afecte el SLA).
+ *  Cierra el sub-periodo de historial abierto y abre uno nuevo con el nuevo motivo. */
+export async function actualizarMotivoIndisponibilidad(formData: FormData): Promise<ResultadoSimple> {
+  if (!(await tienePermisoModulo("A", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+
+  const numeroEconomico = String(formData.get("numeroEconomico") ?? "");
+  const motivoRaw = String(formData.get("motivo") ?? "");
+  const motivo = MOTIVOS_INDISPONIBILIDAD.includes(motivoRaw as MotivoIndisponibilidad) ? (motivoRaw as MotivoIndisponibilidad) : null;
+  const motivoDetalle = String(formData.get("motivoDetalle") ?? "").trim().slice(0, 300) || null;
+
+  if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
+  if (!motivo) return { ok: false, error: "Selecciona el motivo de indisponibilidad." };
+
+  const unidad = await prisma.unidad.findUnique({
+    where: { numeroEconomico },
+    select: { disponibilidad: true, estatus: true, proyectoId: true, motivoIndisponibilidad: true },
+  });
+  if (!unidad) return { ok: false, error: "La unidad no existe." };
+  if (unidad.disponibilidad) return { ok: false, error: "Solo se puede actualizar el motivo de unidades no disponibles." };
+  if (unidad.estatus === "BAJA") return { ok: false, error: "Una unidad dada de baja no se puede modificar." };
+
+  const permitidos = await proyectosPermitidosParaModulo("A");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
+
+  const ahora = new Date();
+  await prisma.unidad.update({
+    where: { numeroEconomico },
+    data: { motivoIndisponibilidad: motivo, motivoIndisponibilidadDetalle: motivoDetalle },
+  });
+
+  const abierto = await prisma.historicoDisponibilidadUnidad.findFirst({
+    where: { numeroEconomico, hasta: null, disponible: false },
+    orderBy: { desde: "desc" },
+  });
+  if (abierto) {
+    await prisma.historicoDisponibilidadUnidad.update({ where: { id: abierto.id }, data: { hasta: ahora } });
+  }
+  await prisma.historicoDisponibilidadUnidad.create({
+    data: { numeroEconomico, disponible: false, desde: ahora, motivo, motivoDetalle },
+  });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await prisma.bitacoraCambio.create({
+      data: {
+        entidad: "Unidad",
+        entidadId: numeroEconomico,
+        usuarioId: session.user.id,
+        accion: "EDITAR",
+        valoresAnteriores: { motivoIndisponibilidad: unidad.motivoIndisponibilidad },
+        valoresNuevos: { motivoIndisponibilidad: motivo, motivoIndisponibilidadDetalle: motivoDetalle },
+      },
+    });
+    await logActivity({
+      userId: session.user.id,
+      modulo: "vehiculos",
+      accion: "update",
+      entidad: "Unidad",
+      entidadId: numeroEconomico,
+      detalle: { campo: "motivoIndisponibilidad", anterior: unidad.motivoIndisponibilidad, nuevo: motivo },
+    });
+  }
+
+  revalidatePath(`/unidades/${numeroEconomico}`);
+  revalidatePath("/unidades");
+  return { ok: true };
+}
+
 export async function subirDocumentoUnidad(formData: FormData): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("A", "editar"))) return { ok: false, error: "No tienes permiso para realizar esta acción." };
 
