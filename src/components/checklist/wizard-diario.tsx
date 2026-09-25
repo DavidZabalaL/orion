@@ -424,12 +424,12 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
   }
 
   function validarSeguridad(): string | null {
-    if (!respuestasExtra["seg_llanta_refaccion"]) return "Indica si cuenta con llanta de refacción.";
-    if (!tieneFotoExtra("seg_evidencia_llanta_refaccion")) return "La foto de la llanta de refacción es obligatoria.";
     if (!respuestasExtra["seg_gato"]) return "Indica si cuenta con gato.";
     if (!tieneFotoExtra("seg_evidencia_gato")) return "La foto del gato es obligatoria.";
     if (!respuestasExtra["seg_cables_corriente"]) return "Indica si cuenta con cables de corriente.";
     if (!tieneFotoExtra("seg_evidencia_cables_corriente")) return "La foto de los cables es obligatoria.";
+    if (!respuestasExtra["seg_llanta_refaccion"]) return "Indica si cuenta con llanta de refacción.";
+    if (!tieneFotoExtra("seg_evidencia_llanta_refaccion")) return "La foto de la llanta de refacción es obligatoria.";
     if (!firmaBase64) return "La firma del responsable es obligatoria.";
     return null;
   }
@@ -437,6 +437,8 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
   // ─── Submit ───────────────────────────────────────────────────────────────
 
   function enviar() {
+    const errLec = validarLecturas();
+    if (errLec) { setError(errLec); return; }
     const errSeg = validarSeguridad();
     if (errSeg) { setError(errSeg); return; }
     setError(null);
@@ -927,7 +929,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
               const err = validarExterior();
               if (err) { setError(err); return; }
               setError(null);
-              setFase("interior");
+              setFase("seguridad");
             }} className="w-full rounded-xl h-12 font-semibold" style={btnPrimaryStyle}>
               Continuar →
             </button>
@@ -939,10 +941,10 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
       {fase === "interior" && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => { setError(null); setFase("exterior"); }} className="flex items-center gap-1 rounded-md px-2 h-8 flex-shrink-0" style={navBtnStyle}>
+            <button type="button" onClick={() => { setError(null); setFase("seguridad"); }} className="flex items-center gap-1 rounded-md px-2 h-8 flex-shrink-0" style={navBtnStyle}>
               <ChevronLeft size={14} /> Anterior
             </button>
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Paso 5 de 7 — Interior</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Paso 6 de 7 — Interior</span>
           </div>
           <div className="flex flex-col gap-4 rounded-2xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>Documentos en cabina</h3>
@@ -968,7 +970,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
             <button type="button" onClick={() => { setError(null); setFase("interior"); }} className="flex items-center gap-1 rounded-md px-2 h-8 flex-shrink-0" style={navBtnStyle}>
               <ChevronLeft size={14} /> Anterior
             </button>
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Paso 6 de 7 — Lecturas</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Paso 7 de 7 — Lecturas</span>
           </div>
           <div className="rounded-2xl p-5 flex flex-col gap-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <div>
@@ -1032,14 +1034,20 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
 
             {error && <p style={errorStyle}>{error}</p>}
 
-            <button type="button" onClick={() => {
-              const err = validarLecturas();
-              if (err) { setError(err); return; }
-              setError(null);
-              setFase("seguridad");
-            }} disabled={procesandoFoto || procesandoFotoHorometro} className="w-full rounded-xl h-12 font-semibold transition-colors disabled:opacity-60" style={btnPrimaryStyle}>
-              Continuar →
+            <button type="button" onClick={enviar} disabled={pending || procesandoFoto || procesandoFotoHorometro} className="w-full rounded-xl h-12 font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+              style={pending ? { background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" } : btnPrimaryStyle}>
+              {pending && <Loader2 size={16} className="animate-spin" />}
+              {pending
+                ? progresoSubida
+                  ? `Subiendo evidencias… ${progresoSubida.actual}/${progresoSubida.total}`
+                  : "Guardando…"
+                : "Finalizar checklist"}
             </button>
+            {pending && progresoSubida && (
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center" }}>
+                No cierres ni recargues la página — esto puede tardar un poco si la señal es débil.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -1048,20 +1056,20 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
       {fase === "seguridad" && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => { setError(null); setFase("lecturas"); }} className="flex items-center gap-1 rounded-md px-2 h-8 flex-shrink-0" style={navBtnStyle}>
+            <button type="button" onClick={() => { setError(null); setFase("exterior"); }} className="flex items-center gap-1 rounded-md px-2 h-8 flex-shrink-0" style={navBtnStyle}>
               <ChevronLeft size={14} /> Anterior
             </button>
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Paso 7 de 7 — Seguridad y firma</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Paso 5 de 7 — Seguridad y firma</span>
           </div>
           <div className="flex flex-col gap-4 rounded-2xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
             <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>Equipamiento y seguridad</h3>
 
-            {rToggle("seg_llanta_refaccion", "¿Cuenta con llanta de refacción?")}
-            {rFoto("seg_evidencia_llanta_refaccion", "Foto llanta de refacción")}
             {rToggle("seg_gato", "¿Cuenta con gato?")}
             {rFoto("seg_evidencia_gato", "Foto del gato")}
             {rToggle("seg_cables_corriente", "¿Cuenta con cables de corriente?")}
             {rFoto("seg_evidencia_cables_corriente", "Foto de cables de corriente")}
+            {rToggle("seg_llanta_refaccion", "¿Cuenta con llanta de refacción?")}
+            {rFoto("seg_evidencia_llanta_refaccion", "Foto llanta de refacción")}
 
             <div>
               <label style={labelStyle}>Observaciones</label>
@@ -1079,20 +1087,14 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
 
             {error && <p style={errorStyle}>{error}</p>}
 
-            <button type="button" onClick={enviar} disabled={pending} className="w-full rounded-xl h-12 font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
-              style={pending ? { background: "var(--chip)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" } : btnPrimaryStyle}>
-              {pending && <Loader2 size={16} className="animate-spin" />}
-              {pending
-                ? progresoSubida
-                  ? `Subiendo evidencias… ${progresoSubida.actual}/${progresoSubida.total}`
-                  : "Guardando…"
-                : "Finalizar checklist"}
+            <button type="button" onClick={() => {
+              const err = validarSeguridad();
+              if (err) { setError(err); return; }
+              setError(null);
+              setFase("interior");
+            }} className="w-full rounded-xl h-12 font-semibold" style={btnPrimaryStyle}>
+              Continuar →
             </button>
-            {pending && progresoSubida && (
-              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center" }}>
-                No cierres ni recargues la página — esto puede tardar un poco si la señal es débil.
-              </p>
-            )}
           </div>
         </div>
       )}
