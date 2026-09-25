@@ -10,7 +10,7 @@ export default async function InventarioInsumosPage() {
   await requerirPermisoModulo("N");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("N");
 
-  const [insumos, proyectos] = await Promise.all([
+  const [insumos, proyectos, unidades] = await Promise.all([
     prisma.insumoInventario.findMany({
       where: proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {},
       include: { proyecto: { select: { nombre: true } } },
@@ -23,6 +23,14 @@ export default async function InventarioInsumosPage() {
       },
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
+    }),
+    prisma.unidad.findMany({
+      where: {
+        estatus: { not: "BAJA" },
+        ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}),
+      },
+      select: { numeroEconomico: true, proyectoId: true },
+      orderBy: { numeroEconomico: "asc" },
     }),
   ]);
 
@@ -65,7 +73,7 @@ export default async function InventarioInsumosPage() {
         </div>
       </div>
 
-      <InventarioTabla insumos={insumosRow} proyectos={proyectos} />
+      <InventarioTabla insumos={insumosRow} proyectos={proyectos} unidades={unidades} />
     </div>
   );
 }

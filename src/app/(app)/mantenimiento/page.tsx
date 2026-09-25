@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Wrench, Clock, DollarSign, AlertTriangle } from "lucide-react";
+import { Plus, Wrench, Clock, DollarSign, AlertTriangle, GitFork } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { fmtMoney } from "@/lib/formato";
@@ -57,9 +57,14 @@ export default async function MantenimientoPage() {
             13 categorías de gasto + campos administrativos SC / ODC / SAP.
           </p>
         </div>
-        <Link href="/mantenimiento/nueva" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-          <Plus size={16} /> Nueva orden
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/mantenimiento/prorrateo" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <GitFork size={16} /> Carga prorrateada
+          </Link>
+          <Link href="/mantenimiento/nueva" className="flex items-center gap-2 rounded-md px-4 h-10 font-semibold" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <Plus size={16} /> Nueva orden
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">

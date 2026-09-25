@@ -317,6 +317,7 @@ model Usuario {
   historicoTickets                    HistoricoTicketRescate[]
   siniestrosReportados                Siniestro[]                         @relation("SiniestroReportadoPor")
   consumosRegistrados                 ConsumoInsumo[]
+  entradasInsumoRegistradas           EntradaInsumo[]                     @relation("EntradaInsumoRegistrador")
   metricasBICreadas                   MetricaBI[]
   accesosReporteBI                    AccesoReporteBI[]
   nlQueryLogs                         NlQueryLog[]
@@ -1293,10 +1294,29 @@ model InsumoInventario {
   existencias Decimal         @default(0) @db.Decimal(12, 2)
   minimoStock Decimal         @default(0) @db.Decimal(12, 2)
   consumos    ConsumoInsumo[]
+  entradas    EntradaInsumo[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
   @@index([proyectoId])
+}
+
+// ─────────────── ENTRADAS DE STOCK — INSUMOS ───────────────────────────────
+
+model EntradaInsumo {
+  id              String           @id @default(cuid())
+  insumoId        String
+  insumo          InsumoInventario @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  cantidad        Decimal          @db.Decimal(10, 2)
+  proveedor       String?
+  costoUnitario   Decimal?         @db.Decimal(12, 2)
+  nota            String?
+  fecha           DateTime         @default(now())
+  registradoPorId String
+  registradoPor   Usuario          @relation("EntradaInsumoRegistrador", fields: [registradoPorId], references: [id])
+  createdAt       DateTime         @default(now())
+
+  @@index([insumoId])
 }
 
 // ───────────────────────── HISTÓRICO DE PROYECTOS POR UNIDAD ─────────────────────────

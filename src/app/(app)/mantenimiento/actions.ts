@@ -274,6 +274,118 @@ export async function actualizarGasto(formData: FormData) {
   if (actual.numeroEconomico) revalidatePath(`/unidades/${actual.numeroEconomico}`);
 }
 
+export type ResultadoProrrateado = { ok: boolean; error?: string; creados?: number };
+
+export async function crearGastoProrrateado(formData: FormData): Promise<ResultadoProrrateado> {
+  try {
+    await exigirPermisoModulo("C", "editar");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso." };
+  }
+
+  const categoria = String(formData.get("categoria") ?? "");
+  const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
+  const notas = String(formData.get("notas") ?? "").trim() || null;
+  const fecha = String(formData.get("fecha") ?? "");
+  const costoTotal = parseFloat(String(formData.get("costoTotal") ?? "0"));
+  const proveedor = String(formData.get("proveedor") ?? "").trim() || null;
+  const sc = String(formData.get("sc") ?? "").trim() || null;
+  const odc = String(formData.get("odc") ?? "").trim() || null;
+  const estatus = String(formData.get("estatus") ?? "PROGRAMADO");
+  const fechaIngresoTaller = String(formData.get("fechaIngresoTaller") ?? "") || null;
+  const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
+  const numerosEconomicos = formData.getAll("numerosEconomicos").map(String).filter(Boolean);
+
+  if (!categoria || !fecha || !costoTotal || numerosEconomicos.length === 0) {
+    return { ok: false, error: "Categoría, fecha, costo y al menos una unidad son obligatorios." };
+  }
+  if (numerosEconomicos.length > 50) {
+    return { ok: false, error: "Máximo 50 unidades por carga prorrateada." };
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("C");
+
+  const unidades = await prisma.unidad.findMany({
+    where: { numeroEconomico: { in: numerosEconomicos } },
+    select: { numeroEconomico: true, proyectoId: true },
+  });
+  const unidadesMap = new Map(unidades.map((u) => [u.numeroEconomico, u]));
+
+  for (const ne of numerosEconomicos) {
+    const u = unidadesMap.get(ne);
+    if (!u) return { ok: false, error: `Unidad ${ne} no encontrada.` };
+    if (permitidos !== null && (!u.proyectoId || !permitidos.includes(u.proyectoId))) {
+      return { ok: false, error: `No tienes permiso sobre la unidad ${ne}.` };
+    }
+  }
+
+  const n = numerosEconomicos.length;
+  const costoBase = Math.floor((costoTotal * 100) / n) / 100;
+  const costoResto = Math.round((costoTotal - costoBase * (n - 1)) * 100) / 100;
+  const fechaParseada = parseFechaLocalMx(fecha)!;
+  const fechaIngresoParseada = parseFechaLocalMx(fechaIngresoTaller);
+  const fechaSalidaParseada = parseFechaLocalMx(fechaEstimadaSalida);
+
+  const datosConHistorico = await Promise.all(
+    numerosEconomicos.map(async (ne, idx) => {
+      const unidad = unidadesMap.get(ne)!;
+      let historicoProyectoId: string | null = null;
+      const historicoAbierto = await prisma.unidadHistoricoProyecto.findFirst({
+        where: { numeroEconomico: ne, fechaFin: null },
+        orderBy: { fechaInicio: "desc" },
+      });
+      if (historicoAbierto) {
+        historicoProyectoId = historicoAbierto.id;
+      } else if (unidad.proyectoId) {
+        const creado = await prisma.unidadHistoricoProyecto.create({
+          data: { numeroEconomico: ne, proyectoId: unidad.proyectoId },
+        });
+        historicoProyectoId = creado.id;
+      }
+      return { ne, historicoProyectoId, costo: idx === n - 1 ? costoResto : costoBase };
+    })
+  );
+
+  await prisma.$transaction(
+    datosConHistorico.map((d) =>
+      prisma.gastoVehicular.create({
+        data: {
+          numeroEconomico: d.ne,
+          historicoProyectoId: d.historicoProyectoId,
+          categoria: categoria as never,
+          descripcion,
+          notas,
+          fecha: fechaParseada,
+          costo: d.costo,
+          proveedor,
+          sc,
+          odc,
+          estatus: estatus as never,
+          fechaIngresoTaller: fechaIngresoParseada,
+          fechaEstimadaSalida: fechaSalidaParseada,
+        },
+      })
+    )
+  );
+
+  const sesionProrrateo = await auth();
+  if (sesionProrrateo?.user?.id) {
+    await logActivity({
+      userId: sesionProrrateo.user.id,
+      modulo: "mantenimiento",
+      accion: "create",
+      entidad: "GastoVehicular",
+      entidadId: "prorrateo",
+      detalle: { categoria, costoTotal, unidades: numerosEconomicos, count: n },
+    });
+  }
+
+  revalidatePath("/mantenimiento");
+  invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
+  numerosEconomicos.forEach((ne) => revalidatePath(`/unidades/${ne}`));
+  return { ok: true, creados: n };
+}
+
 export async function eliminarGasto(formData: FormData): Promise<ResultadoEliminarGasto> {
   if (!(await esRolGlobal())) {
     return { ok: false, error: "Solo el Administrador puede eliminar órdenes de mantenimiento o gastos." };

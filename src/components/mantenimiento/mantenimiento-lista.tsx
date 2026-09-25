@@ -34,6 +34,7 @@ export type GastoRow = {
   fechaFactura: string | null;
   fechaCxp: string | null;
   fechaPago: string | null;
+  notas: string | null;
   kmAlMomento: number | null;
   fechaIngresoTaller: string | null;
   fechaEstimadaSalida: string | null;
