@@ -22,17 +22,17 @@ export default async function MantenimientoPage() {
 
   const alertasPreventivas = await obtenerAlertasMantenimientoPreventivo(proyectosPermitidos);
 
-  const [pendientes, historial, porCategoria] = await Promise.all([
+  const [pendientes, historial, porCategoria, departamentos] = await Promise.all([
     prisma.gastoVehicular.findMany({
       where: { estatus: "PROGRAMADO", ...filtroProyecto },
-      include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
+      include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } }, departamentoApoyo: { select: { nombre: true } } },
       orderBy: { fecha: "asc" },
     }),
     prisma.gastoVehicular.findMany({
       where: filtroProyecto,
       orderBy: { fecha: "desc" },
       take: 30,
-      include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
+      include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } }, departamentoApoyo: { select: { nombre: true } } },
     }),
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
@@ -41,6 +41,7 @@ export default async function MantenimientoPage() {
       _count: { _all: true },
       orderBy: { _sum: { costo: "desc" } },
     }),
+    prisma.departamentoApoyo.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);
 
   const gastoTotal = porCategoria.reduce((acc, c) => acc + Number(c._sum.costo ?? 0), 0);
@@ -85,7 +86,7 @@ export default async function MantenimientoPage() {
         <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
           Calendario / Pendientes
         </h3>
-        <PendientesLista pendientes={JSON.parse(JSON.stringify(pendientes))} isAdmin={isAdmin} />
+        <PendientesLista pendientes={JSON.parse(JSON.stringify(pendientes))} isAdmin={isAdmin} departamentos={departamentos} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -93,7 +94,7 @@ export default async function MantenimientoPage() {
           <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             Historial reciente
           </h3>
-          <HistorialLista historial={JSON.parse(JSON.stringify(historial))} isAdmin={isAdmin} />
+          <HistorialLista historial={JSON.parse(JSON.stringify(historial))} isAdmin={isAdmin} departamentos={departamentos} />
         </div>
 
         <div>

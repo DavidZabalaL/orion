@@ -38,6 +38,9 @@ export type GastoRow = {
   kmAlMomento: number | null;
   fechaIngresoTaller: string | null;
   fechaEstimadaSalida: string | null;
+  apoyoPago: boolean;
+  departamentoApoyoId: string | null;
+  departamentoApoyo: { nombre: string } | null;
 };
 
 function coincide(g: GastoRow, q: string) {
@@ -116,10 +119,11 @@ function VerOrdenButton({ abierto, onClick }: { abierto: boolean; onClick: () =>
   );
 }
 
-function OrdenDetalle({ g, isAdmin, onGuardado }: { g: GastoRow; isAdmin: boolean; onGuardado?: () => void }) {
+function OrdenDetalle({ g, isAdmin, onGuardado, departamentos = [] }: { g: GastoRow; isAdmin: boolean; onGuardado?: () => void; departamentos?: { id: string; nombre: string }[] }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [apoyoPagoEdit, setApoyoPagoEdit] = useState(g.apoyoPago);
 
   if (!editando) {
     return (
@@ -138,6 +142,9 @@ function OrdenDetalle({ g, isAdmin, onGuardado }: { g: GastoRow; isAdmin: boolea
             <Detalle label="Ingreso taller" value={fmtFecha(g.fechaIngresoTaller)} />
             <Detalle label="Salida estimada" value={g.fechaEstimadaSalida ? fmtFecha(g.fechaEstimadaSalida) : null} />
           </div>
+        )}
+        {g.apoyoPago && (
+          <Badge label={`Apoyo de pagos${g.departamentoApoyo ? ` — ${g.departamentoApoyo.nombre}` : ""}`} color="#b45309" bg="rgba(217,119,6,0.12)" />
         )}
         {g.notas && (
           <div className="rounded-md px-4 py-3" style={{ background: "var(--field-bg)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", whiteSpace: "pre-wrap" }}>
@@ -269,6 +276,20 @@ function OrdenDetalle({ g, isAdmin, onGuardado }: { g: GastoRow; isAdmin: boolea
           <label style={labelStyle}>Salida estimada taller</label>
           <input name="fechaEstimadaSalida" type="date" defaultValue={soloFecha(g.fechaEstimadaSalida)} style={fieldStyle} />
         </div>
+        <div className="col-span-2 md:col-span-4 flex flex-col gap-2 rounded-md p-3" style={{ background: "var(--field-bg)" }}>
+          <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+            <input type="checkbox" name="apoyoPago" checked={apoyoPagoEdit} onChange={(e) => setApoyoPagoEdit(e.target.checked)} />
+            Apoyo de pagos — marcar como prioritario para un departamento
+          </label>
+          {apoyoPagoEdit && (
+            <select name="departamentoApoyoId" style={fieldStyle} defaultValue={g.departamentoApoyoId ?? ""}>
+              <option value="">Selecciona un departamento…</option>
+              {departamentos.map((d) => (
+                <option key={d.id} value={d.id}>{d.nombre}</option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <button type="submit" disabled={pending} className="rounded-md px-3 h-9 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
@@ -352,7 +373,7 @@ function Detalle({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-export function PendientesLista({ pendientes, isAdmin = false }: { pendientes: GastoRow[]; isAdmin?: boolean }) {
+export function PendientesLista({ pendientes, isAdmin = false, departamentos = [] }: { pendientes: GastoRow[]; isAdmin?: boolean; departamentos?: { id: string; nombre: string }[] }) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
   const ahora = useMemo(() => new Date(), []);
@@ -398,7 +419,7 @@ export function PendientesLista({ pendientes, isAdmin = false }: { pendientes: G
               {expandido === g.id && (
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                    <OrdenDetalle g={g} isAdmin={isAdmin} />
+                    <OrdenDetalle g={g} isAdmin={isAdmin} departamentos={departamentos} />
                   </td>
                 </tr>
               )}
@@ -410,7 +431,7 @@ export function PendientesLista({ pendientes, isAdmin = false }: { pendientes: G
   );
 }
 
-export function HistorialLista({ historial, isAdmin = false }: { historial: GastoRow[]; isAdmin?: boolean }) {
+export function HistorialLista({ historial, isAdmin = false, departamentos = [] }: { historial: GastoRow[]; isAdmin?: boolean; departamentos?: { id: string; nombre: string }[] }) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
   const [resultadosBusqueda, setResultadosBusqueda] = useState<GastoRow[] | null>(null);
@@ -483,7 +504,7 @@ export function HistorialLista({ historial, isAdmin = false }: { historial: Gast
               {expandido === g.id && (
                 <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
                   <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                    <OrdenDetalle g={g} isAdmin={isAdmin} onGuardado={alGuardarOrden} />
+                    <OrdenDetalle g={g} isAdmin={isAdmin} onGuardado={alGuardarOrden} departamentos={departamentos} />
                   </td>
                 </tr>
               )}

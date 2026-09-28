@@ -35,6 +35,8 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   const estatus = String(formData.get("estatus") ?? "PROGRAMADO");
   const fechaIngresoTaller = String(formData.get("fechaIngresoTaller") ?? "") || null;
   const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
+  const apoyoPago = formData.get("apoyoPago") === "on";
+  const departamentoApoyoId = String(formData.get("departamentoApoyoId") ?? "").trim() || null;
 
   if (!categoria || !fecha || !costo) {
     return { ok: false, error: "Categoría, fecha y costo son obligatorios." };
@@ -92,6 +94,8 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
       estatus: estatus as never,
       fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
       fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
+      apoyoPago,
+      departamentoApoyoId: apoyoPago ? departamentoApoyoId : null,
     },
   });
 
@@ -149,7 +153,7 @@ export async function buscarHistorialGastos(query: string): Promise<GastoRow[]> 
         },
       ],
     },
-    include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } } },
+    include: { unidad: { select: { numeroEconomico: true } }, proyectoReportante: { select: { nombre: true } }, departamentoApoyo: { select: { nombre: true } } },
     orderBy: { fecha: "desc" },
     take: 100,
   });
@@ -218,6 +222,8 @@ export async function actualizarGasto(formData: FormData) {
   const fechaPago = String(formData.get("fechaPago") ?? "") || null;
   const fechaIngresoTaller = String(formData.get("fechaIngresoTaller") ?? "") || null;
   const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
+  const apoyoPago = formData.get("apoyoPago") === "on";
+  const departamentoApoyoId = String(formData.get("departamentoApoyoId") ?? "").trim() || null;
   const estatus = String(formData.get("estatus") ?? "");
 
   if (!costo || !estatus) throw new Error("Costo y estatus son obligatorios.");
@@ -254,6 +260,8 @@ export async function actualizarGasto(formData: FormData) {
       fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
       fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
       estatus: estatus as never,
+      apoyoPago,
+      departamentoApoyoId: apoyoPago ? departamentoApoyoId : null,
     },
   });
 

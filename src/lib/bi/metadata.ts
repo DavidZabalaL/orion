@@ -323,9 +323,9 @@ export const BI_DATASETS: DatasetMeta[] = [
     // El proyecto de un gasto puede venir de la unidad (u."proyectoId") o,
     // si no aplica a una unidad (ej. viáticos de operación), directo de
     // proyectoReportanteId — se combinan con COALESCE para no perder ninguno.
-    from: `"GastoVehicular" g LEFT JOIN "Unidad" u ON u."numeroEconomico" = g."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u."proyectoId", g."proyectoReportanteId")`,
+    from: `"GastoVehicular" g LEFT JOIN "Unidad" u ON u."numeroEconomico" = g."numeroEconomico" LEFT JOIN "Proyecto" p ON p.id = COALESCE(u."proyectoId", g."proyectoReportanteId") LEFT JOIN "DepartamentoApoyo" da ON da.id = g."departamentoApoyoId"`,
     proyectoScopeExpr: `COALESCE(u."proyectoId", g."proyectoReportanteId")`,
-    tablasBase: ["GastoVehicular", "Unidad", "Proyecto"],
+    tablasBase: ["GastoVehicular", "Unidad", "Proyecto", "DepartamentoApoyo"],
     fechaActividadExpr: `g."fecha"`,
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `g."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
@@ -335,6 +335,18 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `g."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `g."fecha"` },
       { id: "costo", label: "Costo", tipo: "numero", expr: `g."costo"`, sufijo: " MXN" },
+      {
+        id: "apoyoPago",
+        label: "Apoyo de pagos",
+        tipo: "texto",
+        expr: `CASE WHEN g."apoyoPago" THEN 'Sí' ELSE 'No' END`,
+        opciones: [{ valor: "Sí", label: "Sí" }, { valor: "No", label: "No" }],
+      },
+      // NULL cuando no aplica (apoyoPago=false o sin departamento) — igual
+      // que "motivoIndisponibilidad" en el dataset "unidades", el motor
+      // descarta filas con dimensión NULL, así que agrupar por este campo
+      // muestra solo los gastos que sí tienen un departamento de apoyo.
+      { id: "departamentoApoyo", label: "Departamento de apoyo", tipo: "texto", expr: `da."nombre"` },
     ],
   },
   {
@@ -852,6 +864,8 @@ export type CombinacionGuardable = {
    *  `filtros` propios antes de consultar. Si no existe, se ignora en
    *  silencio para este widget — nunca rompe la consulta. */
   escuchaFiltro?: boolean;
+  /** Semáforo condicional por columna/valor en la vista de tabla (mayor/menor/igual/entre/personalizada + color) — ver src/lib/bi/reglas-color.ts. Puramente visual, no afecta la consulta. */
+  reglasColor?: import("@/lib/bi/reglas-color").ReglaColorColumna[];
 };
 
 /** Combinaciones curadas de arranque (MVP), antes de abrir el selector libre. */

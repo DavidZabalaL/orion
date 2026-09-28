@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { type UnidadRow } from "@/components/unidades/unidades-table";
 import { InventarioUnidades } from "@/components/unidades/inventario-unidades";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, Wrench } from "lucide-react";
 import { requerirPermisoModulo, esRolGlobal, puedeVerSlaDisponibilidad } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, conAlturaSegura, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
@@ -150,11 +150,16 @@ export default async function UnidadesPage() {
             Ficha única por número económico con vista consolidada de flota.
           </p>
         </div>
-        {puedeConfigurar && (
-          <Link href="/usuarios/widgets" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-            <LayoutGrid size={16} /> Configurar widgets
+        <div className="flex flex-wrap gap-2">
+          <Link href="/unidades/no-disponibles" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <Wrench size={16} /> Unidades no disponibles
           </Link>
-        )}
+          {puedeConfigurar && (
+            <Link href="/usuarios/widgets" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+              <LayoutGrid size={16} /> Configurar widgets
+            </Link>
+          )}
+        </div>
       </div>
 
       <InventarioUnidades

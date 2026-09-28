@@ -70,6 +70,7 @@ export function BiAgregarWidget({
       vistaPreferida: combinacion.vistaPreferida,
       filtros: combinacion.filtros,
       proyectoIds: combinacion.proyectoIds,
+      reglasColor: combinacion.reglasColor,
       emiteFiltro: emiteFiltro || undefined,
       escuchaFiltro: escuchaFiltro || undefined,
     });

@@ -266,6 +266,20 @@ enum EstatusSiniestro {
   CERRADO_SIN_INDEMNIZACION
 }
 
+// Catálogo de departamentos de apoyo (ej. Compras, Finanzas) para marcar en
+// un gasto de mantenimiento que requiere apoyo de pagos de ese departamento —
+// ver GastoVehicular.departamentoApoyoId. "Quitar" un departamento es un
+// soft-delete (`activo=false`, nunca se borra la fila): los gastos que ya lo
+// tenían asignado conservan la referencia y el nombre histórico intactos.
+model DepartamentoApoyo {
+  id        String           @id @default(cuid())
+  nombre    String           @unique
+  activo    Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  gastos    GastoVehicular[]
+}
+
 // ───────────────────────── MÓDULO K — USUARIOS Y ROLES ─────────────────────────
 
 model Rol {
@@ -757,6 +771,12 @@ model GastoVehicular {
   fechaIngresoTaller  DateTime?
   fechaEstimadaSalida DateTime?
 
+  // Apoyo de pagos: marca que este gasto necesita prioridad de pago de un
+  // departamento de apoyo (ver DepartamentoApoyo) — ej. Compras, Finanzas.
+  apoyoPago           Boolean            @default(false)
+  departamentoApoyoId String?
+  departamentoApoyo   DepartamentoApoyo? @relation(fields: [departamentoApoyoId], references: [id])
+
   evidenciaId String?
   evidencia   Documento?   @relation(fields: [evidenciaId], references: [id])
   estatus     EstatusGasto @default(PROGRAMADO)
@@ -770,6 +790,7 @@ model GastoVehicular {
   @@index([numeroEconomico])
   @@index([categoria])
   @@index([proyectoReportanteId])
+  @@index([departamentoApoyoId])
 }
 
 // ───────────────────────── MÓDULO D — COMBUSTIBLE ─────────────────────────

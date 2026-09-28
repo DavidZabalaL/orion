@@ -11,7 +11,7 @@ export default async function NuevaOrdenPage() {
   await requerirPermisoModulo("C", "editar");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("C");
 
-  const [unidades, proyectos] = await Promise.all([
+  const [unidades, proyectos, departamentos] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
       select: { numeroEconomico: true },
@@ -22,6 +22,7 @@ export default async function NuevaOrdenPage() {
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
     }),
+    prisma.departamentoApoyo.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);
 
   return (
@@ -36,7 +37,7 @@ export default async function NuevaOrdenPage() {
       </div>
 
       <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <NuevaOrdenForm unidades={unidades} proyectos={proyectos} />
+        <NuevaOrdenForm unidades={unidades} proyectos={proyectos} departamentos={departamentos} />
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { useBiQuery } from "@/components/bi/use-bi-query";
 import { obtenerDataset, obtenerCampo, type TipoGrafica, type TipoAgregacion, type TipoOrden, type FiltroGuardable } from "@/lib/bi/metadata";
 import { useRegisterExportable } from "@/components/dashboard/ExportRegistryContext";
 import { UnidadesDrillDownModal } from "@/components/bi/unidades-drilldown-modal";
+import type { ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 // Misma precisión que fmtNumero() en bi-chart.tsx (no exportado desde ahí) —
 // para que el KPI exportado al PDF muestre el mismo redondeo que el "Contador" en pantalla.
@@ -37,6 +38,7 @@ export function BiCard({
   escuchaFiltro = false,
   filtroInteraccion = null,
   onCategoriaClick,
+  reglasColor,
 }: {
   label: string;
   dataset: string;
@@ -65,6 +67,8 @@ export function BiCard({
   escuchaFiltro?: boolean;
   filtroInteraccion?: FiltroGuardable | null;
   onCategoriaClick?: (campoId: string, valor: string) => void;
+  /** Semáforo condicional por columna en la vista de tabla — ver src/lib/bi/reglas-color.ts. */
+  reglasColor?: ReglaColorColumna[];
 }) {
   const [verTabla, setVerTabla] = useState(vistaPreferida === "tabla");
   const [mostrarTotal, setMostrarTotal] = useState(false);
@@ -213,9 +217,9 @@ export function BiCard({
             {error}
           </div>
         ) : verTabla && cruzado ? (
-          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
+          <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} reglasColor={reglasColor} />
         ) : verTabla && soportaTabla ? (
-          <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
+          <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} reglasColor={reglasColor} />
         ) : (
           <BiChart
             datos={datos}

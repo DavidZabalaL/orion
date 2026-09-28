@@ -190,9 +190,9 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
               {error}
             </div>
           ) : verTabla && cruzado ? (
-            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
+            <BiTablaCruzada cruzado={cruzado} ejeXLabel={ejeXLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} reglasColor={combinacion.reglasColor} />
           ) : verTabla && soportaTabla ? (
-            <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} />
+            <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} reglasColor={combinacion.reglasColor} />
           ) : (
             <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} orientacion={combinacion.orientacion} colorimetria={combinacion.colorimetria} agregacion={combinacion.agregacion} truncado={truncado} />
           )}

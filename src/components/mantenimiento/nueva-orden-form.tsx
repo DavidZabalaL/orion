@@ -33,16 +33,20 @@ const labelStyle: React.CSSProperties = {
 export function NuevaOrdenForm({
   unidades,
   proyectos,
+  departamentos = [],
   numeroEconomicoFijo,
   onExito,
 }: {
   unidades: { numeroEconomico: string }[];
   proyectos: { id: string; nombre: string }[];
+  /** Catálogo de "Departamentos de apoyo" (ver /usuarios/departamentos) — solo los activos, para el campo "Apoyo de pagos". */
+  departamentos?: { id: string; nombre: string }[];
   numeroEconomicoFijo?: string;
   onExito?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [apoyoPago, setApoyoPago] = useState(false);
   const router = useRouter();
 
   return (
@@ -114,6 +118,20 @@ export function NuevaOrdenForm({
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha estimada de entrega del taller. Si se supera, se genera alerta.">Fecha estimada de salida</CampoAyuda>
           <input name="fechaEstimadaSalida" type="date" style={fieldStyle} />
+        </div>
+        <div className="md:col-span-2 flex flex-col gap-2 rounded-md p-3" style={{ background: "var(--field-bg)" }}>
+          <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+            <input type="checkbox" name="apoyoPago" checked={apoyoPago} onChange={(e) => setApoyoPago(e.target.checked)} />
+            Apoyo de pagos — marcar como prioritario para un departamento
+          </label>
+          {apoyoPago && (
+            <select name="departamentoApoyoId" style={fieldStyle} defaultValue="">
+              <option value="">Selecciona un departamento…</option>
+              {departamentos.map((d) => (
+                <option key={d.id} value={d.id}>{d.nombre}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
