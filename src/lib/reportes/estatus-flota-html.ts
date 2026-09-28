@@ -12,6 +12,7 @@ import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
+import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
 import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 const NAVY = "#0f1b2d";
@@ -229,11 +230,12 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
         ? Array.from({ length: Math.ceil(datos.camposExtra.length / 3) })
             .map((_, i) =>
               filaTarjetas(
-                datos.camposExtra.slice(i * 3, i * 3 + 3).map((c) =>
-                  c.tipoVisualizacion === "kpi"
-                    ? tarjeta(`${c.campoLabel} — ${etiquetaAlcance(datos.proyectoLabel)}`, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`))
-                    : tarjeta(`${c.campoLabel} — ${etiquetaAlcance(datos.proyectoLabel)}`, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v)))
-                )
+                datos.camposExtra.slice(i * 3, i * 3 + 3).map((c) => {
+                  const titulo = `${c.campoLabel}${c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : ""} — ${etiquetaAlcance(datos.proyectoLabel)}`;
+                  return c.tipoVisualizacion === "kpi"
+                    ? tarjeta(titulo, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`))
+                    : tarjeta(titulo, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v)));
+                })
               )
             )
             .join("")

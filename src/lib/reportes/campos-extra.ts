@@ -9,11 +9,39 @@ import { obtenerDataset, obtenerCampo } from "@/lib/bi/metadata";
 import { ejecutarSimple } from "@/lib/bi/motor-consultas";
 import {
   VISUALIZACION_SUGERIDA,
+  type AgrupacionTemporal,
   type CampoExtraSeleccionado,
   type CampoExtraResultado,
 } from "@/lib/reportes/campos-extra-tipos";
 
 const MAX_FILAS_BARRAS = 12;
+
+// Expresión SQL del "bucket" de cada agrupación temporal, a partir de la
+// expresión de fecha del dataset (ej. `g."fecha"`) — siempre sobre un string
+// interno de metadata.ts, nunca sobre input del cliente.
+const BUCKET_SQL: Record<AgrupacionTemporal, (fechaExpr: string) => string> = {
+  mes: (f) => `TO_CHAR(${f}, 'YYYY-MM')`,
+  trimestre: (f) => `TO_CHAR(${f}, 'YYYY') || '-T' || EXTRACT(QUARTER FROM ${f})::text`,
+  semestre: (f) => `TO_CHAR(${f}, 'YYYY') || '-S' || (CASE WHEN EXTRACT(MONTH FROM ${f}) <= 6 THEN '1' ELSE '2' END)`,
+  anio: (f) => `TO_CHAR(${f}, 'YYYY')`,
+};
+
+/** "2026-03" → "mar 2026", "2026-T1" → "T1 2026", "2026-S1" → "Sem. 1 2026", "2026" → "2026". */
+function formatearBucket(bucket: string, agrupacion: AgrupacionTemporal): string {
+  if (agrupacion === "mes") {
+    const [anio, mes] = bucket.split("-");
+    return new Date(Number(anio), Number(mes) - 1, 1).toLocaleDateString("es-MX", { month: "short", year: "numeric" });
+  }
+  if (agrupacion === "trimestre") {
+    const [anio, t] = bucket.split("-T");
+    return `T${t} ${anio}`;
+  }
+  if (agrupacion === "semestre") {
+    const [anio, s] = bucket.split("-S");
+    return `Sem. ${s} ${anio}`;
+  }
+  return bucket;
+}
 
 function condicionAlcance(proyectoScopeExpr: string, proyectoIds: string[] | null): { condicion: Prisma.Sql; llave: string } {
   if (proyectoIds === null) return { condicion: Prisma.empty, llave: "ALL" };
@@ -60,6 +88,27 @@ export async function calcularCamposExtra(
     // distintos sobre el mismo dataset/proyecto colisionarían en caché.
     const llave = periodoAcotado ? `${llaveProyecto}|${desde.toISOString().slice(0, 10)}..${hasta.toISOString().slice(0, 10)}` : llaveProyecto;
     const tipoVisualizacion = VISUALIZACION_SUGERIDA[campo.tipo];
+
+    // Campo numérico con agrupación temporal pedida: en vez de un solo total
+    // del periodo, una barra por mes/trimestre/semestre/año — solo tiene
+    // sentido si el dataset tiene una fecha de evento propia (periodoAcotado).
+    if (tipoVisualizacion === "kpi" && sel.agrupacionTemporal && periodoAcotado) {
+      const bucketExpr = BUCKET_SQL[sel.agrupacionTemporal](dataset.fechaActividadExpr!);
+      const where = condicion === Prisma.empty ? Prisma.empty : Prisma.sql`WHERE ${condicion}`;
+      const query = Prisma.sql`SELECT ${Prisma.raw(bucketExpr)} AS bucket, SUM(${Prisma.raw(campo.expr)}) AS v FROM ${Prisma.raw(dataset.from)} ${where} GROUP BY 1 ORDER BY 1`;
+      const filasRaw = await prisma.$queryRaw<{ bucket: string; v: number | string | null }[]>(query);
+      resultados.push({
+        datasetId: dataset.id,
+        campoId: campo.id,
+        datasetLabel: dataset.label,
+        campoLabel: campo.label,
+        tipoVisualizacion: "barras",
+        periodoAcotado,
+        agrupacionTemporal: sel.agrupacionTemporal,
+        filas: filasRaw.slice(0, MAX_FILAS_BARRAS).map((f) => ({ label: formatearBucket(f.bucket, sel.agrupacionTemporal!), valor: Number(f.v ?? 0) })),
+      });
+      continue;
+    }
 
     if (tipoVisualizacion === "kpi") {
       const where = condicion === Prisma.empty ? Prisma.empty : Prisma.sql`WHERE ${condicion}`;

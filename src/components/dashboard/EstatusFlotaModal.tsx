@@ -10,7 +10,13 @@ import {
   type ConfigEstatusFlotaProgramado,
 } from "@/app/(app)/dashboards/actions";
 import { BI_DATASETS } from "@/lib/bi/metadata";
-import { VISUALIZACION_SUGERIDA, VISUALIZACION_SUGERIDA_LABEL, type CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
+import {
+  VISUALIZACION_SUGERIDA,
+  VISUALIZACION_SUGERIDA_LABEL,
+  AGRUPACION_TEMPORAL_LABEL,
+  type AgrupacionTemporal,
+  type CampoExtraSeleccionado,
+} from "@/lib/reportes/campos-extra-tipos";
 import { SECCION_REPORTE_LABEL, ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { useExportRegistry } from "./ExportRegistryContext";
 import type { IndicadorDashboard } from "./EstatusFlotaDocument";
@@ -171,6 +177,10 @@ export function EstatusFlotaModal({
 
   function quitarCampoExtra(datasetId: string, campoId: string) {
     setCamposExtra((prev) => prev.filter((c) => !(c.datasetId === datasetId && c.campoId === campoId)));
+  }
+
+  function actualizarAgrupacionTemporal(datasetId: string, campoId: string, agrupacionTemporal: AgrupacionTemporal | undefined) {
+    setCamposExtra((prev) => prev.map((c) => (c.datasetId === datasetId && c.campoId === campoId ? { ...c, agrupacionTemporal } : c)));
   }
 
   function moverSeccion(indice: number, direccion: -1 | 1) {
@@ -360,6 +370,7 @@ export function EstatusFlotaModal({
                   const dataset = BI_DATASETS.find((d) => d.id === c.datasetId);
                   const campo = dataset?.campos.find((cm) => cm.id === c.campoId);
                   if (!dataset || !campo) return null;
+                  const puedeAgruparPorPeriodo = VISUALIZACION_SUGERIDA[campo.tipo] === "kpi" && dataset.fechaActividadExpr !== undefined;
                   return (
                     <span
                       key={`${c.datasetId}.${c.campoId}`}
@@ -368,6 +379,20 @@ export function EstatusFlotaModal({
                     >
                       {campo.label}
                       <span style={{ color: "var(--sidebar-text)" }}>· {VISUALIZACION_SUGERIDA_LABEL[VISUALIZACION_SUGERIDA[campo.tipo]]}</span>
+                      {puedeAgruparPorPeriodo && (
+                        <select
+                          value={c.agrupacionTemporal ?? ""}
+                          onChange={(e) => actualizarAgrupacionTemporal(c.datasetId, c.campoId, (e.target.value || undefined) as AgrupacionTemporal | undefined)}
+                          className="rounded-full"
+                          style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", border: "none", padding: "1px 4px" }}
+                          title="Desglosar este dato por periodo en vez de un solo total"
+                        >
+                          <option value="">Sin desglosar</option>
+                          {(Object.entries(AGRUPACION_TEMPORAL_LABEL) as [AgrupacionTemporal, string][]).map(([valor, label]) => (
+                            <option key={valor} value={valor}>{label}</option>
+                          ))}
+                        </select>
+                      )}
                       <button type="button" onClick={() => quitarCampoExtra(c.datasetId, c.campoId)} style={{ color: "var(--sidebar-text)", cursor: "pointer" }}>
                         <X size={11} />
                       </button>
@@ -380,7 +405,7 @@ export function EstatusFlotaModal({
             {mostrarSelectorCampos && (
               <div className="flex flex-col gap-2 rounded-lg p-3 max-h-56 overflow-y-auto" style={{ background: "var(--field-bg)" }}>
                 <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                  Elige cualquier dato del catálogo — el sistema decide solo cómo mostrarlo según su tipo (número → dato KPI, categoría/fecha → gráfica de barras). Máximo {MAX_CAMPOS_EXTRA}.
+                  Elige cualquier dato del catálogo — el sistema decide solo cómo mostrarlo según su tipo (número → dato KPI, categoría/fecha → gráfica de barras). Los datos numéricos con periodo (gastos, combustible, etc.) se pueden desglosar por mes, trimestre, semestre o año en vez de un solo total — usa el selector que aparece junto al dato ya agregado. Máximo {MAX_CAMPOS_EXTRA}.
                 </p>
                 {BI_DATASETS.map((dataset) => (
                   <details key={dataset.id}>

@@ -7,6 +7,7 @@ import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/rep
 import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 import type { TipoVehiculo } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
+import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
 
 // Paleta Grupo Kabat — mismo azul/marino que el resto de la plataforma
 // (var(--color-primary) / sidebar oscuro), reproducida en hex fijo porque
@@ -420,7 +421,7 @@ function PaginaEstatus({
                 ) : (
                   <TarjetaBarras
                     key={`${c.datasetId}.${c.campoId}`}
-                    titulo={`${c.campoLabel} — ${etiquetaAlcance(datos.proyectoLabel)}`}
+                    titulo={`${c.campoLabel}${c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : ""} — ${etiquetaAlcance(datos.proyectoLabel)}`}
                     vacio="Sin datos."
                     filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
                   />

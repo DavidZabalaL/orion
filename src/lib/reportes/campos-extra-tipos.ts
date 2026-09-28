@@ -26,7 +26,28 @@ export const VISUALIZACION_SUGERIDA_LABEL: Record<TipoVisualizacionExtra, string
   barras: "Gráfica de barras",
 };
 
-export type CampoExtraSeleccionado = { datasetId: string; campoId: string };
+/**
+ * Agrupación temporal opcional para un campo numérico (KPI) — en vez de un
+ * solo total del periodo, lo desglosa en una barra por mes/trimestre/
+ * semestre/año dentro de ese mismo periodo. Solo aplica a datasets con
+ * `fechaActividadExpr` (periodoAcotado=true) — un dataset de snapshot
+ * (unidades, seguros) no tiene una fecha de evento por la cual agrupar.
+ */
+export type AgrupacionTemporal = "mes" | "trimestre" | "semestre" | "anio";
+
+export const AGRUPACION_TEMPORAL_LABEL: Record<AgrupacionTemporal, string> = {
+  mes: "Por mes",
+  trimestre: "Por trimestre",
+  semestre: "Por semestre",
+  anio: "Por año",
+};
+
+export type CampoExtraSeleccionado = {
+  datasetId: string;
+  campoId: string;
+  /** Solo tiene efecto sobre campos numéricos de un dataset con periodo acotado — ver AgrupacionTemporal. */
+  agrupacionTemporal?: AgrupacionTemporal;
+};
 
 export type CampoExtraResultado = {
   datasetId: string;
@@ -40,8 +61,13 @@ export type CampoExtraResultado = {
    *  reporte; false si el dataset es de estado/snapshot (ej. unidades,
    *  seguros) y el valor es histórico completo, sin acotar. */
   periodoAcotado: boolean;
+  /** Presente cuando se pidió desglosar un campo numérico por periodo — en
+   *  ese caso `tipoVisualizacion` pasa a "barras" (una barra por periodo) y
+   *  el dato ya no viene en `valorKpi` sino en `filas`, igual que un campo de
+   *  categoría. */
+  agrupacionTemporal?: AgrupacionTemporal;
   /** Solo si tipoVisualizacion="kpi": suma total en el alcance de proyectos del reporte (acotada al periodo si `periodoAcotado`, histórica si no). */
   valorKpi?: number;
-  /** Solo si tipoVisualizacion="barras": conteo agrupado, ya limitado a un máximo de filas para el PDF. */
+  /** Solo si tipoVisualizacion="barras": conteo/suma agrupado, ya limitado a un máximo de filas para el PDF. Si `agrupacionTemporal` está presente, viene ordenado cronológicamente en vez de por valor descendente. */
   filas?: { label: string; valor: number }[];
 };
