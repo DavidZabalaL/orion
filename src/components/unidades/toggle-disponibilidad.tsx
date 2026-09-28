@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Power, PowerOff, Loader2, X } from "lucide-react";
-import { alternarDisponibilidad } from "@/app/(app)/unidades/actions";
+import { Power, PowerOff, Loader2, X, Pencil } from "lucide-react";
+import { alternarDisponibilidad, actualizarMotivoIndisponibilidad } from "@/app/(app)/unidades/actions";
 
 type Props = {
   numeroEconomico: string;
@@ -10,6 +10,8 @@ type Props = {
   disponible: boolean;
   /** Se llama solo cuando el servidor confirma el cambio — el padre debe actualizar su estado con estos valores (motivo/motivoDetalle solo van presentes al apagar). */
   onCambio: (nuevoDisponible: boolean, motivo?: string | null, motivoDetalle?: string | null) => void;
+  /** Se llama cuando se actualiza el motivo sin cambiar la disponibilidad. */
+  onMotivoActualizado?: (motivo: string | null, motivoDetalle: string | null) => void;
   deshabilitado?: boolean;
   variante?: "compacto" | "completo";
 };
@@ -24,12 +26,17 @@ const MOTIVOS: { value: string; label: string }[] = [
   { value: "OTRO", label: "Otro" },
 ];
 
-export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, deshabilitado, variante = "compacto" }: Props) {
+export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, onMotivoActualizado, deshabilitado, variante = "compacto" }: Props) {
   const [pending, startTransition] = useTransition();
+  const [pendingUpdate, startUpdateTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [errorUpdate, setErrorUpdate] = useState<string | null>(null);
   const [pidiendoMotivo, setPidiendoMotivo] = useState(false);
+  const [actualizandoMotivo, setActualizandoMotivo] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [motivoDetalle, setMotivoDetalle] = useState("");
+  const [motivoUpdate, setMotivoUpdate] = useState("");
+  const [motivoDetalleUpdate, setMotivoDetalleUpdate] = useState("");
 
   function enviar(nuevoValor: boolean, motivoSel?: string, motivoDetalleSel?: string) {
     setError(null);
@@ -68,6 +75,29 @@ export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, de
       return;
     }
     enviar(false, motivo, motivoDetalle);
+  }
+
+  function confirmarActualizacion() {
+    if (!motivoUpdate) {
+      setErrorUpdate("Selecciona un motivo.");
+      return;
+    }
+    setErrorUpdate(null);
+    const formData = new FormData();
+    formData.set("numeroEconomico", numeroEconomico);
+    formData.set("motivo", motivoUpdate);
+    if (motivoDetalleUpdate) formData.set("motivoDetalle", motivoDetalleUpdate);
+    startUpdateTransition(async () => {
+      const res = await actualizarMotivoIndisponibilidad(formData);
+      if (res.ok) {
+        onMotivoActualizado?.(motivoUpdate, motivoDetalleUpdate || null);
+        setActualizandoMotivo(false);
+        setMotivoUpdate("");
+        setMotivoDetalleUpdate("");
+      } else {
+        setErrorUpdate(res.error ?? "No se pudo actualizar.");
+      }
+    });
   }
 
   const Icono = pending ? Loader2 : disponible ? Power : PowerOff;
@@ -135,47 +165,134 @@ export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, de
     </div>
   );
 
+  const modalActualizarMotivo = actualizandoMotivo && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !pendingUpdate && setActualizandoMotivo(false)}>
+      <div
+        className="w-full max-w-sm rounded-2xl shadow-xl p-5"
+        style={{ background: "var(--panel-bg)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+            Actualizar motivo de indisponibilidad
+          </h3>
+          <button onClick={() => setActualizandoMotivo(false)} style={{ color: "var(--sidebar-text)" }}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+          Unidad {numeroEconomico} — actualiza el motivo sin encender la unidad. Esto genera un registro en el historial sin afectar el SLA.
+        </p>
+        <select
+          value={motivoUpdate}
+          onChange={(e) => setMotivoUpdate(e.target.value)}
+          className="w-full rounded-lg px-3 py-2 mb-2 outline-none"
+          style={{ border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}
+        >
+          <option value="">Selecciona un motivo…</option>
+          {MOTIVOS.map((m) => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+        {motivoUpdate === "OTRO" && (
+          <input
+            value={motivoDetalleUpdate}
+            onChange={(e) => setMotivoDetalleUpdate(e.target.value)}
+            placeholder="Describe el motivo…"
+            className="w-full rounded-lg px-3 py-2 mb-2 outline-none"
+            style={{ border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}
+          />
+        )}
+        {errorUpdate && <p className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{errorUpdate}</p>}
+        <div className="flex justify-end gap-2 mt-2">
+          <button onClick={() => setActualizandoMotivo(false)} className="px-3 py-2 rounded-lg" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+            Cancelar
+          </button>
+          <button
+            onClick={confirmarActualizacion}
+            disabled={pendingUpdate}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg disabled:opacity-50"
+            style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+          >
+            {pendingUpdate && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Guardar motivo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (variante === "completo") {
     return (
       <div className="flex flex-col items-start gap-1">
-        <button
-          type="button"
-          onClick={alternar}
-          disabled={deshabilitado || pending}
-          title={titulo}
-          className="flex items-center gap-2 rounded-md px-3 h-9 disabled:opacity-50"
-          style={{
-            background: disponible ? "var(--status-cerrado-bg)" : "var(--panel-bg)",
-            boxShadow: "var(--shadow-sm)",
-            color,
-            fontFamily: "var(--font-ui)",
-            fontSize: "var(--text-base)",
-          }}
-        >
-          <Icono size={15} className={pending ? "animate-spin" : undefined} />
-          {disponible ? "Apagar unidad" : "Encender unidad"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={alternar}
+            disabled={deshabilitado || pending}
+            title={titulo}
+            className="flex items-center gap-2 rounded-md px-3 h-9 disabled:opacity-50"
+            style={{
+              background: disponible ? "var(--status-cerrado-bg)" : "var(--panel-bg)",
+              boxShadow: "var(--shadow-sm)",
+              color,
+              fontFamily: "var(--font-ui)",
+              fontSize: "var(--text-base)",
+            }}
+          >
+            <Icono size={15} className={pending ? "animate-spin" : undefined} />
+            {disponible ? "Apagar unidad" : "Encender unidad"}
+          </button>
+          {!disponible && !deshabilitado && (
+            <button
+              type="button"
+              onClick={() => { setActualizandoMotivo(true); setErrorUpdate(null); setMotivoUpdate(""); setMotivoDetalleUpdate(""); }}
+              title="Actualizar motivo de indisponibilidad"
+              className="flex items-center gap-1.5 rounded-md px-3 h-9"
+              style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)", color: "var(--sidebar-text)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <Pencil size={14} />
+              Actualizar motivo
+            </button>
+          )}
+        </div>
         {error && !pidiendoMotivo && <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{error}</span>}
         {modalMotivo}
+        {modalActualizarMotivo}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <button
-        type="button"
-        onClick={alternar}
-        disabled={deshabilitado || pending}
-        title={titulo}
-        aria-label={titulo}
-        className="flex items-center justify-center rounded-md disabled:opacity-40"
-        style={{ width: 26, height: 26, color }}
-      >
-        <Icono size={16} className={pending ? "animate-spin" : undefined} />
-      </button>
+      <div className="flex items-center gap-0.5">
+        <button
+          type="button"
+          onClick={alternar}
+          disabled={deshabilitado || pending}
+          title={titulo}
+          aria-label={titulo}
+          className="flex items-center justify-center rounded-md disabled:opacity-40"
+          style={{ width: 26, height: 26, color }}
+        >
+          <Icono size={16} className={pending ? "animate-spin" : undefined} />
+        </button>
+        {!disponible && !deshabilitado && (
+          <button
+            type="button"
+            onClick={() => { setActualizandoMotivo(true); setErrorUpdate(null); setMotivoUpdate(""); setMotivoDetalleUpdate(""); }}
+            title="Actualizar motivo de indisponibilidad"
+            aria-label="Actualizar motivo de indisponibilidad"
+            className="flex items-center justify-center rounded-md"
+            style={{ width: 22, height: 22, color: "var(--sidebar-text)" }}
+          >
+            <Pencil size={13} />
+          </button>
+        )}
+      </div>
       {error && !pidiendoMotivo && <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>!</span>}
       {modalMotivo}
+      {modalActualizarMotivo}
     </div>
   );
 }

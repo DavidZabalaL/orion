@@ -67,6 +67,14 @@ export function NuevaOrdenForm({
           <CampoAyuda style={labelStyle} texto="Detalle libre de qué se hizo o qué se va a hacer.">Descripción</CampoAyuda>
           <input name="descripcion" style={fieldStyle} />
         </div>
+        <div className="md:col-span-2">
+          <CampoAyuda style={labelStyle} texto="Notas adicionales para detallar el tipo de servicio o información para dirección. Ej: Servicio de 500 horas a elevador de personal.">Notas adicionales</CampoAyuda>
+          <textarea
+            name="notas"
+            rows={3}
+            style={{ ...fieldStyle, height: "auto", padding: "8px 12px", resize: "vertical" }}
+          />
+        </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó o se programó el gasto. A diferencia de otros módulos, aquí sí se puede agendar a futuro.">Fecha *</CampoAyuda>
           <input name="fecha" type="date" required style={fieldStyle} />
