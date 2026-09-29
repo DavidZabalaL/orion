@@ -22,6 +22,7 @@ export async function exportarDatosBI(input: {
   ejeYLabel: string;
   datos: { dimension: string; valor: number }[];
   proyectoIds?: string[];
+  reglasColor?: import("@/lib/bi/reglas-color").ReglaColorColumna[];
 }): Promise<void> {
   const res = await fetch("/api/bi/exportar", {
     method: "POST",

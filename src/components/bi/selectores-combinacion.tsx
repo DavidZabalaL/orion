@@ -341,7 +341,7 @@ export function SelectoresCombinacion({
         )}
       </div>
 
-      {combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide" && combinacion.tipoGrafica !== "contador" && combinacion.tipoGrafica !== "avance" && (
+      {combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide" && combinacion.tipoGrafica !== "avance" && (
         <ReglasColorEditor
           reglas={combinacion.reglasColor ?? []}
           onChange={(reglasColor) => onChange({ ...combinacion, reglasColor })}

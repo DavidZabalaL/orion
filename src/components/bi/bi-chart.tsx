@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
 import { resolverEstado } from "@/lib/bi/estados-mexico";
+import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 export type BiDato = { dimension: string; valor: number; /** Solo con tipoGrafica "avance". */ meta?: number };
 export type BiCaja = { dimension: string; min: number; q1: number; mediana: number; q3: number; max: number };
@@ -67,6 +68,7 @@ export function BiChart({
   agregacion,
   truncado,
   onCategoriaClick,
+  reglasColor,
 }: {
   datos: BiDato[];
   cajas?: BiCaja[];
@@ -88,6 +90,8 @@ export function BiChart({
   truncado?: boolean;
   /** Drill-down: se dispara con el valor de la categoría clicada (barras, pie, puntos, divergente). Opcional — no rompe usos existentes. */
   onCategoriaClick?: (valor: string) => void;
+  /** Semáforo condicional — hoy solo aplica a tipoGrafica "contador" (además de las tablas de bi-tabla-simple/bi-tabla-cruzada). Ver src/lib/bi/reglas-color.ts. */
+  reglasColor?: ReglaColorColumna[];
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const uid = useId();
@@ -171,6 +175,7 @@ export function BiChart({
             setHover={setHover}
             uid={uid}
             onCategoriaClick={manejarClic}
+            reglasColor={reglasColor}
           />
         )}
       </div>
@@ -198,12 +203,13 @@ function BiChartInterno(props: {
   setHover: (i: number | null) => void;
   uid: string;
   onCategoriaClick?: (valor: string) => void;
+  reglasColor?: ReglaColorColumna[];
 }) {
-  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, colorimetria, orientacion, agregacion, width, height, hover, setHover, uid, onCategoriaClick } = props;
+  const { datos, cajas, pares, splitLabels, cruzado, tipoGrafica, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, colorimetria, orientacion, agregacion, width, height, hover, setHover, uid, onCategoriaClick, reglasColor } = props;
   const dark = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") !== "light" : true;
 
   if (tipoGrafica === "avance") return <BiAvance datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} colorimetria={colorimetria} />;
-  if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={agregacion} width={width} height={height} />;
+  if (tipoGrafica === "contador") return <BiContador datos={datos} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} agregacion={agregacion} width={width} height={height} reglasColor={reglasColor} />;
   if (tipoGrafica === "pie") return <BiPie datos={datos} dark={dark} hover={hover} setHover={setHover} uid={uid} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
   if (tipoGrafica === "lineas") return <BiLineas datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} />;
   if (tipoGrafica === "puntos") return <BiPuntos datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
@@ -218,14 +224,15 @@ function BiChartInterno(props: {
   return <BiBarras datos={datos} dark={dark} hover={hover} setHover={setHover} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} width={width} height={height} onCategoriaClick={onCategoriaClick} />;
 }
 
-function BiContador({ datos, ejeYLabel, ejeYSufijo, agregacion, width, height }: { datos: BiDato[]; ejeYLabel: string; ejeYSufijo: string; agregacion?: TipoAgregacion; width: number; height: number }) {
+function BiContador({ datos, ejeYLabel, ejeYSufijo, agregacion, width, height, reglasColor }: { datos: BiDato[]; ejeYLabel: string; ejeYSufijo: string; agregacion?: TipoAgregacion; width: number; height: number; reglasColor?: ReglaColorColumna[] }) {
   const suma = datos.reduce((acc, d) => acc + d.valor, 0);
   const total = agregacion === "promedio" ? suma / datos.length : suma;
   const fontSize = Math.min(72, Math.max(28, Math.min(width, height) * 0.22));
+  const color = colorParaValor(total, ejeYLabel, reglasColor) ?? "var(--sidebar-text-active)";
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-center">
-      <div style={{ fontFamily: "var(--font-mono)", fontSize, fontWeight: 700, color: "var(--sidebar-text-active)", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>
         {fmtNumero(total, ejeYSufijo)}
       </div>
       <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>

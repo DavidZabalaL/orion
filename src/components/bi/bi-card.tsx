@@ -179,7 +179,7 @@ export function BiCard({
             </button>
           )}
           {!cargando && !error && (
-            <ExportarMenu dataset={dataset} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={proyectoIds} contenedorRef={graficaRef} tipoRecurso="vista_dashboard" />
+            <ExportarMenu dataset={dataset} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={proyectoIds} contenedorRef={graficaRef} tipoRecurso="vista_dashboard" reglasColor={reglasColor} />
           )}
           {editMode && (
             <>
@@ -237,6 +237,7 @@ export function BiCard({
             agregacion={agregacion}
             truncado={truncado}
             onCategoriaClick={emiteFiltro || soportaDrillDown ? manejarClicCategoria : undefined}
+            reglasColor={reglasColor}
           />
         )}
       </div>

@@ -4,6 +4,7 @@
 // portar gráficas fieles queda como mejora incremental posterior).
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { FilaReporte } from "@/lib/bi/ejecutar-reporte";
+import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 const estilos = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica" },
@@ -15,7 +16,12 @@ const estilos = StyleSheet.create({
   celda: { flex: 1, fontSize: 8.5, color: "#222" },
 });
 
-export async function generarPdfReporte(nombreReporte: string, columnas: { key: string; label: string }[], filas: FilaReporte[]): Promise<Buffer> {
+export async function generarPdfReporte(
+  nombreReporte: string,
+  columnas: { key: string; label: string }[],
+  filas: FilaReporte[],
+  reglasColor?: ReglaColorColumna[]
+): Promise<Buffer> {
   const documento = (
     <Document>
       <Page size="LETTER" style={estilos.page}>
@@ -33,9 +39,15 @@ export async function generarPdfReporte(nombreReporte: string, columnas: { key: 
         ) : (
           filas.map((fila, i) => (
             <View key={i} style={estilos.fila}>
-              {columnas.map((c) => (
-                <Text key={c.key} style={estilos.celda}>{String(fila[c.key] ?? "")}</Text>
-              ))}
+              {columnas.map((c) => {
+                const valor = fila[c.key];
+                const color = typeof valor === "number" ? colorParaValor(valor, c.label, reglasColor) : null;
+                return (
+                  <Text key={c.key} style={color ? { ...estilos.celda, color, fontWeight: 700 } : estilos.celda}>
+                    {String(valor ?? "")}
+                  </Text>
+                );
+              })}
             </View>
           ))
         )}

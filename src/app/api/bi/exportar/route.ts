@@ -15,6 +15,7 @@ import { obtenerDataset } from "@/lib/bi/metadata";
 import { generarExcelReporte } from "@/lib/bi/excel-export";
 import { generarPdfReporte } from "@/lib/bi/pdf/reporte-tabla-pdf";
 import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
+import type { ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 const MAX_FILAS_EXPORT = 5000;
 
@@ -25,6 +26,8 @@ type BodyExportar = {
   ejeYLabel?: string;
   datos: { dimension: string; valor: number }[];
   proyectoIds?: string[];
+  /** Semáforo condicional — solo se aplica en el PDF (@react-pdf/renderer soporta color de texto); el Excel usa la librería "xlsx" gratuita, que no soporta color de celda, así que ahí se ignora. */
+  reglasColor?: ReglaColorColumna[];
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -56,7 +59,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     { key: "valor", label: ejeYLabel },
   ];
 
-  const buffer = formato === "pdf" ? await generarPdfReporte(dataset.label, columnas, datos) : generarExcelReporte(dataset.label, columnas, datos);
+  const reglasColor = Array.isArray(body.reglasColor) ? body.reglasColor : undefined;
+  const buffer = formato === "pdf" ? await generarPdfReporte(dataset.label, columnas, datos, reglasColor) : generarExcelReporte(dataset.label, columnas, datos);
   const mime = formato === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   const nombreArchivo = `${dataset.id}.${formato === "pdf" ? "pdf" : "xlsx"}`;
 

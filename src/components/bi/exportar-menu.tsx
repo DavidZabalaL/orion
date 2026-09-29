@@ -4,6 +4,7 @@ import { useState, type RefObject } from "react";
 import { Download } from "lucide-react";
 import { exportarDatosBI, exportarSvgComoImagen } from "@/lib/bi/exportar-cliente";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
+import type { ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 const itemStyle: React.CSSProperties = {
   background: "transparent",
@@ -27,6 +28,7 @@ export function ExportarMenu({
   contenedorRef,
   tipoRecurso,
   recursoId,
+  reglasColor,
 }: {
   dataset: string;
   ejeXLabel: string;
@@ -36,6 +38,8 @@ export function ExportarMenu({
   contenedorRef: RefObject<HTMLElement | null>;
   tipoRecurso: "vista_dashboard" | "explorador";
   recursoId?: string;
+  /** Semáforo condicional a aplicar en el PDF exportado — ver src/lib/bi/reglas-color.ts. El Excel (librería "xlsx" gratuita) no soporta color de celda, así que ahí se ignora. */
+  reglasColor?: ReglaColorColumna[];
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pendiente, setPendiente] = useState(false);
@@ -44,7 +48,7 @@ export function ExportarMenu({
     setPendiente(true);
     setAbierto(false);
     try {
-      await exportarDatosBI({ dataset, formato, ejeXLabel, ejeYLabel, datos, proyectoIds });
+      await exportarDatosBI({ dataset, formato, ejeXLabel, ejeYLabel, datos, proyectoIds, reglasColor });
     } catch {
       // silencioso: el menú vuelve a estar disponible para reintentar
     }

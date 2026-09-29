@@ -176,7 +176,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
             )}
           </div>
           {!cargando && !error && (
-            <ExportarMenu dataset={combinacion.datasetId} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={combinacion.proyectoIds} contenedorRef={graficaRef} tipoRecurso="explorador" />
+            <ExportarMenu dataset={combinacion.datasetId} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} datos={datos} proyectoIds={combinacion.proyectoIds} contenedorRef={graficaRef} tipoRecurso="explorador" reglasColor={combinacion.reglasColor} />
           )}
         </div>
 
@@ -194,7 +194,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
           ) : verTabla && soportaTabla ? (
             <TablaSimple datos={datos} ejeXLabel={ejeXLabel} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} mostrarTotal={mostrarTotal} reglasColor={combinacion.reglasColor} />
           ) : (
-            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} orientacion={combinacion.orientacion} colorimetria={combinacion.colorimetria} agregacion={combinacion.agregacion} truncado={truncado} />
+            <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} orientacion={combinacion.orientacion} colorimetria={combinacion.colorimetria} agregacion={combinacion.agregacion} truncado={truncado} reglasColor={combinacion.reglasColor} />
           )}
         </div>
       </div>

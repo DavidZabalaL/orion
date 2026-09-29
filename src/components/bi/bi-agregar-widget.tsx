@@ -113,7 +113,7 @@ export function BiAgregarWidget({
                 {error}
               </div>
             ) : (
-              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} orientacion={combinacion.orientacion} colorimetria={combinacion.colorimetria} agregacion={combinacion.agregacion} />
+              <BiChart datos={datos} cajas={cajas} pares={pares} splitLabels={splitLabels} cruzado={cruzado} tipoGrafica={combinacion.tipoGrafica} ejeYLabel={ejeYLabel} ejeYSufijo={ejeYSufijo} ejeMetaLabel={ejeMetaLabel} ejeMetaSufijo={ejeMetaSufijo} orientacion={combinacion.orientacion} colorimetria={combinacion.colorimetria} agregacion={combinacion.agregacion} reglasColor={combinacion.reglasColor} />
             )}
           </div>
         </div>
