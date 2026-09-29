@@ -105,6 +105,7 @@ export async function calcularCamposExtra(
         tipoVisualizacion: "barras",
         periodoAcotado,
         agrupacionTemporal: sel.agrupacionTemporal,
+        reglasColor: sel.reglasColor,
         filas: filasRaw.slice(0, MAX_FILAS_BARRAS).map((f) => ({ label: formatearBucket(f.bucket, sel.agrupacionTemporal!), valor: Number(f.v ?? 0) })),
       });
       continue;
@@ -121,6 +122,7 @@ export async function calcularCamposExtra(
         campoLabel: campo.label,
         tipoVisualizacion,
         periodoAcotado,
+        reglasColor: sel.reglasColor,
         valorKpi: Number(filas[0]?.v ?? 0),
       });
       continue;
@@ -139,6 +141,7 @@ export async function calcularCamposExtra(
       campoLabel: campo.label,
       tipoVisualizacion,
       periodoAcotado,
+      reglasColor: sel.reglasColor,
       filas: simple.datos.slice(0, MAX_FILAS_BARRAS).map((d) => ({ label: labelPorValor.get(d.dimension) ?? d.dimension, valor: d.valor })),
     });
   }

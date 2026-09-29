@@ -13,6 +13,7 @@ import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/rep
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
+import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 import type { TipoVehiculo } from "@/generated/prisma/enums";
 
 const NAVY = "#0f1b2d";
@@ -69,19 +70,19 @@ function tarjeta(titulo: string, contenidoHtml: string): string {
     </div>`;
 }
 
-function kpi(valor: string, caption?: string): string {
+function kpi(valor: string, caption?: string, color?: string | null): string {
   return `
-    <div style="font-size:22px; font-weight:bold; color:${NAVY};">${valor}</div>
+    <div style="font-size:22px; font-weight:bold; color:${color ?? NAVY};">${valor}</div>
     ${caption ? `<div style="font-size:11px; color:${SLATE}; margin-top:4px;">${esc(caption)}</div>` : ""}`;
 }
 
-function barrasHorizontal(filas: { label: string; valor: number }[], vacio: string, formatear: (v: number) => string): string {
+function barrasHorizontal(filas: { label: string; valor: number }[], vacio: string, formatear: (v: number) => string, reglasColor?: ReglaColorColumna[]): string {
   if (filas.length === 0) return `<div style="font-size:11px; color:${SLATE}; font-style:italic;">${esc(vacio)}</div>`;
   const max = Math.max(...filas.map((f) => f.valor));
   return filas
     .map((f, i) => {
       const pct = max > 0 ? Math.max(2, Math.round((f.valor / max) * 100)) : 0;
-      const color = PALETA_BARRAS[i % PALETA_BARRAS.length];
+      const color = colorParaValor(f.valor, f.label, reglasColor) ?? PALETA_BARRAS[i % PALETA_BARRAS.length];
       return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
         <tr>
@@ -233,8 +234,8 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
                 datos.camposExtra.slice(i * 3, i * 3 + 3).map((c) => {
                   const titulo = `${c.campoLabel}${c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : ""} — ${etiquetaAlcance(datos.proyectoLabel)}`;
                   return c.tipoVisualizacion === "kpi"
-                    ? tarjeta(titulo, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`))
-                    : tarjeta(titulo, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v)));
+                    ? tarjeta(titulo, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor)))
+                    : tarjeta(titulo, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor));
                 })
               )
             )

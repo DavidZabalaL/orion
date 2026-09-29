@@ -18,6 +18,8 @@ import {
   type CampoExtraSeleccionado,
 } from "@/lib/reportes/campos-extra-tipos";
 import { SECCION_REPORTE_LABEL, ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
+import { ReglasColorEditor } from "@/components/bi/reglas-color-editor";
+import type { ReglaColorColumna } from "@/lib/bi/reglas-color";
 import { useExportRegistry } from "./ExportRegistryContext";
 import type { IndicadorDashboard } from "./EstatusFlotaDocument";
 
@@ -181,6 +183,10 @@ export function EstatusFlotaModal({
 
   function actualizarAgrupacionTemporal(datasetId: string, campoId: string, agrupacionTemporal: AgrupacionTemporal | undefined) {
     setCamposExtra((prev) => prev.map((c) => (c.datasetId === datasetId && c.campoId === campoId ? { ...c, agrupacionTemporal } : c)));
+  }
+
+  function actualizarReglasColorCampoExtra(datasetId: string, campoId: string, reglasColor: ReglaColorColumna[]) {
+    setCamposExtra((prev) => prev.map((c) => (c.datasetId === datasetId && c.campoId === campoId ? { ...c, reglasColor } : c)));
   }
 
   function moverSeccion(indice: number, direccion: -1 | 1) {
@@ -401,6 +407,28 @@ export function EstatusFlotaModal({
                 })}
               </div>
             )}
+
+            {camposExtra.map((c) => {
+              const dataset = BI_DATASETS.find((d) => d.id === c.datasetId);
+              const campo = dataset?.campos.find((cm) => cm.id === c.campoId);
+              if (!dataset || !campo) return null;
+              return (
+                <details key={`reglas-${c.datasetId}.${c.campoId}`} className="mb-2 rounded-md p-2" style={{ background: "var(--field-bg)" }}>
+                  <summary className="cursor-pointer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                    Reglas de color: <strong style={{ color: "var(--sidebar-text-active)" }}>{campo.label}</strong>
+                    {c.reglasColor && c.reglasColor.length > 0 ? ` (${c.reglasColor.length})` : ""}
+                  </summary>
+                  <div className="mt-2">
+                    <ReglasColorEditor
+                      reglas={c.reglasColor ?? []}
+                      onChange={(reglasColor) => actualizarReglasColorCampoExtra(c.datasetId, c.campoId, reglasColor)}
+                      titulo="Reglas de color"
+                      mostrarColumna={false}
+                    />
+                  </div>
+                </details>
+              );
+            })}
 
             {mostrarSelectorCampos && (
               <div className="flex flex-col gap-2 rounded-lg p-3 max-h-56 overflow-y-auto" style={{ background: "var(--field-bg)" }}>

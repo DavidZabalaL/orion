@@ -10,6 +10,7 @@
 //   - texto/geografico  → barras (conteo agrupado por ese valor)
 //   - fecha_mes/fecha_dia → barras (conteo por periodo)
 import type { TipoCampo } from "@/lib/bi/metadata";
+import type { ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 export type TipoVisualizacionExtra = "kpi" | "barras";
 
@@ -47,6 +48,8 @@ export type CampoExtraSeleccionado = {
   campoId: string;
   /** Solo tiene efecto sobre campos numéricos de un dataset con periodo acotado — ver AgrupacionTemporal. */
   agrupacionTemporal?: AgrupacionTemporal;
+  /** Semáforo condicional sobre el valor de este dato — ver src/lib/bi/reglas-color.ts. */
+  reglasColor?: ReglaColorColumna[];
 };
 
 export type CampoExtraResultado = {
@@ -66,6 +69,8 @@ export type CampoExtraResultado = {
    *  el dato ya no viene en `valorKpi` sino en `filas`, igual que un campo de
    *  categoría. */
   agrupacionTemporal?: AgrupacionTemporal;
+  /** Semáforo condicional sobre el valor de este dato, ecoado desde la selección — ver src/lib/bi/reglas-color.ts. */
+  reglasColor?: ReglaColorColumna[];
   /** Solo si tipoVisualizacion="kpi": suma total en el alcance de proyectos del reporte (acotada al periodo si `periodoAcotado`, histórica si no). */
   valorKpi?: number;
   /** Solo si tipoVisualizacion="barras": conteo/suma agrupado, ya limitado a un máximo de filas para el PDF. Si `agrupacionTemporal` está presente, viene ordenado cronológicamente en vez de por valor descendente. */

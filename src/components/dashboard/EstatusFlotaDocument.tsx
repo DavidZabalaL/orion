@@ -8,6 +8,7 @@ import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 import type { TipoVehiculo } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
+import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 // Paleta Grupo Kabat — mismo azul/marino que el resto de la plataforma
 // (var(--color-primary) / sidebar oscuro), reproducida en hex fijo porque
@@ -176,7 +177,7 @@ function BarraHorizontal({ label, valor, max, color, formatear }: { label: strin
   );
 }
 
-function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String(v) }: { titulo: string; filas: { label: string; valor: number }[]; vacio: string; formatear?: (v: number) => string }) {
+function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String(v), reglasColor }: { titulo: string; filas: { label: string; valor: number }[]; vacio: string; formatear?: (v: number) => string; reglasColor?: ReglaColorColumna[] }) {
   if (filas.length === 0) {
     return (
       <Tarjeta titulo={titulo}>
@@ -188,7 +189,7 @@ function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String
   return (
     <Tarjeta titulo={titulo}>
       {filas.map((f, i) => (
-        <BarraHorizontal key={f.label} label={f.label} valor={f.valor} max={max} color={PALETA_BARRAS[i % PALETA_BARRAS.length]} formatear={formatear} />
+        <BarraHorizontal key={f.label} label={f.label} valor={f.valor} max={max} color={colorParaValor(f.valor, f.label, reglasColor) ?? PALETA_BARRAS[i % PALETA_BARRAS.length]} formatear={formatear} />
       ))}
     </Tarjeta>
   );
@@ -200,9 +201,11 @@ function etiquetaAlcance(proyectoLabel: string): string {
 }
 
 function TarjetaKpiExtra({ resultado, proyectoLabel }: { resultado: CampoExtraResultado; proyectoLabel: string }) {
+  const valor = resultado.valorKpi ?? 0;
+  const color = colorParaValor(valor, resultado.campoLabel, resultado.reglasColor);
   return (
     <Tarjeta titulo={`${resultado.campoLabel} — ${etiquetaAlcance(proyectoLabel)}`}>
-      <Text style={styles.kpiValor}>{(resultado.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
+      <Text style={color ? { ...styles.kpiValor, color } : styles.kpiValor}>{valor.toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
       <Text style={styles.kpiCaption}>
         Suma total · {resultado.datasetLabel} ({resultado.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})
       </Text>
@@ -424,6 +427,7 @@ function PaginaEstatus({
                     titulo={`${c.campoLabel}${c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : ""} — ${etiquetaAlcance(datos.proyectoLabel)}`}
                     vacio="Sin datos."
                     filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+                    reglasColor={c.reglasColor}
                   />
                 )
               )}
