@@ -99,7 +99,7 @@ export function BiAgregarWidget({
 
       <div>
         <label style={labelStyle}>Vista previa</label>
-        <div className="rounded-xl p-4" style={{ background: "var(--field-bg)", height: 240 }}>
+        <div className="rounded-xl p-4" style={{ background: "var(--field-bg)", height: 240, overflow: "hidden" }}>
           <div className="mb-2 truncate" style={{ fontFamily: "var(--font)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             {etiquetaPreview}
           </div>

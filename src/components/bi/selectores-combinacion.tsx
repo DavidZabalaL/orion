@@ -337,13 +337,16 @@ export function SelectoresCombinacion({
                 </button>
               ))}
             </div>
-            <ReglasColorEditor
-              reglas={combinacion.reglasColor ?? []}
-              onChange={(reglasColor) => onChange({ ...combinacion, reglasColor })}
-            />
           </div>
         )}
       </div>
+
+      {combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide" && combinacion.tipoGrafica !== "contador" && combinacion.tipoGrafica !== "avance" && (
+        <ReglasColorEditor
+          reglas={combinacion.reglasColor ?? []}
+          onChange={(reglasColor) => onChange({ ...combinacion, reglasColor })}
+        />
+      )}
 
       <AlcanceProyecto combinacion={combinacion} onChange={onChange} proyectosDisponibles={proyectosDisponibles} />
       <FiltrosCombinacion combinacion={combinacion} onChange={onChange} dataset={dataset} proyectosDisponibles={proyectosDisponibles} />
@@ -731,7 +734,7 @@ function ReglasColorEditor({ reglas, onChange }: { reglas: ReglaColorColumna[]; 
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <label style={{ ...labelStyle, marginBottom: 0 }}>Reglas de color (vista de tabla)</label>
         <button type="button" onClick={agregar} className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer" }}>
