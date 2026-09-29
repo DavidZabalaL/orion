@@ -57,6 +57,8 @@ export type EstatusFlota = {
   gastoPorCategoria: { categoria: CategoriaGasto; monto: number }[];
   /** Asignado vs. gastado del mes en curso (a la fecha `hasta`), para este alcance de proyectos. */
   presupuestoMes: ResumenPresupuestoMes;
+  /** Suma de Proyecto.presupuestoAprobadoAnual de los proyectos en este alcance — independiente del mes en curso (a diferencia de `presupuestoMes`). */
+  presupuestoAnual: number;
   /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
   checklistsPromedioDiario: number;
   /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
@@ -218,7 +220,7 @@ export async function calcularEstatusFlota({
   // este alcance dentro del rango, entre el número de días del rango.
   const diasPeriodo = Math.max(1, Math.round((hasta.getTime() - desde.getTime()) / DIA_MS));
 
-  const [gastosPorCategoria, combustibleAgg, tagAgg, presupuestoMes, totalChecklists, camposExtra] = await Promise.all([
+  const [gastosPorCategoria, combustibleAgg, tagAgg, presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
       where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
@@ -237,7 +239,16 @@ export async function calcularEstatusFlota({
       ? prisma.checklist.count({ where: { numeroEconomico: { in: economicos }, fecha: { gte: desde, lte: hasta } } })
       : Promise.resolve(0),
     calcularCamposExtra(camposExtraSeleccionados, proyectoIds, desde, hasta),
+    // Mismo dato que el widget "Presupuesto Anual" del dashboard (dataset BI
+    // "presupuesto_partida"): suma de todas las partidas presupuestadas del
+    // año de `hasta` — Proyecto.presupuestoAprobadoAnual existe en el schema
+    // pero no se usa en la práctica (siempre 0), así que no sirve aquí.
+    prisma.presupuestoPartida.aggregate({
+      where: { anio: hasta.getFullYear(), ...(proyectoIds !== null ? { proyectoId: { in: proyectoIds } } : {}) },
+      _sum: { montoPresupuestado: true },
+    }),
   ]);
+  const presupuestoAnual = Number(presupuestoPartidaAgg._sum.montoPresupuestado ?? 0);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
 
   const gastoPorCategoriaMapa = new Map<CategoriaGasto, number>();
@@ -266,6 +277,7 @@ export async function calcularEstatusFlota({
     gastoTotal,
     gastoPorCategoria,
     presupuestoMes,
+    presupuestoAnual,
     checklistsPromedioDiario,
     camposExtra,
   };

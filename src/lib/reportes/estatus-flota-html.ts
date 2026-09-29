@@ -198,7 +198,15 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
         tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")),
         tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)),
         tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")),
-      ]),
+      ]) +
+      // Total de unidades no disponibles y presupuesto anual — solo en el
+      // resumen general, no en el desglose por proyecto (pedido explícito).
+      (datos.proyectoLabel === "General"
+        ? filaTarjetas([
+            tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)),
+            tarjeta("Presupuesto anual", kpi(fmtMoney(datos.presupuestoAnual), "aprobado para todos los proyectos")),
+          ])
+        : ""),
 
     disponibilidadGasto: () =>
       filaTarjetas([

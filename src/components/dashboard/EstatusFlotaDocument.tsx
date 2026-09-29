@@ -364,20 +364,36 @@ function PaginaEstatus({
       ) : null,
 
     resumen: () => (
-      <View style={styles.fila} wrap={false}>
-        <Tarjeta titulo="SLA promedio del periodo">
-          <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
-          <Text style={styles.kpiCaption}>Disponibilidad ponderada del periodo</Text>
-        </Tarjeta>
-        <Tarjeta titulo="Unidades">
-          <Text style={styles.kpiValor}>{datos.totalUnidades}</Text>
-          <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
-        </Tarjeta>
-        <Tarjeta titulo="Actividad checklists del periodo">
-          <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
-          <Text style={styles.kpiCaption}>promedio por día</Text>
-        </Tarjeta>
-      </View>
+      <>
+        <View style={styles.fila} wrap={false}>
+          <Tarjeta titulo="SLA promedio del periodo">
+            <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
+            <Text style={styles.kpiCaption}>Disponibilidad ponderada del periodo</Text>
+          </Tarjeta>
+          <Tarjeta titulo="Unidades">
+            <Text style={styles.kpiValor}>{datos.totalUnidades}</Text>
+            <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
+          </Tarjeta>
+          <Tarjeta titulo="Actividad checklists del periodo">
+            <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
+            <Text style={styles.kpiCaption}>promedio por día</Text>
+          </Tarjeta>
+        </View>
+        {/* Total de unidades no disponibles y presupuesto anual — solo en el
+            resumen general, no en el desglose por proyecto (pedido explícito). */}
+        {datos.proyectoLabel === "General" && (
+          <View style={styles.fila} wrap={false}>
+            <Tarjeta titulo="Total de unidades no disponibles">
+              <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
+              <Text style={styles.kpiCaption}>de {datos.totalUnidades} unidades totales</Text>
+            </Tarjeta>
+            <Tarjeta titulo="Presupuesto anual">
+              <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.presupuestoAnual)}</Text>
+              <Text style={styles.kpiCaption}>aprobado para todos los proyectos</Text>
+            </Tarjeta>
+          </View>
+        )}
+      </>
     ),
 
     disponibilidadGasto: () => (
