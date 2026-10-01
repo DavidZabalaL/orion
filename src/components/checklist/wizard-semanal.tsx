@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklistSemanal, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
+import { FirmaPad } from "@/components/checklist/firma-pad";
 import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
@@ -40,7 +41,8 @@ type ItemGuia =
   | { tipo: "foto"; key: string; label: string; seccion: string; requerido: boolean }
   | { tipo: "numero"; key: string; label: string; seccion: string; min?: number; max?: number; requerido: boolean }
   | { tipo: "toggle"; key: string; label: string; opciones: string[]; seccion: string }
-  | { tipo: "textarea"; key: string; label: string; seccion: string };
+  | { tipo: "textarea"; key: string; label: string; seccion: string }
+  | { tipo: "firma"; key: string; label: string };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -75,6 +77,7 @@ function construirItems(esGrua: boolean): ItemGuia[] {
       }
     }
   }
+  items.push({ tipo: "firma", key: "sig_responsable", label: "Firma del responsable" });
   return items;
 }
 
@@ -329,6 +332,7 @@ type BorradorSemanal = {
   numeroEconomico: string;
   respuestas: Record<string, string>;
   urlsSubidas: Record<string, string>;
+  firmaBase64: string;
 };
 
 export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, onTerminar, onCancelar }: Props) {
@@ -343,6 +347,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
   // Vercel Blob pasa una sola vez, en bloque, al finalizar — ver enviar().
   const [archivos, setArchivos] = useState<Record<string, File>>({});
   const [urlsSubidas, setUrlsSubidas] = useState<Record<string, string>>(borradorInicial?.urlsSubidas ?? {});
+  const [firmaBase64, setFirmaBase64] = useState(borradorInicial?.firmaBase64 ?? "");
   const [progresoSubida, setProgresoSubida] = useState<{ actual: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -352,8 +357,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
   // recarga la pestaña en segundo plano por falta de memoria.
   useEffect(() => {
     if (fase === "exito") return;
-    guardarBorrador<BorradorSemanal>(CLAVE_BORRADOR, { fase, idx, proyectoFiltro, numeroEconomico, respuestas, urlsSubidas });
-  }, [fase, idx, proyectoFiltro, numeroEconomico, respuestas, urlsSubidas]);
+    guardarBorrador<BorradorSemanal>(CLAVE_BORRADOR, { fase, idx, proyectoFiltro, numeroEconomico, respuestas, urlsSubidas, firmaBase64 });
+  }, [fase, idx, proyectoFiltro, numeroEconomico, respuestas, urlsSubidas, firmaBase64]);
 
   const unidadesFiltradas = useMemo(
     () => (proyectoFiltro ? unidades.filter((u) => u.proyectoId === proyectoFiltro) : unidades),
@@ -440,6 +445,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
         return !!respuestas[item.key];
       case "textarea":
         return true;
+      case "firma":
+        return !!firmaBase64;
     }
   }
 
@@ -528,6 +535,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
       fd.set("gen_oficina_sede", proyectoNombre);
       for (const [k, v] of Object.entries(respuestas)) fd.set(k, v);
       for (const [k, url] of Object.entries(urls)) fd.set(k, url);
+      if (firmaBase64) fd.set("sig_responsable", firmaBase64);
       const res = await crearChecklistSemanal(fd);
       if (!res.ok) {
         setError(res.error);
@@ -724,6 +732,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
   const seccionActual =
     "seccion" in item ? item.seccion :
     item.tipo === "lectura" ? "Lecturas" :
+    item.tipo === "firma" ? "Firma" :
     "Datos generales";
 
   const esUltimoItem = idx === total - 1;
@@ -1127,9 +1136,39 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               </p>
             )}
             <BtnSiguiente
-              label="Finalizar checklist"
+              label="Siguiente"
               onClick={siguiente}
               disabled={false}
+              pending={pending}
+              progreso={progresoSubida}
+            />
+          </>
+        )}
+
+        {/* ── FIRMA DEL RESPONSABLE ── */}
+        {item.tipo === "firma" && (
+          <>
+            <h2
+              style={{
+                fontFamily: "var(--font)",
+                fontSize: "var(--text-xl)",
+                fontWeight: 700,
+                color: "var(--sidebar-text-active)",
+                lineHeight: 1.3,
+              }}
+            >
+              {item.label}
+            </h2>
+            <FirmaPad name="sig_responsable" label="Firma del responsable" required onFirma={setFirmaBase64} />
+            {error && (
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
+                {error}
+              </p>
+            )}
+            <BtnSiguiente
+              label="Finalizar checklist"
+              onClick={siguiente}
+              disabled={!firmaBase64}
               pending={pending}
               progreso={progresoSubida}
             />

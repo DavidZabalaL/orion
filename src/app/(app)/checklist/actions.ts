@@ -209,6 +209,10 @@ export async function crearChecklistSemanal(formData: FormData): Promise<{ ok: t
       }
     }
 
+    const firmaResponsable = String(formData.get("sig_responsable") ?? "").trim();
+    if (!firmaResponsable) camposFaltantes.push("Firma del responsable");
+    if (firmaResponsable) respuestas.firma_responsable = firmaResponsable;
+
     if (camposFaltantes.length > 0) {
       return { ok: false, error: `Faltan campos obligatorios: ${camposFaltantes.join(", ")}.` };
     }
