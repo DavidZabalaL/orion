@@ -138,9 +138,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // desactivarla, aquí un nuevo inicio de sesión vuelve a funcionar de inmediato).
             const invalidada = usuario?.sesionInvalidadaEn && typeof token.iat === "number" && usuario.sesionInvalidadaEn.getTime() / 1000 > token.iat;
 
-            if (invalidada) {
+            // Antes, si `usuario` salía null (el JWT es válido pero la fila no
+            // se encontró — no debería pasar nunca con datos sanos, pero puede
+            // darse con un hiccup de lectura pasajero en Neon incluso sin
+            // lanzar excepción) o estaba DESACTIVADO, ningún branch corría:
+            // `session.user.id` se quedaba con el valor ya asignado arriba
+            // (válido) pero `session.user.rol` seguía en null. AppGroupLayout
+            // dejaba pasar (id no vacío) pero cualquier página con
+            // requerirPermisoModulo mandaba a /sin-acceso al no resolver rol
+            // — exactamente el "a veces entra, a veces no" reportado. Ahora
+            // los tres casos que no deben dar acceso comparten un solo
+            // resultado: sesión sin id, igual que una falla real de BD.
+            if (invalidada || !usuario || usuario.estatus === "DESACTIVADO") {
               session.user.id = "";
-            } else if (usuario && usuario.estatus !== "DESACTIVADO") {
+            } else {
               session.user.name = usuario.nombre;
               session.user.rol = usuario.rol.nombre;
             }
