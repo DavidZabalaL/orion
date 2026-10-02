@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Document, Page, Text, View, StyleSheet, Svg, Circle, Image } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
@@ -5,7 +6,7 @@ import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
 import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
-import type { TipoVehiculo } from "@/generated/prisma/enums";
+import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
 import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
@@ -177,7 +178,7 @@ function BarraHorizontal({ label, valor, max, color, formatear }: { label: strin
   );
 }
 
-function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String(v), reglasColor }: { titulo: string; filas: { label: string; valor: number }[]; vacio: string; formatear?: (v: number) => string; reglasColor?: ReglaColorColumna[] }) {
+function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String(v), reglasColor, pie }: { titulo: string; filas: { label: string; valor: number }[]; vacio: string; formatear?: (v: number) => string; reglasColor?: ReglaColorColumna[]; pie?: string }) {
   if (filas.length === 0) {
     return (
       <Tarjeta titulo={titulo}>
@@ -191,6 +192,7 @@ function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String
       {filas.map((f, i) => (
         <BarraHorizontal key={f.label} label={f.label} valor={f.valor} max={max} color={colorParaValor(f.valor, f.label, reglasColor) ?? PALETA_BARRAS[i % PALETA_BARRAS.length]} formatear={formatear} />
       ))}
+      {pie && <Text style={{ ...styles.kpiCaption, marginTop: 6 }}>{pie}</Text>}
     </Tarjeta>
   );
 }
@@ -200,16 +202,83 @@ function etiquetaAlcance(proyectoLabel: string): string {
   return proyectoLabel === "General" ? "Todos los proyectos" : proyectoLabel;
 }
 
-function TarjetaKpiExtra({ resultado, proyectoLabel }: { resultado: CampoExtraResultado; proyectoLabel: string }) {
-  const valor = resultado.valorKpi ?? 0;
-  const color = colorParaValor(valor, resultado.campoLabel, resultado.reglasColor);
+function TarjetaKpi({ titulo, valor, caption, campoLabel, reglasColor }: { titulo: string; valor: number; caption: string; campoLabel: string; reglasColor?: ReglaColorColumna[] }) {
+  const color = colorParaValor(valor, campoLabel, reglasColor);
   return (
-    <Tarjeta titulo={`${resultado.campoLabel} — ${etiquetaAlcance(proyectoLabel)}`}>
+    <Tarjeta titulo={titulo}>
       <Text style={color ? { ...styles.kpiValor, color } : styles.kpiValor}>{valor.toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
-      <Text style={styles.kpiCaption}>
-        Suma total · {resultado.datasetLabel} ({resultado.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})
-      </Text>
+      <Text style={styles.kpiCaption}>{caption}</Text>
     </Tarjeta>
+  );
+}
+
+function TarjetaKpiExtra({ resultado, proyectoLabel, etiquetaPeriodo }: { resultado: CampoExtraResultado; proyectoLabel: string; etiquetaPeriodo: string }) {
+  return (
+    <TarjetaKpi
+      titulo={`${resultado.campoLabel} — ${etiquetaAlcance(proyectoLabel)}`}
+      valor={resultado.valorKpi ?? 0}
+      caption={`Suma total · ${resultado.datasetLabel} · ${etiquetaPeriodo}`}
+      campoLabel={resultado.campoLabel}
+      reglasColor={resultado.reglasColor}
+    />
+  );
+}
+
+function SubtablaGastoPorPartida({ titulo, categorias, total }: { titulo: string; categorias: { categoria: CategoriaGasto; monto: number }[]; total: number }) {
+  if (categorias.length === 0) {
+    return (
+      <View style={{ marginBottom: 10 }}>
+        <Text style={{ fontSize: 8.5, fontWeight: "bold", color: SLATE, marginBottom: 3 }}>{titulo}</Text>
+        <Text style={{ fontSize: 9.5, color: SLATE, fontStyle: "italic" }}>Sin gastos registrados.</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Text style={{ fontSize: 8.5, fontWeight: "bold", color: SLATE, marginBottom: 3 }}>{titulo}</Text>
+      <View style={styles.tablaContenedor}>
+        <View style={styles.tablaHeaderFila}>
+          <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>PARTIDA</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 90, textAlign: "right" }}>MONTO</Text>
+        </View>
+        {categorias.map((g) => (
+          <View key={g.categoria} style={styles.tablaFila}>
+            <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>{CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 90, textAlign: "right" }}>{fmtMoneyPdf(g.monto)}</Text>
+          </View>
+        ))}
+        <View style={styles.tablaFila}>
+          <Text style={{ ...styles.tablaCeldaTexto, flex: 1, fontWeight: "bold" }}>Total</Text>
+          <Text style={{ ...styles.tablaCeldaTexto, width: 90, textAlign: "right", fontWeight: "bold" }}>{fmtMoneyPdf(total)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Siempre muestra DOS desgloses, claramente rotulados: el del periodo que
+ * cubre este reporte (puede ser 7/15/30/60/90 días) y el del mes en curso —
+ * se pidió explícitamente no mostrar solo uno, para no confundir "gasto del
+ * periodo" con "gasto del mes" cuando el periodo configurado no es el mes completo.
+ */
+function TablaGastoPorPartida({ datos }: { datos: EstatusFlota }) {
+  if (datos.gastoPorCategoria.length === 0 && datos.gastoPorCategoriaMes.length === 0) return null;
+  const nombreMes = datos.hasta.toLocaleDateString("es-MX", { month: "long", year: "numeric", timeZone: "America/Mexico_City" });
+  return (
+    <View>
+      <Text style={styles.seccionTitulo}>GASTO DEL PROYECTO POR PARTIDA</Text>
+      <SubtablaGastoPorPartida
+        titulo={`DEL PERIODO (${fmtFechaCorta(datos.desde)} – ${fmtFechaCorta(datos.hasta)})`}
+        categorias={datos.gastoPorCategoria}
+        total={datos.gastoTotal}
+      />
+      <SubtablaGastoPorPartida
+        titulo={`MES EN CURSO (${nombreMes.toUpperCase()}, AL ${fmtFechaCorta(datos.hasta)})`}
+        categorias={datos.gastoPorCategoriaMes}
+        total={datos.gastoTotalMes}
+      />
+    </View>
   );
 }
 
@@ -222,8 +291,9 @@ function TarjetaKpiExtra({ resultado, proyectoLabel }: { resultado: CampoExtraRe
  * de 3 columnas) porque la lista puede ser larga; al no llevar `wrap={false}`
  * fluye a la siguiente página sola si no cabe completa.
  */
+
 function TablaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
-  if (datos.indisponibilidadDetalle.length === 0) return null;
+  if (datos.indisponibilidadDetalle.length === 0) return <TablaGastoPorPartida datos={datos} />;
   const filas = [...datos.indisponibilidadDetalle].sort((a, b) => {
     const etiquetaA = a.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[a.motivo];
     const etiquetaB = b.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[b.motivo];
@@ -234,25 +304,32 @@ function TablaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
       <Text style={styles.seccionTitulo}>UNIDADES NO DISPONIBLES — DETALLE ({filas.length})</Text>
       <View style={styles.tablaContenedor}>
         <View style={styles.tablaHeaderFila}>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 65 }}>ECONÓMICO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 170 }}>VEHÍCULO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 65 }}>TIPO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 120 }}>PROYECTO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>ECONÓMICO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 140 }}>VEHÍCULO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 60 }}>TIPO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 110 }}>PROYECTO</Text>
           <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>MOTIVO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>INGRESO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>SALIDA EST.</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 60, textAlign: "right" }}>GASTO</Text>
         </View>
         {filas.map((u, i) => (
           <View key={`${u.numeroEconomico}-${i}`} style={styles.tablaFila}>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 65, fontWeight: "bold" }}>{u.numeroEconomico}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 170 }}>{u.vehiculo ?? "—"}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 65 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 120 }}>{u.proyecto ?? "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 55, fontWeight: "bold" }}>{u.numeroEconomico}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 140 }}>{u.vehiculo ?? "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 60 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 110 }}>{u.proyecto ?? "—"}</Text>
             <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>
               {u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo]}
               {u.motivoDetalle ? ` — ${u.motivoDetalle}` : ""}
             </Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{u.fechaIngresoTaller ? fmtFechaCorta(u.fechaIngresoTaller) : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{u.fechaEstimadaSalida ? fmtFechaCorta(u.fechaEstimadaSalida) : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 60, textAlign: "right" }}>{u.costoMantenimiento !== null ? fmtMoneyPdf(u.costoMantenimiento) : "—"}</Text>
           </View>
         ))}
       </View>
+      <TablaGastoPorPartida datos={datos} />
     </View>
   );
 }
@@ -430,30 +507,61 @@ function PaginaEstatus({
 
     unidadesNoDisponibles: () => <TablaUnidadesNoDisponibles datos={datos} />,
 
-    datosAdicionales: () =>
-      datos.camposExtra.length > 0
-        ? enGrupos(datos.camposExtra, TARJETAS_POR_FILA).map((grupo, i) => (
-            <View key={i} style={styles.fila} wrap={false}>
-              {grupo.map((c) =>
-                c.tipoVisualizacion === "kpi" ? (
-                  <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} proyectoLabel={datos.proyectoLabel} />
-                ) : (
-                  <TarjetaBarras
-                    key={`${c.datasetId}.${c.campoId}`}
-                    titulo={`${c.campoLabel}${c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : ""} — ${etiquetaAlcance(datos.proyectoLabel)}`}
-                    vacio="Sin datos."
-                    filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
-                    reglasColor={c.reglasColor}
-                  />
-                )
-              )}
-              {/* Rellena huecos de la última fila incompleta para que las tarjetas no se estiren de más. */}
-              {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
-                <View key={`hueco-${j}`} style={{ flex: 1 }} />
-              ))}
-            </View>
-          ))
-        : null,
+    datosAdicionales: () => {
+      if (datos.camposExtra.length === 0) return null;
+      const tarjetas: ReactNode[] = [];
+      for (const c of datos.camposExtra) {
+        const sufijoAgrupacion = c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : "";
+        const etiquetaPeriodo = c.periodoAcotado ? `Periodo: ${fmtFechaCorta(datos.desde)} – ${fmtFechaCorta(datos.hasta)}` : "Histórico, sin acotar";
+        tarjetas.push(
+          c.tipoVisualizacion === "kpi" ? (
+            <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} proyectoLabel={datos.proyectoLabel} etiquetaPeriodo={etiquetaPeriodo} />
+          ) : (
+            <TarjetaBarras
+              key={`${c.datasetId}.${c.campoId}`}
+              titulo={`${c.campoLabel}${sufijoAgrupacion} — ${etiquetaAlcance(datos.proyectoLabel)}`}
+              vacio="Sin datos."
+              filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+              reglasColor={c.reglasColor}
+              pie={etiquetaPeriodo}
+            />
+          )
+        );
+        if (c.acumuladoAnio) {
+          const etiquetaAnio = `Acumulado del año: 1 ene – ${fmtFechaCorta(datos.hasta)} ${c.acumuladoAnio.anio}`;
+          tarjetas.push(
+            c.tipoVisualizacion === "kpi" ? (
+              <TarjetaKpi
+                key={`${c.datasetId}.${c.campoId}.anio`}
+                titulo={`${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`}
+                valor={c.acumuladoAnio.valorKpi ?? 0}
+                caption={`Suma total · ${c.datasetLabel} · ${etiquetaAnio}`}
+                campoLabel={c.campoLabel}
+                reglasColor={c.reglasColor}
+              />
+            ) : (
+              <TarjetaBarras
+                key={`${c.datasetId}.${c.campoId}.anio`}
+                titulo={`${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`}
+                vacio="Sin datos."
+                filas={(c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+                reglasColor={c.reglasColor}
+                pie={etiquetaAnio}
+              />
+            )
+          );
+        }
+      }
+      return enGrupos(tarjetas, TARJETAS_POR_FILA).map((grupo, i) => (
+        <View key={i} style={styles.fila} wrap={false}>
+          {grupo}
+          {/* Rellena huecos de la última fila incompleta para que las tarjetas no se estiren de más. */}
+          {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
+            <View key={`hueco-${j}`} style={{ flex: 1 }} />
+          ))}
+        </View>
+      ));
+    },
   };
 
   return (

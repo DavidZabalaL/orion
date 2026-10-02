@@ -50,6 +50,8 @@ export type CampoExtraSeleccionado = {
   agrupacionTemporal?: AgrupacionTemporal;
   /** Semáforo condicional sobre el valor de este dato — ver src/lib/bi/reglas-color.ts. */
   reglasColor?: ReglaColorColumna[];
+  /** Solo tiene efecto en datasets con periodo acotado: además del dato del periodo del reporte, calcula el mismo dato acumulado desde el 1 de enero del año de `hasta` — ver CampoExtraResultado.acumuladoAnio. */
+  mostrarAcumuladoAnio?: boolean;
 };
 
 export type CampoExtraResultado = {
@@ -75,4 +77,6 @@ export type CampoExtraResultado = {
   valorKpi?: number;
   /** Solo si tipoVisualizacion="barras": conteo/suma agrupado, ya limitado a un máximo de filas para el PDF. Si `agrupacionTemporal` está presente, viene ordenado cronológicamente en vez de por valor descendente. */
   filas?: { label: string; valor: number }[];
+  /** Presente solo si se pidió `mostrarAcumuladoAnio` y el dataset tiene periodo acotado — mismo dato (valorKpi o filas, nunca agrupado por `agrupacionTemporal`) calculado sobre [1 enero de `anio`, hasta] en vez de [desde, hasta]. */
+  acumuladoAnio?: { anio: number; valorKpi?: number; filas?: { label: string; valor: number }[] };
 };

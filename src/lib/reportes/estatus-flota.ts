@@ -20,6 +20,12 @@ export type IndisponibilidadUnidad = {
   motivoDetalle: string | null;
   /** Solo cuando motivo=MANTENIMIENTO: categoría del último gasto de mantenimiento registrado de la unidad en el periodo, si existe. */
   tipoMantenimiento: CategoriaGasto | null;
+  /** Solo cuando motivo=MANTENIMIENTO: fecha de ingreso a taller del gasto más reciente del periodo, si existe. */
+  fechaIngresoTaller: Date | null;
+  /** Solo cuando motivo=MANTENIMIENTO: fecha estimada de salida del taller del gasto más reciente del periodo, si existe. */
+  fechaEstimadaSalida: Date | null;
+  /** Solo cuando motivo=MANTENIMIENTO: costo del gasto de mantenimiento más reciente del periodo, si existe. */
+  costoMantenimiento: number | null;
 };
 
 export type ProximoServicio = {
@@ -55,6 +61,9 @@ export type EstatusFlota = {
   flotaPorProyecto: FlotaProyecto[];
   gastoTotal: number;
   gastoPorCategoria: { categoria: CategoriaGasto; monto: number }[];
+  /** Mismo desglose que `gastoPorCategoria`, pero acotado al mes en curso (del 1° del mes de `hasta` a `hasta`) en vez del periodo completo del reporte — se muestra siempre junto al del periodo, para no confundir un periodo corto (ej. 7 días) con el gasto del mes. */
+  gastoTotalMes: number;
+  gastoPorCategoriaMes: { categoria: CategoriaGasto; monto: number }[];
   /** Asignado vs. gastado del mes en curso (a la fecha `hasta`), para este alcance de proyectos. */
   presupuestoMes: ResumenPresupuestoMes;
   /** Suma de Proyecto.presupuestoAprobadoAnual de los proyectos en este alcance — independiente del mes en curso (a diferencia de `presupuestoMes`). */
@@ -161,23 +170,31 @@ export async function calcularEstatusFlota({
     ? await prisma.gastoVehicular.findMany({
         where: { numeroEconomico: { in: economicosEnMantenimiento }, categoria: { in: CATEGORIAS_MANTENIMIENTO }, fecha: { gte: desde, lte: hasta } },
         orderBy: { fecha: "desc" },
-        select: { numeroEconomico: true, categoria: true },
+        select: { numeroEconomico: true, categoria: true, fechaIngresoTaller: true, fechaEstimadaSalida: true, costo: true },
       })
     : [];
-  const tipoMantenimientoPorEconomico = new Map<string, CategoriaGasto>();
+  const mantenimientoPorEconomico = new Map<string, { categoria: CategoriaGasto; fechaIngresoTaller: Date | null; fechaEstimadaSalida: Date | null; costo: number }>();
   for (const m of mantenimientosDelPeriodo) {
-    if (m.numeroEconomico && !tipoMantenimientoPorEconomico.has(m.numeroEconomico)) tipoMantenimientoPorEconomico.set(m.numeroEconomico, m.categoria);
+    if (m.numeroEconomico && !mantenimientoPorEconomico.has(m.numeroEconomico)) {
+      mantenimientoPorEconomico.set(m.numeroEconomico, { categoria: m.categoria, fechaIngresoTaller: m.fechaIngresoTaller, fechaEstimadaSalida: m.fechaEstimadaSalida, costo: Number(m.costo) });
+    }
   }
-  const indisponibilidadDetalle: IndisponibilidadUnidad[] = noDisponibles.map((n) => ({
-    ...n,
-    vehiculo: (() => {
-      const info = infoPorEconomico.get(n.numeroEconomico);
-      return info ? `${info.marca} ${info.unidadModelo}` : null;
-    })(),
-    tipoVehiculo: infoPorEconomico.get(n.numeroEconomico)?.tipoVehiculo ?? null,
-    proyecto: infoPorEconomico.get(n.numeroEconomico)?.proyecto?.nombre ?? null,
-    tipoMantenimiento: n.motivo === "MANTENIMIENTO" ? (tipoMantenimientoPorEconomico.get(n.numeroEconomico) ?? null) : null,
-  }));
+  const indisponibilidadDetalle: IndisponibilidadUnidad[] = noDisponibles.map((n) => {
+    const mantenimiento = n.motivo === "MANTENIMIENTO" ? mantenimientoPorEconomico.get(n.numeroEconomico) : undefined;
+    return {
+      ...n,
+      vehiculo: (() => {
+        const info = infoPorEconomico.get(n.numeroEconomico);
+        return info ? `${info.marca} ${info.unidadModelo}` : null;
+      })(),
+      tipoVehiculo: infoPorEconomico.get(n.numeroEconomico)?.tipoVehiculo ?? null,
+      proyecto: infoPorEconomico.get(n.numeroEconomico)?.proyecto?.nombre ?? null,
+      tipoMantenimiento: mantenimiento?.categoria ?? null,
+      fechaIngresoTaller: mantenimiento?.fechaIngresoTaller ?? null,
+      fechaEstimadaSalida: mantenimiento?.fechaEstimadaSalida ?? null,
+      costoMantenimiento: mantenimiento?.costo ?? null,
+    };
+  });
 
   // Mantenimiento programado (aún no realizado) dentro de los próximos 7 días
   // desde el corte del reporte — para anticipar servicios de la semana siguiente.
@@ -219,8 +236,18 @@ export async function calcularEstatusFlota({
   // Checklists/día promedio: cuenta simple de registros de las unidades de
   // este alcance dentro del rango, entre el número de días del rango.
   const diasPeriodo = Math.max(1, Math.round((hasta.getTime() - desde.getTime()) / DIA_MS));
+  // Mes en curso "a la fecha `hasta`" — mismo criterio que obtenerPresupuestoDelMes,
+  // para que el gasto por partida del mes y el presupuesto del mes hablen del
+  // mismo rango exacto. Se calcula siempre (no solo cuando el periodo elegido
+  // es "este mes"), para que el reporte nunca confunda el gasto de un periodo
+  // corto (ej. 7 días) con el del mes completo.
+  const inicioMes = new Date(Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth(), 1));
 
-  const [gastosPorCategoria, combustibleAgg, tagAgg, presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg] = await Promise.all([
+  const [
+    gastosPorCategoria, combustibleAgg, tagAgg,
+    gastosPorCategoriaMes, combustibleAggMes, tagAggMes,
+    presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg,
+  ] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
       where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
@@ -232,6 +259,19 @@ export async function calcularEstatusFlota({
     }),
     prisma.tag.aggregate({
       where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { monto: true },
+    }),
+    prisma.gastoVehicular.groupBy({
+      by: ["categoria"],
+      where: { fecha: { gte: inicioMes, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { costo: true },
+    }),
+    prisma.combustible.aggregate({
+      where: { fecha: { gte: inicioMes, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { costo: true },
+    }),
+    prisma.tag.aggregate({
+      where: { fecha: { gte: inicioMes, lte: hasta }, ...filtroProyectoGasto },
       _sum: { monto: true },
     }),
     obtenerPresupuestoDelMes(proyectoIds, hasta),
@@ -251,15 +291,24 @@ export async function calcularEstatusFlota({
   const presupuestoAnual = Number(presupuestoPartidaAgg._sum.montoPresupuestado ?? 0);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
 
-  const gastoPorCategoriaMapa = new Map<CategoriaGasto, number>();
-  for (const g of gastosPorCategoria) gastoPorCategoriaMapa.set(g.categoria, Number(g._sum.costo ?? 0));
-  gastoPorCategoriaMapa.set("GASOLINA", (gastoPorCategoriaMapa.get("GASOLINA") ?? 0) + Number(combustibleAgg._sum.costo ?? 0));
-  gastoPorCategoriaMapa.set("CASETAS", (gastoPorCategoriaMapa.get("CASETAS") ?? 0) + Number(tagAgg._sum.monto ?? 0));
+  function armarGastoPorCategoria(
+    porCategoria: { categoria: CategoriaGasto; _sum: { costo: unknown } }[],
+    combustible: { _sum: { costo: unknown } },
+    tag: { _sum: { monto: unknown } }
+  ): { categoria: CategoriaGasto; monto: number }[] {
+    const mapa = new Map<CategoriaGasto, number>();
+    for (const g of porCategoria) mapa.set(g.categoria, Number(g._sum.costo ?? 0));
+    mapa.set("GASOLINA", (mapa.get("GASOLINA") ?? 0) + Number(combustible._sum.costo ?? 0));
+    mapa.set("CASETAS", (mapa.get("CASETAS") ?? 0) + Number(tag._sum.monto ?? 0));
+    return Array.from(mapa, ([categoria, monto]) => ({ categoria, monto }))
+      .filter((g) => g.monto > 0)
+      .sort((a, b) => b.monto - a.monto);
+  }
 
-  const gastoPorCategoria = Array.from(gastoPorCategoriaMapa, ([categoria, monto]) => ({ categoria, monto }))
-    .filter((g) => g.monto > 0)
-    .sort((a, b) => b.monto - a.monto);
+  const gastoPorCategoria = armarGastoPorCategoria(gastosPorCategoria, combustibleAgg, tagAgg);
   const gastoTotal = gastoPorCategoria.reduce((acc, g) => acc + g.monto, 0);
+  const gastoPorCategoriaMes = armarGastoPorCategoria(gastosPorCategoriaMes, combustibleAggMes, tagAggMes);
+  const gastoTotalMes = gastoPorCategoriaMes.reduce((acc, g) => acc + g.monto, 0);
 
   return {
     proyectoLabel,
@@ -276,6 +325,8 @@ export async function calcularEstatusFlota({
     flotaPorProyecto,
     gastoTotal,
     gastoPorCategoria,
+    gastoTotalMes,
+    gastoPorCategoriaMes,
     presupuestoMes,
     presupuestoAnual,
     checklistsPromedioDiario,

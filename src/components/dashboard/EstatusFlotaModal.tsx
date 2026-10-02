@@ -189,6 +189,10 @@ export function EstatusFlotaModal({
     setCamposExtra((prev) => prev.map((c) => (c.datasetId === datasetId && c.campoId === campoId ? { ...c, reglasColor } : c)));
   }
 
+  function actualizarMostrarAcumuladoAnio(datasetId: string, campoId: string, mostrarAcumuladoAnio: boolean) {
+    setCamposExtra((prev) => prev.map((c) => (c.datasetId === datasetId && c.campoId === campoId ? { ...c, mostrarAcumuladoAnio } : c)));
+  }
+
   function moverSeccion(indice: number, direccion: -1 | 1) {
     setOrdenSecciones((prev) => {
       const destino = indice + direccion;
@@ -398,6 +402,16 @@ export function EstatusFlotaModal({
                             <option key={valor} value={valor}>{label}</option>
                           ))}
                         </select>
+                      )}
+                      {dataset.fechaActividadExpr !== undefined && (
+                        <label className="flex items-center gap-1" style={{ cursor: "pointer" }} title="Además del dato del periodo del reporte, también muestra el acumulado desde el 1 de enero del año en curso">
+                          <input
+                            type="checkbox"
+                            checked={c.mostrarAcumuladoAnio ?? false}
+                            onChange={(e) => actualizarMostrarAcumuladoAnio(c.datasetId, c.campoId, e.target.checked)}
+                          />
+                          Acum. año
+                        </label>
                       )}
                       <button type="button" onClick={() => quitarCampoExtra(c.datasetId, c.campoId)} style={{ color: "var(--sidebar-text)", cursor: "pointer" }}>
                         <X size={11} />

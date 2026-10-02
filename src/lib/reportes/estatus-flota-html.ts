@@ -14,7 +14,7 @@ import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocu
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
 import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
-import type { TipoVehiculo } from "@/generated/prisma/enums";
+import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 
 const NAVY = "#0f1b2d";
 const BLUE = "#2b7fff";
@@ -104,7 +104,7 @@ function seccionTitulo(texto: string): string {
 }
 
 function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
-  if (datos.indisponibilidadDetalle.length === 0) return "";
+  if (datos.indisponibilidadDetalle.length === 0) return tablaGastoPorPartida(datos);
   const filas = [...datos.indisponibilidadDetalle].sort((a, b) => {
     const etiquetaA = a.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[a.motivo];
     const etiquetaB = b.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[b.motivo];
@@ -120,6 +120,9 @@ function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">TIPO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PROYECTO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">MOTIVO</td>
+          <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">INGRESO</td>
+          <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">SALIDA EST.</td>
+          <td align="right" style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">GASTO</td>
         </tr>
         ${filas
           .map(
@@ -130,10 +133,64 @@ function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.tipoVehiculo ? esc(TIPO_VEHICULO_LABEL[u.tipoVehiculo]) : "—"}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.proyecto ?? "—")}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo])}${u.motivoDetalle ? ` — ${esc(u.motivoDetalle)}` : ""}</td>
+            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.fechaIngresoTaller ? esc(fmtFechaCorta(u.fechaIngresoTaller)) : "—"}</td>
+            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.fechaEstimadaSalida ? esc(fmtFechaCorta(u.fechaEstimadaSalida)) : "—"}</td>
+            <td align="right" style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.costoMantenimiento !== null ? esc(fmtMoney(u.costoMantenimiento)) : "—"}</td>
           </tr>`
           )
           .join("")}
       </table>
+    </div>
+    ${tablaGastoPorPartida(datos)}`;
+}
+
+function subtablaGastoPorPartida(titulo: string, categorias: { categoria: CategoriaGasto; monto: number }[], total: number): string {
+  if (categorias.length === 0) {
+    return `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:bold; color:${SLATE}; margin-bottom:4px;">${esc(titulo)}</div>
+      <div style="font-size:11px; color:${SLATE}; font-style:italic;">Sin gastos registrados.</div>
+    </div>`;
+  }
+  return `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:bold; color:${SLATE}; margin-bottom:4px;">${esc(titulo)}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; border-collapse:collapse; font-size:11px;">
+        <tr style="background:${SURFACE};">
+          <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PARTIDA</td>
+          <td align="right" style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">MONTO</td>
+        </tr>
+        ${categorias
+          .map(
+            (g) => `
+          <tr>
+            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(CATEGORIA_GASTO_LABEL[g.categoria] ?? g.categoria)}</td>
+            <td align="right" style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(fmtMoney(g.monto))}</td>
+          </tr>`
+          )
+          .join("")}
+        <tr>
+          <td style="padding:6px 12px; font-weight:bold; color:${NAVY};">Total</td>
+          <td align="right" style="padding:6px 12px; font-weight:bold; color:${NAVY};">${esc(fmtMoney(total))}</td>
+        </tr>
+      </table>
+    </div>`;
+}
+
+/**
+ * Siempre muestra DOS desgloses, claramente rotulados: el del periodo que
+ * cubre este reporte (puede ser 7/15/30/60/90 días) y el del mes en curso —
+ * se pidió explícitamente no mostrar solo uno, para no confundir "gasto del
+ * periodo" con "gasto del mes" cuando el periodo configurado no es el mes completo.
+ */
+function tablaGastoPorPartida(datos: EstatusFlota): string {
+  if (datos.gastoPorCategoria.length === 0 && datos.gastoPorCategoriaMes.length === 0) return "";
+  const nombreMes = datos.hasta.toLocaleDateString("es-MX", { month: "long", year: "numeric", timeZone: "America/Mexico_City" });
+  return `
+    <div style="margin-bottom:16px;">
+      ${seccionTitulo("GASTO DEL PROYECTO POR PARTIDA")}
+      ${subtablaGastoPorPartida(`DEL PERIODO (${fmtFechaCorta(datos.desde)} – ${fmtFechaCorta(datos.hasta)})`, datos.gastoPorCategoria, datos.gastoTotal)}
+      ${subtablaGastoPorPartida(`MES EN CURSO (${nombreMes.toUpperCase()}, AL ${fmtFechaCorta(datos.hasta)})`, datos.gastoPorCategoriaMes, datos.gastoTotalMes)}
     </div>`;
 }
 
@@ -234,21 +291,44 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
 
     unidadesNoDisponibles: () => tablaUnidadesNoDisponibles(datos),
 
-    datosAdicionales: () =>
-      datos.camposExtra.length > 0
-        ? Array.from({ length: Math.ceil(datos.camposExtra.length / 3) })
-            .map((_, i) =>
-              filaTarjetas(
-                datos.camposExtra.slice(i * 3, i * 3 + 3).map((c) => {
-                  const titulo = `${c.campoLabel}${c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : ""} — ${etiquetaAlcance(datos.proyectoLabel)}`;
-                  return c.tipoVisualizacion === "kpi"
-                    ? tarjeta(titulo, kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} (${c.periodoAcotado ? "periodo del reporte" : "histórico, sin acotar"})`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor)))
-                    : tarjeta(titulo, barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor));
-                })
+    datosAdicionales: () => {
+      if (datos.camposExtra.length === 0) return "";
+      const tarjetasHtml: string[] = [];
+      for (const c of datos.camposExtra) {
+        const sufijoAgrupacion = c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : "";
+        const etiquetaPeriodo = c.periodoAcotado ? `Periodo: ${esc(fmtFechaCorta(datos.desde))} – ${esc(fmtFechaCorta(datos.hasta))}` : "Histórico, sin acotar";
+        tarjetasHtml.push(
+          c.tipoVisualizacion === "kpi"
+            ? tarjeta(
+                `${c.campoLabel}${sufijoAgrupacion} — ${etiquetaAlcance(datos.proyectoLabel)}`,
+                kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} · ${etiquetaPeriodo}`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor))
               )
-            )
-            .join("")
-        : "",
+            : tarjeta(
+                `${c.campoLabel}${sufijoAgrupacion} — ${etiquetaAlcance(datos.proyectoLabel)}`,
+                barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor) +
+                  `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${etiquetaPeriodo}</div>`
+              )
+        );
+        if (c.acumuladoAnio) {
+          const etiquetaAnio = `Acumulado del año: 1 ene – ${esc(fmtFechaCorta(datos.hasta))} ${c.acumuladoAnio.anio}`;
+          tarjetasHtml.push(
+            c.tipoVisualizacion === "kpi"
+              ? tarjeta(
+                  `${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`,
+                  kpi((c.acumuladoAnio.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} · ${etiquetaAnio}`, colorParaValor(c.acumuladoAnio.valorKpi ?? 0, c.campoLabel, c.reglasColor))
+                )
+              : tarjeta(
+                  `${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`,
+                  barrasHorizontal((c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor) +
+                    `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${etiquetaAnio}</div>`
+                )
+          );
+        }
+      }
+      return Array.from({ length: Math.ceil(tarjetasHtml.length / 3) })
+        .map((_, i) => filaTarjetas(tarjetasHtml.slice(i * 3, i * 3 + 3)))
+        .join("");
+    },
   };
 
   return `
