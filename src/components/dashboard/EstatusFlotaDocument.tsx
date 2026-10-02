@@ -201,6 +201,19 @@ function etiquetaAlcance(proyectoLabel: string): string {
   return proyectoLabel === "General" ? "Todos los proyectos" : proyectoLabel;
 }
 
+/**
+ * true si algún indicador del dashboard (snapshot de "Mis dashboards" al
+ * momento del envío, ej. "Enviar ahora") ya cubre este concepto — en ese
+ * caso la tarjeta equivalente del resumen del reporte se omite para no
+ * mostrar el mismo dato dos veces con cifras potencialmente distintas (una
+ * es snapshot actual, la otra es el cálculo propio del periodo del reporte).
+ */
+function cubiertoPorDashboard(indicadoresDashboard: IndicadorDashboard[] | undefined, ...palabrasClave: string[]): boolean {
+  if (!indicadoresDashboard || indicadoresDashboard.length === 0) return false;
+  const titulos = indicadoresDashboard.map((i) => i.title.toLowerCase());
+  return palabrasClave.some((p) => titulos.some((t) => t.includes(p)));
+}
+
 function TarjetaKpi({ titulo, valor, caption, campoLabel, reglasColor }: { titulo: string; valor: number; caption: string; campoLabel: string; reglasColor?: ReglaColorColumna[] }) {
   const color = colorParaValor(valor, campoLabel, reglasColor);
   return (
@@ -427,42 +440,56 @@ function PaginaEstatus({
         </>
       ) : null,
 
-    resumen: () => (
-      <>
-        <View style={styles.fila} wrap={false}>
-          <Tarjeta titulo="SLA promedio del periodo">
+    resumen: () => {
+      const tarjetasResumen: ReactNode[] = [];
+      if (!cubiertoPorDashboard(indicadoresDashboard, "sla"))
+        tarjetasResumen.push(
+          <Tarjeta key="sla" titulo="SLA promedio del periodo">
             <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
             <Text style={styles.kpiCaption}>Disponibilidad ponderada del periodo</Text>
           </Tarjeta>
-          <Tarjeta titulo="Unidades">
+        );
+      if (!cubiertoPorDashboard(indicadoresDashboard, "unidades"))
+        tarjetasResumen.push(
+          <Tarjeta key="unidades" titulo="Unidades">
             <Text style={styles.kpiValor}>{datos.totalUnidades}</Text>
             <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
           </Tarjeta>
-          <Tarjeta titulo="Actividad checklists del periodo">
+        );
+      if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
+        tarjetasResumen.push(
+          <Tarjeta key="checklists" titulo="Actividad checklists del periodo">
             <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
             <Text style={styles.kpiCaption}>promedio por día</Text>
           </Tarjeta>
-        </View>
-        {/* Total de unidades no disponibles y presupuesto anual — solo en el
-            resumen general, no en el desglose por proyecto (pedido explícito).
-            Si ya vienen `indicadoresDashboard` (dashboard abierto, ej. "Enviar
-            ahora"), esas tarjetas reales ya pueden traer lo mismo — mostrar
-            estas también duplicaba el dato. Queda fijo solo para el envío
-            automático programado, que nunca trae `indicadoresDashboard`. */}
-        {datos.proyectoLabel === "General" && (!indicadoresDashboard || indicadoresDashboard.length === 0) && (
-          <View style={styles.fila} wrap={false}>
-            <Tarjeta titulo="Total de unidades no disponibles">
+        );
+      // Total de unidades no disponibles y presupuesto anual — solo en el
+      // resumen general, no en el desglose por proyecto (pedido explícito).
+      if (datos.proyectoLabel === "General") {
+        if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
+          tarjetasResumen.push(
+            <Tarjeta key="no-disponibles" titulo="Total de unidades no disponibles">
               <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
               <Text style={styles.kpiCaption}>de {datos.totalUnidades} unidades totales</Text>
             </Tarjeta>
-            <Tarjeta titulo="Presupuesto anual">
+          );
+        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto"))
+          tarjetasResumen.push(
+            <Tarjeta key="presupuesto" titulo="Presupuesto anual">
               <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.presupuestoAnual)}</Text>
               <Text style={styles.kpiCaption}>aprobado para todos los proyectos</Text>
             </Tarjeta>
-          </View>
-        )}
-      </>
-    ),
+          );
+      }
+      return enGrupos(tarjetasResumen, TARJETAS_POR_FILA).map((grupo, i) => (
+        <View key={i} style={styles.fila} wrap={false}>
+          {grupo}
+          {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
+            <View key={`resumen-hueco-${j}`} style={{ flex: 1 }} />
+          ))}
+        </View>
+      ));
+    },
 
     disponibilidadGasto: () => (
       <View style={styles.fila} wrap={false}>

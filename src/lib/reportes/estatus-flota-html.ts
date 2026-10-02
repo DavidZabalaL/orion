@@ -236,6 +236,19 @@ function listaProximosServicios(datos: EstatusFlota): string {
     ${restantes > 0 ? `<div style="font-size:11px; color:${SLATE}; font-style:italic;">+ ${restantes} más</div>` : ""}`;
 }
 
+/**
+ * true si algún indicador del dashboard (snapshot de "Mis dashboards" al
+ * momento del envío, ej. "Enviar ahora") ya cubre este concepto — en ese
+ * caso la tarjeta equivalente del resumen del reporte se omite para no
+ * mostrar el mismo dato dos veces con cifras potencialmente distintas (una
+ * es snapshot actual, la otra es el cálculo propio del periodo del reporte).
+ */
+function cubiertoPorDashboard(indicadoresDashboard: IndicadorDashboard[] | undefined, ...palabrasClave: string[]): boolean {
+  if (!indicadoresDashboard || indicadoresDashboard.length === 0) return false;
+  const titulos = indicadoresDashboard.map((i) => i.title.toLowerCase());
+  return palabrasClave.some((p) => titulos.some((t) => t.includes(p)));
+}
+
 /** Bloque completo (todas las secciones, en el orden elegido) para un alcance — general o un proyecto individual. */
 function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashboard[] | undefined, ordenSecciones: SeccionReporteId[]): string {
   const pctPresupuesto = datos.presupuestoMes.asignado > 0 ? Math.round((datos.gastoTotal / datos.presupuestoMes.asignado) * 100) : 0;
@@ -250,25 +263,26 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
             .join("")
         : "",
 
-    resumen: () =>
-      filaTarjetas([
-        tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")),
-        tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)),
-        tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")),
-      ]) +
+    resumen: () => {
+      const tarjetasResumen: string[] = [];
+      if (!cubiertoPorDashboard(indicadoresDashboard, "sla"))
+        tarjetasResumen.push(tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")));
+      if (!cubiertoPorDashboard(indicadoresDashboard, "unidades"))
+        tarjetasResumen.push(tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)));
+      if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
+        tarjetasResumen.push(tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")));
       // Total de unidades no disponibles y presupuesto anual — solo en el
       // resumen general, no en el desglose por proyecto (pedido explícito).
-      // Si el envío viene con `indicadoresDashboard` (desde un dashboard
-      // abierto con sus propios widgets, ej. "Enviar ahora"), esas tarjetas
-      // reales ya pueden traer lo mismo — mostrarlas aquí también duplicaba
-      // el dato. Esto solo se queda fijo para el envío automático programado,
-      // que nunca trae `indicadoresDashboard` (no hay dashboard abierto).
-      (datos.proyectoLabel === "General" && (!indicadoresDashboard || indicadoresDashboard.length === 0)
-        ? filaTarjetas([
-            tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)),
-            tarjeta("Presupuesto anual", kpi(fmtMoney(datos.presupuestoAnual), "aprobado para todos los proyectos")),
-          ])
-        : ""),
+      if (datos.proyectoLabel === "General") {
+        if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
+          tarjetasResumen.push(tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)));
+        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto"))
+          tarjetasResumen.push(tarjeta("Presupuesto anual", kpi(fmtMoney(datos.presupuestoAnual), "aprobado para todos los proyectos")));
+      }
+      return Array.from({ length: Math.ceil(tarjetasResumen.length / 3) })
+        .map((_, i) => filaTarjetas(tarjetasResumen.slice(i * 3, i * 3 + 3)))
+        .join("");
+    },
 
     disponibilidadGasto: () =>
       filaTarjetas([
