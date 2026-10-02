@@ -5,7 +5,6 @@ import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
-import type { CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
 import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
@@ -209,18 +208,6 @@ function TarjetaKpi({ titulo, valor, caption, campoLabel, reglasColor }: { titul
       <Text style={color ? { ...styles.kpiValor, color } : styles.kpiValor}>{valor.toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
       <Text style={styles.kpiCaption}>{caption}</Text>
     </Tarjeta>
-  );
-}
-
-function TarjetaKpiExtra({ resultado, proyectoLabel, etiquetaPeriodo }: { resultado: CampoExtraResultado; proyectoLabel: string; etiquetaPeriodo: string }) {
-  return (
-    <TarjetaKpi
-      titulo={`${resultado.campoLabel} — ${etiquetaAlcance(proyectoLabel)}`}
-      valor={resultado.valorKpi ?? 0}
-      caption={`Suma total · ${resultado.datasetLabel} · ${etiquetaPeriodo}`}
-      campoLabel={resultado.campoLabel}
-      reglasColor={resultado.reglasColor}
-    />
   );
 }
 
@@ -457,8 +444,12 @@ function PaginaEstatus({
           </Tarjeta>
         </View>
         {/* Total de unidades no disponibles y presupuesto anual — solo en el
-            resumen general, no en el desglose por proyecto (pedido explícito). */}
-        {datos.proyectoLabel === "General" && (
+            resumen general, no en el desglose por proyecto (pedido explícito).
+            Si ya vienen `indicadoresDashboard` (dashboard abierto, ej. "Enviar
+            ahora"), esas tarjetas reales ya pueden traer lo mismo — mostrar
+            estas también duplicaba el dato. Queda fijo solo para el envío
+            automático programado, que nunca trae `indicadoresDashboard`. */}
+        {datos.proyectoLabel === "General" && (!indicadoresDashboard || indicadoresDashboard.length === 0) && (
           <View style={styles.fila} wrap={false}>
             <Tarjeta titulo="Total de unidades no disponibles">
               <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
@@ -512,41 +503,51 @@ function PaginaEstatus({
       const tarjetas: ReactNode[] = [];
       for (const c of datos.camposExtra) {
         const sufijoAgrupacion = c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : "";
+        const detalleCampo = `${c.campoLabel} · ${etiquetaAlcance(datos.proyectoLabel)}`;
         const etiquetaPeriodo = c.periodoAcotado ? `Periodo: ${fmtFechaCorta(datos.desde)} – ${fmtFechaCorta(datos.hasta)}` : "Histórico, sin acotar";
+        const tituloPeriodo = `${c.datasetLabel} del periodo${sufijoAgrupacion}`;
         tarjetas.push(
           c.tipoVisualizacion === "kpi" ? (
-            <TarjetaKpiExtra key={`${c.datasetId}.${c.campoId}`} resultado={c} proyectoLabel={datos.proyectoLabel} etiquetaPeriodo={etiquetaPeriodo} />
+            <TarjetaKpi
+              key={`${c.datasetId}.${c.campoId}`}
+              titulo={tituloPeriodo}
+              valor={c.valorKpi ?? 0}
+              caption={`${detalleCampo} · ${etiquetaPeriodo}`}
+              campoLabel={c.campoLabel}
+              reglasColor={c.reglasColor}
+            />
           ) : (
             <TarjetaBarras
               key={`${c.datasetId}.${c.campoId}`}
-              titulo={`${c.campoLabel}${sufijoAgrupacion} — ${etiquetaAlcance(datos.proyectoLabel)}`}
+              titulo={tituloPeriodo}
               vacio="Sin datos."
               filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
               reglasColor={c.reglasColor}
-              pie={etiquetaPeriodo}
+              pie={`${detalleCampo} · ${etiquetaPeriodo}`}
             />
           )
         );
         if (c.acumuladoAnio) {
-          const etiquetaAnio = `Acumulado del año: 1 ene – ${fmtFechaCorta(datos.hasta)} ${c.acumuladoAnio.anio}`;
+          const tituloAnio = `${c.datasetLabel} — Acumulado anual`;
+          const etiquetaAnio = `Acumulado ${c.acumuladoAnio.anio}: 1 ene – ${fmtFechaCorta(datos.hasta)}`;
           tarjetas.push(
             c.tipoVisualizacion === "kpi" ? (
               <TarjetaKpi
                 key={`${c.datasetId}.${c.campoId}.anio`}
-                titulo={`${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`}
+                titulo={tituloAnio}
                 valor={c.acumuladoAnio.valorKpi ?? 0}
-                caption={`Suma total · ${c.datasetLabel} · ${etiquetaAnio}`}
+                caption={`${detalleCampo} · ${etiquetaAnio}`}
                 campoLabel={c.campoLabel}
                 reglasColor={c.reglasColor}
               />
             ) : (
               <TarjetaBarras
                 key={`${c.datasetId}.${c.campoId}.anio`}
-                titulo={`${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`}
+                titulo={tituloAnio}
                 vacio="Sin datos."
                 filas={(c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
                 reglasColor={c.reglasColor}
-                pie={etiquetaAnio}
+                pie={`${detalleCampo} · ${etiquetaAnio}`}
               />
             )
           );

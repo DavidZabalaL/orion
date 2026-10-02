@@ -258,7 +258,12 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
       ]) +
       // Total de unidades no disponibles y presupuesto anual — solo en el
       // resumen general, no en el desglose por proyecto (pedido explícito).
-      (datos.proyectoLabel === "General"
+      // Si el envío viene con `indicadoresDashboard` (desde un dashboard
+      // abierto con sus propios widgets, ej. "Enviar ahora"), esas tarjetas
+      // reales ya pueden traer lo mismo — mostrarlas aquí también duplicaba
+      // el dato. Esto solo se queda fijo para el envío automático programado,
+      // que nunca trae `indicadoresDashboard` (no hay dashboard abierto).
+      (datos.proyectoLabel === "General" && (!indicadoresDashboard || indicadoresDashboard.length === 0)
         ? filaTarjetas([
             tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)),
             tarjeta("Presupuesto anual", kpi(fmtMoney(datos.presupuestoAnual), "aprobado para todos los proyectos")),
@@ -296,31 +301,34 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
       const tarjetasHtml: string[] = [];
       for (const c of datos.camposExtra) {
         const sufijoAgrupacion = c.agrupacionTemporal ? ` (${AGRUPACION_TEMPORAL_LABEL[c.agrupacionTemporal]})` : "";
+        const detalleCampo = `${c.campoLabel} · ${etiquetaAlcance(datos.proyectoLabel)}`;
         const etiquetaPeriodo = c.periodoAcotado ? `Periodo: ${esc(fmtFechaCorta(datos.desde))} – ${esc(fmtFechaCorta(datos.hasta))}` : "Histórico, sin acotar";
+        const tituloPeriodo = `${c.datasetLabel} del periodo${sufijoAgrupacion}`;
         tarjetasHtml.push(
           c.tipoVisualizacion === "kpi"
             ? tarjeta(
-                `${c.campoLabel}${sufijoAgrupacion} — ${etiquetaAlcance(datos.proyectoLabel)}`,
-                kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} · ${etiquetaPeriodo}`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor))
+                tituloPeriodo,
+                kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `${detalleCampo} · ${etiquetaPeriodo}`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor))
               )
             : tarjeta(
-                `${c.campoLabel}${sufijoAgrupacion} — ${etiquetaAlcance(datos.proyectoLabel)}`,
+                tituloPeriodo,
                 barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor) +
-                  `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${etiquetaPeriodo}</div>`
+                  `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${esc(detalleCampo)} · ${etiquetaPeriodo}</div>`
               )
         );
         if (c.acumuladoAnio) {
-          const etiquetaAnio = `Acumulado del año: 1 ene – ${esc(fmtFechaCorta(datos.hasta))} ${c.acumuladoAnio.anio}`;
+          const tituloAnio = `${c.datasetLabel} — Acumulado anual`;
+          const etiquetaAnio = `Acumulado ${c.acumuladoAnio.anio}: 1 ene – ${esc(fmtFechaCorta(datos.hasta))}`;
           tarjetasHtml.push(
             c.tipoVisualizacion === "kpi"
               ? tarjeta(
-                  `${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`,
-                  kpi((c.acumuladoAnio.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `Suma total · ${c.datasetLabel} · ${etiquetaAnio}`, colorParaValor(c.acumuladoAnio.valorKpi ?? 0, c.campoLabel, c.reglasColor))
+                  tituloAnio,
+                  kpi((c.acumuladoAnio.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `${detalleCampo} · ${etiquetaAnio}`, colorParaValor(c.acumuladoAnio.valorKpi ?? 0, c.campoLabel, c.reglasColor))
                 )
               : tarjeta(
-                  `${c.campoLabel} — Acumulado ${c.acumuladoAnio.anio}`,
+                  tituloAnio,
                   barrasHorizontal((c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor) +
-                    `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${etiquetaAnio}</div>`
+                    `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${esc(detalleCampo)} · ${etiquetaAnio}</div>`
                 )
           );
         }

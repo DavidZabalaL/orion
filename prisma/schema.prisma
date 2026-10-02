@@ -151,6 +151,7 @@ enum OrigenPresupuesto {
 
 enum EstatusGasto {
   PROGRAMADO
+  EN_PROCESO
   REALIZADO
   PENDIENTE_DE_PAGO
   PAGADO
