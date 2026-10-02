@@ -277,6 +277,10 @@ export async function crearChecklistCargaCombustible(
 
     // Carga
     const tipoCombustible = String(formData.get("carg_tipo_combustible") ?? "").trim();
+    const porcentajeAntes = String(formData.get("carg_porcentaje_antes") ?? "").trim();
+    const porcentajeDespues = String(formData.get("carg_porcentaje_despues") ?? "").trim();
+    const litrosCargados = String(formData.get("carg_litros_cargados") ?? "").trim();
+    const cantidadPagada = String(formData.get("carg_cantidad_pagada") ?? "").trim();
     const fotoOdometroAntes = String(formData.get("carg_foto_odometro_antes") ?? "").trim();
     const fotoOdometroDespues = String(formData.get("carg_foto_odometro_despues") ?? "").trim();
     const fotoEvidenciaBomba1 = String(formData.get("carg_foto_evidencia_bomba_1") ?? "").trim();
@@ -296,6 +300,12 @@ export async function crearChecklistCargaCombustible(
     if (!numeroEconomico) return { ok: false, error: "El número económico es obligatorio." };
     if (!tipoCombustible || !(TIPOS_COMBUSTIBLE_CARGA as readonly string[]).includes(tipoCombustible))
       return { ok: false, error: "Tipo de combustible no válido." };
+    if (!porcentajeAntes || Number(porcentajeAntes) < 0 || Number(porcentajeAntes) > 100)
+      return { ok: false, error: "El % de combustible antes de la carga es obligatorio y debe estar entre 0 y 100." };
+    if (!porcentajeDespues || Number(porcentajeDespues) < 0 || Number(porcentajeDespues) > 100)
+      return { ok: false, error: "El % de combustible después de la carga es obligatorio y debe estar entre 0 y 100." };
+    if (!litrosCargados || Number(litrosCargados) <= 0) return { ok: false, error: "Los litros cargados son obligatorios." };
+    if (!cantidadPagada || Number(cantidadPagada) <= 0) return { ok: false, error: "La cantidad pagada es obligatoria." };
     if (!fotoOdometroAntes) return { ok: false, error: "La foto del odómetro antes es obligatoria." };
     if (!fotoOdometroDespues) return { ok: false, error: "La foto del odómetro después es obligatoria." };
     if (!fotoEvidenciaBomba1) return { ok: false, error: "La evidencia de bomba es obligatoria." };
@@ -326,6 +336,10 @@ export async function crearChecklistCargaCombustible(
       numero_economico: numeroEconomico,
       modelo,
       tipo_combustible: tipoCombustible,
+      porcentaje_antes: porcentajeAntes,
+      porcentaje_despues: porcentajeDespues,
+      litros_cargados: litrosCargados,
+      cantidad_pagada: cantidadPagada,
       foto_odometro_antes: fotoOdometroAntes,
       foto_odometro_despues: fotoOdometroDespues,
       foto_evidencia_bomba_1: fotoEvidenciaBomba1,

@@ -68,6 +68,10 @@ type BorradorCargaCombustible = {
   tipoVehiculo: string;
   numeroEconomico: string;
   tipoCombustible: string;
+  porcentajeAntes: string;
+  porcentajeDespues: string;
+  litrosCargados: string;
+  cantidadPagada: string;
   observaciones: string;
   urlsFotosCarga: Record<string, string>;
 };
@@ -150,6 +154,10 @@ export function WizardCargaCombustible({
 
   // Fase carga
   const [tipoCombustible, setTipoCombustible] = useState<string>(borradorInicial?.tipoCombustible ?? TIPOS_COMBUSTIBLE_CARGA[0]);
+  const [porcentajeAntes, setPorcentajeAntes] = useState(borradorInicial?.porcentajeAntes ?? "");
+  const [porcentajeDespues, setPorcentajeDespues] = useState(borradorInicial?.porcentajeDespues ?? "");
+  const [litrosCargados, setLitrosCargados] = useState(borradorInicial?.litrosCargados ?? "");
+  const [cantidadPagada, setCantidadPagada] = useState(borradorInicial?.cantidadPagada ?? "");
   const [observaciones, setObservaciones] = useState(borradorInicial?.observaciones ?? "");
   const [procesandoFotoCarga, setProcesandoFotoCarga] = useState(false);
   // Cuántas de las fotos de esta fase siguen subiéndose en segundo plano —
@@ -172,9 +180,9 @@ export function WizardCargaCombustible({
     if (fase === "exito") return;
     guardarBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR, {
       fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia,
-      tipoVehiculo, numeroEconomico, tipoCombustible, observaciones, urlsFotosCarga,
+      tipoVehiculo, numeroEconomico, tipoCombustible, porcentajeAntes, porcentajeDespues, litrosCargados, cantidadPagada, observaciones, urlsFotosCarga,
     });
-  }, [fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia, tipoVehiculo, numeroEconomico, tipoCombustible, observaciones, urlsFotosCarga]);
+  }, [fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia, tipoVehiculo, numeroEconomico, tipoCombustible, porcentajeAntes, porcentajeDespues, litrosCargados, cantidadPagada, observaciones, urlsFotosCarga]);
 
   const municipiosDisponibles = MUNICIPIOS_POR_ESTADO[zona] ?? [];
   const personalDisponible = PERSONAL_POR_AREA[area] ?? [];
@@ -283,6 +291,10 @@ export function WizardCargaCombustible({
       formData.set("veh_numero_economico", numeroEconomico);
       formData.set("veh_modelo", unidadSeleccionada ? `${unidadSeleccionada.marca} ${unidadSeleccionada.unidadModelo}` : "");
       formData.set("carg_tipo_combustible", tipoCombustible);
+      formData.set("carg_porcentaje_antes", porcentajeAntes);
+      formData.set("carg_porcentaje_despues", porcentajeDespues);
+      formData.set("carg_litros_cargados", litrosCargados);
+      formData.set("carg_cantidad_pagada", cantidadPagada);
       formData.set("carg_observaciones", observaciones);
 
       const res = await crearChecklistCargaCombustible(formData);
@@ -575,6 +587,31 @@ export function WizardCargaCombustible({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
+              <label style={labelStyle}>% de combustible antes de la carga *</label>
+              <input
+                type="number" min={0} max={100} required
+                value={porcentajeAntes}
+                onChange={(e) => setPorcentajeAntes(e.target.value)}
+                placeholder="Ej. 20"
+                className="w-full rounded-md px-3 py-2"
+                style={fieldStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>% de combustible después de la carga *</label>
+              <input
+                type="number" min={0} max={100} required
+                value={porcentajeDespues}
+                onChange={(e) => setPorcentajeDespues(e.target.value)}
+                placeholder="Ej. 95"
+                className="w-full rounded-md px-3 py-2"
+                style={fieldStyle}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
               <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_antes} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_antes", url)} />
             </div>
             <div>
@@ -588,6 +625,31 @@ export function WizardCargaCombustible({
             </div>
             <div>
               <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_ticket} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_ticket", url)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label style={labelStyle}>Litros cargados *</label>
+              <input
+                type="number" min={0} step="0.01" required
+                value={litrosCargados}
+                onChange={(e) => setLitrosCargados(e.target.value)}
+                placeholder="Ej. 45.5"
+                className="w-full rounded-md px-3 py-2"
+                style={fieldStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Cantidad pagada *</label>
+              <input
+                type="number" min={0} step="0.01" required
+                value={cantidadPagada}
+                onChange={(e) => setCantidadPagada(e.target.value)}
+                placeholder="Ej. 1200.00"
+                className="w-full rounded-md px-3 py-2"
+                style={fieldStyle}
+              />
             </div>
           </div>
 
