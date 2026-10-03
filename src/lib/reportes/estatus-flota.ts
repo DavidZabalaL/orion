@@ -68,6 +68,8 @@ export type EstatusFlota = {
   presupuestoMes: ResumenPresupuestoMes;
   /** Suma de Proyecto.presupuestoAprobadoAnual de los proyectos en este alcance — independiente del mes en curso (a diferencia de `presupuestoMes`). */
   presupuestoAnual: number;
+  /** Gasto acumulado del año de `hasta` (del 1 de enero a `hasta`), mismas 3 fuentes que `gastoTotal` — se muestra junto a `presupuestoAnual` para comparar lo presupuestado contra lo realmente gastado en lo que va del año. */
+  gastoAcumuladoAnio: number;
   /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
   checklistsPromedioDiario: number;
   /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
@@ -242,10 +244,15 @@ export async function calcularEstatusFlota({
   // es "este mes"), para que el reporte nunca confunda el gasto de un periodo
   // corto (ej. 7 días) con el del mes completo.
   const inicioMes = new Date(Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth(), 1));
+  // Acumulado del año de `hasta` — mismo criterio de rango que presupuestoAnual
+  // (año de `hasta`, no el año en curso del servidor), para comparar lo
+  // presupuestado contra lo gastado en lo que va de ese año.
+  const inicioAnio = new Date(Date.UTC(hasta.getUTCFullYear(), 0, 1));
 
   const [
     gastosPorCategoria, combustibleAgg, tagAgg,
     gastosPorCategoriaMes, combustibleAggMes, tagAggMes,
+    gastoAnioAgg, combustibleAnioAgg, tagAnioAgg,
     presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg,
   ] = await Promise.all([
     prisma.gastoVehicular.groupBy({
@@ -272,6 +279,18 @@ export async function calcularEstatusFlota({
     }),
     prisma.tag.aggregate({
       where: { fecha: { gte: inicioMes, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { monto: true },
+    }),
+    prisma.gastoVehicular.aggregate({
+      where: { fecha: { gte: inicioAnio, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { costo: true },
+    }),
+    prisma.combustible.aggregate({
+      where: { fecha: { gte: inicioAnio, lte: hasta }, ...filtroProyectoGasto },
+      _sum: { costo: true },
+    }),
+    prisma.tag.aggregate({
+      where: { fecha: { gte: inicioAnio, lte: hasta }, ...filtroProyectoGasto },
       _sum: { monto: true },
     }),
     obtenerPresupuestoDelMes(proyectoIds, hasta),
@@ -309,6 +328,7 @@ export async function calcularEstatusFlota({
   const gastoTotal = gastoPorCategoria.reduce((acc, g) => acc + g.monto, 0);
   const gastoPorCategoriaMes = armarGastoPorCategoria(gastosPorCategoriaMes, combustibleAggMes, tagAggMes);
   const gastoTotalMes = gastoPorCategoriaMes.reduce((acc, g) => acc + g.monto, 0);
+  const gastoAcumuladoAnio = Number(gastoAnioAgg._sum.costo ?? 0) + Number(combustibleAnioAgg._sum.costo ?? 0) + Number(tagAnioAgg._sum.monto ?? 0);
 
   return {
     proyectoLabel,
@@ -329,6 +349,7 @@ export async function calcularEstatusFlota({
     gastoPorCategoriaMes,
     presupuestoMes,
     presupuestoAnual,
+    gastoAcumuladoAnio,
     checklistsPromedioDiario,
     camposExtra,
   };

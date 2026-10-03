@@ -473,13 +473,18 @@ function PaginaEstatus({
               <Text style={styles.kpiCaption}>de {datos.totalUnidades} unidades totales</Text>
             </Tarjeta>
           );
-        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto"))
+        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto")) {
+          const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
           tarjetasResumen.push(
             <Tarjeta key="presupuesto" titulo="Presupuesto anual">
               <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.presupuestoAnual)}</Text>
-              <Text style={styles.kpiCaption}>aprobado para todos los proyectos</Text>
+              <View style={styles.barraFondo}>
+                <View style={{ width: `${Math.min(100, pctPresupuestoAnual)}%`, height: "100%", backgroundColor: pctPresupuestoAnual > 90 ? RED : BLUE }} />
+              </View>
+              <Text style={styles.kpiCaption}>Acumulado del año: {fmtMoneyPdf(datos.gastoAcumuladoAnio)} · {pctPresupuestoAnual}%</Text>
             </Tarjeta>
           );
+        }
       }
       return enGrupos(tarjetasResumen, TARJETAS_POR_FILA).map((grupo, i) => (
         <View key={i} style={styles.fila} wrap={false}>

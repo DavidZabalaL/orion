@@ -276,8 +276,19 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
       if (datos.proyectoLabel === "General") {
         if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
           tarjetasResumen.push(tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)));
-        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto"))
-          tarjetasResumen.push(tarjeta("Presupuesto anual", kpi(fmtMoney(datos.presupuestoAnual), "aprobado para todos los proyectos")));
+        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto")) {
+          const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
+          tarjetasResumen.push(
+            tarjeta(
+              "Presupuesto anual",
+              `${kpi(esc(fmtMoney(datos.presupuestoAnual)))}
+               <div style="background:${SURFACE}; border-radius:4px; height:7px; overflow:hidden; margin-top:10px;">
+                 <div style="background:${pctPresupuestoAnual > 90 ? RED : BLUE}; width:${Math.min(100, pctPresupuestoAnual)}%; height:7px;"></div>
+               </div>
+               <div style="font-size:11px; color:${SLATE}; margin-top:4px;">Acumulado del año: ${esc(fmtMoney(datos.gastoAcumuladoAnio))} · ${pctPresupuestoAnual}%</div>`
+            )
+          );
+        }
       }
       return Array.from({ length: Math.ceil(tarjetasResumen.length / 3) })
         .map((_, i) => filaTarjetas(tarjetasResumen.slice(i * 3, i * 3 + 3)))
