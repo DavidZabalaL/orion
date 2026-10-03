@@ -442,6 +442,37 @@ export const BI_DATASETS: DatasetMeta[] = [
     ],
   },
   {
+    id: "gasto_combinado",
+    label: "Gasto total (todas las fuentes)",
+    // Mismas 3 fuentes reales que combina el reporte de Estatus de flota
+    // (gastoPorCategoria/gastoAcumuladoAnio en estatus-flota.ts): GASOLINA
+    // sale de Combustible (su única fuente real de costo), CASETAS de Tag,
+    // el resto de GastoVehicular — así "Datos adicionales" puede desglosar
+    // el mismo gasto total por proyecto y/o por partida (categoría), en vez
+    // de solo verlo como un número único en la tarjeta de presupuesto.
+    from: `(
+      SELECT g."categoria"::text AS categoria, COALESCE(u."proyectoId", g."proyectoReportanteId") AS "proyectoId", g."costo" AS costo, g."fecha" AS fecha
+      FROM "GastoVehicular" g LEFT JOIN "Unidad" u ON u."numeroEconomico" = g."numeroEconomico"
+      WHERE g."categoria" NOT IN ('GASOLINA', 'CASETAS')
+      UNION ALL
+      SELECT 'GASOLINA' AS categoria, COALESCE(u2."proyectoId", c."proyectoReportanteId") AS "proyectoId", c."costo" AS costo, c."fecha" AS fecha
+      FROM "Combustible" c LEFT JOIN "Unidad" u2 ON u2."numeroEconomico" = c."numeroEconomico"
+      UNION ALL
+      SELECT 'CASETAS' AS categoria, COALESCE(u3."proyectoId", t."proyectoReportanteId") AS "proyectoId", t."monto" AS costo, t."fecha" AS fecha
+      FROM "Tag" t LEFT JOIN "Unidad" u3 ON u3."numeroEconomico" = t."numeroEconomico"
+    ) gc LEFT JOIN "Proyecto" p ON p.id = gc."proyectoId"`,
+    proyectoScopeExpr: `gc."proyectoId"`,
+    tablasBase: ["GastoVehicular", "Combustible", "Tag", "Unidad", "Proyecto"],
+    fechaActividadExpr: `gc."fecha"`,
+    campos: [
+      { id: "partida", label: "Partida (categoría de gasto)", tipo: "texto", expr: `gc."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
+      { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
+      { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `gc."fecha"` },
+      { id: "dia", label: "Día", tipo: "fecha_dia", expr: `gc."fecha"` },
+      { id: "costo", label: "Costo", tipo: "numero", expr: `gc."costo"`, sufijo: " MXN" },
+    ],
+  },
+  {
     id: "presupuesto_partida",
     label: "Presupuesto por partida (autorizado)",
     // "pp" ya NO es directamente la tabla PresupuestoPartida: es un producto
