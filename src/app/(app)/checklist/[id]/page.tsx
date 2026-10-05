@@ -388,10 +388,10 @@ function DetalleCargaCombustible({ respuestas }: { respuestas: Record<string, st
                         <img
                           src={blobProxy(f.url!)}
                           alt={f.label}
-                          style={{ width: 110, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--field-border)" }}
+                          style={{ maxWidth: 260, maxHeight: 260, width: "auto", height: "auto", objectFit: "contain", borderRadius: 10, border: "1px solid var(--field-border)" }}
                         />
                       </a>
-                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center", maxWidth: 110 }}>
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center", maxWidth: 260 }}>
                         {f.label}
                       </span>
                     </div>
@@ -459,10 +459,10 @@ function DetalleReporteFalla({ respuestas }: { respuestas: Record<string, string
                         <img
                           src={blobProxy(f.url!)}
                           alt={f.label}
-                          style={{ width: 110, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--field-border)" }}
+                          style={{ maxWidth: 260, maxHeight: 260, width: "auto", height: "auto", objectFit: "contain", borderRadius: 10, border: "1px solid var(--field-border)" }}
                         />
                       </a>
-                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center", maxWidth: 110 }}>
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textAlign: "center", maxWidth: 260 }}>
                         {f.label}
                       </span>
                     </div>

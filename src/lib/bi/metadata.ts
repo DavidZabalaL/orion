@@ -738,6 +738,66 @@ export const BI_DATASETS: DatasetMeta[] = [
         // ver el mismo criterio en "kmOficial" del dataset de unidades.
         agregacionesPermitidas: ["promedio"],
       },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `ch."numeroEconomico"` },
+      {
+        id: "rangoKilometraje",
+        label: "Rango de kilometraje",
+        tipo: "texto",
+        expr: `CASE
+          WHEN ch."odometro" IS NULL THEN NULL
+          WHEN ch."odometro" < 50000 THEN '0 - 50,000 km'
+          WHEN ch."odometro" < 100000 THEN '50,000 - 100,000 km'
+          WHEN ch."odometro" < 150000 THEN '100,000 - 150,000 km'
+          WHEN ch."odometro" < 200000 THEN '150,000 - 200,000 km'
+          ELSE 'Más de 200,000 km'
+        END`,
+        opciones: [
+          { valor: "0 - 50,000 km", label: "0 - 50,000 km" },
+          { valor: "50,000 - 100,000 km", label: "50,000 - 100,000 km" },
+          { valor: "100,000 - 150,000 km", label: "100,000 - 150,000 km" },
+          { valor: "150,000 - 200,000 km", label: "150,000 - 200,000 km" },
+          { valor: "Más de 200,000 km", label: "Más de 200,000 km" },
+        ],
+      },
+      // Los siguientes 3 campos solo tienen valor en checklists SEMANAL — leen
+      // directo del JSON `respuestasSemanal` (ver src/lib/checklist-semanal.ts
+      // para las keys/opciones exactas). En checklists de otro tipo la
+      // expresión da NULL y el motor descarta esas filas de la dimensión, así
+      // que agrupar por cualquiera de estos 3 automáticamente solo cuenta
+      // checklists semanales, sin necesidad de filtrar `tipo` a mano.
+      { id: "nivelAceite", label: "Nivel de aceite (checklist semanal)", tipo: "texto", expr: `ch."respuestasSemanal"->>'niv_nivel_aceite'`, opciones: [{ valor: "MINIMO", label: "Mínimo" }, { valor: "MEDIO", label: "Medio" }, { valor: "MAXIMO", label: "Máximo" }] },
+      { id: "estadoGato", label: "Estado del gato hidráulico (checklist semanal)", tipo: "texto", expr: `ch."respuestasSemanal"->>'her_gato'`, opciones: [{ valor: "BUEN ESTADO", label: "Buen estado" }, { valor: "MAL ESTADO", label: "Mal estado" }, { valor: "NA", label: "No aplica" }] },
+      {
+        id: "peorLlanta",
+        label: "Peor nivel de llanta (checklist semanal)",
+        tipo: "texto",
+        // Toma el mínimo entre las 5 llantas principales (no incluye las 2
+        // interiores de rodado doble, exclusivas de grúa) — una sola llanta
+        // gastada ya hace prioritaria la revisión de la unidad.
+        expr: `(CASE (
+          SELECT MIN(v) FROM unnest(ARRAY[
+            CASE ch."respuestasSemanal"->>'ext_llanta_del_der' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+            CASE ch."respuestasSemanal"->>'ext_llanta_tras_der' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+            CASE ch."respuestasSemanal"->>'ext_llanta_tras_izq' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+            CASE ch."respuestasSemanal"->>'ext_llanta_del_izq' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+            CASE ch."respuestasSemanal"->>'ext_llanta_refaccion' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END
+          ]) AS t(v)
+        )
+          WHEN 100 THEN '100% (NUEVA)'
+          WHEN 75 THEN '75%'
+          WHEN 50 THEN '50%'
+          WHEN 25 THEN '25%'
+          WHEN 0 THEN '0% (REEMPLAZAR)'
+          ELSE NULL
+        END)`,
+        opciones: [
+          { valor: "100% (NUEVA)", label: "100% (nueva)" },
+          { valor: "75%", label: "75%" },
+          { valor: "50%", label: "50%" },
+          { valor: "25%", label: "25%" },
+          { valor: "0% (REEMPLAZAR)", label: "0% (reemplazar)" },
+        ],
+      },
     ],
   },
   {
