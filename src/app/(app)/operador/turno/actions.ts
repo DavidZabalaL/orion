@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { tienePermisoModulo, puedeLiberarUnidadAjena } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
@@ -49,7 +50,15 @@ export async function tomarUnidad(numeroEconomico: string): Promise<ResultadoTur
     });
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("Esta unidad ya está tomada")) return { ok: false, error: e.message };
-    // Violación del índice único parcial (carrera real entre dos "tomar" simultáneos).
+    // Violación de alguno de los índices únicos parciales (carrera real entre
+    // dos "tomar" simultáneos) — distingue cuál para dar un mensaje preciso:
+    // la unidad se la ganó alguien más, o yo mismo ya tengo otra tomada
+    // (ej. doble clic o dos pestañas) y esa carrera impidió cerrarla a tiempo.
+    const target = e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" ? e.meta?.target : undefined;
+    const esMiPropiaIdentidad = typeof target === "string" && (target.includes("operadorId") || target.includes("usuarioId"));
+    if (esMiPropiaIdentidad) {
+      return { ok: false, error: "Ya tienes otra unidad tomada (puede ser por un doble clic o dos pestañas abiertas). Actualiza la página e intenta de nuevo." };
+    }
     return { ok: false, error: "Esta unidad acaba de ser tomada por otra persona. Actualiza la página e intenta de nuevo." };
   }
 
