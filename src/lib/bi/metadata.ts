@@ -163,7 +163,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Inventario de unidades",
     from: `"Unidad" u LEFT JOIN "Proyecto" p ON p.id = u."proyectoId" LEFT JOIN "Operador" r ON r.id = u."resguardanteId"`,
     proyectoScopeExpr: `u."proyectoId"`,
-    tablasBase: ["Unidad", "Proyecto", "Operador"],
+    tablasBase: ["Unidad", "Proyecto", "Operador", "HistoricoDisponibilidadUnidad", "GastoVehicular"],
     campos: [
       // Máxima granularidad posible (1 fila = 1 unidad) — útil como eje X
       // para ver un campo "por unidad" en vez de agrupado/promediado, igual
@@ -287,6 +287,42 @@ export const BI_DATASETS: DatasetMeta[] = [
             AND h."desde" < NOW()
             AND (h."hasta" IS NULL OR h."hasta" > date_trunc('month', NOW()))
         )`,
+      },
+      {
+        id: "costoTallerAbierto",
+        label: "Costo acumulado en taller (periodo actual)",
+        tipo: "numero",
+        sufijo: " MXN",
+        // Solo "suma" tiene sentido: es el gasto acumulado de las unidades
+        // HOY no disponibles, igual al widget de /unidades/no-disponibles —
+        // NULL (excluido) en unidades disponibles, nunca 0, para no inflar
+        // un promedio con unidades que no están en taller.
+        agregacionesPermitidas: ["suma"],
+        expr: `(CASE WHEN NOT u."disponibilidad" THEN (
+          SELECT COALESCE(SUM(g."costo"), 0)
+          FROM "GastoVehicular" g
+          WHERE g."numeroEconomico" = u."numeroEconomico"
+            AND g."fecha" >= (
+              SELECT h."desde" FROM "HistoricoDisponibilidadUnidad" h
+              WHERE h."numeroEconomico" = u."numeroEconomico" AND h."hasta" IS NULL
+              ORDER BY h."desde" DESC LIMIT 1
+            )
+        ) ELSE NULL END)`,
+      },
+      {
+        id: "diasTallerAbierto",
+        label: "Días en taller (periodo actual)",
+        tipo: "numero",
+        // Solo "promedio" tiene sentido (días promedio en taller de las
+        // unidades hoy no disponibles) — sumarlo entre unidades no
+        // representa nada real. NULL (excluido) en unidades disponibles.
+        agregacionesPermitidas: ["promedio"],
+        expr: `(CASE WHEN NOT u."disponibilidad" THEN (
+          SELECT ROUND(EXTRACT(EPOCH FROM (NOW() - h."desde")) / 86400)
+          FROM "HistoricoDisponibilidadUnidad" h
+          WHERE h."numeroEconomico" = u."numeroEconomico" AND h."hasta" IS NULL
+          ORDER BY h."desde" DESC LIMIT 1
+        ) ELSE NULL END)`,
       },
       {
         id: "disponibilidadPct",

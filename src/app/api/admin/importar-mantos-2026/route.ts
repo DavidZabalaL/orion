@@ -155,7 +155,7 @@ export async function GET() {
   }
 
   revalidatePath("/mantenimiento");
-  invalidarCacheBI(["mantenimiento", "presupuesto_partida"]);
+  invalidarCacheBI(["mantenimiento", "presupuesto_partida", "unidades"]);
 
   return NextResponse.json({
     ...resultado,
