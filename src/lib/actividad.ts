@@ -224,7 +224,16 @@ export async function buscarTrazabilidad(query: string): Promise<EventoTrazabili
   if (!q) return [];
 
   const filas = await prisma.activityLog.findMany({
-    where: { OR: [{ entidadId: { contains: q, mode: "insensitive" } }, { entidad: { contains: q, mode: "insensitive" } }] },
+    where: {
+      OR: [
+        { entidadId: { contains: q, mode: "insensitive" } },
+        { entidad: { contains: q, mode: "insensitive" } },
+        // Busca también por quién hizo la acción — cubre "buscar por operador",
+        // ya que el usuario que registra un checklist/movimiento suele ser el
+        // operador mismo (o Control Vehicular a su nombre).
+        { usuario: { nombre: { contains: q, mode: "insensitive" } } },
+      ],
+    },
     include: { usuario: { select: { nombre: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,

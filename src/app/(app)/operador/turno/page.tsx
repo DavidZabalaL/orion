@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Search } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenerDatosTurno, obtenerBitacoraUsoTodos } from "./actions";
@@ -27,7 +28,7 @@ function duracionTexto(inicio: Date, fin: Date | null): string {
 export default async function PageTurnoOperador({
   searchParams,
 }: {
-  searchParams: Promise<{ proyectoId?: string; tipoVehiculo?: string; estatus?: string; desde?: string; hasta?: string }>;
+  searchParams: Promise<{ proyectoId?: string; tipoVehiculo?: string; estatus?: string; desde?: string; hasta?: string; q?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/iniciar-sesion");
@@ -49,7 +50,7 @@ export default async function PageTurnoOperador({
   let seccionConsulta = null;
   if (puedeConsultarTodos) {
     const proyectosPermitidos = await proyectosPermitidosParaModulo("O");
-    const { proyectoId, tipoVehiculo, estatus, desde: desdeParam, hasta: hastaParam } = await searchParams;
+    const { proyectoId, tipoVehiculo, estatus, desde: desdeParam, hasta: hastaParam, q } = await searchParams;
     const desde = parseFechaLocalMx(desdeParam) ?? inicioDeMesMx();
     const hasta = parseFechaLocalMx(hastaParam) ?? new Date();
     const estatusFiltro = estatus === "tomada" || estatus === "liberada" ? estatus : undefined;
@@ -67,6 +68,7 @@ export default async function PageTurnoOperador({
         proyectosPermitidos,
         desde,
         hasta,
+        q: q || undefined,
       }),
       puedeLiberarUnidadAjena(),
     ]);
@@ -83,6 +85,20 @@ export default async function PageTurnoOperador({
         </div>
 
         <form className="flex flex-wrap items-end gap-2" data-no-print>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Buscar</label>
+            <div className="relative">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color="var(--sidebar-text)" />
+              <input
+                type="text"
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Unidad u operador…"
+                className="rounded-md pl-9 pr-3"
+                style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", minWidth: 220 }}
+              />
+            </div>
+          </div>
           <div>
             <label style={{ display: "block", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginBottom: 4 }}>Proyecto</label>
             <select

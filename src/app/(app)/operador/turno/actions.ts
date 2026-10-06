@@ -208,6 +208,8 @@ export type FiltrosBitacoraAdmin = {
   proyectosPermitidos: string[] | null;
   desde: Date;
   hasta: Date;
+  /** Búsqueda libre por número económico, operador/usuario que la tomó. */
+  q?: string;
 };
 
 /** Consulta consolidada de toda la bitácora de uso de unidades, para quien tenga permiso de ver el módulo "O". */
@@ -228,6 +230,8 @@ export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Pr
         ? filtros.proyectosPermitidos.filter((id) => id === filtros.proyectoId)
         : filtros.proyectosPermitidos;
 
+  const q = filtros.q?.trim();
+
   const registros = await prisma.bitacoraUsoUnidad.findMany({
     where: {
       inicio: { gte: filtros.desde, lte: filtros.hasta },
@@ -236,6 +240,15 @@ export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Pr
         ...(filtros.tipoVehiculo ? { tipoVehiculo: filtros.tipoVehiculo } : {}),
       },
       ...(filtros.estatus === "tomada" ? { fin: null } : filtros.estatus === "liberada" ? { fin: { not: null } } : {}),
+      ...(q
+        ? {
+            OR: [
+              { numeroEconomico: { contains: q, mode: "insensitive" } },
+              { operador: { nombre: { contains: q, mode: "insensitive" } } },
+              { usuario: { nombre: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
     },
     include: {
       operador: { select: { nombre: true } },

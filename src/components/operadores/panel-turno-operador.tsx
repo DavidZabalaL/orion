@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Car, Clock, CheckCircle2, LogIn, LogOut, RefreshCw } from "lucide-react";
+import { Car, Clock, CheckCircle2, LogIn, LogOut, RefreshCw, Search } from "lucide-react";
 import { tomarUnidad, liberarUnidad, type DatosTurno } from "@/app/(app)/operador/turno/actions";
 
 function duracion(inicio: Date, fin: Date | null): string {
@@ -23,9 +23,20 @@ export function PanelTurnoOperador({ datos }: { datos: DatosTurno }) {
     datos.sesionActiva?.numeroEconomico ?? ""
   );
   const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const sesionActiva = datos.sesionActiva;
   const mismaUnidad = sesionActiva?.numeroEconomico === unidadSeleccionada;
+
+  const q = busqueda.trim().toLowerCase();
+  const unidadesFiltradas = q
+    ? datos.unidadesDisponibles.filter(
+        (u) =>
+          u.numeroEconomico.toLowerCase().includes(q) ||
+          u.marcaModelo.toLowerCase().includes(q) ||
+          u.placas.toLowerCase().includes(q)
+      )
+    : datos.unidadesDisponibles;
 
   function handleTomar() {
     if (!unidadSeleccionada) return;
@@ -96,6 +107,24 @@ export function PanelTurnoOperador({ datos }: { datos: DatosTurno }) {
             >
               Seleccionar unidad
             </label>
+            <div className="relative" style={{ marginBottom: 8 }}>
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color="var(--sidebar-text)" />
+              <input
+                type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar unidad por número económico, modelo o placas…"
+                className="w-full rounded-md pl-9 pr-3"
+                style={{
+                  height: "var(--h-md)",
+                  background: "var(--field-bg)",
+                  border: "1px solid var(--field-border)",
+                  color: "var(--field-text)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: "var(--text-base)",
+                }}
+              />
+            </div>
             <select
               value={unidadSeleccionada}
               onChange={(e) => setUnidadSeleccionada(e.target.value)}
@@ -113,7 +142,7 @@ export function PanelTurnoOperador({ datos }: { datos: DatosTurno }) {
               }}
             >
               <option value="">-- Elige una unidad --</option>
-              {datos.unidadesDisponibles.map((u) => (
+              {unidadesFiltradas.map((u) => (
                 <option key={u.numeroEconomico} value={u.numeroEconomico}>
                   {u.numeroEconomico} · {u.marcaModelo} · {u.placas}
                 </option>
