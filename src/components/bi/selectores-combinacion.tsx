@@ -388,7 +388,7 @@ const chipStyle: React.CSSProperties = {
 };
 
 /** Nacional (todos los proyectos permitidos por el rol) o una selección específica — el servidor siempre intersecta esto con lo que el rol realmente puede ver. */
-function AlcanceProyecto({
+export function AlcanceProyecto({
   combinacion,
   onChange,
   proyectosDisponibles,

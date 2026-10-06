@@ -993,6 +993,10 @@ export type CombinacionGuardable = {
   escuchaFiltro?: boolean;
   /** Semáforo condicional por columna/valor en la vista de tabla (mayor/menor/igual/entre/personalizada + color) — ver src/lib/bi/reglas-color.ts. Puramente visual, no afecta la consulta. */
   reglasColor?: import("@/lib/bi/reglas-color").ReglaColorColumna[];
+  /** Tipo de widget: "grafica" (default, lo de siempre — agrupado por ejeX/ejeY/agregacion) o "tabla_filas" (tabla de registros crudos con columnas libres, sin agrupar). En "tabla_filas", ejeX/ejeY/agregacion/tipoGrafica se ignoran (quedan con un valor de relleno al crearlo). */
+  tipoWidget?: "grafica" | "tabla_filas";
+  /** Solo con tipoWidget "tabla_filas": campoIds del dataset a mostrar como columnas, en orden. */
+  columnas?: string[];
 };
 
 /** Combinaciones curadas de arranque (MVP), antes de abrir el selector libre. */

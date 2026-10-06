@@ -9,6 +9,7 @@ import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } fr
 import { Pencil, Plus, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
 import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI, type FiltroGuardable } from "@/lib/bi/metadata";
 import { BiCard } from "@/components/bi/bi-card";
+import { BiCardTablaFilas } from "@/components/bi/bi-card-tabla-filas";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
@@ -259,30 +260,43 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
             >
               {widgets.map((w) => (
                 <div key={w.id}>
-                  <BiCard
-                    label={w.label}
-                    dataset={w.dataset}
-                    ejeX={w.ejeX}
-                    ejeY={w.ejeY}
-                    agregacion={w.agregacion}
-                    tipoGrafica={w.tipoGrafica}
-                    ejeSplit={w.ejeSplit}
-                    ejeMeta={w.ejeMeta}
-                    filtros={w.filtros}
-                    proyectoIds={w.proyectoIds}
-                    orden={w.orden}
-                    orientacion={w.orientacion}
-                    colorimetria={w.colorimetria}
-                    reglasColor={w.reglasColor}
-                    vistaPreferida={w.vistaPreferida}
-                    editMode={editMode}
-                    onEditar={() => setFormulario({ editarId: w.id })}
-                    onEliminar={() => eliminarWidget(w.id)}
-                    emiteFiltro={w.emiteFiltro}
-                    escuchaFiltro={w.escuchaFiltro}
-                    filtroInteraccion={filtroInteraccion}
-                    onCategoriaClick={manejarDrillDown}
-                  />
+                  {w.tipoWidget === "tabla_filas" ? (
+                    <BiCardTablaFilas
+                      label={w.label}
+                      dataset={w.dataset}
+                      columnas={w.columnas ?? []}
+                      filtros={w.filtros}
+                      proyectoIds={w.proyectoIds}
+                      editMode={editMode}
+                      onEditar={() => setFormulario({ editarId: w.id })}
+                      onEliminar={() => eliminarWidget(w.id)}
+                    />
+                  ) : (
+                    <BiCard
+                      label={w.label}
+                      dataset={w.dataset}
+                      ejeX={w.ejeX}
+                      ejeY={w.ejeY}
+                      agregacion={w.agregacion}
+                      tipoGrafica={w.tipoGrafica}
+                      ejeSplit={w.ejeSplit}
+                      ejeMeta={w.ejeMeta}
+                      filtros={w.filtros}
+                      proyectoIds={w.proyectoIds}
+                      orden={w.orden}
+                      orientacion={w.orientacion}
+                      colorimetria={w.colorimetria}
+                      reglasColor={w.reglasColor}
+                      vistaPreferida={w.vistaPreferida}
+                      editMode={editMode}
+                      onEditar={() => setFormulario({ editarId: w.id })}
+                      onEliminar={() => eliminarWidget(w.id)}
+                      emiteFiltro={w.emiteFiltro}
+                      escuchaFiltro={w.escuchaFiltro}
+                      filtroInteraccion={filtroInteraccion}
+                      onCategoriaClick={manejarDrillDown}
+                    />
+                  )}
                 </div>
               ))}
             </Responsive>
@@ -369,6 +383,8 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                           filtros: widgetEditando.filtros,
                           proyectoIds: widgetEditando.proyectoIds,
                         },
+                        tipoWidget: widgetEditando.tipoWidget,
+                        columnas: widgetEditando.columnas,
                         emiteFiltro: widgetEditando.emiteFiltro,
                         escuchaFiltro: widgetEditando.escuchaFiltro,
                       }

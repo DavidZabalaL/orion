@@ -153,6 +153,58 @@ export function validarParamsSimple(datasetId: string, ejeXId: string, ejeYId: s
   return { dataset, campoX, campoY, agregacion };
 }
 
+export const MAX_COLUMNAS_TABLA = 15;
+export const MAX_FILAS_TABLA = 500;
+
+/** Valida una lista de campoIds para el widget "tabla_filas" — mismo whitelist que cualquier otro campo (obtenerCampo), nunca nombres de columna crudos del cliente. */
+export function validarColumnasTabla(dataset: DatasetMeta, columnaIds: unknown): CampoMeta[] | null {
+  if (!Array.isArray(columnaIds) || columnaIds.length === 0 || columnaIds.length > MAX_COLUMNAS_TABLA) return null;
+  const campos: CampoMeta[] = [];
+  for (const id of columnaIds) {
+    if (typeof id !== "string") return null;
+    const campo = obtenerCampo(dataset, id);
+    if (!campo) return null;
+    campos.push(campo);
+  }
+  return campos;
+}
+
+export type ResultadoTablaFilas = {
+  dataset: string;
+  columnas: { id: string; label: string }[];
+  filas: Record<string, string | number | null>[];
+  truncado: boolean;
+};
+
+/** Núcleo de la consulta "tabla_filas": SELECT de columnas libres, una fila = un registro (sin GROUP BY) — usado por /api/bi/query para el widget de tabla del dashboard personalizado. */
+export async function ejecutarTablaFilas(
+  dataset: DatasetMeta,
+  columnas: CampoMeta[],
+  filtros: Filtro[] | undefined,
+  alcance: Prisma.Sql,
+  llaveAlcance: string,
+  filtrosLlave: string
+): Promise<ResultadoTablaFilas> {
+  return cachearConsultaBI(dataset.id, ["tabla_filas", columnas.map((c) => c.id).join(","), filtrosLlave, llaveAlcance], async () => {
+    const selects = columnas.map((c) => Prisma.sql`${campoExpr(c)} AS ${Prisma.raw(`"${c.id}"`)}`);
+    const where = construirWhere(dataset, filtros, [alcance]);
+    const query = Prisma.sql`
+      SELECT ${Prisma.join(selects, ", ")}
+      FROM ${Prisma.raw(dataset.from)}
+      ${where}
+      ORDER BY ${campoExpr(columnas[0])} ASC
+      LIMIT ${MAX_FILAS_TABLA + 1}
+    `;
+    const filas = await prisma.$queryRaw<Record<string, string | number | null>[]>(query);
+    return {
+      dataset: dataset.id,
+      columnas: columnas.map((c) => ({ id: c.id, label: c.label })),
+      filas: filas.slice(0, MAX_FILAS_TABLA),
+      truncado: filas.length > MAX_FILAS_TABLA,
+    };
+  });
+}
+
 export type ResultadoSimple = {
   dataset: string;
   ejeX: { id: string; label: string };

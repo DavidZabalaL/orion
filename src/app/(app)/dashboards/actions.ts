@@ -30,6 +30,7 @@ import {
   type LayoutWidget,
   type DatasetMeta,
 } from "@/lib/bi/metadata";
+import { validarColumnasTabla } from "@/lib/bi/motor-consultas";
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
@@ -73,14 +74,51 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro, tipoWidget, columnas } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
-    if (typeof dataset !== "string" || typeof ejeX !== "string" || typeof ejeY !== "string") return null;
-    if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
-    if (agregacion !== "conteo" && agregacion !== "suma" && agregacion !== "promedio") return null;
+    if (typeof dataset !== "string") return null;
 
     const ds = obtenerDataset(dataset);
     if (!ds) return null;
+
+    // "tabla_filas": tabla de registros con columnas libres, sin ejeX/ejeY/
+    // tipoGrafica/agregacion — se valida y se construye por separado, con
+    // valores de relleno para esos campos (el tipo WidgetDashboardBI los
+    // sigue requiriendo, pero no se usan en este modo).
+    if (tipoWidget === "tabla_filas") {
+      const camposTabla = validarColumnasTabla(ds, columnas);
+      if (!camposTabla) return null;
+
+      const filtrosLimpiosTabla = validarFiltros(filtros, ds);
+      if (filtrosLimpiosTabla === null) return null;
+
+      const proyectoIdsLimpiosTabla = validarProyectoIds(proyectoIds);
+      if (proyectoIdsLimpiosTabla === null) return null;
+
+      const layoutValidoTabla = validarLayout(layout);
+      if (!layoutValidoTabla) return null;
+
+      limpios.push({
+        id,
+        label: label.slice(0, 120),
+        dataset,
+        tipoWidget: "tabla_filas",
+        columnas: camposTabla.map((c) => c.id),
+        // Relleno: este widget no usa estos 4 campos (ver tipoWidget arriba).
+        ejeX: camposTabla[0].id,
+        ejeY: camposTabla[0].id,
+        agregacion: "conteo",
+        tipoGrafica: "barras",
+        filtros: filtrosLimpiosTabla,
+        proyectoIds: proyectoIdsLimpiosTabla,
+        layout: layoutValidoTabla,
+      });
+      continue;
+    }
+
+    if (typeof ejeX !== "string" || typeof ejeY !== "string") return null;
+    if (!TIPOS_GRAFICA_VALIDOS.includes(tipoGrafica as TipoGrafica)) return null;
+    if (agregacion !== "conteo" && agregacion !== "suma" && agregacion !== "promedio") return null;
     const requisitos = REQUISITOS_TIPO_GRAFICA[tipoGrafica as TipoGrafica];
     const campoX = obtenerCampo(ds, ejeX);
     if (!campoX || !campoValidoParaEje(campoX, requisitos.ejeX)) return null;

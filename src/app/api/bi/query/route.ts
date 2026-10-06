@@ -25,9 +25,11 @@ import {
   ejeYLabelSimple,
   ejeYSufijo,
   ejecutarSimple,
+  validarColumnasTabla,
+  ejecutarTablaFilas,
 } from "@/lib/bi/motor-consultas";
 
-type TipoAnalisis = "simple" | "variacion" | "cohorte" | "funnel";
+type TipoAnalisis = "simple" | "variacion" | "cohorte" | "funnel" | "tabla_filas";
 type Comparacion = "periodo_anterior" | "mismo_periodo_anio_anterior";
 
 type BiQueryBody = {
@@ -50,6 +52,8 @@ type BiQueryBody = {
   rellenarHuecos?: boolean;
   /** Solo con tipoAnalisis "funnel": etapas acumulativas, en orden, sobre el mismo dataset. */
   etapas?: { campoId: string; valores: string[] }[];
+  /** Solo con tipoAnalisis "tabla_filas": campoIds del dataset a mostrar como columnas (una fila = un registro, sin agrupar). */
+  columnas?: string[];
 };
 
 const LIMITE_DISPERSION = 500;
@@ -96,6 +100,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       return await consultarCohorte(dataset, body.filtros, alcance, llaveAlcance);
     } catch (error) {
       console.error("Error en /api/bi/query (cohorte)", error);
+      return NextResponse.json({ error: "No se pudo ejecutar la consulta." }, { status: 500 });
+    }
+  }
+  if (body.tipoAnalisis === "tabla_filas") {
+    const columnas = validarColumnasTabla(dataset, body.columnas);
+    if (!columnas) return NextResponse.json({ error: "Columnas inválidas para este dataset." }, { status: 400 });
+    try {
+      const { condicion: alcance, llave: llaveAlcance } = await resolverAlcanceProyecto(dataset, body.proyectoIds);
+      const filtrosLlave = JSON.stringify(body.filtros ?? []);
+      const resultado = await ejecutarTablaFilas(dataset, columnas, body.filtros, alcance, llaveAlcance, filtrosLlave);
+      return NextResponse.json(resultado);
+    } catch (error) {
+      console.error("Error en /api/bi/query (tabla_filas)", error);
       return NextResponse.json({ error: "No se pudo ejecutar la consulta." }, { status: 500 });
     }
   }
