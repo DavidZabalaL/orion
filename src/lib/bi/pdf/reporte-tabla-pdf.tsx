@@ -4,7 +4,7 @@
 // portar gráficas fieles queda como mejora incremental posterior).
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { FilaReporte } from "@/lib/bi/ejecutar-reporte";
-import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
+import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 const estilos = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica" },
@@ -22,6 +22,9 @@ export async function generarPdfReporte(
   filas: FilaReporte[],
   reglasColor?: ReglaColorColumna[]
 ): Promise<Buffer> {
+  const promedioPorColumna = Object.fromEntries(
+    columnas.map((c) => [c.key, promedioDe(filas.map((f) => f[c.key]).filter((v): v is number => typeof v === "number"))])
+  );
   const documento = (
     <Document>
       <Page size="LETTER" style={estilos.page}>
@@ -41,7 +44,7 @@ export async function generarPdfReporte(
             <View key={i} style={estilos.fila}>
               {columnas.map((c) => {
                 const valor = fila[c.key];
-                const color = typeof valor === "number" ? colorParaValor(valor, c.label, reglasColor) : null;
+                const color = typeof valor === "number" ? colorParaValor(valor, c.label, reglasColor, promedioPorColumna[c.key]) : null;
                 return (
                   <Text key={c.key} style={color ? { ...estilos.celda, color, fontWeight: 700 } : estilos.celda}>
                     {String(valor ?? "")}

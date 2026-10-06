@@ -4,7 +4,7 @@
 // "Personalizada" es una comparación simple (ej. ">=100") parseada con un
 // whitelist de operadores fijo — nunca se evalúa como código (sin eval()).
 
-export type OperadorReglaColor = "mayor" | "menor" | "igual" | "entre" | "personalizada";
+export type OperadorReglaColor = "mayor" | "menor" | "igual" | "entre" | "personalizada" | "sobre_promedio" | "bajo_promedio";
 
 export type ReglaColorColumna = {
   id: string;
@@ -24,6 +24,8 @@ export const OPERADOR_REGLA_COLOR_LABEL: Record<OperadorReglaColor, string> = {
   igual: "Igual a",
   entre: "Entre",
   personalizada: "Personalizada",
+  sobre_promedio: "Por arriba del promedio",
+  bajo_promedio: "Por debajo del promedio",
 };
 
 export const COLORES_REGLA_PRESET: { valor: string; label: string }[] = [
@@ -54,7 +56,14 @@ function evaluarExpresion(valor: number, expresion: string): boolean {
   return false;
 }
 
-export function cumpleRegla(valor: number, regla: ReglaColorColumna): boolean {
+/**
+ * `promedio`: solo tiene efecto con operador "sobre_promedio"/"bajo_promedio"
+ * — el promedio de la MISMA serie de valores que se está coloreando (ej. el
+ * promedio de todas las barras de una gráfica), no un umbral fijo que
+ * alguien captura. Sin `promedio` (undefined), esas dos reglas nunca aplican
+ * — no hay nada inventado contra qué comparar.
+ */
+export function cumpleRegla(valor: number, regla: ReglaColorColumna, promedio?: number): boolean {
   switch (regla.operador) {
     case "mayor":
       return regla.valor !== undefined && valor > regla.valor;
@@ -66,15 +75,25 @@ export function cumpleRegla(valor: number, regla: ReglaColorColumna): boolean {
       return regla.valorMin !== undefined && regla.valorMax !== undefined && valor >= regla.valorMin && valor <= regla.valorMax;
     case "personalizada":
       return !!regla.expresion && evaluarExpresion(valor, regla.expresion);
+    case "sobre_promedio":
+      return promedio !== undefined && valor > promedio;
+    case "bajo_promedio":
+      return promedio !== undefined && valor < promedio;
   }
 }
 
 /** Primera regla que aplique a `valor` en esta columna (o a todas, si la regla no especifica columna) — null si ninguna aplica. */
-export function colorParaValor(valor: number, columna: string, reglas: ReglaColorColumna[] | undefined): string | null {
+export function colorParaValor(valor: number, columna: string, reglas: ReglaColorColumna[] | undefined, promedio?: number): string | null {
   if (!reglas) return null;
   for (const regla of reglas) {
     if (regla.columna && regla.columna !== columna) continue;
-    if (cumpleRegla(valor, regla)) return regla.color;
+    if (cumpleRegla(valor, regla, promedio)) return regla.color;
   }
   return null;
+}
+
+/** Promedio simple de una serie — helper compartido para pasarlo a `colorParaValor` cuando se colorea una lista completa (tabla, barras). */
+export function promedioDe(valores: number[]): number | undefined {
+  if (valores.length === 0) return undefined;
+  return valores.reduce((acc, v) => acc + v, 0) / valores.length;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
+import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
@@ -23,6 +23,7 @@ export function TablaSimple({
   reglasColor?: ReglaColorColumna[];
 }) {
   const total = datos.reduce((acc, d) => acc + d.valor, 0);
+  const promedio = promedioDe(datos.map((d) => d.valor));
 
   return (
     <table className="w-full" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
@@ -40,7 +41,7 @@ export function TablaSimple({
           </tr>
         )}
         {datos.map((d) => {
-          const color = colorParaValor(d.valor, ejeYLabel, reglasColor);
+          const color = colorParaValor(d.valor, ejeYLabel, reglasColor, promedio);
           return (
             <tr key={d.dimension} style={{ borderTop: "1px solid var(--field-border)", color: "var(--sidebar-text-active)" }}>
               <td className="py-2">{d.dimension}</td>

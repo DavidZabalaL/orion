@@ -1,13 +1,13 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
-import { blobProxy } from "@/lib/blob";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
+import { Panel, SeccionTitulo, FilaItem, ColorChip } from "@/components/ui/documento-panel";
 import { fmtFechaHora } from "@/lib/formato";
-import { todasLasClavesFoto, VALORES_ALERTA_SEMANAL } from "@/lib/checklist-semanal";
+import { todasLasClavesFoto, VALORES_ALERTA_SEMANAL, SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 
 type ChecklistSemanalRow = {
   id: string;
@@ -18,7 +18,6 @@ type ChecklistSemanalRow = {
 };
 
 const CLAVES_FOTO = new Set([...todasLasClavesFoto(), "fotoLicenciaUrl"]);
-const CLAVES_META = new Set(["oficinaSede", "licenciaPermanente", "fotoLicenciaUrl", "modelo", "tipoVehiculo"]);
 
 export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSemanalRow[] }) {
   const [busqueda, setBusqueda] = useState("");
@@ -67,37 +66,35 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
                 {expandido === c.id && (
                   <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
                     <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                      <div className="flex flex-col gap-4">
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                          {Object.entries(respuestas)
-                            .filter(([k]) => !CLAVES_FOTO.has(k) && !CLAVES_META.has(k))
-                            .map(([k, v]) => (
-                              <div key={k}>
-                                <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>{k}</div>
-                                <div className="flex items-center gap-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: VALORES_ALERTA_SEMANAL.has(v) ? "var(--color-status-escena)" : "var(--field-text)" }}>
-                                  {VALORES_ALERTA_SEMANAL.has(v) && <TriangleAlert size={12} />} {v}
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                        {(() => {
-                          const fotos = Object.entries(respuestas).filter(([k, v]) => CLAVES_FOTO.has(k) && v);
-                          return fotos.length > 0 ? (
-                            <div>
-                              <div className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>
-                                Evidencia fotográfica ({fotos.length})
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {fotos.map(([k, url]) => (
-                                  <a key={k} href={blobProxy(url)} target="_blank" rel="noopener noreferrer" title={k}>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={blobProxy(url)} alt={k} className="rounded-lg object-cover" style={{ width: 90, height: 90 }} />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null;
-                        })()}
+                      <div className="flex flex-col gap-3">
+                        {SECCIONES_CHECKLIST_SEMANAL.map((seccion) => {
+                          const filas: { label: string; valor: string | null; foto: string | null }[] = [];
+                          for (const campo of seccion.campos) {
+                            if (campo.tipo === "foto") {
+                              const url = respuestas[campo.key];
+                              if (url) filas.push({ label: campo.label, valor: null, foto: url });
+                            } else {
+                              const valor = respuestas[campo.key];
+                              if (!valor) continue;
+                              const foto = "fotoKey" in campo && campo.fotoKey ? (respuestas[campo.fotoKey] || null) : null;
+                              filas.push({ label: campo.label, valor, foto });
+                            }
+                          }
+                          if (!filas.length) return null;
+                          return (
+                            <Panel key={seccion.key}>
+                              <SeccionTitulo titulo={seccion.titulo} />
+                              {filas.map((fila, i) => (
+                                <FilaItem
+                                  key={i}
+                                  label={fila.label}
+                                  badge={fila.valor ? <ColorChip value={fila.valor} /> : null}
+                                  foto={fila.foto ?? undefined}
+                                />
+                              ))}
+                            </Panel>
+                          );
+                        })}
                       </div>
                     </td>
                   </tr>

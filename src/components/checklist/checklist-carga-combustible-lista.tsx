@@ -1,23 +1,31 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { blobProxy } from "@/lib/blob";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
+import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 import { Panel, SeccionTitulo, FilaItem } from "@/components/ui/documento-panel";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
+import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
 
 type ChecklistCargaCombustibleRow = {
   id: string;
   fecha: string;
-  unidad: { numeroEconomico: string; marca: string; unidadModelo: string };
+  unidad: { numeroEconomico: string; marca: string; unidadModelo: string; capacidadTanqueLitros: string | null };
   respuestasSemanal: Record<string, string> | null;
   capturadoPor: { nombre: string } | null;
 };
 
-export function ChecklistCargaCombustibleLista({ checklists }: { checklists: ChecklistCargaCombustibleRow[] }) {
+export function ChecklistCargaCombustibleLista({
+  checklists,
+  precioPromedioLitro,
+}: {
+  checklists: ChecklistCargaCombustibleRow[];
+  precioPromedioLitro: number | null;
+}) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
 
@@ -33,9 +41,17 @@ export function ChecklistCargaCombustibleLista({ checklists }: { checklists: Che
       {filtrados.length === 0 ? (
         <EmptyState>Sin cargas de combustible capturadas hoy.</EmptyState>
       ) : (
-        <Table headers={["Hora", "Unidad", "Combustible", "Responsable", ""]} minWidth={700}>
+        <Table headers={["Hora", "Unidad", "Combustible", "Responsable", "Alertas", ""]} minWidth={760}>
           {filtrados.map((c) => {
             const respuestas = c.respuestasSemanal ?? {};
+            const alertas = detectarAlertasCargaCombustible({
+              porcentajeAntes: respuestas.porcentaje_antes,
+              porcentajeDespues: respuestas.porcentaje_despues,
+              litrosCargados: respuestas.litros_cargados,
+              cantidadPagada: respuestas.cantidad_pagada,
+              capacidadTanqueLitros: c.unidad.capacidadTanqueLitros ? Number(c.unidad.capacidadTanqueLitros) : null,
+              precioPromedioLitro,
+            });
             return (
               <Fragment key={c.id}>
                 <tr style={{ borderBottom: expandido === c.id ? "none" : "1px solid var(--field-border)" }}>
@@ -43,6 +59,13 @@ export function ChecklistCargaCombustibleLista({ checklists }: { checklists: Che
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{c.unidad.numeroEconomico}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{respuestas.tipo_combustible ?? "—"}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{respuestas.responsable ?? c.capturadoPor?.nombre ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    {alertas.length > 0 ? (
+                      <Badge label={`${alertas.length} alerta(s)`} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+                    ) : (
+                      <Badge label="Sin alertas" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setExpandido((e) => (e === c.id ? null : c.id))}
@@ -55,8 +78,8 @@ export function ChecklistCargaCombustibleLista({ checklists }: { checklists: Che
                 </tr>
                 {expandido === c.id && (
                   <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                    <td colSpan={5} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
-                      <DetalleCargaCombustible respuestas={respuestas} />
+                    <td colSpan={6} className="px-4 py-4" style={{ background: "var(--field-bg)" }}>
+                      <DetalleCargaCombustible respuestas={respuestas} alertas={alertas} />
                     </td>
                   </tr>
                 )}
@@ -69,9 +92,42 @@ export function ChecklistCargaCombustibleLista({ checklists }: { checklists: Che
   );
 }
 
-function DetalleCargaCombustible({ respuestas }: { respuestas: Record<string, string> }) {
+function DetalleCargaCombustible({ respuestas, alertas }: { respuestas: Record<string, string>; alertas: string[] }) {
+  const camposCarga = [
+    { label: "% de combustible antes", value: respuestas.porcentaje_antes },
+    { label: "% de combustible después", value: respuestas.porcentaje_despues },
+    { label: "Litros cargados", value: respuestas.litros_cargados },
+    { label: "Importe cobrado", value: respuestas.cantidad_pagada ? `$${respuestas.cantidad_pagada}` : undefined },
+  ].filter((c) => c.value);
+
   return (
     <div className="flex flex-col gap-4">
+      {(camposCarga.length > 0 || alertas.length > 0) && (
+        <Panel>
+          <SeccionTitulo titulo="Control de carga" />
+          {camposCarga.map((c) => (
+            <FilaItem
+              key={c.label}
+              label={c.label}
+              badge={
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)", fontWeight: 500 }}>
+                  {c.value}
+                </span>
+              }
+            />
+          ))}
+          {alertas.length > 0 && (
+            <div className="px-5 py-4 flex flex-col gap-2" style={{ borderTop: "1px solid var(--field-border)" }}>
+              {alertas.map((a, i) => (
+                <div key={i} className="flex items-start gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)", fontWeight: 600 }}>
+                  <TriangleAlert size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>{a}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      )}
       {SECCIONES_CARGA_COMBUSTIBLE.map((seccion) => {
         const textoCampos = seccion.campos
           .map((c) => ({ label: c.label, value: respuestas[c.key] }))

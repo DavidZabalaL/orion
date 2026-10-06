@@ -5,7 +5,7 @@ import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } fro
 import { crearChecklistSemanal, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { FirmaPad } from "@/components/checklist/firma-pad";
-import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
+import { SECCIONES_CHECKLIST_SEMANAL, esNoAplica } from "@/lib/checklist-semanal";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
 import { leerBorrador, guardarBorrador, borrarBorrador } from "@/lib/borrador-checklist";
@@ -432,7 +432,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
       case "radio": {
         const val = respuestas[item.key];
         if (!val) return false;
-        if (item.fotoKey && item.fotoRequerido) return tieneFoto(item.fotoKey);
+        if (item.fotoKey && item.fotoRequerido && !esNoAplica(val)) return tieneFoto(item.fotoKey);
         return true;
       }
       case "foto":
@@ -915,7 +915,7 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
                 <button
                   key={op}
                   type="button"
-                  onClick={() => responderRadio(item.key, op, !!(item.fotoKey))}
+                  onClick={() => responderRadio(item.key, op, !!item.fotoKey && !esNoAplica(op))}
                   className="rounded-xl w-full font-semibold text-left transition-all"
                   style={{
                     ...estiloOpcion(op, respuestas[item.key] === op),
@@ -931,8 +931,8 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
               ))}
             </div>
 
-            {/* Foto asociada — aparece al seleccionar una opción */}
-            {respuestas[item.key] && item.fotoKey && (
+            {/* Foto asociada — aparece al seleccionar una opción, salvo "no aplica" */}
+            {respuestas[item.key] && item.fotoKey && !esNoAplica(respuestas[item.key]) && (
               <SubirFoto
                 clave={item.fotoKey}
                 label={item.fotoLabel ?? "Evidencia fotográfica"}

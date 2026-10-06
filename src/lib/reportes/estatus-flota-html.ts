@@ -13,7 +13,7 @@ import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/rep
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
-import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
+import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 
 const NAVY = "#0f1b2d";
@@ -79,10 +79,11 @@ function kpi(valor: string, caption?: string, color?: string | null): string {
 function barrasHorizontal(filas: { label: string; valor: number }[], vacio: string, formatear: (v: number) => string, reglasColor?: ReglaColorColumna[]): string {
   if (filas.length === 0) return `<div style="font-size:11px; color:${SLATE}; font-style:italic;">${esc(vacio)}</div>`;
   const max = Math.max(...filas.map((f) => f.valor));
+  const promedio = promedioDe(filas.map((f) => f.valor));
   return filas
     .map((f, i) => {
       const pct = max > 0 ? Math.max(2, Math.round((f.valor / max) * 100)) : 0;
-      const color = colorParaValor(f.valor, f.label, reglasColor) ?? PALETA_BARRAS[i % PALETA_BARRAS.length];
+      const color = colorParaValor(f.valor, f.label, reglasColor, promedio) ?? PALETA_BARRAS[i % PALETA_BARRAS.length];
       return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
         <tr>

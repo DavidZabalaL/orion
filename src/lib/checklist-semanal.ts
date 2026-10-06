@@ -75,6 +75,15 @@ export const ESTADO_LLANTA = ["100% (NUEVA)", "75%", "50%", "25%", "0% (REEMPLAZ
 // no desincronizar los distintos resúmenes que cuentan lo mismo.
 export const VALORES_ALERTA_SEMANAL = new Set(["MAL ESTADO", "MINIMO", "25%", "0% (REEMPLAZAR)"]);
 
+// Variantes de "no aplica" usadas entre los distintos conjuntos de opciones
+// de este checklist (BUEN_MAL_NA usa "N/A", BUEN_MAL_NA2 usa "NA", ESTADO_4
+// usa "NO APLICA") — cuando el operador responde con cualquiera de estas, no
+// tiene sentido pedirle evidencia fotográfica de algo que no existe en la unidad.
+const ES_NO_APLICA = new Set(["N/A", "NA", "NO APLICA"]);
+export function esNoAplica(valor: string | undefined | null): boolean {
+  return !!valor && ES_NO_APLICA.has(valor.toUpperCase());
+}
+
 export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
   {
     key: "niveles",

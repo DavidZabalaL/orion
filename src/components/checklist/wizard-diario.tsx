@@ -402,7 +402,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
     if (respuestasExtra["ext_tiene_golpes"] === "SÍ" && !tieneFotoExtra("ext_evidencia_golpes_1")) return "Adjunta al menos una foto de evidencia de los golpes.";
     if (!tieneFotoExtra("ext_evidencia_frente")) return "La foto del frente es obligatoria.";
     if (!respuestasExtra["ext_parabrisas_espejos"]) return "Indica el estado del parabrisas y espejos.";
-    if (!tieneFotoExtra("ext_evidencia_parabrisas_espejos")) return "La foto de parabrisas/espejos es obligatoria.";
+    if (respuestasExtra["ext_parabrisas_espejos"] !== "N/A" && !tieneFotoExtra("ext_evidencia_parabrisas_espejos")) return "La foto de parabrisas/espejos es obligatoria.";
     if (!tieneFotoExtra("ext_evidencia_lado_derecho")) return "La foto del lado derecho es obligatoria.";
     if (!tieneFotoExtra("ext_evidencia_parte_trasera")) return "La foto de la parte trasera es obligatoria.";
     if (!tieneFotoExtra("ext_evidencia_lado_izquierdo")) return "La foto del lado izquierdo es obligatoria.";
@@ -915,7 +915,7 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
               </div>
             )}
             {rRadio("ext_parabrisas_espejos", "Estado del parabrisas y espejos", ["BUEN ESTADO", "ESTRELLADO", "ROTO", "N/A"])}
-            {rFoto("ext_evidencia_parabrisas_espejos", "Foto parabrisas y espejos")}
+            {respuestasExtra["ext_parabrisas_espejos"] !== "N/A" && rFoto("ext_evidencia_parabrisas_espejos", "Foto parabrisas y espejos")}
             {rFoto("ext_evidencia_frente", "Foto frente del vehículo")}
             {rFoto("ext_evidencia_lado_derecho", "Foto lado derecho")}
             {rFoto("ext_evidencia_parte_trasera", "Foto parte trasera")}

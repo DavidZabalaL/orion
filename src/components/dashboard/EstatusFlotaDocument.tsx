@@ -8,7 +8,7 @@ import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/rep
 import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
-import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
+import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 // Paleta Grupo Kabat — mismo azul/marino que el resto de la plataforma
 // (var(--color-primary) / sidebar oscuro), reproducida en hex fijo porque
@@ -186,10 +186,11 @@ function TarjetaBarras({ titulo, filas, vacio, formatear = (v: number) => String
     );
   }
   const max = Math.max(...filas.map((f) => f.valor));
+  const promedio = promedioDe(filas.map((f) => f.valor));
   return (
     <Tarjeta titulo={titulo}>
       {filas.map((f, i) => (
-        <BarraHorizontal key={f.label} label={f.label} valor={f.valor} max={max} color={colorParaValor(f.valor, f.label, reglasColor) ?? PALETA_BARRAS[i % PALETA_BARRAS.length]} formatear={formatear} />
+        <BarraHorizontal key={f.label} label={f.label} valor={f.valor} max={max} color={colorParaValor(f.valor, f.label, reglasColor, promedio) ?? PALETA_BARRAS[i % PALETA_BARRAS.length]} formatear={formatear} />
       ))}
       {pie && <Text style={{ ...styles.kpiCaption, marginTop: 6 }}>{pie}</Text>}
     </Tarjeta>

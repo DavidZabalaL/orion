@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { obtenerIndicadoresChecklistSemanal, obtenerPrecioPromedioLitroCargaCombustible } from "./actions";
+import { IndicadoresChecklist } from "@/components/checklist/indicadores-checklist";
 import { ChecklistLista } from "@/components/checklist/checklist-lista";
 import { ChecklistSemanalLista } from "@/components/checklist/checklist-semanal-lista";
 import { ChecklistCargaCombustibleLista } from "@/components/checklist/checklist-carga-combustible-lista";
@@ -48,7 +50,7 @@ export default async function ChecklistPage({
   const inicioHoy = inicioDeHoy();
   const fechaHoraActual = new Date().toISOString();
 
-  const [unidades, proyectos, checklistsDiarios, checklistsSemanales, checklistsCombustible, checklistsReporteFalla, sinCapturaHoy] = await Promise.all([
+  const [unidades, proyectos, checklistsDiarios, checklistsSemanales, checklistsCombustible, checklistsReporteFalla, sinCapturaHoy, indicadoresChecklist, precioPromedioLitroCombustible] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...filtroProyecto },
       select: {
@@ -89,7 +91,7 @@ export default async function ChecklistPage({
     prisma.checklist.findMany({
       where: { tipo: "CARGA_COMBUSTIBLE", fecha: { gte: inicioHoy }, unidad: filtroListas },
       include: {
-        unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true } },
+        unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, capacidadTanqueLitros: true } },
         capturadoPor: { select: { nombre: true } },
       },
       orderBy: { fecha: "desc" },
@@ -108,6 +110,8 @@ export default async function ChecklistPage({
       where: { estatus: { not: "BAJA" }, checklists: { none: { tipo: "DIARIO", fecha: { gte: inicioHoy } } }, ...filtroListas },
       select: { numeroEconomico: true, marca: true, unidadModelo: true, tipoVehiculo: true, proyecto: { select: { nombre: true } } },
     }),
+    obtenerIndicadoresChecklistSemanal(proyectosPermitidos),
+    obtenerPrecioPromedioLitroCargaCombustible(),
   ]);
 
   // De las unidades sin checklist hoy, solo alertar por las que sí se
@@ -288,6 +292,21 @@ export default async function ChecklistPage({
               color: "var(--sidebar-text-active)",
             }}
           >
+            Indicadores (último checklist semanal de cada unidad)
+          </h3>
+          <IndicadoresChecklist unidades={JSON.parse(JSON.stringify(indicadoresChecklist))} />
+        </div>
+
+        <div>
+          <h3
+            className="mb-3"
+            style={{
+              fontFamily: "var(--font)",
+              fontSize: "var(--text-lg)",
+              fontWeight: 600,
+              color: "var(--sidebar-text-active)",
+            }}
+          >
             Tomadas sin checklist ({tomadasSinChecklist.length})
           </h3>
           <TomadasSinChecklistLista unidades={tomadasSinChecklist} />
@@ -335,7 +354,7 @@ export default async function ChecklistPage({
           >
             Checklists de carga de combustible de hoy ({checklistsCombustible.length})
           </h3>
-          <ChecklistCargaCombustibleLista checklists={JSON.parse(JSON.stringify(checklistsCombustible))} />
+          <ChecklistCargaCombustibleLista checklists={JSON.parse(JSON.stringify(checklistsCombustible))} precioPromedioLitro={precioPromedioLitroCombustible} />
         </div>
 
         <div>

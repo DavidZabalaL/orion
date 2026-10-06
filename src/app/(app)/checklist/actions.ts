@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
-import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
+import { SECCIONES_CHECKLIST_SEMANAL, esNoAplica } from "@/lib/checklist-semanal";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
@@ -203,7 +204,7 @@ export async function crearChecklistSemanal(formData: FormData): Promise<{ ok: t
 
         if (campo.tipo === "radio" && campo.fotoKey) {
           const fotoValor = String(formData.get(campo.fotoKey) ?? "").trim();
-          if (campo.fotoRequerido && !fotoValor) camposFaltantes.push(campo.fotoLabel ?? campo.fotoKey);
+          if (campo.fotoRequerido && !fotoValor && !esNoAplica(valor)) camposFaltantes.push(campo.fotoLabel ?? campo.fotoKey);
           if (fotoValor) respuestas[campo.fotoKey] = fotoValor;
         }
       }
@@ -488,4 +489,86 @@ export async function crearChecklistReporteFalla(formData: FormData): Promise<{ 
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar el reporte de falla." };
   }
+}
+
+export type IndicadorChecklistUnidad = {
+  numeroEconomico: string;
+  marcaModelo: string;
+  tipoVehiculo: string;
+  proyecto: string | null;
+  nivelAceite: string | null;
+  estadoGato: string | null;
+  peorLlanta: string | null;
+  fecha: Date;
+};
+
+/**
+ * Último checklist SEMANAL registrado de cada unidad activa (uno por unidad,
+ * el más reciente), con 3 señales ya extraídas del JSON `respuestasSemanal`
+ * para armar filtros rápidos tipo "qué unidades tienen aceite bajo / sin
+ * gato / llanta crítica" — mismas keys/expresión de "peor llanta" que el
+ * dataset BI "checklist" (ver src/lib/bi/metadata.ts), para que ambos
+ * lugares cuenten exactamente lo mismo.
+ */
+export async function obtenerIndicadoresChecklistSemanal(proyectosPermitidos: string[] | null): Promise<IndicadorChecklistUnidad[]> {
+  await exigirPermisoModulo("A.1");
+
+  const filtroProyecto = proyectosPermitidos !== null ? Prisma.sql`AND u."proyectoId" IN (${Prisma.join(proyectosPermitidos)})` : Prisma.empty;
+
+  return prisma.$queryRaw<IndicadorChecklistUnidad[]>`
+    SELECT DISTINCT ON (c."numeroEconomico")
+      c."numeroEconomico" AS "numeroEconomico",
+      (u."marca" || ' ' || u."unidadModelo") AS "marcaModelo",
+      u."tipoVehiculo"::text AS "tipoVehiculo",
+      p."nombre" AS "proyecto",
+      c."respuestasSemanal"->>'niv_nivel_aceite' AS "nivelAceite",
+      c."respuestasSemanal"->>'her_gato' AS "estadoGato",
+      (CASE (
+        SELECT MIN(v) FROM unnest(ARRAY[
+          CASE c."respuestasSemanal"->>'ext_llanta_del_der' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+          CASE c."respuestasSemanal"->>'ext_llanta_tras_der' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+          CASE c."respuestasSemanal"->>'ext_llanta_tras_izq' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+          CASE c."respuestasSemanal"->>'ext_llanta_del_izq' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END,
+          CASE c."respuestasSemanal"->>'ext_llanta_refaccion' WHEN '100% (NUEVA)' THEN 100 WHEN '75%' THEN 75 WHEN '50%' THEN 50 WHEN '25%' THEN 25 WHEN '0% (REEMPLAZAR)' THEN 0 ELSE NULL END
+        ]) AS t(v)
+      )
+        WHEN 100 THEN '100% (NUEVA)'
+        WHEN 75 THEN '75%'
+        WHEN 50 THEN '50%'
+        WHEN 25 THEN '25%'
+        WHEN 0 THEN '0% (REEMPLAZAR)'
+        ELSE NULL
+      END) AS "peorLlanta",
+      c."fecha" AS "fecha"
+    FROM "Checklist" c
+    JOIN "Unidad" u ON u."numeroEconomico" = c."numeroEconomico"
+    LEFT JOIN "Proyecto" p ON p.id = u."proyectoId"
+    WHERE c."tipo" = 'SEMANAL' AND u."estatus" != 'BAJA' ${filtroProyecto}
+    ORDER BY c."numeroEconomico", c."fecha" DESC
+  `;
+}
+
+/**
+ * Precio promedio por litro de los últimos 90 días de cargas de combustible
+ * registradas en el checklist, usado como referencia para detectar precios
+ * fuera de rango (ver detectarAlertasCargaCombustible). No se segmenta por
+ * estación/gasolinera porque el checklist no captura ese dato — es un
+ * promedio global reciente.
+ */
+export async function obtenerPrecioPromedioLitroCargaCombustible(): Promise<number | null> {
+  await exigirPermisoModulo("A.1");
+
+  const filas = await prisma.$queryRaw<{ promedio: number | null }[]>`
+    SELECT AVG(
+      (c."respuestasSemanal"->>'cantidad_pagada')::numeric / (c."respuestasSemanal"->>'litros_cargados')::numeric
+    ) AS "promedio"
+    FROM "Checklist" c
+    WHERE c."tipo" = 'CARGA_COMBUSTIBLE'
+      AND c."fecha" >= NOW() - INTERVAL '90 days'
+      AND (c."respuestasSemanal"->>'litros_cargados') ~ '^[0-9]+(\.[0-9]+)?$'
+      AND (c."respuestasSemanal"->>'cantidad_pagada') ~ '^[0-9]+(\.[0-9]+)?$'
+      AND (c."respuestasSemanal"->>'litros_cargados')::numeric > 0
+  `;
+  const promedio = filas[0]?.promedio;
+  return promedio != null ? Number(promedio) : null;
 }

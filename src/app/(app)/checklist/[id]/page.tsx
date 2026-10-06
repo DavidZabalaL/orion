@@ -9,7 +9,7 @@ import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
 import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { blobProxy } from "@/lib/blob";
 import { PrintButton } from "@/components/checklist/print-button";
-import { SeccionTitulo, FilaItem, Panel } from "@/components/ui/documento-panel";
+import { SeccionTitulo, FilaItem, Panel, ColorChip } from "@/components/ui/documento-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -37,23 +37,6 @@ function fmtFecha(d: Date | string) {
 }
 
 // ─── Piezas visuales ──────────────────────────────────────────────────────────
-
-function ColorChip({ value }: { value: string }) {
-  const v = value?.toUpperCase() ?? "";
-  let bg = "var(--chip)";
-  let color = "var(--sidebar-text)";
-  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA", "100% (NUEVA)", "75%"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
-  else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO", "25%", "0% (REEMPLAZAR)"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
-  else if (v === "MEDIO" || v === "50%") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
-  return (
-    <span
-      className="inline-block rounded-full whitespace-nowrap"
-      style={{ background: bg, color, fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", letterSpacing: "0.03em" }}
-    >
-      {value}
-    </span>
-  );
-}
 
 // ─── Detalle Diario ───────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { BiCruzado } from "@/components/bi/bi-chart";
-import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
+import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
@@ -24,6 +24,7 @@ export function BiTablaCruzada({
   const totalPorSerie = mostrarTotal
     ? Object.fromEntries(cruzado.series.map((s) => [s, cruzado.filas.reduce((acc, f) => acc + (f.valores[s] ?? 0), 0)]))
     : {};
+  const promedioPorSerie = Object.fromEntries(cruzado.series.map((s) => [s, promedioDe(cruzado.filas.map((f) => f.valores[s] ?? 0))]));
 
   return (
     <div className="h-full overflow-auto">
@@ -52,7 +53,7 @@ export function BiTablaCruzada({
               <td className="py-2 pr-3">{f.dimension}</td>
               {cruzado.series.map((s) => {
                 const valor = f.valores[s] ?? 0;
-                const color = colorParaValor(valor, s, reglasColor);
+                const color = colorParaValor(valor, s, reglasColor, promedioPorSerie[s]);
                 return (
                   <td key={s} className="py-2 pr-3 text-right" style={{ fontVariantNumeric: "tabular-nums", ...(color ? { color, fontWeight: 600 } : {}) }}>
                     {fmt.format(valor)}{ejeYSufijo}
