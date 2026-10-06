@@ -15,6 +15,7 @@ import { labelFuenteActividad, type FuenteActividad } from "@/lib/actividad-unid
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 import { alternarOcultarSlaDisponibilidad } from "@/app/(app)/unidades/actions";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import { exportarExcel } from "@/lib/exportar-excel";
 import type { MotivoIndisponibilidad } from "@/generated/prisma/enums";
 
 export type UnidadRow = {
@@ -58,7 +59,7 @@ const SEMAFORO_LABEL: Record<string, string> = {
   rojo: "Parada por daño, baja, mantenimiento o inactiva",
 };
 
-function exportarCsv(rows: UnidadRow[], incluirSla: boolean) {
+function exportarExcelUnidades(rows: UnidadRow[], incluirSla: boolean) {
   const headers = [
     "N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Motivo", "Días sin operar",
     ...(incluirSla ? ["SLA disponibilidad mes en curso (%)"] : []),
@@ -80,16 +81,7 @@ function exportarCsv(rows: UnidadRow[], incluirSla: boolean) {
     fmtFecha(r.ultimoMantenimiento),
     fmtFecha(r.proximoMantenimiento),
   ]);
-  const csv = [headers, ...filas]
-    .map((fila) => fila.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-    .join("\r\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `inventario-unidades-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  exportarExcel("inventario-unidades", [{ nombre: "Unidades", headers, filas }]);
 }
 
 const selectStyle: React.CSSProperties = {
@@ -243,7 +235,7 @@ export function UnidadesTable({
             </button>
           )}
           <button
-            onClick={() => exportarCsv(filtradas, mostrarColumnaSla)}
+            onClick={() => exportarExcelUnidades(filtradas, mostrarColumnaSla)}
             className="flex items-center gap-2 rounded-md px-3"
             style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}
           >

@@ -1,19 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, Download } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import type { IndicadorChecklistUnidad } from "@/app/(app)/checklist/actions";
 import { fmtFechaHora } from "@/lib/formato";
+import { exportarExcel } from "@/lib/exportar-excel";
 
 type FiltroIndicador = "aceiteBajo" | "aceiteMedio" | "sinGato" | "llantaCritica";
 
 const FILTROS: { id: FiltroIndicador; label: string; coincide: (u: IndicadorChecklistUnidad) => boolean }[] = [
   { id: "aceiteBajo", label: "Aceite bajo", coincide: (u) => u.nivelAceite === "MINIMO" },
   { id: "aceiteMedio", label: "Aceite medio", coincide: (u) => u.nivelAceite === "MEDIO" },
-  { id: "sinGato", label: "Sin gato (mal estado)", coincide: (u) => u.estadoGato === "MAL ESTADO" },
-  { id: "llantaCritica", label: "Llanta crítica (≤25%)", coincide: (u) => u.peorLlanta === "25%" || u.peorLlanta === "0% (REEMPLAZAR)" },
+  // "Gato" se captura como BUEN ESTADO / MAL ESTADO / NA — tanto mal estado
+  // como no aplica (no cuenta con gato) son una unidad sin gato funcional.
+  { id: "sinGato", label: "Sin gato (mal estado o N/A)", coincide: (u) => u.estadoGato === "MAL ESTADO" || u.estadoGato === "NA" },
+  // Igual para llantas: un "N/A" en alguna llanta (ej. sin refacción) es
+  // tan relevante como una llanta en 25%/0% — no debe quedar fuera del filtro.
+  { id: "llantaCritica", label: "Llanta crítica (≤25% o N/A)", coincide: (u) => u.peorLlanta === "25%" || u.peorLlanta === "0% (REEMPLAZAR)" || u.algunaLlantaNA },
 ];
+
+function peorLlantaTexto(u: IndicadorChecklistUnidad): string {
+  if (u.peorLlanta) return u.peorLlanta;
+  if (u.algunaLlantaNA) return "N/A";
+  return "—";
+}
 
 /**
  * Filtros rápidos sobre el último checklist semanal de cada unidad — "qué
@@ -36,9 +47,25 @@ export function IndicadoresChecklist({ unidades }: { unidades: IndicadorChecklis
     return unidades.filter(filtro.coincide);
   }, [unidades, filtroActivo]);
 
+  function exportar() {
+    const aExportar = filtroActivo ? filtrados : unidades;
+    const nombreFiltro = filtroActivo ? FILTROS.find((f) => f.id === filtroActivo)!.label : "Todas las unidades";
+    const headers = ["Unidad", "Marca / Modelo", "Proyecto", "Nivel de aceite", "Gato", "Peor llanta", "Último checklist"];
+    const filas = aExportar.map((u) => [
+      u.numeroEconomico,
+      u.marcaModelo,
+      u.proyecto ?? "—",
+      u.nivelAceite ?? "—",
+      u.estadoGato ?? "—",
+      peorLlantaTexto(u),
+      fmtFechaHora(u.fecha),
+    ]);
+    exportarExcel("indicadores-checklist", [{ nombre: nombreFiltro.slice(0, 31), headers, filas }]);
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {FILTROS.map((f) => (
           <button
             key={f.id}
@@ -57,6 +84,15 @@ export function IndicadoresChecklist({ unidades }: { unidades: IndicadorChecklis
             {f.label} ({conteos[f.id]})
           </button>
         ))}
+        <button
+          type="button"
+          onClick={exportar}
+          disabled={unidades.length === 0}
+          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold disabled:opacity-50"
+          style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", boxShadow: "var(--shadow-sm)" }}
+        >
+          <Download size={13} /> Exportar a Excel
+        </button>
       </div>
 
       {filtroActivo && (
@@ -72,7 +108,7 @@ export function IndicadoresChecklist({ unidades }: { unidades: IndicadorChecklis
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.proyecto ?? "—"}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.nivelAceite ?? "—"}</td>
                 <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.estadoGato ?? "—"}</td>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{u.peorLlanta ?? "—"}</td>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{peorLlantaTexto(u)}</td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>{fmtFechaHora(u.fecha)}</td>
               </tr>
             ))}

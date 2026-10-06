@@ -9,6 +9,7 @@ import {
   ESTATUS_DOCUMENTAL_LABEL,
   ESTATUS_DOCUMENTAL_STYLE,
 } from "@/lib/estatus-operador";
+import { exportarExcel } from "@/lib/exportar-excel";
 
 export type OperadorRow = {
   id: string;
@@ -29,7 +30,7 @@ const selectStyle: React.CSSProperties = {
   height: "var(--h-md)",
 };
 
-function exportarCsv(rows: OperadorRow[]) {
+function exportarExcelOperadores(rows: OperadorRow[]) {
   const headers = ["Nombre", "CURP", "Proyecto", "Unidad(es) asignada(s)", "Estatus", "Estatus documental"];
   const filas = rows.map((r) => [
     r.nombre,
@@ -39,16 +40,7 @@ function exportarCsv(rows: OperadorRow[]) {
     ESTATUS_OPERADOR_LABEL[r.estatus] ?? r.estatus,
     ESTATUS_DOCUMENTAL_LABEL[r.estatusDocumental] ?? r.estatusDocumental,
   ]);
-  const csv = [headers, ...filas]
-    .map((fila) => fila.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-    .join("\r\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `operadores-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  exportarExcel("operadores", [{ nombre: "Operadores", headers, filas }]);
 }
 
 export function OperadoresTable({ rows, proyectos }: { rows: OperadorRow[]; proyectos: string[] }) {
@@ -104,7 +96,7 @@ export function OperadoresTable({ rows, proyectos }: { rows: OperadorRow[]; proy
             <ClipboardList size={15} />
             <span>Pendientes documentales</span>
           </Link>
-          <button onClick={() => exportarCsv(filtradas)} className="flex items-center gap-2 rounded-md px-3" style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}>
+          <button onClick={() => exportarExcelOperadores(filtradas)} className="flex items-center gap-2 rounded-md px-3" style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}>
             <Download size={15} />
             <span>Exportar</span>
           </button>

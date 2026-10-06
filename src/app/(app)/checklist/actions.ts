@@ -499,6 +499,7 @@ export type IndicadorChecklistUnidad = {
   nivelAceite: string | null;
   estadoGato: string | null;
   peorLlanta: string | null;
+  algunaLlantaNA: boolean;
   fecha: Date;
 };
 
@@ -539,6 +540,15 @@ export async function obtenerIndicadoresChecklistSemanal(proyectosPermitidos: st
         WHEN 0 THEN '0% (REEMPLAZAR)'
         ELSE NULL
       END) AS "peorLlanta",
+      EXISTS (
+        SELECT 1 FROM unnest(ARRAY[
+          c."respuestasSemanal"->>'ext_llanta_del_der',
+          c."respuestasSemanal"->>'ext_llanta_tras_der',
+          c."respuestasSemanal"->>'ext_llanta_tras_izq',
+          c."respuestasSemanal"->>'ext_llanta_del_izq',
+          c."respuestasSemanal"->>'ext_llanta_refaccion'
+        ]) AS t(v) WHERE v = 'N/A'
+      ) AS "algunaLlantaNA",
       c."fecha" AS "fecha"
     FROM "Checklist" c
     JOIN "Unidad" u ON u."numeroEconomico" = c."numeroEconomico"

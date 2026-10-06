@@ -70,10 +70,16 @@ export const ESTADO_LLANTA = ["100% (NUEVA)", "75%", "50%", "25%", "0% (REEMPLAZ
 
 // Valores de respuesta que cuentan como "alerta" en los resúmenes del
 // checklist semanal (badge de "N alertas" en la lista y en la ficha de la
-// unidad) — "MAL ESTADO"/"MINIMO" para los campos binarios/de nivel de
-// siempre, más las llantas por debajo de 50% de vida útil. Única fuente para
-// no desincronizar los distintos resúmenes que cuentan lo mismo.
-export const VALORES_ALERTA_SEMANAL = new Set(["MAL ESTADO", "MINIMO", "25%", "0% (REEMPLAZAR)"]);
+// unidad, y filtros de /checklist e /checklist/historial) — "MAL ESTADO"/
+// "MINIMO" para los campos binarios/de nivel, las llantas por debajo de 50%
+// de vida útil, y "NA" para gato/palanca de ruedas/triángulo reflejante
+// (BUEN_MAL_NA2): para ese equipo de seguridad "no aplica" significa que la
+// unidad no cuenta con él, tan relevante como que esté en mal estado. No se
+// incluye "N/A" (BUEN_MAL_NA, ~25 campos cosméticos/de equipamiento variado
+// como antena, faros neblineros, espejos) ni "NO APLICA" (ESTADO_4) porque
+// ahí "no aplica" suele ser una configuración normal del vehículo, no un
+// hallazgo — generalizar la alerta a esos campos generaría ruido constante.
+export const VALORES_ALERTA_SEMANAL = new Set(["MAL ESTADO", "MINIMO", "25%", "0% (REEMPLAZAR)", "NA"]);
 
 // Variantes de "no aplica" usadas entre los distintos conjuntos de opciones
 // de este checklist (BUEN_MAL_NA usa "N/A", BUEN_MAL_NA2 usa "NA", ESTADO_4
