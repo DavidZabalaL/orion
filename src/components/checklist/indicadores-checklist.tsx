@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TriangleAlert, Download } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import type { IndicadorChecklistUnidad } from "@/app/(app)/checklist/actions";
 import { fmtFechaHora } from "@/lib/formato";
-import { exportarExcel } from "@/lib/exportar-excel";
 
 type FiltroIndicador = "aceiteBajo" | "aceiteMedio" | "sinGato" | "llantaCritica";
 
@@ -47,22 +46,6 @@ export function IndicadoresChecklist({ unidades }: { unidades: IndicadorChecklis
     return unidades.filter(filtro.coincide);
   }, [unidades, filtroActivo]);
 
-  function exportar() {
-    const aExportar = filtroActivo ? filtrados : unidades;
-    const nombreFiltro = filtroActivo ? FILTROS.find((f) => f.id === filtroActivo)!.label : "Todas las unidades";
-    const headers = ["Unidad", "Marca / Modelo", "Proyecto", "Nivel de aceite", "Gato", "Peor llanta", "Último checklist"];
-    const filas = aExportar.map((u) => [
-      u.numeroEconomico,
-      u.marcaModelo,
-      u.proyecto ?? "—",
-      u.nivelAceite ?? "—",
-      u.estadoGato ?? "—",
-      peorLlantaTexto(u),
-      fmtFechaHora(u.fecha),
-    ]);
-    exportarExcel("indicadores-checklist", [{ nombre: nombreFiltro.slice(0, 31), headers, filas }]);
-  }
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -84,15 +67,6 @@ export function IndicadoresChecklist({ unidades }: { unidades: IndicadorChecklis
             {f.label} ({conteos[f.id]})
           </button>
         ))}
-        <button
-          type="button"
-          onClick={exportar}
-          disabled={unidades.length === 0}
-          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold disabled:opacity-50"
-          style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", boxShadow: "var(--shadow-sm)" }}
-        >
-          <Download size={13} /> Exportar a Excel
-        </button>
       </div>
 
       {filtroActivo && (

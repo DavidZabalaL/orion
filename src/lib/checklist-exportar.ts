@@ -109,6 +109,32 @@ export function tieneAlertaChecklist(
   }
 }
 
+export type IndicadorExportableRow = {
+  numeroEconomico: string;
+  marcaModelo: string;
+  proyecto: string | null;
+  nivelAceite: string | null;
+  estadoGato: string | null;
+  peorLlanta: string | null;
+  algunaLlantaNA: boolean;
+  fecha: Date | string;
+};
+
+/** Réplica del botón "Exportar a Excel" que tenía IndicadoresChecklist — ahora se incluye como hoja opcional del exportador unificado de /checklist. */
+export function construirHojaIndicadores(unidades: IndicadorExportableRow[]): HojaExcel {
+  const headers = ["Unidad", "Marca / Modelo", "Proyecto", "Nivel de aceite", "Gato", "Peor llanta", "Último checklist"];
+  const filas = unidades.map((u) => [
+    u.numeroEconomico,
+    u.marcaModelo,
+    u.proyecto ?? "—",
+    u.nivelAceite ?? "—",
+    u.estadoGato ?? "—",
+    u.peorLlanta ?? (u.algunaLlantaNA ? "N/A" : "—"),
+    fmtFechaHora(u.fecha),
+  ]);
+  return { nombre: "Indicadores", headers, filas };
+}
+
 export type ChecklistExportableRow = {
   tipo: TipoChecklist;
   fecha: Date | string;

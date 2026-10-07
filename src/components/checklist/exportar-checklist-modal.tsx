@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Download, Mail } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import { obtenerChecklistsParaExportar, enviarChecklistsPorCorreo } from "@/app/(app)/checklist/actions";
-import { TIPO_CHECKLIST_LABEL, construirHojasExcelChecklists } from "@/lib/checklist-exportar";
+import { obtenerChecklistsParaExportar, enviarChecklistsPorCorreo, obtenerIndicadoresParaExportar } from "@/app/(app)/checklist/actions";
+import { TIPO_CHECKLIST_LABEL, construirHojasExcelChecklists, construirHojaIndicadores } from "@/lib/checklist-exportar";
 import { exportarExcel } from "@/lib/exportar-excel";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import type { TipoChecklist } from "@/generated/prisma/enums";
@@ -37,6 +37,7 @@ const labelStyle: React.CSSProperties = {
 export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string; nombre: string }[] }) {
   const [abierto, setAbierto] = useState(false);
   const [tipos, setTipos] = useState<Set<TipoChecklist>>(new Set(TODOS_LOS_TIPOS));
+  const [incluirIndicadores, setIncluirIndicadores] = useState(false);
   const hoy = new Date().toISOString().slice(0, 10);
   const [desde, setDesde] = useState(hoy);
   const [hasta, setHasta] = useState(hoy);
@@ -58,8 +59,8 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
   }
 
   async function exportar() {
-    if (tipos.size === 0) {
-      setError("Selecciona al menos un tipo de checklist.");
+    if (tipos.size === 0 && !incluirIndicadores) {
+      setError("Selecciona al menos un tipo de checklist o los indicadores.");
       return;
     }
     setCargando(true);
@@ -73,6 +74,10 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
         tipoVehiculo: tipoVehiculo || undefined,
       });
       const hojas = construirHojasExcelChecklists(checklists);
+      if (incluirIndicadores) {
+        const indicadores = await obtenerIndicadoresParaExportar();
+        if (indicadores.length > 0) hojas.push(construirHojaIndicadores(indicadores));
+      }
       if (hojas.length === 0) {
         setError("No hay checklists para los filtros elegidos.");
         return;
@@ -87,8 +92,8 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
   }
 
   async function enviarPorCorreo() {
-    if (tipos.size === 0) {
-      setMensajeEnvio({ ok: false, texto: "Selecciona al menos un tipo de checklist." });
+    if (tipos.size === 0 && !incluirIndicadores) {
+      setMensajeEnvio({ ok: false, texto: "Selecciona al menos un tipo de checklist o los indicadores." });
       return;
     }
     const lista = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
@@ -106,6 +111,7 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
         proyectoId: proyectoId || undefined,
         tipoVehiculo: tipoVehiculo || undefined,
         destinatarios: lista,
+        incluirIndicadores,
       });
       setMensajeEnvio(resultado.ok ? { ok: true, texto: "Correo enviado." } : { ok: false, texto: resultado.error });
     } catch {
@@ -138,6 +144,10 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
                     {TIPO_CHECKLIST_LABEL[tipo]}
                   </label>
                 ))}
+                <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                  <input type="checkbox" checked={incluirIndicadores} onChange={(e) => setIncluirIndicadores(e.target.checked)} />
+                  Indicadores (último checklist semanal de cada unidad)
+                </label>
               </div>
             </div>
 
