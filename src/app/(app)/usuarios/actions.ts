@@ -221,6 +221,26 @@ export async function eliminarUsuario(formData: FormData): Promise<ResultadoElim
   }
 }
 
+export async function crearRol(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
+  await exigirPermisoModulo("K", "editar");
+
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  if (!nombre) return { ok: false, error: "Ponle un nombre al rol." };
+
+  const existente = await prisma.rol.findUnique({ where: { nombre } });
+  if (existente) return { ok: false, error: "Ya existe un rol con ese nombre." };
+
+  const rol = await prisma.rol.create({ data: { nombre, permisos: {} } });
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({ userId: session.user.id, modulo: "usuarios", accion: "create", entidad: "Rol", entidadId: rol.id, detalle: { nombre } });
+  }
+
+  revalidatePath("/usuarios/roles");
+  return { ok: true };
+}
+
 export async function actualizarPermisosRol(formData: FormData) {
   await exigirPermisoModulo("K", "editar");
 
