@@ -22,7 +22,9 @@ export function FirmaPad({
   const lastY = useRef(0);
   const hasTouched = useRef(false);
   const onFirmaRef = useRef(onFirma);
-  onFirmaRef.current = onFirma;
+  useEffect(() => {
+    onFirmaRef.current = onFirma;
+  });
 
   function toCanvasPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect();

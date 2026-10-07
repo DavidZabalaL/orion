@@ -21,6 +21,10 @@ export default async function UnidadesPage() {
   const restriccionOperador = await unidadRestringidaParaOperador();
   const filtroOperador = restriccionOperador.esOperador ? { numeroEconomico: { in: restriccionOperador.numerosEconomicos } } : {};
 
+  // Server Component: se ejecuta una sola vez por request, nunca se vuelve
+  // a renderizar/memoizar en el cliente — la regla de "pureza" del
+  // compilador no aplica aquí.
+  // eslint-disable-next-line react-hooks/purity
   const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([
     prisma.unidad.findMany({

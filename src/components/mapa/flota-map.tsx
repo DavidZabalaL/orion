@@ -122,15 +122,25 @@ export function FlotaMap({
   seleccionado?: string;
   onSeleccionar?: (numeroEconomico: string) => void;
 }) {
-  const iconos = useMemo(() => {
-    const cache = new Map<string, L.DivIcon>();
-    return (p: PuntoMapa) => {
+  // Un ícono por combinación (tipo/color/anómalo/seleccionado) presente en
+  // `puntos` — se arma completo de una sola pasada dentro del useMemo (nunca
+  // se muta después de construido), en vez de un Map mutado perezosamente
+  // capturado por closure, que el compilador no puede garantizar inmutable
+  // entre renders.
+  const iconPorClave = useMemo(() => {
+    const mapa = new Map<string, L.DivIcon>();
+    for (const p of puntos) {
       const esSeleccionado = p.numeroEconomico === seleccionado;
       const clave = `${p.tipoVehiculo}:${colorDePunto(p)}:${p.esAnomalo}:${esSeleccionado}`;
-      if (!cache.has(clave)) cache.set(clave, icono(p, colorDePunto(p), esSeleccionado));
-      return cache.get(clave)!;
-    };
-  }, [seleccionado]);
+      if (!mapa.has(clave)) mapa.set(clave, icono(p, colorDePunto(p), esSeleccionado));
+    }
+    return mapa;
+  }, [puntos, seleccionado]);
+  function iconos(p: PuntoMapa): L.DivIcon {
+    const esSeleccionado = p.numeroEconomico === seleccionado;
+    const clave = `${p.tipoVehiculo}:${colorDePunto(p)}:${p.esAnomalo}:${esSeleccionado}`;
+    return iconPorClave.get(clave)!;
+  }
 
   const centro: [number, number] =
     puntos.length > 0

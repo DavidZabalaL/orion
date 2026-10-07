@@ -15,6 +15,10 @@ export default async function InvitacionPage({ params }: { params: Promise<{ tok
     usuario.metodoAcceso === "CORREO_PASSWORD" &&
     usuario.estatus !== "DESACTIVADO" &&
     !!usuario.invitacionExpiraEn &&
+    // Server Component: se ejecuta una sola vez por request, nunca se
+    // vuelve a renderizar/memoizar en el cliente — la regla de "pureza" del
+    // compilador no aplica aquí.
+    // eslint-disable-next-line react-hooks/purity
     usuario.invitacionExpiraEn.getTime() > Date.now();
 
   return (

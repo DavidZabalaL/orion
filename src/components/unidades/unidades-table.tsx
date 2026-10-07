@@ -106,6 +106,16 @@ export function UnidadesTable({
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(rowsIniciales);
+  // Sincroniza `rows` cuando el servidor manda datos nuevos (router.refresh()
+  // del intervalo de abajo, o una recarga de la página) sin perder los
+  // cambios optimistas locales de alCambiarDisponibilidad entre medio —
+  // ajuste de estado durante el render (patrón oficial de React), no un
+  // efecto, para no disparar un re-render extra de cascada.
+  const [rowsInicialesAnterior, setRowsInicialesAnterior] = useState(rowsIniciales);
+  if (rowsIniciales !== rowsInicialesAnterior) {
+    setRowsInicialesAnterior(rowsIniciales);
+    setRows(rowsIniciales);
+  }
   const [slaOculto, setSlaOculto] = useState(slaOcultoInicial);
   const mostrarColumnaSla = puedeVerSla && !slaOculto;
 
@@ -119,10 +129,6 @@ export function UnidadesTable({
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [estatusFiltro, setEstatusFiltro] = useState("");
   const [semaforoFiltro, setSemaforoFiltro] = useState("");
-
-  useEffect(() => {
-    setRows(rowsIniciales);
-  }, [rowsIniciales]);
 
   // Antes cada 60s — con muchas pestañas abiertas en background eso mantenía
   // la base de datos activa casi sin descanso (ver cuota de cómputo de Neon).
@@ -160,9 +166,14 @@ export function UnidadesTable({
     [rows]
   );
 
-  useEffect(() => {
-    setProyectoFiltro((actual) => (actual && !proyectos.includes(actual) ? "" : actual));
-  }, [proyectos]);
+  // Si el proyecto elegido ya no está entre las opciones disponibles (los
+  // chips de arriba acotaron a otro proyecto), se limpia el filtro — mismo
+  // ajuste de estado durante el render que `rows` arriba.
+  const [proyectosAnterior, setProyectosAnterior] = useState(proyectos);
+  if (proyectos !== proyectosAnterior) {
+    setProyectosAnterior(proyectos);
+    if (proyectoFiltro && !proyectos.includes(proyectoFiltro)) setProyectoFiltro("");
+  }
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
