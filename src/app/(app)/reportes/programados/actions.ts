@@ -10,7 +10,11 @@ import { validarColumnasTabla } from "@/lib/bi/motor-consultas";
 import { ejecutarReporteProgramado } from "@/lib/bi/motor-reportes";
 import type { FrecuenciaReporte, FormatoReporte } from "@/generated/prisma/enums";
 
-export const TIPO_BI_TABLA = "bi_tabla";
+// "use server" solo permite exportar funciones async — una constante de
+// valor exportada aquí invalida TODO el módulo en build de producción
+// (Turbopack lo compila como si no tuviera exports). Se mantiene sin
+// exportar; motor-reportes.ts tiene su propia copia del mismo literal.
+const TIPO_BI_TABLA = "bi_tabla";
 
 export type ReporteProgramadoRow = {
   id: string;
