@@ -9,6 +9,7 @@ import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
 import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { blobProxy } from "@/lib/blob";
 import { PrintButton } from "@/components/checklist/print-button";
+import { AutoPrint } from "@/components/checklist/auto-print";
 import { SeccionTitulo, FilaItem, Panel, ColorChip } from "@/components/ui/documento-panel";
 
 export const dynamic = "force-dynamic";
@@ -514,6 +515,7 @@ export default async function DetalleChecklistPage({
     <>
       {/* eslint-disable-next-line react/no-unknown-property */}
       <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
+      <AutoPrint />
 
       <div className="checklist-wrap flex flex-col gap-5 p-4 md:p-6 max-w-3xl">
         {/* ── Cabecera ── */}

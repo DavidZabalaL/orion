@@ -267,6 +267,7 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                       columnas={w.columnas ?? []}
                       filtros={w.filtros}
                       proyectoIds={w.proyectoIds}
+                      reglasColor={w.reglasColor}
                       editMode={editMode}
                       onEditar={() => setFormulario({ editarId: w.id })}
                       onEliminar={() => eliminarWidget(w.id)}

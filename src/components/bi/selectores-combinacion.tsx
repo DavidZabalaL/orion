@@ -447,7 +447,7 @@ export function AlcanceProyecto({
 }
 
 /** Filtros multi-valor: OR entre valores del mismo campo, AND entre filtros distintos — narrows el conjunto de filas antes de agrupar por eje X / segundo grupo. */
-function FiltrosCombinacion({
+export function FiltrosCombinacion({
   combinacion,
   onChange,
   dataset,

@@ -5,6 +5,7 @@ import { X, Pencil, GripVertical, Download } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { useBiTablaFilasQuery } from "@/components/bi/use-bi-tabla-filas-query";
 import { exportarExcel } from "@/lib/exportar-excel";
+import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 import type { FiltroGuardable } from "@/lib/bi/metadata";
 
 export function BiCardTablaFilas({
@@ -13,6 +14,7 @@ export function BiCardTablaFilas({
   columnas,
   filtros,
   proyectoIds,
+  reglasColor,
   editMode = false,
   onEditar,
   onEliminar,
@@ -22,12 +24,21 @@ export function BiCardTablaFilas({
   columnas: string[];
   filtros?: FiltroGuardable[];
   proyectoIds?: string[];
+  reglasColor?: ReglaColorColumna[];
   editMode?: boolean;
   onEditar?: () => void;
   onEliminar?: () => void;
 }) {
   const params = useMemo(() => ({ dataset, columnas, filtros, proyectoIds }), [dataset, columnas, filtros, proyectoIds]);
   const { columnas: columnasResueltas, filas, truncado, cargando, error } = useBiTablaFilasQuery(params);
+
+  // Promedio por columna (solo celdas numéricas) — necesario para los
+  // operadores "sobre/bajo promedio" de las reglas de color, igual que en
+  // TablaSimple/BiTablaCruzada.
+  const promedioPorColumna = useMemo(
+    () => Object.fromEntries(columnasResueltas.map((c) => [c.id, promedioDe(filas.map((f) => f[c.id]).filter((v): v is number => typeof v === "number"))])),
+    [columnasResueltas, filas]
+  );
 
   function exportar() {
     exportarExcel(label.replace(/\s+/g, "-").toLowerCase() || "tabla", [
@@ -114,11 +125,19 @@ export function BiCardTablaFilas({
             <Table headers={columnasResueltas.map((c) => c.label)} minWidth={columnasResueltas.length * 140}>
               {filas.map((fila, i) => (
                 <tr key={i} style={{ borderBottom: "1px solid var(--field-border)" }}>
-                  {columnasResueltas.map((c) => (
-                    <td key={c.id} className="px-4 py-2.5 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
-                      {fila[c.id] ?? "—"}
-                    </td>
-                  ))}
+                  {columnasResueltas.map((c) => {
+                    const valor = fila[c.id];
+                    const color = typeof valor === "number" ? colorParaValor(valor, c.label, reglasColor, promedioPorColumna[c.id]) : null;
+                    return (
+                      <td
+                        key={c.id}
+                        className="px-4 py-2.5 whitespace-nowrap"
+                        style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: color ?? "var(--field-text)", fontWeight: color ? 700 : 400 }}
+                      >
+                        {valor ?? "—"}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </Table>

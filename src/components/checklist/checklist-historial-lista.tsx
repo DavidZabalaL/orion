@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, ChevronRight, TriangleAlert } from "lucide-react";
+import { Download, ChevronRight, TriangleAlert, Printer } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
@@ -182,13 +182,25 @@ export function ChecklistHistorialLista({ checklists, desde, hasta }: { checklis
                 )}
               </td>
               <td className="px-4 py-3">
-                <Link
-                  href={`/checklist/${c.id}`}
-                  className="flex items-center gap-1 rounded-md px-2.5 py-1 w-fit"
-                  style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
-                >
-                  Ver ficha <ChevronRight size={13} />
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/checklist/${c.id}`}
+                    className="flex items-center gap-1 rounded-md px-2.5 py-1 w-fit"
+                    style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                  >
+                    Ver ficha <ChevronRight size={13} />
+                  </Link>
+                  <Link
+                    href={`/checklist/${c.id}?print=1`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Exportar este checklist a PDF"
+                    className="flex items-center gap-1 rounded-md px-2.5 py-1 w-fit"
+                    style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                  >
+                    <Printer size={13} /> PDF
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}

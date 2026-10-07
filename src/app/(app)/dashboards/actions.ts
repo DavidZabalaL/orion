@@ -31,6 +31,7 @@ import {
   type DatasetMeta,
 } from "@/lib/bi/metadata";
 import { validarColumnasTabla } from "@/lib/bi/motor-consultas";
+import type { ReglaColorColumna, OperadorReglaColor } from "@/lib/bi/reglas-color";
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
@@ -56,6 +57,36 @@ function validarFiltros(filtros: unknown, ds: DatasetMeta): FiltroGuardable[] | 
   return limpios;
 }
 
+const OPERADORES_REGLA_COLOR_VALIDOS: OperadorReglaColor[] = ["mayor", "menor", "igual", "entre", "personalizada", "sobre_promedio", "bajo_promedio"];
+const MAX_REGLAS_COLOR = 20;
+
+function validarReglasColor(reglas: unknown): ReglaColorColumna[] | undefined | null {
+  if (reglas === undefined) return undefined;
+  if (!Array.isArray(reglas) || reglas.length > MAX_REGLAS_COLOR) return null;
+  const limpias: ReglaColorColumna[] = [];
+  for (const r of reglas) {
+    if (!r || typeof r !== "object") return null;
+    const { id, columna, operador, valor, valorMin, valorMax, expresion, color } = r as Record<string, unknown>;
+    if (typeof id !== "string" || typeof columna !== "string" || typeof color !== "string") return null;
+    if (!OPERADORES_REGLA_COLOR_VALIDOS.includes(operador as OperadorReglaColor)) return null;
+    if (valor !== undefined && typeof valor !== "number") return null;
+    if (valorMin !== undefined && typeof valorMin !== "number") return null;
+    if (valorMax !== undefined && typeof valorMax !== "number") return null;
+    if (expresion !== undefined && typeof expresion !== "string") return null;
+    limpias.push({
+      id,
+      columna: columna.slice(0, 200),
+      operador: operador as OperadorReglaColor,
+      valor,
+      valorMin,
+      valorMax,
+      expresion: typeof expresion === "string" ? expresion.slice(0, 100) : undefined,
+      color: color.slice(0, 20),
+    });
+  }
+  return limpias;
+}
+
 function validarProyectoIds(proyectoIds: unknown): string[] | undefined | null {
   if (proyectoIds === undefined) return undefined;
   if (!Array.isArray(proyectoIds) || !proyectoIds.every((id) => typeof id === "string")) return null;
@@ -74,7 +105,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro, tipoWidget, columnas } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro, tipoWidget, columnas, reglasColor } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string") return null;
 
@@ -95,6 +126,9 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       const proyectoIdsLimpiosTabla = validarProyectoIds(proyectoIds);
       if (proyectoIdsLimpiosTabla === null) return null;
 
+      const reglasColorLimpiasTabla = validarReglasColor(reglasColor);
+      if (reglasColorLimpiasTabla === null) return null;
+
       const layoutValidoTabla = validarLayout(layout);
       if (!layoutValidoTabla) return null;
 
@@ -111,6 +145,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
         tipoGrafica: "barras",
         filtros: filtrosLimpiosTabla,
         proyectoIds: proyectoIdsLimpiosTabla,
+        reglasColor: reglasColorLimpiasTabla,
         layout: layoutValidoTabla,
       });
       continue;
@@ -178,6 +213,9 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
     const proyectoIdsLimpios = validarProyectoIds(proyectoIds);
     if (proyectoIdsLimpios === null) return null;
 
+    const reglasColorLimpias = validarReglasColor(reglasColor);
+    if (reglasColorLimpias === null) return null;
+
     const layoutValido = validarLayout(layout);
     if (!layoutValido) return null;
 
@@ -197,6 +235,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       vistaPreferida: vistaPreferidaLimpia,
       filtros: filtrosLimpios,
       proyectoIds: proyectoIdsLimpios,
+      reglasColor: reglasColorLimpias,
       layout: layoutValido,
       emiteFiltro: emiteFiltro === true ? true : undefined,
       escuchaFiltro: escuchaFiltro === true ? true : undefined,

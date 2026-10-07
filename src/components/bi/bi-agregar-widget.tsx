@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { BI_DATASETS, obtenerDataset, type WidgetDashboardBI } from "@/lib/bi/metadata";
-import { SelectoresCombinacion, AlcanceProyecto, type CombinacionBI, type ProyectoDisponible, fieldStyle, labelStyle } from "@/components/bi/selectores-combinacion";
+import { SelectoresCombinacion, AlcanceProyecto, FiltrosCombinacion, type CombinacionBI, type ProyectoDisponible, fieldStyle, labelStyle } from "@/components/bi/selectores-combinacion";
 import { SelectorTablaFilas } from "@/components/bi/selector-tabla-filas";
 import { BiCardTablaFilas } from "@/components/bi/bi-card-tabla-filas";
+import { ReglasColorEditor } from "@/components/bi/reglas-color-editor";
 import { BiChart } from "@/components/bi/bi-chart";
 import { useBiQuery } from "@/components/bi/use-bi-query";
 
@@ -73,7 +74,9 @@ export function BiAgregarWidget({
         ejeY: columnasTabla[0],
         agregacion: "conteo",
         tipoGrafica: "barras",
+        filtros: combinacion.filtros,
         proyectoIds: combinacion.proyectoIds,
+        reglasColor: combinacion.reglasColor,
       });
       return;
     }
@@ -134,10 +137,12 @@ export function BiAgregarWidget({
           <SelectorTablaFilas
             datasetId={combinacion.datasetId}
             columnas={columnasTabla}
-            onChangeDataset={(datasetId) => setCombinacion({ ...combinacion, datasetId })}
+            onChangeDataset={(datasetId) => setCombinacion({ ...combinacion, datasetId, filtros: [] })}
             onChangeColumnas={setColumnasTabla}
           />
+          <ReglasColorEditor reglas={combinacion.reglasColor ?? []} onChange={(reglasColor) => setCombinacion({ ...combinacion, reglasColor })} titulo="Reglas de color (por columna)" />
           <AlcanceProyecto combinacion={combinacion} onChange={setCombinacion} proyectosDisponibles={proyectosDisponibles} />
+          <FiltrosCombinacion combinacion={combinacion} onChange={setCombinacion} dataset={dataset} proyectosDisponibles={proyectosDisponibles} />
         </>
       )}
 
@@ -159,7 +164,14 @@ export function BiAgregarWidget({
         <label style={labelStyle}>Vista previa</label>
         <div className="rounded-xl overflow-hidden" style={{ background: "var(--field-bg)", height: 280 }}>
           {tipoWidget === "tabla_filas" ? (
-            <BiCardTablaFilas label={etiquetaPreview} dataset={combinacion.datasetId} columnas={columnasTabla} proyectoIds={combinacion.proyectoIds} />
+            <BiCardTablaFilas
+              label={etiquetaPreview}
+              dataset={combinacion.datasetId}
+              columnas={columnasTabla}
+              filtros={combinacion.filtros}
+              proyectoIds={combinacion.proyectoIds}
+              reglasColor={combinacion.reglasColor}
+            />
           ) : (
             <div className="p-4 h-full" style={{ overflow: "hidden" }}>
               <div className="mb-2 truncate" style={{ fontFamily: "var(--font)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
