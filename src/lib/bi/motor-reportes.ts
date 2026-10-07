@@ -3,6 +3,7 @@
 // Vercel (src/app/api/cron/reportes-programados/route.ts) como el botón
 // "Ejecutar ahora" del generador — una sola implementación, sin duplicar
 // lógica entre el disparo automático y el manual.
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { proyectosPermitidosParaModuloDeUsuario } from "@/lib/proyectos-usuario";
 import { resolverFilasReporte } from "@/lib/bi/ejecutar-reporte";
@@ -15,8 +16,11 @@ import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 import { inicioDeHoyMx } from "@/lib/timezone";
+import { obtenerDataset, obtenerCampo, type FiltroGuardable } from "@/lib/bi/metadata";
+import { ejecutarTablaFilas } from "@/lib/bi/motor-consultas";
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
+const TIPO_BI_TABLA = "bi_tabla";
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 export type ResultadoEjecucionReporte = { ok: boolean; estatus: "ok" | "error" | "sin_destinatarios"; error?: string };
@@ -63,6 +67,39 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true);
       totalRegistros = datos.general.totalUnidades;
       envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html });
+    } else if (reporte.tipo === TIPO_BI_TABLA) {
+      // Reporte genérico "selector libre de BI" (Panel de Reportes): el
+      // alcance de proyecto es el del DUEÑO del reporte (no hay sesión en el
+      // cron), intersectado con los proyectos que eligió al configurarlo.
+      const campos = reporte.camposJson as { datasetId?: string; columnas?: string[] } | null;
+      const filtrosConfig = reporte.filtrosJson as { filtros?: FiltroGuardable[]; proyectoIds?: string[] } | null;
+      const dataset = campos?.datasetId ? obtenerDataset(campos.datasetId) : undefined;
+      if (!dataset) throw new Error("Dataset del reporte ya no existe.");
+
+      const columnas = (campos?.columnas ?? []).map((id) => obtenerCampo(dataset, id)).filter((c) => c !== undefined);
+      if (columnas.length === 0) throw new Error("El reporte no tiene columnas válidas.");
+
+      const permitidos = await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "M");
+      const elegidos = filtrosConfig?.proyectoIds ?? [];
+      const efectivos = elegidos.length > 0 ? (permitidos === null ? elegidos : elegidos.filter((id) => permitidos.includes(id))) : permitidos;
+      proyectoIds = efectivos;
+      const alcance =
+        efectivos === null
+          ? Prisma.empty
+          : efectivos.length === 0
+          ? Prisma.sql`FALSE`
+          : Prisma.sql`${Prisma.raw(dataset.proyectoScopeExpr)} IN (${Prisma.join(efectivos)})`;
+
+      const resultado = await ejecutarTablaFilas(dataset, columnas, filtrosConfig?.filtros, alcance, efectivos === null ? "ALL" : [...efectivos].sort().join(","), JSON.stringify(filtrosConfig?.filtros ?? []));
+      const columnasReporte = resultado.columnas.map((c) => ({ key: c.id, label: c.label }));
+      const filas = resultado.filas.map((fila) => Object.fromEntries(Object.entries(fila).map(([k, v]) => [k, v ?? ""])));
+
+      const esPdf = reporte.formato === "PDF";
+      const buffer = esPdf ? await generarPdfReporte(reporte.nombre, columnasReporte, filas) : generarExcelReporte(reporte.nombre, columnasReporte, filas);
+      const nombreArchivo = `${reporte.nombre.replace(/[^a-z0-9-_]+/gi, "_")}.${esPdf ? "pdf" : "xlsx"}`;
+      const mime = esPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      totalRegistros = filas.length;
+      envio = await enviarReporteBI({ destinatarios, nombreReporte: reporte.nombre, buffer, nombreArchivo, mime });
     } else {
       proyectoIds = await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "J");
       const campos = Array.isArray(reporte.camposJson) ? (reporte.camposJson as unknown[]).filter((c): c is string => typeof c === "string") : [];
