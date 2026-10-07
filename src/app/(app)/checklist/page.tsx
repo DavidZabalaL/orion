@@ -9,6 +9,7 @@ import { ChecklistCargaCombustibleLista } from "@/components/checklist/checklist
 import { ChecklistReporteFallaLista } from "@/components/checklist/checklist-reporte-falla-lista";
 import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
 import { TomadasSinChecklistLista } from "@/components/checklist/tomadas-sin-checklist-lista";
+import { ExportarChecklistModal } from "@/components/checklist/exportar-checklist-modal";
 import { requerirPermisoModulo, puedeUsarGaleriaChecklist } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
@@ -210,18 +211,21 @@ export default async function ChecklistPage({
             Inspección diaria y semanal de unidades.
           </p>
         </div>
-        <Link
-          href="/checklist/historial"
-          className="flex items-center gap-2 rounded-md px-4 h-10"
-          style={{
-            background: "var(--panel-bg)",
-            color: "var(--sidebar-text-active)",
-            fontFamily: "var(--font-ui)",
-            fontSize: "var(--text-base)",
-          }}
-        >
-          <CalendarDays size={16} /> Historial por fecha
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportarChecklistModal proyectos={proyectos} />
+          <Link
+            href="/checklist/historial"
+            className="flex items-center gap-2 rounded-md px-4 h-10"
+            style={{
+              background: "var(--panel-bg)",
+              color: "var(--sidebar-text-active)",
+              fontFamily: "var(--font-ui)",
+              fontSize: "var(--text-base)",
+            }}
+          >
+            <CalendarDays size={16} /> Historial por fecha
+          </Link>
+        </div>
       </div>
 
       <ChecklistEntrada

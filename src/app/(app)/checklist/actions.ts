@@ -16,6 +16,8 @@ import { ESTADOS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/check
 import { DEPARTAMENTOS_FALLA, TIPOS_FALLA, MAX_FOTOS_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { enviarNotificacionReporteFalla } from "@/lib/email";
 import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
+import { tieneAlertaChecklist } from "@/lib/checklist-exportar";
+import type { TipoChecklist, TipoVehiculo } from "@/generated/prisma/enums";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
@@ -581,4 +583,76 @@ export async function obtenerPrecioPromedioLitroCargaCombustible(): Promise<numb
   `;
   const promedio = filas[0]?.promedio;
   return promedio != null ? Number(promedio) : null;
+}
+
+export type ChecklistParaExportar = {
+  id: string;
+  tipo: TipoChecklist;
+  fecha: Date;
+  odometro: number | null;
+  horometro: number | null;
+  unidad: { numeroEconomico: string; marca: string; unidadModelo: string };
+  respuestasSemanal: Record<string, string>;
+  puntosInspeccion: Record<string, string> | null;
+  capturadoPor: { nombre: string } | null;
+  alerta: boolean;
+};
+
+/**
+ * Checklists de uno o varios tipos en un rango de fechas, para el botón
+ * "Exportar checklist" de /checklist — misma forma y misma lógica de alerta
+ * que /checklist/historial (ver src/lib/checklist-exportar.ts), para que
+ * ambos exportadores produzcan el mismo resultado.
+ */
+export async function obtenerChecklistsParaExportar(input: {
+  tipos: TipoChecklist[];
+  desde: string;
+  hasta: string;
+  proyectoId?: string;
+  tipoVehiculo?: string;
+}): Promise<ChecklistParaExportar[]> {
+  await exigirPermisoModulo("A.1");
+  if (!input.tipos.length) return [];
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("A.1");
+  const inicio = parseFechaLocalMx(input.desde)!;
+  const fin = new Date(parseFechaLocalMx(input.hasta)!.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+  const checklists = await prisma.checklist.findMany({
+    where: {
+      tipo: { in: input.tipos },
+      fecha: { gte: inicio, lte: fin },
+      unidad: {
+        ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}),
+        ...(input.proyectoId ? { proyectoId: input.proyectoId } : {}),
+        ...(input.tipoVehiculo ? { tipoVehiculo: input.tipoVehiculo as TipoVehiculo } : {}),
+      },
+    },
+    include: {
+      unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, capacidadTanqueLitros: true } },
+      capturadoPor: { select: { nombre: true } },
+    },
+    orderBy: { fecha: "desc" },
+    take: 5000,
+  });
+
+  const precioPromedioLitroCombustible = input.tipos.includes("CARGA_COMBUSTIBLE") ? await obtenerPrecioPromedioLitroCargaCombustible() : null;
+
+  return checklists.map((c) => {
+    const respuestas = (c.respuestasSemanal as Record<string, string>) ?? {};
+    const puntosInspeccion = (c.puntosInspeccion as Record<string, string>) ?? null;
+    const capacidadTanqueLitros = c.unidad.capacidadTanqueLitros ? Number(c.unidad.capacidadTanqueLitros) : null;
+    return {
+      id: c.id,
+      tipo: c.tipo,
+      fecha: c.fecha,
+      odometro: c.odometro,
+      horometro: c.horometro,
+      unidad: { numeroEconomico: c.unidad.numeroEconomico, marca: c.unidad.marca, unidadModelo: c.unidad.unidadModelo },
+      respuestasSemanal: respuestas,
+      puntosInspeccion,
+      capturadoPor: c.capturadoPor,
+      alerta: tieneAlertaChecklist(c.tipo, respuestas, puntosInspeccion, capacidadTanqueLitros, precioPromedioLitroCombustible),
+    };
+  });
 }

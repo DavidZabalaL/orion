@@ -7,44 +7,17 @@ import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { parseFechaLocalMx } from "@/lib/timezone";
 import { obtenerPrecioPromedioLitroCargaCombustible } from "@/app/(app)/checklist/actions";
-import { VALORES_ALERTA_SEMANAL, todasLasClavesFoto } from "@/lib/checklist-semanal";
-import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
-import { tieneAlertaDiario } from "@/lib/checklist-diario";
+import { tieneAlertaChecklist } from "@/lib/checklist-exportar";
 import type { TipoVehiculo, TipoChecklist } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
 const LIMITE_EXPORTACION = 5000;
-const CLAVES_FOTO_SEMANAL = new Set([...todasLasClavesFoto(), "fotoLicenciaUrl"]);
 
 function rangoDia(fecha: string) {
   const inicio = parseFechaLocalMx(fecha)!;
   const fin = new Date(inicio.getTime() + 24 * 60 * 60 * 1000 - 1);
   return { inicio, fin };
-}
-
-function tieneAlerta(tipo: TipoChecklist, respuestas: Record<string, string>, puntosInspeccion: Record<string, string> | null, capacidadTanqueLitros: number | null, precioPromedioLitro: number | null): boolean {
-  switch (tipo) {
-    case "SEMANAL":
-      return Object.entries(respuestas).some(([k, v]) => !CLAVES_FOTO_SEMANAL.has(k) && VALORES_ALERTA_SEMANAL.has(v));
-    case "CARGA_COMBUSTIBLE":
-      return (
-        detectarAlertasCargaCombustible({
-          porcentajeAntes: respuestas.porcentaje_antes,
-          porcentajeDespues: respuestas.porcentaje_despues,
-          litrosCargados: respuestas.litros_cargados,
-          cantidadPagada: respuestas.cantidad_pagada,
-          capacidadTanqueLitros,
-          precioPromedioLitro,
-        }).length > 0
-      );
-    case "DIARIO":
-      return tieneAlertaDiario(puntosInspeccion, respuestas);
-    case "REPORTE_FALLA":
-      return true; // un reporte de falla es, por definición, una alerta
-    default:
-      return false;
-  }
 }
 
 export default async function HistorialChecklistPage({
@@ -105,7 +78,7 @@ export default async function HistorialChecklistPage({
         respuestasSemanal: respuestas,
         puntosInspeccion,
         capturadoPor: c.capturadoPor,
-        alerta: tieneAlerta(c.tipo, respuestas, puntosInspeccion, capacidadTanqueLitros, precioPromedioLitroCombustible),
+        alerta: tieneAlertaChecklist(c.tipo, respuestas, puntosInspeccion, capacidadTanqueLitros, precioPromedioLitroCombustible),
       };
     })
     .filter((c) => !filtroSoloAlertas || c.alerta);

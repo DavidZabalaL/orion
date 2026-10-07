@@ -8,19 +8,11 @@ import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
 import { exportarExcel, type HojaExcel } from "@/lib/exportar-excel";
-import { SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
-import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
-import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
-import { CAMPOS_DIARIO_LABEL, PUNTOS_INSPECCION_LABEL } from "@/lib/checklist-diario";
+import { TIPO_CHECKLIST_LABEL, COLUMNAS_POR_TIPO } from "@/lib/checklist-exportar";
 
 export type TipoChecklistRow = "DIARIO" | "SEMANAL" | "CARGA_COMBUSTIBLE" | "REPORTE_FALLA";
 
-const TIPO_LABEL: Record<TipoChecklistRow, string> = {
-  DIARIO: "Diario",
-  SEMANAL: "Semanal",
-  CARGA_COMBUSTIBLE: "Carga de combustible",
-  REPORTE_FALLA: "Reporte de falla",
-};
+const TIPO_LABEL = TIPO_CHECKLIST_LABEL;
 
 const TIPO_COLOR: Record<TipoChecklistRow, { color: string; bg: string }> = {
   DIARIO: { color: "var(--color-status-cerrado)", bg: "var(--status-cerrado-bg)" },
@@ -40,62 +32,6 @@ type ChecklistRow = {
   puntosInspeccion: Record<string, string> | null;
   capturadoPor: { nombre: string } | null;
   alerta: boolean;
-};
-
-// Columnas de texto (sin fotos/firma) de cada tipo, tomadas de sus catálogos
-// declarativos — así el Excel exportado usa las mismas etiquetas que ve el
-// usuario en el wizard, en vez de las claves JSON crudas.
-function columnasSemanal(): { key: string; label: string }[] {
-  const cols: { key: string; label: string }[] = [
-    { key: "oficinaSede", label: "Oficina / Sede" },
-    { key: "modelo", label: "Modelo" },
-    { key: "tipoVehiculo", label: "Tipo de vehículo" },
-    { key: "licenciaPermanente", label: "¿Licencia permanente?" },
-    { key: "gen_odometro", label: "Odómetro" },
-    { key: "gen_horometro", label: "Horómetro (grúa)" },
-  ];
-  for (const s of SECCIONES_CHECKLIST_SEMANAL) {
-    for (const c of s.campos) {
-      if (c.tipo !== "foto") cols.push({ key: c.key, label: c.label });
-    }
-  }
-  return cols;
-}
-
-function columnasReporteFalla(): { key: string; label: string }[] {
-  const cols: { key: string; label: string }[] = [];
-  for (const s of SECCIONES_REPORTE_FALLA) {
-    for (const c of s.campos) cols.push({ key: c.key, label: c.label });
-  }
-  return cols;
-}
-
-function columnasCombustible(): { key: string; label: string }[] {
-  const cols: { key: string; label: string }[] = [];
-  for (const s of SECCIONES_CARGA_COMBUSTIBLE) {
-    for (const c of s.campos) cols.push({ key: c.key, label: c.label });
-  }
-  cols.push(
-    { key: "porcentaje_antes", label: "% combustible antes" },
-    { key: "porcentaje_despues", label: "% combustible después" },
-    { key: "litros_cargados", label: "Litros cargados" },
-    { key: "cantidad_pagada", label: "Importe cobrado" }
-  );
-  return cols;
-}
-
-function columnasDiario(): { key: string; label: string }[] {
-  return [
-    ...Object.entries(PUNTOS_INSPECCION_LABEL).map(([key, label]) => ({ key, label })),
-    ...Object.entries(CAMPOS_DIARIO_LABEL).map(([key, label]) => ({ key, label })),
-  ];
-}
-
-const COLUMNAS_POR_TIPO: Record<TipoChecklistRow, { key: string; label: string }[]> = {
-  DIARIO: columnasDiario(),
-  SEMANAL: columnasSemanal(),
-  CARGA_COMBUSTIBLE: columnasCombustible(),
-  REPORTE_FALLA: columnasReporteFalla(),
 };
 
 export function ChecklistHistorialLista({ checklists, desde, hasta }: { checklists: ChecklistRow[]; desde: string; hasta: string }) {
