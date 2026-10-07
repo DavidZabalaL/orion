@@ -8,6 +8,8 @@ import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
 import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { CAMPOS_DIARIO_LABEL, PUNTOS_INSPECCION_LABEL, tieneAlertaDiario } from "@/lib/checklist-diario";
 import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
+import { fmtFechaHora } from "@/lib/formato";
+import type { HojaExcel } from "@/lib/exportar-excel";
 import type { TipoChecklist } from "@/generated/prisma/enums";
 
 export const TIPO_CHECKLIST_LABEL: Record<TipoChecklist, string> = {
@@ -105,4 +107,44 @@ export function tieneAlertaChecklist(
     default:
       return false;
   }
+}
+
+export type ChecklistExportableRow = {
+  tipo: TipoChecklist;
+  fecha: Date | string;
+  odometro: number | null;
+  horometro: number | null;
+  unidad: { numeroEconomico: string; marca: string; unidadModelo: string };
+  respuestasSemanal: Record<string, string>;
+  puntosInspeccion: Record<string, string> | null;
+  capturadoPor: { nombre: string } | null;
+  alerta: boolean;
+};
+
+/**
+ * Arma el libro multi-hoja (una hoja por tipo presente, columnas con las
+ * mismas etiquetas del wizard) — usado tanto por el botón "Exportar
+ * checklist" (descarga directa) como por "Enviar por correo" (adjunto),
+ * para que ambos generen exactamente el mismo Excel.
+ */
+export function construirHojasExcelChecklists(checklists: ChecklistExportableRow[]): HojaExcel[] {
+  const encabezadoBase = ["Fecha", "Unidad", "Marca", "Modelo", "Capturado por", "Alerta"];
+  return (Object.keys(TIPO_CHECKLIST_LABEL) as TipoChecklist[])
+    .map((tipo) => {
+      const filasTipo = checklists.filter((c) => c.tipo === tipo);
+      if (filasTipo.length === 0) return null;
+
+      const columnasExtra = COLUMNAS_POR_TIPO[tipo];
+      const encabezadoExtra = tipo === "DIARIO" ? ["Odómetro", "Horómetro", ...columnasExtra.map((c) => c.label)] : columnasExtra.map((c) => c.label);
+
+      const filas = filasTipo.map((c) => {
+        const datos = tipo === "DIARIO" ? { ...(c.puntosInspeccion ?? {}), ...c.respuestasSemanal } : c.respuestasSemanal;
+        const base = [fmtFechaHora(c.fecha), c.unidad.numeroEconomico, c.unidad.marca, c.unidad.unidadModelo, c.capturadoPor?.nombre ?? "—", c.alerta ? "Sí" : "No"];
+        const extra = tipo === "DIARIO" ? [c.odometro ?? "", c.horometro ?? "", ...columnasExtra.map((col) => datos[col.key] ?? "")] : columnasExtra.map((col) => datos[col.key] ?? "");
+        return [...base, ...extra];
+      });
+
+      return { nombre: TIPO_CHECKLIST_LABEL[tipo], headers: [...encabezadoBase, ...encabezadoExtra], filas };
+    })
+    .filter((h): h is HojaExcel => h !== null);
 }

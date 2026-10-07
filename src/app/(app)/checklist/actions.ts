@@ -16,7 +16,9 @@ import { ESTADOS_CARGA, AREAS_CARGA, TIPOS_COMBUSTIBLE_CARGA } from "@/lib/check
 import { DEPARTAMENTOS_FALLA, TIPOS_FALLA, MAX_FOTOS_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { enviarNotificacionReporteFalla } from "@/lib/email";
 import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
-import { tieneAlertaChecklist } from "@/lib/checklist-exportar";
+import { tieneAlertaChecklist, construirHojasExcelChecklists, TIPO_CHECKLIST_LABEL } from "@/lib/checklist-exportar";
+import { generarExcelBuffer } from "@/lib/exportar-excel";
+import { enviarChecklistsExcel } from "@/lib/email";
 import type { TipoChecklist, TipoVehiculo } from "@/generated/prisma/enums";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
@@ -655,4 +657,42 @@ export async function obtenerChecklistsParaExportar(input: {
       alerta: tieneAlertaChecklist(c.tipo, respuestas, puntosInspeccion, capacidadTanqueLitros, precioPromedioLitroCombustible),
     };
   });
+}
+
+const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Envía por correo (bajo demanda, sin programación) el mismo Excel que
+ * genera el botón "Exportar checklist" — adjunto, no un resumen visual en
+ * el cuerpo del correo (así lo pidió el usuario).
+ */
+export async function enviarChecklistsPorCorreo(input: {
+  tipos: TipoChecklist[];
+  desde: string;
+  hasta: string;
+  proyectoId?: string;
+  tipoVehiculo?: string;
+  destinatarios: string[];
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await exigirPermisoModulo("A.1");
+
+  const destinatarios = input.destinatarios.map((d) => d.trim()).filter(Boolean);
+  if (destinatarios.length === 0) return { ok: false, error: "Agrega al menos un destinatario." };
+  const invalidos = destinatarios.filter((d) => !REGEX_EMAIL.test(d));
+  if (invalidos.length > 0) return { ok: false, error: `Correo(s) inválido(s): ${invalidos.join(", ")}` };
+
+  const checklists = await obtenerChecklistsParaExportar(input);
+  const hojas = construirHojasExcelChecklists(checklists);
+  if (hojas.length === 0) return { ok: false, error: "No hay checklists para los filtros elegidos." };
+
+  const buffer = generarExcelBuffer(hojas);
+  const tiposTexto = input.tipos.map((t) => TIPO_CHECKLIST_LABEL[t]).join(", ");
+  const resultado = await enviarChecklistsExcel({
+    destinatarios,
+    buffer,
+    nombreArchivo: `checklists-${input.desde}_${input.hasta}.xlsx`,
+    resumen: `${tiposTexto} del ${input.desde} al ${input.hasta}`,
+  });
+  if (!resultado.enviado) return { ok: false, error: resultado.error ?? "No se pudo enviar el correo." };
+  return { ok: true };
 }

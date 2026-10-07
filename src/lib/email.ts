@@ -198,6 +198,38 @@ export async function enviarReporteBI({
   }
 }
 
+/** Envío bajo demanda del Excel de "Exportar checklist" (botón "Enviar por correo" de /checklist) — mismo adjunto que genera la descarga directa. */
+export async function enviarChecklistsExcel({
+  destinatarios,
+  buffer,
+  nombreArchivo,
+  resumen,
+}: {
+  destinatarios: string[];
+  buffer: Buffer;
+  nombreArchivo: string;
+  /** Texto corto describiendo qué se exportó (tipos y rango de fechas), para el cuerpo del correo. */
+  resumen: string;
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.RESEND_API_KEY) {
+    return { enviado: false, error: "RESEND_API_KEY no configurado." };
+  }
+  if (destinatarios.length === 0) return { enviado: false, error: "Sin destinatarios." };
+
+  try {
+    await enviarConReintento({
+      from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
+      to: destinatarios,
+      subject: "Orión — Exportación de checklists",
+      html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el Excel con ${resumen}, generado desde Orión.</p>`,
+      attachments: [{ filename: nombreArchivo, content: buffer, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }],
+    });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
+
 /**
  * Envío del reporte "Estatus de flota" con el contenido en el cuerpo del
  * correo (ver src/lib/reportes/estatus-flota-html.ts) — a diferencia de

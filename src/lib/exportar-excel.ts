@@ -9,7 +9,7 @@ export type HojaExcel = {
   filas: (string | number)[][];
 };
 
-export function exportarExcel(nombreArchivo: string, hojas: HojaExcel[]) {
+function construirLibro(hojas: HojaExcel[]) {
   const libro = XLSX.utils.book_new();
   for (const hoja of hojas) {
     const datos = [hoja.headers, ...hoja.filas];
@@ -19,6 +19,11 @@ export function exportarExcel(nombreArchivo: string, hojas: HojaExcel[]) {
     const nombreHoja = (hoja.nombre || "Hoja").replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Hoja";
     XLSX.utils.book_append_sheet(libro, ws, nombreHoja);
   }
+  return libro;
+}
+
+export function exportarExcel(nombreArchivo: string, hojas: HojaExcel[]) {
+  const libro = construirLibro(hojas);
   // XLSX.writeFile depende de que la librería detecte el entorno de navegador
   // y dispare la descarga por su cuenta — con el build que se usa aquí (xlsx
   // 0.20.3 vía CDN) eso no ocurre de forma confiable. Se arma el Blob a mano,
@@ -31,4 +36,10 @@ export function exportarExcel(nombreArchivo: string, hojas: HojaExcel[]) {
   a.download = `${nombreArchivo}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Igual que exportarExcel pero devuelve el Buffer en vez de descargarlo — para adjuntar el libro a un correo desde el servidor. */
+export function generarExcelBuffer(hojas: HojaExcel[]): Buffer {
+  const libro = construirLibro(hojas);
+  return XLSX.write(libro, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }

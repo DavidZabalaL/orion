@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Mail } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import { obtenerChecklistsParaExportar, type ChecklistParaExportar } from "@/app/(app)/checklist/actions";
-import { TIPO_CHECKLIST_LABEL, COLUMNAS_POR_TIPO } from "@/lib/checklist-exportar";
-import { exportarExcel, type HojaExcel } from "@/lib/exportar-excel";
-import { fmtFechaHora } from "@/lib/formato";
+import { obtenerChecklistsParaExportar, enviarChecklistsPorCorreo } from "@/app/(app)/checklist/actions";
+import { TIPO_CHECKLIST_LABEL, construirHojasExcelChecklists } from "@/lib/checklist-exportar";
+import { exportarExcel } from "@/lib/exportar-excel";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import type { TipoChecklist } from "@/generated/prisma/enums";
 
@@ -35,26 +34,6 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-function construirHojas(checklists: ChecklistParaExportar[]): HojaExcel[] {
-  const encabezadoBase = ["Fecha", "Unidad", "Marca", "Modelo", "Capturado por", "Alerta"];
-  return TODOS_LOS_TIPOS.map((tipo) => {
-    const filasTipo = checklists.filter((c) => c.tipo === tipo);
-    if (filasTipo.length === 0) return null;
-
-    const columnasExtra = COLUMNAS_POR_TIPO[tipo];
-    const encabezadoExtra = tipo === "DIARIO" ? ["Odómetro", "Horómetro", ...columnasExtra.map((c) => c.label)] : columnasExtra.map((c) => c.label);
-
-    const filas = filasTipo.map((c) => {
-      const datos = tipo === "DIARIO" ? { ...(c.puntosInspeccion ?? {}), ...c.respuestasSemanal } : c.respuestasSemanal;
-      const base = [fmtFechaHora(c.fecha), c.unidad.numeroEconomico, c.unidad.marca, c.unidad.unidadModelo, c.capturadoPor?.nombre ?? "—", c.alerta ? "Sí" : "No"];
-      const extra = tipo === "DIARIO" ? [c.odometro ?? "", c.horometro ?? "", ...columnasExtra.map((col) => datos[col.key] ?? "")] : columnasExtra.map((col) => datos[col.key] ?? "");
-      return [...base, ...extra];
-    });
-
-    return { nombre: TIPO_CHECKLIST_LABEL[tipo], headers: [...encabezadoBase, ...encabezadoExtra], filas };
-  }).filter((h): h is HojaExcel => h !== null);
-}
-
 export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string; nombre: string }[] }) {
   const [abierto, setAbierto] = useState(false);
   const [tipos, setTipos] = useState<Set<TipoChecklist>>(new Set(TODOS_LOS_TIPOS));
@@ -65,6 +44,9 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
   const [tipoVehiculo, setTipoVehiculo] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [destinatarios, setDestinatarios] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [mensajeEnvio, setMensajeEnvio] = useState<{ ok: boolean; texto: string } | null>(null);
 
   function alternarTipo(tipo: TipoChecklist) {
     setTipos((actual) => {
@@ -90,7 +72,7 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
         proyectoId: proyectoId || undefined,
         tipoVehiculo: tipoVehiculo || undefined,
       });
-      const hojas = construirHojas(checklists);
+      const hojas = construirHojasExcelChecklists(checklists);
       if (hojas.length === 0) {
         setError("No hay checklists para los filtros elegidos.");
         return;
@@ -101,6 +83,35 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
       setError("No se pudo generar la exportación. Intenta de nuevo.");
     } finally {
       setCargando(false);
+    }
+  }
+
+  async function enviarPorCorreo() {
+    if (tipos.size === 0) {
+      setMensajeEnvio({ ok: false, texto: "Selecciona al menos un tipo de checklist." });
+      return;
+    }
+    const lista = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
+    if (lista.length === 0) {
+      setMensajeEnvio({ ok: false, texto: "Escribe al menos un correo destinatario." });
+      return;
+    }
+    setEnviando(true);
+    setMensajeEnvio(null);
+    try {
+      const resultado = await enviarChecklistsPorCorreo({
+        tipos: [...tipos],
+        desde,
+        hasta,
+        proyectoId: proyectoId || undefined,
+        tipoVehiculo: tipoVehiculo || undefined,
+        destinatarios: lista,
+      });
+      setMensajeEnvio(resultado.ok ? { ok: true, texto: "Correo enviado." } : { ok: false, texto: resultado.error });
+    } catch {
+      setMensajeEnvio({ ok: false, texto: "No se pudo enviar el correo. Intenta de nuevo." });
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -174,6 +185,34 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
               style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
             >
               <Download size={15} /> {cargando ? "Generando…" : "Exportar a Excel"}
+            </button>
+
+            <hr style={{ border: "none", borderTop: "1px solid var(--field-border)" }} />
+
+            <div>
+              <label style={labelStyle}>Enviar el mismo Excel por correo</label>
+              <input
+                value={destinatarios}
+                onChange={(e) => setDestinatarios(e.target.value)}
+                placeholder="correo1@grupokabat.com, correo2@grupokabat.com"
+                style={fieldStyle}
+              />
+            </div>
+
+            {mensajeEnvio && (
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: mensajeEnvio.ok ? "var(--color-status-cerrado)" : "var(--color-error)" }}>
+                {mensajeEnvio.texto}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={enviarPorCorreo}
+              disabled={enviando}
+              className="flex items-center justify-center gap-2 rounded-md h-10 font-semibold disabled:opacity-60"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <Mail size={15} /> {enviando ? "Enviando…" : "Enviar por correo"}
             </button>
           </div>
         </Modal>
