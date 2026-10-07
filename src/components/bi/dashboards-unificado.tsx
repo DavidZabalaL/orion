@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sigma, LayoutGrid, Compass, CalendarClock } from "lucide-react";
+import { Sigma, LayoutGrid, Compass, CalendarClock, MailCheck } from "lucide-react";
 import { BiDashboardEditor, type VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import { BiExplorer, type MetricaDisponible } from "@/components/bi/bi-explorer";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
@@ -55,6 +55,14 @@ export function DashboardsUnificado({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/reportes/programados"
+              className="flex items-center gap-1.5 rounded-md px-3 py-2"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+              data-no-print
+            >
+              <MailCheck size={14} /> Panel de Reportes
+            </Link>
             <button
               onClick={() => setMostrarEstatusFlota(true)}
               className="flex items-center gap-1.5 rounded-md px-3 py-2"
