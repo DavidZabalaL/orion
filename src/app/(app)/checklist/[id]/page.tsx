@@ -4,7 +4,7 @@ import { ChevronLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
-import { SECCIONES_CHECKLIST_SEMANAL, contarAlertasPorCategoria } from "@/lib/checklist-semanal";
+import { SECCIONES_CHECKLIST_SEMANAL, listarAlertasSemanal } from "@/lib/checklist-semanal";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
 import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { blobProxy } from "@/lib/blob";
@@ -273,31 +273,39 @@ function DetalleSemanal({ respuestas }: { respuestas: Record<string, string> }) 
     { label: "Horómetro", value: respuestas.gen_horometro ? `${respuestas.gen_horometro} h` : undefined },
   ].filter((c) => c.value);
 
-  const { operativas, esteticas } = contarAlertasPorCategoria(respuestas);
+  const alertas = listarAlertasSemanal(respuestas);
+  const alertasOperativas = alertas.filter((a) => a.categoria === "operativa");
+  const alertasEsteticas = alertas.filter((a) => a.categoria === "estetica");
 
   return (
     <div className="flex flex-col gap-5">
-      {(operativas > 0 || esteticas > 0) && (
+      {alertas.length > 0 && (
         <Panel>
           <SeccionTitulo titulo="Alertas" />
-          <div className="px-5 py-4 flex flex-wrap gap-2">
-            {operativas > 0 && (
+          <div className="px-5 pt-4 flex flex-wrap gap-2">
+            {alertasOperativas.length > 0 && (
               <span
                 className="rounded-full px-3 py-1"
                 style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
               >
-                {operativas} alerta{operativas === 1 ? "" : "s"} operativa{operativas === 1 ? "" : "s"}
+                {alertasOperativas.length} alerta{alertasOperativas.length === 1 ? "" : "s"} operativa{alertasOperativas.length === 1 ? "" : "s"}
               </span>
             )}
-            {esteticas > 0 && (
+            {alertasEsteticas.length > 0 && (
               <span
                 className="rounded-full px-3 py-1"
                 style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
               >
-                {esteticas} alerta{esteticas === 1 ? "" : "s"} estética{esteticas === 1 ? "" : "s"}
+                {alertasEsteticas.length} alerta{alertasEsteticas.length === 1 ? "" : "s"} estética{alertasEsteticas.length === 1 ? "" : "s"}
               </span>
             )}
           </div>
+          {alertasOperativas.map((a) => (
+            <FilaItem key={a.key} label={a.label} badge={<ColorChip value={a.valor} />} />
+          ))}
+          {alertasEsteticas.map((a) => (
+            <FilaItem key={a.key} label={a.label} badge={<ColorChip value={a.valor} />} />
+          ))}
         </Panel>
       )}
 

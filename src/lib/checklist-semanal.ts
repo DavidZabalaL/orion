@@ -144,26 +144,50 @@ export const CATEGORIA_ALERTA_SEMANAL: Record<string, "operativa" | "estetica"> 
   ext_llantas_general: "operativa",
 };
 
+// Etiquetas para el detalle de alertas — de SECCIONES_CHECKLIST_SEMANAL más
+// las claves de versiones anteriores del formulario (ya no están en el
+// catálogo actual, ver CATEGORIA_ALERTA_SEMANAL más arriba).
+const ETIQUETA_CAMPO_SEMANAL: Record<string, string> = {
+  niv_bayoneta_aceite: "Estado de la Bayoneta",
+  ext_llantas_general: "Llantas (general)",
+};
+
+export type AlertaSemanalDetalle = { key: string; label: string; valor: string; categoria: "operativa" | "estetica" };
+
+/**
+ * Lista las alertas de un checklist semanal (campo, valor y categoría) —
+ * mismo criterio que VALORES_ALERTA_SEMANAL (valor en mal estado). Un campo
+ * alertable sin clasificación explícita se cuenta como operativa (más
+ * conservador: mejor que se revise de más a que se pierda una alerta).
+ */
+export function listarAlertasSemanal(respuestas: Record<string, string>): AlertaSemanalDetalle[] {
+  const clavesFoto = new Set(todasLasClavesFoto());
+  const alertas: AlertaSemanalDetalle[] = [];
+  for (const [key, valor] of Object.entries(respuestas)) {
+    if (clavesFoto.has(key) || !VALORES_ALERTA_SEMANAL.has(valor)) continue;
+    alertas.push({
+      key,
+      label: ETIQUETA_CAMPO_SEMANAL[key] ?? key,
+      valor,
+      categoria: CATEGORIA_ALERTA_SEMANAL[key] === "estetica" ? "estetica" : "operativa",
+    });
+  }
+  return alertas;
+}
+
 /**
  * Cuenta las alertas de un checklist semanal separadas por categoría —
- * mismo criterio que VALORES_ALERTA_SEMANAL (valor en mal estado), pero
  * agrupado para mostrar p. ej. "10 estéticas, 8 operativas" en los resúmenes.
- * Un campo alertable sin clasificación explícita se cuenta como operativa
- * (más conservador: mejor que se revise de más a que se pierda una alerta).
  */
 export function contarAlertasPorCategoria(respuestas: Record<string, string>): {
   operativas: number;
   esteticas: number;
 } {
-  const clavesFoto = new Set(todasLasClavesFoto());
-  let operativas = 0;
-  let esteticas = 0;
-  for (const [key, valor] of Object.entries(respuestas)) {
-    if (clavesFoto.has(key) || !VALORES_ALERTA_SEMANAL.has(valor)) continue;
-    if (CATEGORIA_ALERTA_SEMANAL[key] === "estetica") esteticas++;
-    else operativas++;
-  }
-  return { operativas, esteticas };
+  const alertas = listarAlertasSemanal(respuestas);
+  return {
+    operativas: alertas.filter((a) => a.categoria === "operativa").length,
+    esteticas: alertas.filter((a) => a.categoria === "estetica").length,
+  };
 }
 
 // Variantes de "no aplica" usadas entre los distintos conjuntos de opciones
@@ -261,6 +285,12 @@ export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
     ],
   },
 ];
+
+for (const seccion of SECCIONES_CHECKLIST_SEMANAL) {
+  for (const campo of seccion.campos) {
+    if (campo.tipo !== "foto") ETIQUETA_CAMPO_SEMANAL[campo.key] = campo.label;
+  }
+}
 
 /** Todas las claves de campo tipo foto (radio.fotoKey + foto sueltas) — útil para validar/leer el FormData completo. */
 export function todasLasClavesFoto(): string[] {
