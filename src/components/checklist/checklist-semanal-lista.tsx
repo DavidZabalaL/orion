@@ -7,7 +7,7 @@ import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
 import { Panel, SeccionTitulo, FilaItem, ColorChip } from "@/components/ui/documento-panel";
 import { fmtFechaHora } from "@/lib/formato";
-import { todasLasClavesFoto, VALORES_ALERTA_SEMANAL, SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
+import { contarAlertasPorCategoria, SECCIONES_CHECKLIST_SEMANAL } from "@/lib/checklist-semanal";
 
 type ChecklistSemanalRow = {
   id: string;
@@ -16,8 +16,6 @@ type ChecklistSemanalRow = {
   respuestasSemanal: Record<string, string> | null;
   capturadoPor: { nombre: string } | null;
 };
-
-const CLAVES_FOTO = new Set([...todasLasClavesFoto(), "fotoLicenciaUrl"]);
 
 export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSemanalRow[] }) {
   const [busqueda, setBusqueda] = useState("");
@@ -38,7 +36,7 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
         <Table headers={["Hora", "Unidad", "Oficina / Sede", "Capturado por", "Alertas", ""]} minWidth={760}>
           {filtrados.map((c) => {
             const respuestas = c.respuestasSemanal ?? {};
-            const alertas = Object.entries(respuestas).filter(([k, v]) => !CLAVES_FOTO.has(k) && VALORES_ALERTA_SEMANAL.has(v)).length;
+            const { operativas, esteticas } = contarAlertasPorCategoria(respuestas);
             return (
               <Fragment key={c.id}>
                 <tr style={{ borderBottom: expandido === c.id ? "none" : "1px solid var(--field-border)" }}>
@@ -47,10 +45,17 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{respuestas.oficinaSede ?? "—"}</td>
                   <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{c.capturadoPor?.nombre ?? "—"}</td>
                   <td className="px-4 py-3">
-                    {alertas > 0 ? (
-                      <Badge label={`${alertas} en mal estado`} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
-                    ) : (
+                    {operativas === 0 && esteticas === 0 ? (
                       <Badge label="Sin alertas" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {operativas > 0 && (
+                          <Badge label={`${operativas} operativa${operativas === 1 ? "" : "s"}`} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+                        )}
+                        {esteticas > 0 && (
+                          <Badge label={`${esteticas} estética${esteticas === 1 ? "" : "s"}`} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3">

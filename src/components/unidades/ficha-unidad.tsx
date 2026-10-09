@@ -43,7 +43,7 @@ import { TagForm } from "@/components/tag/tag-form";
 import { SeguroForm } from "@/components/seguros/seguro-form";
 import { DocumentosUnidad } from "@/components/unidades/documentos-unidad";
 import { RutaMapLazy } from "@/components/mapa/ruta-map-lazy";
-import { VALORES_ALERTA_SEMANAL } from "@/lib/checklist-semanal";
+import { contarAlertasPorCategoria } from "@/lib/checklist-semanal";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
 
@@ -1052,17 +1052,21 @@ function ResumenChecklistDiario({ puntos }: { puntos: Record<string, string> }) 
 }
 
 function ResumenChecklistSemanal({ respuestas }: { respuestas: Record<string, string> }) {
-  const valores = Object.entries(respuestas).filter(
-    ([k, v]) => v && !k.endsWith("Url") && !k.startsWith("gen_foto") && !k.startsWith("fotoLicencia")
-  );
-  const enMalEstado = valores.filter(([, v]) => VALORES_ALERTA_SEMANAL.has(v)).length;
+  const { operativas, esteticas } = contarAlertasPorCategoria(respuestas);
   const sede = respuestas.oficinaSede ?? "—";
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>{sede}</span>
-      {enMalEstado > 0 && (
+      {operativas > 0 && (
         <Badge
-          label={`${enMalEstado} alertas`}
+          label={`${operativas} operativa${operativas === 1 ? "" : "s"}`}
+          color="var(--color-status-escena)"
+          bg="var(--status-escena-bg)"
+        />
+      )}
+      {esteticas > 0 && (
+        <Badge
+          label={`${esteticas} estética${esteticas === 1 ? "" : "s"}`}
           color="var(--color-status-revision)"
           bg="var(--status-revision-bg)"
         />

@@ -81,6 +81,91 @@ export const ESTADO_LLANTA = ["100% (NUEVA)", "75%", "50%", "25%", "0% (REEMPLAZ
 // hallazgo — generalizar la alerta a esos campos generaría ruido constante.
 export const VALORES_ALERTA_SEMANAL = new Set(["MAL ESTADO", "MINIMO", "25%", "0% (REEMPLAZAR)", "NA"]);
 
+// Clasificación de cada campo alertable en "operativa" (afecta la seguridad o
+// el funcionamiento mecánico del vehículo: niveles, frenos, llantas, luces,
+// cinturones, herramientas de seguridad) o "estética" (condición física o de
+// limpieza sin impacto mecánico directo: espejos, parabrisas, antena, orden
+// de cabina, tablero, papel de verificación). Sirve para separar el conteo
+// de alertas en el resumen del checklist semanal.
+export const CATEGORIA_ALERTA_SEMANAL: Record<string, "operativa" | "estetica"> = {
+  // Niveles — todos operativos (fluidos/batería inciden directo en el funcionamiento).
+  niv_nivel_aceite: "operativa",
+  niv_nivel_aceite_grua: "operativa",
+  niv_nivel_frenos: "operativa",
+  niv_nivel_direccion: "operativa",
+  niv_nivel_anticongelante: "operativa",
+  niv_liquido_transmision: "operativa",
+  int_bateria: "operativa",
+  // Exterior
+  ext_parabrisas_delantero: "estetica",
+  ext_espejos_laterales: "estetica",
+  ext_espejo_lateral_der: "estetica",
+  ext_faros_neblineros: "operativa",
+  ext_llanta_del_der: "operativa",
+  ext_llanta_tras_der: "operativa",
+  ext_llanta_tras_der_interior: "operativa",
+  ext_parabrisas_posterior: "estetica",
+  ext_faros_traseros: "operativa",
+  ext_calavera_derecha: "operativa",
+  ext_llanta_refaccion: "operativa",
+  ext_llanta_tras_izq: "operativa",
+  ext_llanta_del_izq: "operativa",
+  ext_llanta_tras_izq_interior: "operativa",
+  ext_antena: "estetica",
+  // Interior
+  int_orden_limpieza_cabina: "estetica",
+  int_espejo_retrovisor: "estetica",
+  int_estado_tablero: "estetica",
+  int_volante: "estetica",
+  int_papel_verificacion: "estetica",
+  int_poliza_seguro: "operativa",
+  int_freno_mano: "operativa",
+  int_claxon: "operativa",
+  int_luces_cortas: "operativa",
+  int_luces_largas: "operativa",
+  int_luces_direccionales: "operativa",
+  int_luz_stop: "operativa",
+  int_intermitentes: "operativa",
+  int_cinturones_seguridad: "operativa",
+  int_cinturon_copiloto: "operativa",
+  int_cinturones_traseros: "operativa",
+  int_ventanillas: "operativa",
+  int_ventanilla_copiloto: "operativa",
+  int_ventanilla_tras_der: "operativa",
+  int_ventanilla_tras_izq: "operativa",
+  // Herramientas — equipo de seguridad.
+  her_gato: "operativa",
+  her_palanca_ruedas: "operativa",
+  her_triangulo_reflejante: "operativa",
+  // Claves de versiones anteriores del formulario, ya no están en
+  // SECCIONES_CHECKLIST_SEMANAL pero siguen presentes en respuestasSemanal
+  // de checklists viejos — se mantienen clasificadas para no perderlas del conteo.
+  niv_bayoneta_aceite: "operativa",
+  ext_llantas_general: "operativa",
+};
+
+/**
+ * Cuenta las alertas de un checklist semanal separadas por categoría —
+ * mismo criterio que VALORES_ALERTA_SEMANAL (valor en mal estado), pero
+ * agrupado para mostrar p. ej. "10 estéticas, 8 operativas" en los resúmenes.
+ * Un campo alertable sin clasificación explícita se cuenta como operativa
+ * (más conservador: mejor que se revise de más a que se pierda una alerta).
+ */
+export function contarAlertasPorCategoria(respuestas: Record<string, string>): {
+  operativas: number;
+  esteticas: number;
+} {
+  const clavesFoto = new Set(todasLasClavesFoto());
+  let operativas = 0;
+  let esteticas = 0;
+  for (const [key, valor] of Object.entries(respuestas)) {
+    if (clavesFoto.has(key) || !VALORES_ALERTA_SEMANAL.has(valor)) continue;
+    if (CATEGORIA_ALERTA_SEMANAL[key] === "estetica") esteticas++;
+    else operativas++;
+  }
+  return { operativas, esteticas };
+}
+
 // Variantes de "no aplica" usadas entre los distintos conjuntos de opciones
 // de este checklist (BUEN_MAL_NA usa "N/A", BUEN_MAL_NA2 usa "NA", ESTADO_4
 // usa "NO APLICA") — cuando el operador responde con cualquiera de estas, no
