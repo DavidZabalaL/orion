@@ -111,11 +111,11 @@ export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
     campos: [
       { tipo: "foto", key: "ext_evidencia_frente", label: "Evidencia fotográfica del frente del vehículo", requerido: true },
       { tipo: "radio", key: "ext_parabrisas_delantero", label: "Parabrisas", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_parabrisas_delantero", fotoLabel: "Evidencia fotográfica del parabrisas delantero", fotoRequerido: true },
-      { tipo: "radio", key: "ext_espejos_laterales", label: "Espejo lateral izquierdo", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_espejos_laterales", fotoLabel: "Evidencia fotográfica espejo lateral izquierdo", fotoRequerido: false },
-      { tipo: "radio", key: "ext_espejo_lateral_der", label: "Espejo lateral derecho", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_espejo_lateral_der", fotoLabel: "Evidencia fotográfica espejo lateral derecho", fotoRequerido: false },
+      { tipo: "radio", key: "ext_espejos_laterales", label: "Espejo lateral izquierdo", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_espejos_laterales", fotoLabel: "Evidencia fotográfica espejo lateral izquierdo", fotoRequerido: true },
+      { tipo: "radio", key: "ext_espejo_lateral_der", label: "Espejo lateral derecho", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_espejo_lateral_der", fotoLabel: "Evidencia fotográfica espejo lateral derecho", fotoRequerido: true },
       { tipo: "foto", key: "ext_evidencia_faro_del_izq", label: "Evidencia fotográfica del faro delantero izquierdo", requerido: true },
       { tipo: "foto", key: "ext_evidencia_faro_del_der", label: "Evidencia fotográfica del faro delantero derecho", requerido: true },
-      { tipo: "radio", key: "ext_faros_neblineros", label: "Faros neblineros", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_faros_neblineros", fotoLabel: "Evidencia fotográfica faros neblineros", fotoRequerido: false },
+      { tipo: "radio", key: "ext_faros_neblineros", label: "Faros neblineros", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "ext_evidencia_faros_neblineros", fotoLabel: "Evidencia fotográfica faros neblineros", fotoRequerido: true },
       { tipo: "foto", key: "ext_evidencia_lateral_der", label: "Evidencia fotográfica del lateral derecho", requerido: true },
       { tipo: "radio", key: "ext_llanta_del_der", label: "Llanta delantera derecha", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_del_der", fotoLabel: "Evidencia fotográfica llanta delantera derecha", fotoRequerido: true },
       { tipo: "radio", key: "ext_llanta_tras_der", label: "Llanta trasera derecha (exterior)", opciones: ESTADO_LLANTA, requerido: true, fotoKey: "ext_evidencia_llanta_tras_der", fotoLabel: "Evidencia fotográfica llanta trasera derecha (exterior)", fotoRequerido: true },
@@ -139,7 +139,7 @@ export const SECCIONES_CHECKLIST_SEMANAL: SeccionSemanal[] = [
     titulo: "Interior",
     campos: [
       { tipo: "radio", key: "int_orden_limpieza_cabina", label: "Orden y limpieza de cabina delantera", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "int_evidencia_cabina", fotoLabel: "Evidencia fotográfica cabina delantera", fotoRequerido: true },
-      { tipo: "radio", key: "int_espejo_retrovisor", label: "Espejo retrovisor", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "int_evidencia_espejo_retrovisor", fotoLabel: "Evidencia fotográfica espejo retrovisor", fotoRequerido: false },
+      { tipo: "radio", key: "int_espejo_retrovisor", label: "Espejo retrovisor", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "int_evidencia_espejo_retrovisor", fotoLabel: "Evidencia fotográfica espejo retrovisor", fotoRequerido: true },
       { tipo: "radio", key: "int_estado_tablero", label: "Estado del tablero", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "int_evidencia_tablero", fotoLabel: "Evidencia fotográfica del tablero", fotoRequerido: true },
       { tipo: "numero", key: "int_porcentaje_combustible", label: "Especifique el porcentaje del nivel de combustible", requerido: true, min: 0, max: 100 },
       { tipo: "radio", key: "int_volante", label: "Volante", opciones: BUEN_MAL_NA, requerido: true, fotoKey: "int_evidencia_volante", fotoLabel: "Evidencia fotográfica (volante)", fotoRequerido: true },

@@ -19,23 +19,25 @@ export const CAMPOS_DIARIO_LABEL: Record<string, string> = {
   seg_observaciones: "Observaciones",
 };
 
-const CLAVES_FOTO_O_FIRMA_DIARIO = new Set([
-  "gen_foto_licencia",
-  "niv_evidencia_luz_check",
-  "niv_evidencia_combustible",
-  "ext_evidencia_golpes_1",
-  "ext_evidencia_golpes_2",
-  "ext_evidencia_golpes_3",
-  "ext_evidencia_parabrisas_espejos",
-  "ext_evidencia_frente",
-  "ext_evidencia_lado_derecho",
-  "ext_evidencia_parte_trasera",
-  "ext_evidencia_lado_izquierdo",
-  "ext_brazo_grua",
-  "int_evidencia_tarjeta_circulacion",
-  "int_evidencia_tarjeta_combustible",
-  "seg_firma_responsable",
-]);
+export const CAMPOS_FOTO_DIARIO_LABEL: Record<string, string> = {
+  gen_foto_licencia: "Foto de licencia",
+  niv_evidencia_luz_check: "Evidencia fotográfica (luz de check)",
+  niv_evidencia_combustible: "Evidencia fotográfica (combustible)",
+  ext_evidencia_golpes_1: "Foto de evidencia de golpes 1",
+  ext_evidencia_golpes_2: "Foto de evidencia de golpes 2",
+  ext_evidencia_golpes_3: "Foto de evidencia de golpes 3",
+  ext_evidencia_parabrisas_espejos: "Foto parabrisas y espejos",
+  ext_evidencia_frente: "Foto frente del vehículo",
+  ext_evidencia_lado_derecho: "Foto lado derecho",
+  ext_evidencia_parte_trasera: "Foto parte trasera",
+  ext_evidencia_lado_izquierdo: "Foto lado izquierdo",
+  ext_brazo_grua: "Foto brazo de grúa",
+  int_evidencia_tarjeta_circulacion: "Foto tarjeta de circulación",
+  int_evidencia_tarjeta_combustible: "Foto tarjeta de combustible",
+  seg_firma_responsable: "Firma del responsable",
+};
+
+const CLAVES_FOTO_O_FIRMA_DIARIO = new Set(Object.keys(CAMPOS_FOTO_DIARIO_LABEL));
 
 export function esCampoTextoDiario(key: string): boolean {
   return !CLAVES_FOTO_O_FIRMA_DIARIO.has(key);

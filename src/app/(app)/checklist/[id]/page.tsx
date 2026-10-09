@@ -515,7 +515,7 @@ export default async function DetalleChecklistPage({
     <>
       {/* eslint-disable-next-line react/no-unknown-property */}
       <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
-      <AutoPrint />
+      {checklist.tipo === "SEMANAL" && <AutoPrint />}
 
       <div className="checklist-wrap flex flex-col gap-5 p-4 md:p-6 max-w-3xl">
         {/* ── Cabecera ── */}
@@ -542,7 +542,7 @@ export default async function DetalleChecklistPage({
               </span>
             </div>
           </div>
-          <PrintButton />
+          {checklist.tipo === "SEMANAL" && <PrintButton />}
         </div>
 
         {/* ── Meta resumen ── */}

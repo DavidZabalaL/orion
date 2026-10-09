@@ -38,9 +38,13 @@ export function ExportarChecklistModal({ proyectos }: { proyectos: { id: string;
   const [abierto, setAbierto] = useState(false);
   const [tipos, setTipos] = useState<Set<TipoChecklist>>(new Set(TODOS_LOS_TIPOS));
   const [incluirIndicadores, setIncluirIndicadores] = useState(false);
-  const hoy = new Date().toISOString().slice(0, 10);
-  const [desde, setDesde] = useState(hoy);
-  const [hasta, setHasta] = useState(hoy);
+  // El rango por defecto era "hoy a hoy" (un solo día) — fácil de pasar por
+  // alto al marcar varios tipos y terminar exportando mucho menos de lo
+  // esperado. Una semana atrás es un punto de partida más seguro; el rango
+  // sigue siendo editable. Inicializador perezoso de useState (no una
+  // llamada a Date.now() directa en el cuerpo del render).
+  const [desde, setDesde] = useState(() => new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
   const [proyectoId, setProyectoId] = useState("");
   const [tipoVehiculo, setTipoVehiculo] = useState("");
   const [cargando, setCargando] = useState(false);

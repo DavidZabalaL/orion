@@ -126,16 +126,18 @@ export function ChecklistHistorialLista({ checklists, desde, hasta }: { checklis
                   >
                     Ver ficha <ChevronRight size={13} />
                   </Link>
-                  <Link
-                    href={`/checklist/${c.id}?print=1`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Exportar este checklist a PDF"
-                    className="flex items-center gap-1 rounded-md px-2.5 py-1 w-fit"
-                    style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
-                  >
-                    <Printer size={13} /> PDF
-                  </Link>
+                  {c.tipo === "SEMANAL" && (
+                    <Link
+                      href={`/checklist/${c.id}?print=1`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Exportar este checklist a PDF"
+                      className="flex items-center gap-1 rounded-md px-2.5 py-1 w-fit"
+                      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                    >
+                      <Printer size={13} /> PDF
+                    </Link>
+                  )}
                 </div>
               </td>
             </tr>

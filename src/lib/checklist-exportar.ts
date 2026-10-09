@@ -6,7 +6,7 @@
 import { SECCIONES_CHECKLIST_SEMANAL, VALORES_ALERTA_SEMANAL, todasLasClavesFoto } from "@/lib/checklist-semanal";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
 import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
-import { CAMPOS_DIARIO_LABEL, PUNTOS_INSPECCION_LABEL, tieneAlertaDiario } from "@/lib/checklist-diario";
+import { CAMPOS_DIARIO_LABEL, CAMPOS_FOTO_DIARIO_LABEL, PUNTOS_INSPECCION_LABEL, tieneAlertaDiario } from "@/lib/checklist-diario";
 import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
 import { fmtFechaHora } from "@/lib/formato";
 import type { HojaExcel } from "@/lib/exportar-excel";
@@ -70,6 +70,53 @@ export const COLUMNAS_POR_TIPO: Record<TipoChecklist, { key: string; label: stri
   SEMANAL: columnasSemanal(),
   CARGA_COMBUSTIBLE: columnasCombustible(),
   REPORTE_FALLA: columnasReporteFalla(),
+};
+
+// "¿Hay foto?" por campo fotográfico de cada tipo — Sí/No únicamente, nunca
+// la URL/imagen en sí (pedido explícito: solo visibilidad de si falta
+// evidencia, no incluirla en el Excel).
+function columnasFotoSemanal(): { key: string; label: string }[] {
+  const cols: { key: string; label: string }[] = [];
+  for (const s of SECCIONES_CHECKLIST_SEMANAL) {
+    for (const c of s.campos) {
+      if (c.tipo === "foto") cols.push({ key: c.key, label: c.label });
+      else if ("fotoKey" in c && c.fotoKey) cols.push({ key: c.fotoKey, label: c.fotoLabel ?? c.fotoKey });
+    }
+  }
+  cols.push({ key: "fotoLicenciaUrl", label: "Foto de licencia" });
+  return cols;
+}
+
+function columnasFotoReporteFalla(): { key: string; label: string }[] {
+  const cols: { key: string; label: string }[] = [];
+  for (const s of SECCIONES_REPORTE_FALLA) {
+    for (const f of s.fotos) cols.push({ key: f.key, label: f.label });
+  }
+  return cols;
+}
+
+function columnasFotoCombustible(): { key: string; label: string }[] {
+  const cols: { key: string; label: string }[] = [];
+  for (const s of SECCIONES_CARGA_COMBUSTIBLE) {
+    for (const f of s.fotos) cols.push({ key: f.key, label: f.label });
+    if ("firma" in s && s.firma) cols.push({ key: s.firma.key, label: s.firma.label });
+  }
+  return cols;
+}
+
+function columnasFotoDiario(): { key: string; label: string }[] {
+  return [
+    ...Object.entries(PUNTOS_INSPECCION_LABEL).map(([key, label]) => ({ key: `${key}_foto`, label: `Foto: ${label}` })),
+    { key: "horometro_foto", label: "Foto del horómetro" },
+    ...Object.entries(CAMPOS_FOTO_DIARIO_LABEL).map(([key, label]) => ({ key, label })),
+  ];
+}
+
+export const COLUMNAS_FOTO_POR_TIPO: Record<TipoChecklist, { key: string; label: string }[]> = {
+  DIARIO: columnasFotoDiario(),
+  SEMANAL: columnasFotoSemanal(),
+  CARGA_COMBUSTIBLE: columnasFotoCombustible(),
+  REPORTE_FALLA: columnasFotoReporteFalla(),
 };
 
 const CLAVES_FOTO_SEMANAL = new Set([...todasLasClavesFoto(), "fotoLicenciaUrl"]);
@@ -161,16 +208,19 @@ export function construirHojasExcelChecklists(checklists: ChecklistExportableRow
       if (filasTipo.length === 0) return null;
 
       const columnasExtra = COLUMNAS_POR_TIPO[tipo];
+      const columnasFoto = COLUMNAS_FOTO_POR_TIPO[tipo];
       const encabezadoExtra = tipo === "DIARIO" ? ["Odómetro", "Horómetro", ...columnasExtra.map((c) => c.label)] : columnasExtra.map((c) => c.label);
+      const encabezadoFoto = columnasFoto.map((c) => `¿Foto? ${c.label}`);
 
       const filas = filasTipo.map((c) => {
         const datos = tipo === "DIARIO" ? { ...(c.puntosInspeccion ?? {}), ...c.respuestasSemanal } : c.respuestasSemanal;
         const base = [fmtFechaHora(c.fecha), c.unidad.numeroEconomico, c.unidad.marca, c.unidad.unidadModelo, c.capturadoPor?.nombre ?? "—", c.alerta ? "Sí" : "No"];
         const extra = tipo === "DIARIO" ? [c.odometro ?? "", c.horometro ?? "", ...columnasExtra.map((col) => datos[col.key] ?? "")] : columnasExtra.map((col) => datos[col.key] ?? "");
-        return [...base, ...extra];
+        const foto = columnasFoto.map((col) => (datos[col.key] ? "Sí" : "No"));
+        return [...base, ...extra, ...foto];
       });
 
-      return { nombre: TIPO_CHECKLIST_LABEL[tipo], headers: [...encabezadoBase, ...encabezadoExtra], filas };
+      return { nombre: TIPO_CHECKLIST_LABEL[tipo], headers: [...encabezadoBase, ...encabezadoExtra, ...encabezadoFoto], filas };
     })
     .filter((h): h is HojaExcel => h !== null);
 }
