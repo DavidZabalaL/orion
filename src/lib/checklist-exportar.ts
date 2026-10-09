@@ -192,6 +192,10 @@ export type ChecklistExportableRow = {
   puntosInspeccion: Record<string, string> | null;
   capturadoPor: { nombre: string } | null;
   alerta: boolean;
+  /** Solo REPORTE_FALLA — para el SLA de resolución (ver EstatusReporteFalla). */
+  estatusFalla?: string | null;
+  fechaCierreFalla?: Date | string | null;
+  costoResolucionFalla?: number | null;
 };
 
 /**
@@ -211,16 +215,28 @@ export function construirHojasExcelChecklists(checklists: ChecklistExportableRow
       const columnasFoto = COLUMNAS_FOTO_POR_TIPO[tipo];
       const encabezadoExtra = tipo === "DIARIO" ? ["Odómetro", "Horómetro", ...columnasExtra.map((c) => c.label)] : columnasExtra.map((c) => c.label);
       const encabezadoFoto = columnasFoto.map((c) => `¿Foto? ${c.label}`);
+      const encabezadoFalla = tipo === "REPORTE_FALLA" ? ["Estatus", "Fecha de cierre", "Días para resolver", "Costo de resolución"] : [];
 
       const filas = filasTipo.map((c) => {
         const datos = tipo === "DIARIO" ? { ...(c.puntosInspeccion ?? {}), ...c.respuestasSemanal } : c.respuestasSemanal;
         const base = [fmtFechaHora(c.fecha), c.unidad.numeroEconomico, c.unidad.marca, c.unidad.unidadModelo, c.capturadoPor?.nombre ?? "—", c.alerta ? "Sí" : "No"];
         const extra = tipo === "DIARIO" ? [c.odometro ?? "", c.horometro ?? "", ...columnasExtra.map((col) => datos[col.key] ?? "")] : columnasExtra.map((col) => datos[col.key] ?? "");
         const foto = columnasFoto.map((col) => (datos[col.key] ? "Sí" : "No"));
-        return [...base, ...extra, ...foto];
+        const falla =
+          tipo === "REPORTE_FALLA"
+            ? [
+                c.estatusFalla === "CERRADO" ? "Cerrado" : "Abierto",
+                c.fechaCierreFalla ? fmtFechaHora(c.fechaCierreFalla) : "—",
+                String(
+                  Math.max(0, Math.round(((c.fechaCierreFalla ? new Date(c.fechaCierreFalla) : new Date()).getTime() - new Date(c.fecha).getTime()) / 86_400_000))
+                ),
+                c.costoResolucionFalla != null ? c.costoResolucionFalla.toLocaleString("es-MX", { minimumFractionDigits: 2 }) : "",
+              ]
+            : [];
+        return [...base, ...extra, ...foto, ...falla];
       });
 
-      return { nombre: TIPO_CHECKLIST_LABEL[tipo], headers: [...encabezadoBase, ...encabezadoExtra, ...encabezadoFoto], filas };
+      return { nombre: TIPO_CHECKLIST_LABEL[tipo], headers: [...encabezadoBase, ...encabezadoExtra, ...encabezadoFoto, ...encabezadoFalla], filas };
     })
     .filter((h): h is HojaExcel => h !== null);
 }

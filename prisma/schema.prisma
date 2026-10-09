@@ -149,6 +149,13 @@ enum OrigenPresupuesto {
   MANUAL
 }
 
+/// Estado de un checklist de tipo REPORTE_FALLA — para poder medir cuánto
+/// tiempo toma resolver una falla (SLA) a partir de fechaCierreFalla - fecha.
+enum EstatusReporteFalla {
+  ABIERTO
+  CERRADO
+}
+
 enum EstatusGasto {
   PROGRAMADO
   EN_PROCESO
@@ -731,6 +738,11 @@ model Checklist {
   horometro         Int?
   puntosInspeccion  Json // solo DIARIO: { puntoKey: "ok" | "revisar" }
   respuestasSemanal Json? // solo SEMANAL: todas las respuestas del checklist de 59 campos (ver src/lib/checklist-semanal.ts)
+  /// Solo REPORTE_FALLA — null en el resto de tipos. Null también en reportes
+  /// de falla creados antes de este campo (se tratan como ABIERTO al leer).
+  estatusFalla         EstatusReporteFalla?
+  fechaCierreFalla     DateTime?
+  costoResolucionFalla Decimal?             @db.Decimal(12, 2)
   evidenciaId       String?
   evidencia         Documento?    @relation(fields: [evidenciaId], references: [id])
   capturadoPorId    String

@@ -10,6 +10,7 @@ import { SECCIONES_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { blobProxy } from "@/lib/blob";
 import { PrintButton } from "@/components/checklist/print-button";
 import { AutoPrint } from "@/components/checklist/auto-print";
+import { EstatusReporteFalla } from "@/components/checklist/estatus-reporte-falla";
 import { SeccionTitulo, FilaItem, Panel, ColorChip } from "@/components/ui/documento-panel";
 
 export const dynamic = "force-dynamic";
@@ -576,7 +577,18 @@ export default async function DetalleChecklistPage({
         )}
         {checklist.tipo === "SEMANAL" && <DetalleSemanal respuestas={respuestas} />}
         {checklist.tipo === "CARGA_COMBUSTIBLE" && <DetalleCargaCombustible respuestas={respuestas} />}
-        {checklist.tipo === "REPORTE_FALLA" && <DetalleReporteFalla respuestas={respuestas} />}
+        {checklist.tipo === "REPORTE_FALLA" && (
+          <>
+            <EstatusReporteFalla
+              id={checklist.id}
+              fecha={checklist.fecha.toISOString()}
+              estatusFalla={checklist.estatusFalla}
+              fechaCierreFalla={checklist.fechaCierreFalla?.toISOString() ?? null}
+              costoResolucionFalla={checklist.costoResolucionFalla != null ? Number(checklist.costoResolucionFalla) : null}
+            />
+            <DetalleReporteFalla respuestas={respuestas} />
+          </>
+        )}
       </div>
     </>
   );

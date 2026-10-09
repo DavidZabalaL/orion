@@ -448,6 +448,7 @@ export async function crearChecklistReporteFalla(formData: FormData): Promise<{ 
         puntosInspeccion: {},
         respuestasSemanal: respuestas,
         capturadoPorId: session.user.id,
+        estatusFalla: "ABIERTO",
       },
     });
 
@@ -598,6 +599,10 @@ export type ChecklistParaExportar = {
   puntosInspeccion: Record<string, string> | null;
   capturadoPor: { nombre: string } | null;
   alerta: boolean;
+  /** Solo REPORTE_FALLA — para el SLA de resolución. */
+  estatusFalla: string | null;
+  fechaCierreFalla: Date | null;
+  costoResolucionFalla: number | null;
 };
 
 /**
@@ -655,6 +660,9 @@ export async function obtenerChecklistsParaExportar(input: {
       puntosInspeccion,
       capturadoPor: c.capturadoPor,
       alerta: tieneAlertaChecklist(c.tipo, respuestas, puntosInspeccion, capacidadTanqueLitros, precioPromedioLitroCombustible),
+      estatusFalla: c.estatusFalla,
+      fechaCierreFalla: c.fechaCierreFalla,
+      costoResolucionFalla: c.costoResolucionFalla != null ? Number(c.costoResolucionFalla) : null,
     };
   });
 }
@@ -705,5 +713,39 @@ export async function enviarChecklistsPorCorreo(input: {
     resumen: `${tiposTexto} del ${input.desde} al ${input.hasta}`,
   });
   if (!resultado.enviado) return { ok: false, error: resultado.error ?? "No se pudo enviar el correo." };
+  return { ok: true };
+}
+
+/**
+ * Cierra un reporte de falla: marca estatusFalla="CERRADO", registra cuándo
+ * se cerró y cuánto costó resolverlo — base para medir tiempo de resolución
+ * (SLA) más adelante. Reabrir es simplemente volver a llamar con
+ * reabrir:true (limpia fecha/costo de cierre).
+ */
+export async function cerrarReporteFalla(input: { id: string; costoResolucion?: number; reabrir?: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
+  await exigirPermisoModulo("A.1", "editar");
+
+  const checklist = await prisma.checklist.findUnique({ where: { id: input.id }, select: { tipo: true, numeroEconomico: true } });
+  if (!checklist || checklist.tipo !== "REPORTE_FALLA") return { ok: false, error: "Este checklist no es un reporte de falla." };
+
+  if (input.reabrir) {
+    await prisma.checklist.update({
+      where: { id: input.id },
+      data: { estatusFalla: "ABIERTO", fechaCierreFalla: null, costoResolucionFalla: null },
+    });
+  } else {
+    if (input.costoResolucion !== undefined && (Number.isNaN(input.costoResolucion) || input.costoResolucion < 0)) {
+      return { ok: false, error: "El costo debe ser un número válido mayor o igual a 0." };
+    }
+    await prisma.checklist.update({
+      where: { id: input.id },
+      data: { estatusFalla: "CERRADO", fechaCierreFalla: new Date(), costoResolucionFalla: input.costoResolucion ?? null },
+    });
+  }
+
+  revalidatePath("/checklist");
+  revalidatePath(`/checklist/${input.id}`);
+  revalidatePath("/checklist/historial");
+  revalidatePath(`/unidades/${checklist.numeroEconomico}`);
   return { ok: true };
 }
