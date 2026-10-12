@@ -9,8 +9,23 @@ export function AutoPrint() {
 
   useEffect(() => {
     if (searchParams.get("print") !== "1") return;
-    const t = setTimeout(() => window.print(), 300);
-    return () => clearTimeout(t);
+    let cancelado = false;
+    // Las fotos de evidencia que no han terminado de cargar salen en blanco en el PDF.
+    const fotos = Array.from(document.images).map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>((r) => {
+            img.addEventListener("load", () => r(), { once: true });
+            img.addEventListener("error", () => r(), { once: true });
+          })
+    );
+    const limite = new Promise<void>((r) => setTimeout(r, 15000));
+    Promise.race([Promise.all(fotos), limite]).then(() => {
+      if (!cancelado) setTimeout(() => window.print(), 200);
+    });
+    return () => {
+      cancelado = true;
+    };
   }, [searchParams]);
 
   return null;

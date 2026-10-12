@@ -22,11 +22,11 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg)" }}>
+    <div className="flex h-screen overflow-hidden" data-print-shell style={{ background: "var(--color-bg)" }}>
       <div data-no-print>
         <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} user={session.user} modulosVisibles={modulosVisibles} esDevAdmin={esDevAdmin} />
       </div>
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0" data-print-shell>
         <div data-no-print>
           <Header onMenuClick={() => setMobileOpen(true)} user={session.user} notificaciones={notificaciones} esDevAdmin={esDevAdmin} />
         </div>

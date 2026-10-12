@@ -240,7 +240,11 @@ button:disabled {
   [data-no-print] {
     display: none !important;
   }
+  /* El shell fija la altura a la pantalla (h-screen + overflow-hidden); sin
+     liberarlo, el navegador solo imprime lo visible y corta en una hoja. */
+  [data-print-shell],
   [data-print-area] {
+    display: block !important;
     overflow: visible !important;
     height: auto !important;
   }

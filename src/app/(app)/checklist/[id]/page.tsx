@@ -16,12 +16,17 @@ import { SeccionTitulo, FilaItem, Panel, ColorChip } from "@/components/ui/docum
 export const dynamic = "force-dynamic";
 
 const PRINT_CSS = `
+@page { margin: 12mm; }
 @media print {
   [data-no-print], nav, aside { display: none !important; }
   body { background: white !important; }
-  .checklist-wrap { padding: 12px !important; max-width: 100% !important; }
-  .print-section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; }
+  .checklist-wrap { padding: 0 !important; max-width: 100% !important; }
+  /* Una sección del semanal puede medir más que una hoja: se deja partir entre
+     páginas y solo se protege cada fila (y el título, pegado a su primera fila). */
+  .print-section { overflow: visible !important; margin-bottom: 14px; }
+  .print-section > :first-child { break-after: avoid; page-break-after: avoid; }
   .print-row { break-inside: avoid; page-break-inside: avoid; }
+  .print-row img { max-height: 240px !important; }
   .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }

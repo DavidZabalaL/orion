@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronUp, Printer } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { Badge } from "@/components/ui/badge";
@@ -59,13 +60,25 @@ export function ChecklistSemanalLista({ checklists }: { checklists: ChecklistSem
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => setExpandido((e) => (e === c.id ? null : c.id))}
-                      className="flex items-center gap-1 rounded-md px-2.5 py-1"
-                      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
-                    >
-                      {expandido === c.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Ver detalle
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setExpandido((e) => (e === c.id ? null : c.id))}
+                        className="flex items-center gap-1 rounded-md px-2.5 py-1 whitespace-nowrap"
+                        style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                      >
+                        {expandido === c.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Ver detalle
+                      </button>
+                      <Link
+                        href={`/checklist/${c.id}?print=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Exportar / imprimir este checklist en PDF"
+                        className="flex items-center gap-1 rounded-md px-2.5 py-1"
+                        style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+                      >
+                        <Printer size={13} /> PDF
+                      </Link>
+                    </div>
                   </td>
                 </tr>
                 {expandido === c.id && (
