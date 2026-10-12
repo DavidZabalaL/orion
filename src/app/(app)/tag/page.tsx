@@ -5,16 +5,21 @@ import { TagPanel } from "@/components/tag/tag-panel";
 import type { GrupoTag } from "@/components/tag/tag-acordeon";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { leerFiltrosGasto, condicionesFiltrosGasto, type SearchParamsFiltros } from "@/lib/filtros-gasto";
+import { FiltrosGasto } from "@/components/ui/filtros-gasto";
 
 export const dynamic = "force-dynamic";
 
-export default async function TagPage() {
+export default async function TagPage({ searchParams }: { searchParams: Promise<SearchParamsFiltros> }) {
   await requerirPermisoModulo("E");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("E");
-  const filtroProyecto =
+  const filtroAlcance =
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
+  const filtros = leerFiltrosGasto(await searchParams);
+  const condiciones = condicionesFiltrosGasto(filtros, ["caseta", "tarjetaIdmx"]);
+  const filtroProyecto = { AND: [filtroAlcance, ...condiciones] };
   // "Pendiente" es únicamente lo que no tiene NI unidad NI proyecto — en
   // cuanto se le asigna cualquiera de los dos, desaparece de esta bandeja
   // (ya cuenta como gasto de ese proyecto). Un huérfano no tiene con qué
@@ -33,10 +38,11 @@ export default async function TagPage() {
       orderBy: { nombre: "asc" },
     }),
     prisma.tag.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
-    proyectosPermitidos !== null
+    // Un pendiente no tiene unidad ni proyecto: con filtro de proyecto o tipo no aplica.
+    proyectosPermitidos !== null || filtros.proyectoId || filtros.tipoVehiculo
       ? []
       : prisma.tag.findMany({
-          where: { numeroEconomico: null, proyectoReportanteId: null },
+          where: { numeroEconomico: null, proyectoReportanteId: null, AND: condiciones },
           include: { proyectoReportante: { select: { nombre: true } } },
           orderBy: { fecha: "desc" },
         }),
@@ -74,6 +80,8 @@ export default async function TagPage() {
           <Upload size={16} /> Importar estado de cuenta
         </Link>
       </div>
+
+      <FiltrosGasto filtros={filtros} proyectos={proyectos} placeholderBusqueda="Número económico, caseta o tarjeta…" />
 
       <TagPanel
         unidades={unidades}

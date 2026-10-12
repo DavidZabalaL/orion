@@ -5,17 +5,22 @@ import { CombustiblePanel } from "@/components/combustible/combustible-panel";
 import type { GrupoCombustible } from "@/components/combustible/combustible-acordeon";
 import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { leerFiltrosGasto, condicionesFiltrosGasto, type SearchParamsFiltros } from "@/lib/filtros-gasto";
+import { FiltrosGasto } from "@/components/ui/filtros-gasto";
 
 export const dynamic = "force-dynamic";
 
-export default async function CombustiblePage() {
+export default async function CombustiblePage({ searchParams }: { searchParams: Promise<SearchParamsFiltros> }) {
   await requerirPermisoModulo("D");
   const isAdmin = await esRolGlobal();
   const proyectosPermitidos = await proyectosPermitidosParaModulo("D");
-  const filtroProyecto =
+  const filtroAlcance =
     proyectosPermitidos !== null
       ? { OR: [{ unidad: { proyectoId: { in: proyectosPermitidos } } }, { proyectoReportanteId: { in: proyectosPermitidos } }] }
       : {};
+  const filtros = leerFiltrosGasto(await searchParams);
+  const condiciones = condicionesFiltrosGasto(filtros, ["estacion"]);
+  const filtroProyecto = { AND: [filtroAlcance, ...condiciones] };
   // "Pendiente" es únicamente lo que no tiene NI unidad NI proyecto — en
   // cuanto se le asigna cualquiera de los dos, desaparece de esta bandeja
   // (ya cuenta como gasto de ese proyecto). Solo los usuarios sin
@@ -33,10 +38,11 @@ export default async function CombustiblePage() {
       orderBy: { nombre: "asc" },
     }),
     prisma.combustible.findMany({ where: { numeroEconomico: { not: null }, ...filtroProyecto }, orderBy: { fecha: "desc" } }),
-    proyectosPermitidos !== null
+    // Un pendiente no tiene unidad ni proyecto: con filtro de proyecto o tipo no aplica.
+    proyectosPermitidos !== null || filtros.proyectoId || filtros.tipoVehiculo
       ? []
       : prisma.combustible.findMany({
-          where: { numeroEconomico: null, proyectoReportanteId: null },
+          where: { numeroEconomico: null, proyectoReportanteId: null, AND: condiciones },
           include: { proyectoReportante: { select: { nombre: true } } },
           orderBy: { fecha: "desc" },
         }),
@@ -98,6 +104,8 @@ export default async function CombustiblePage() {
           </Link>
         </div>
       </div>
+
+      <FiltrosGasto filtros={filtros} proyectos={proyectos} placeholderBusqueda="Número económico o estación…" />
 
       <CombustiblePanel
         unidades={unidades}
