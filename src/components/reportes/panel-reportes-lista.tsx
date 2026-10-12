@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Play, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Play, Trash2, Pencil } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { fmtFechaHora } from "@/lib/formato";
@@ -13,6 +14,7 @@ const FRECUENCIA_LABEL = { DIARIO: "Diario", SEMANAL: "Semanal", MENSUAL: "Mensu
 
 export function PanelReportesLista({ reportes, proyectosDisponibles }: { reportes: ReporteProgramadoRow[]; proyectosDisponibles: ProyectoDisponible[] }) {
   const [mostrarCrear, setMostrarCrear] = useState(false);
+  const [editando, setEditando] = useState<ReporteProgramadoRow | null>(null);
   const [pending, startTransition] = useTransition();
   const [idsEjecutando, setIdsEjecutando] = useState<Set<string>>(new Set());
 
@@ -90,6 +92,26 @@ export function PanelReportesLista({ reportes, proyectosDisponibles }: { reporte
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1.5">
+                  {r.biTabla ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditando(r)}
+                      title="Editar"
+                      className="flex h-7 w-7 items-center justify-center rounded-md"
+                      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  ) : r.tipo === "estatus_flota" ? (
+                    <Link
+                      href="/dashboards?generar=estatus-flota"
+                      title="Editar (abre el configurador de Estatus de flota)"
+                      className="flex h-7 w-7 items-center justify-center rounded-md"
+                      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
+                    >
+                      <Pencil size={13} />
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => ejecutarAhora(r.id)}
@@ -116,12 +138,18 @@ export function PanelReportesLista({ reportes, proyectosDisponibles }: { reporte
         </Table>
       )}
 
-      {mostrarCrear && (
+      {(mostrarCrear || editando) && (
         <CrearReporteBiModal
+          key={editando?.id ?? "nuevo"}
           proyectosDisponibles={proyectosDisponibles}
-          onCerrar={() => setMostrarCrear(false)}
+          reporte={editando ?? undefined}
+          onCerrar={() => {
+            setMostrarCrear(false);
+            setEditando(null);
+          }}
           onGuardado={() => {
             setMostrarCrear(false);
+            setEditando(null);
             window.location.reload();
           }}
         />

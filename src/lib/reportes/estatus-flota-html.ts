@@ -121,6 +121,7 @@ function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">TIPO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PROYECTO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">MOTIVO</td>
+          <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">DESCRIPCIÓN</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">INGRESO</td>
           <td style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">SALIDA EST.</td>
           <td align="right" style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">GASTO</td>
@@ -133,7 +134,8 @@ function tablaUnidadesNoDisponibles(datos: EstatusFlota): string {
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.vehiculo ?? "—")}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.tipoVehiculo ? esc(TIPO_VEHICULO_LABEL[u.tipoVehiculo]) : "—"}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.proyecto ?? "—")}</td>
-            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo])}${u.motivoDetalle ? ` — ${esc(u.motivoDetalle)}` : ""}</td>
+            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo])}</td>
+            <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(u.motivoDetalle ?? "—")}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.fechaIngresoTaller ? esc(fmtFechaCorta(u.fechaIngresoTaller)) : "—"}</td>
             <td style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.fechaEstimadaSalida ? esc(fmtFechaCorta(u.fechaEstimadaSalida)) : "—"}</td>
             <td align="right" style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${u.costoMantenimiento !== null ? esc(fmtMoney(u.costoMantenimiento)) : "—"}</td>
@@ -179,19 +181,20 @@ function subtablaGastoPorPartida(titulo: string, categorias: { categoria: Catego
 }
 
 /**
- * Siempre muestra DOS desgloses, claramente rotulados: el del periodo que
- * cubre este reporte (puede ser 7/15/30/60/90 días) y el del mes en curso —
+ * Siempre muestra TRES desgloses, claramente rotulados: el del periodo que
+ * cubre este reporte (puede ser 7/15/30/60/90 días), el del mes en curso y el acumulado anual —
  * se pidió explícitamente no mostrar solo uno, para no confundir "gasto del
  * periodo" con "gasto del mes" cuando el periodo configurado no es el mes completo.
  */
 function tablaGastoPorPartida(datos: EstatusFlota): string {
-  if (datos.gastoPorCategoria.length === 0 && datos.gastoPorCategoriaMes.length === 0) return "";
+  if (datos.gastoPorCategoria.length === 0 && datos.gastoPorCategoriaMes.length === 0 && datos.gastoPorCategoriaAnio.length === 0) return "";
   const nombreMes = datos.hasta.toLocaleDateString("es-MX", { month: "long", year: "numeric", timeZone: "America/Mexico_City" });
   return `
     <div style="margin-bottom:16px;">
       ${seccionTitulo("GASTO DEL PROYECTO POR PARTIDA")}
       ${subtablaGastoPorPartida(`DEL PERIODO (${fmtFechaCorta(datos.desde)} – ${fmtFechaCorta(datos.hasta)})`, datos.gastoPorCategoria, datos.gastoTotal)}
       ${subtablaGastoPorPartida(`MES EN CURSO (${nombreMes.toUpperCase()}, AL ${fmtFechaCorta(datos.hasta)})`, datos.gastoPorCategoriaMes, datos.gastoTotalMes)}
+      ${subtablaGastoPorPartida(`ACUMULADO ANUAL (1 ENE – ${fmtFechaCorta(datos.hasta)})`, datos.gastoPorCategoriaAnio, datos.gastoAcumuladoAnio)}
     </div>`;
 }
 

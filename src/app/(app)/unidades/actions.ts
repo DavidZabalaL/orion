@@ -131,6 +131,7 @@ export async function alternarDisponibilidad(formData: FormData): Promise<Result
   const motivo = MOTIVOS_INDISPONIBILIDAD.includes(motivoRaw as MotivoIndisponibilidad) ? (motivoRaw as MotivoIndisponibilidad) : null;
   const motivoDetalle = String(formData.get("motivoDetalle") ?? "").trim().slice(0, 300) || null;
   if (!disponibilidad && !motivo) return { ok: false, error: "Selecciona el motivo por el que la unidad no está disponible." };
+  if (!disponibilidad && !motivoDetalle) return { ok: false, error: "Describe el motivo de indisponibilidad." };
 
   const anterior = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { disponibilidad: true, estatus: true, proyectoId: true } });
   if (!anterior) return { ok: false, error: "La unidad no existe." };
@@ -194,6 +195,7 @@ export async function actualizarMotivoIndisponibilidad(formData: FormData): Prom
 
   if (!numeroEconomico) return { ok: false, error: "Falta el número económico." };
   if (!motivo) return { ok: false, error: "Selecciona el motivo de indisponibilidad." };
+  if (!motivoDetalle) return { ok: false, error: "Describe el motivo de indisponibilidad." };
 
   const unidad = await prisma.unidad.findUnique({
     where: { numeroEconomico },

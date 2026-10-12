@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { SelectorTablaFilas } from "@/components/bi/selector-tabla-filas";
 import { AlcanceProyecto, FiltrosCombinacion, type CombinacionBI, type ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { BI_DATASETS } from "@/lib/bi/metadata";
-import { guardarReporteBiTabla } from "@/app/(app)/reportes/programados/actions";
+import { guardarReporteBiTabla, type ReporteProgramadoRow } from "@/app/(app)/reportes/programados/actions";
 import type { FrecuenciaReporte, FormatoReporte } from "@/generated/prisma/enums";
 
 const fieldStyle: React.CSSProperties = {
@@ -33,22 +33,36 @@ const labelStyle: React.CSSProperties = {
 
 const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-export function CrearReporteBiModal({ proyectosDisponibles, onCerrar, onGuardado }: { proyectosDisponibles: ProyectoDisponible[]; onCerrar: () => void; onGuardado: () => void }) {
-  const [nombre, setNombre] = useState("");
+export function CrearReporteBiModal({
+  proyectosDisponibles,
+  onCerrar,
+  onGuardado,
+  reporte,
+}: {
+  proyectosDisponibles: ProyectoDisponible[];
+  onCerrar: () => void;
+  onGuardado: () => void;
+  /** Si viene, el modal abre en modo edición con los datos ya guardados de ese reporte. */
+  reporte?: ReporteProgramadoRow;
+}) {
+  const bi = reporte?.biTabla ?? null;
+  const datasetInicial = BI_DATASETS.find((d) => d.id === bi?.datasetId) ?? BI_DATASETS[0];
+  const [nombre, setNombre] = useState(reporte?.nombre ?? "");
   const [combinacion, setCombinacion] = useState<CombinacionBI>({
-    datasetId: BI_DATASETS[0].id,
-    ejeX: BI_DATASETS[0].campos[0].id,
-    ejeY: BI_DATASETS[0].campos[0].id,
+    datasetId: datasetInicial.id,
+    ejeX: datasetInicial.campos[0].id,
+    ejeY: datasetInicial.campos[0].id,
     agregacion: "conteo",
     tipoGrafica: "barras",
+    ...(bi ? { filtros: bi.filtros, proyectoIds: bi.proyectoIds } : {}),
   });
-  const [columnas, setColumnas] = useState<string[]>([BI_DATASETS[0].campos[0].id]);
-  const [destinatarios, setDestinatarios] = useState("");
-  const [frecuencia, setFrecuencia] = useState<FrecuenciaReporte>("SEMANAL");
-  const [hora, setHora] = useState("08:00");
-  const [diaSemana, setDiaSemana] = useState(1);
-  const [diaMes, setDiaMes] = useState(1);
-  const [formato, setFormato] = useState<FormatoReporte>("EXCEL");
+  const [columnas, setColumnas] = useState<string[]>(bi?.columnas.length ? bi.columnas : [datasetInicial.campos[0].id]);
+  const [destinatarios, setDestinatarios] = useState(reporte?.destinatarios.join(", ") ?? "");
+  const [frecuencia, setFrecuencia] = useState<FrecuenciaReporte>(reporte?.frecuencia ?? "SEMANAL");
+  const [hora, setHora] = useState(reporte?.hora ?? "08:00");
+  const [diaSemana, setDiaSemana] = useState(reporte?.diaSemana ?? 1);
+  const [diaMes, setDiaMes] = useState(reporte?.diaMes ?? 1);
+  const [formato, setFormato] = useState<FormatoReporte>(reporte?.formato ?? "EXCEL");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +71,7 @@ export function CrearReporteBiModal({ proyectosDisponibles, onCerrar, onGuardado
     setError(null);
     const lista = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
     const resultado = await guardarReporteBiTabla({
+      id: reporte?.id,
       nombre,
       datasetId: combinacion.datasetId,
       columnas,
@@ -75,7 +90,7 @@ export function CrearReporteBiModal({ proyectosDisponibles, onCerrar, onGuardado
   }
 
   return (
-    <Modal title="Nuevo reporte programado" onClose={onCerrar} maxWidth={560}>
+    <Modal title={reporte ? "Editar reporte programado" : "Nuevo reporte programado"} onClose={onCerrar} maxWidth={560}>
       <div className="flex flex-col gap-4">
         <div>
           <label style={labelStyle}>Nombre del reporte</label>
@@ -155,7 +170,7 @@ export function CrearReporteBiModal({ proyectosDisponibles, onCerrar, onGuardado
           className="rounded-md h-10 font-semibold disabled:opacity-60"
           style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
         >
-          {cargando ? "Guardando…" : "Guardar reporte"}
+          {cargando ? "Guardando…" : reporte ? "Guardar cambios" : "Guardar reporte"}
         </button>
       </div>
     </Modal>

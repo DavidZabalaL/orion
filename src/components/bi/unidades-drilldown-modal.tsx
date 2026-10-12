@@ -86,7 +86,10 @@ export function UnidadesDrillDownModal({
                   <th className="py-2 pr-3 text-left" style={{ color: "var(--sidebar-text)", fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase" }}>Vehículo</th>
                   <th className="py-2 pr-3 text-left" style={{ color: "var(--sidebar-text)", fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase" }}>Proyecto</th>
                   {campoId === "motivoIndisponibilidad" && (
-                    <th className="py-2 text-left" style={{ color: "var(--sidebar-text)", fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase" }}>Motivo</th>
+                    <>
+                      <th className="py-2 pr-3 text-left" style={{ color: "var(--sidebar-text)", fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase" }}>Motivo</th>
+                      <th className="py-2 text-left" style={{ color: "var(--sidebar-text)", fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase" }}>Descripción</th>
+                    </>
                   )}
                 </tr>
               </thead>
@@ -97,10 +100,10 @@ export function UnidadesDrillDownModal({
                     <td className="py-2 pr-3" style={{ color: "var(--sidebar-text-active)" }}>{u.vehiculo} · {u.tipoVehiculo}</td>
                     <td className="py-2 pr-3" style={{ color: "var(--sidebar-text-active)" }}>{u.proyecto}</td>
                     {campoId === "motivoIndisponibilidad" && (
-                      <td className="py-2" style={{ color: "var(--sidebar-text-active)" }}>
-                        {u.motivo}
-                        {u.motivoDetalle ? ` — ${u.motivoDetalle}` : ""}
-                      </td>
+                      <>
+                        <td className="py-2 pr-3" style={{ color: "var(--sidebar-text-active)" }}>{u.motivo}</td>
+                        <td className="py-2" style={{ color: "var(--sidebar-text-active)" }}>{u.motivoDetalle ?? "—"}</td>
+                      </>
                     )}
                   </tr>
                 ))}

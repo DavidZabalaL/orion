@@ -258,13 +258,13 @@ function SubtablaGastoPorPartida({ titulo, categorias, total }: { titulo: string
 }
 
 /**
- * Siempre muestra DOS desgloses, claramente rotulados: el del periodo que
- * cubre este reporte (puede ser 7/15/30/60/90 días) y el del mes en curso —
+ * Siempre muestra TRES desgloses, claramente rotulados: el del periodo que
+ * cubre este reporte (puede ser 7/15/30/60/90 días), el del mes en curso y el acumulado anual —
  * se pidió explícitamente no mostrar solo uno, para no confundir "gasto del
  * periodo" con "gasto del mes" cuando el periodo configurado no es el mes completo.
  */
 function TablaGastoPorPartida({ datos }: { datos: EstatusFlota }) {
-  if (datos.gastoPorCategoria.length === 0 && datos.gastoPorCategoriaMes.length === 0) return null;
+  if (datos.gastoPorCategoria.length === 0 && datos.gastoPorCategoriaMes.length === 0 && datos.gastoPorCategoriaAnio.length === 0) return null;
   const nombreMes = datos.hasta.toLocaleDateString("es-MX", { month: "long", year: "numeric", timeZone: "America/Mexico_City" });
   return (
     <View>
@@ -278,6 +278,11 @@ function TablaGastoPorPartida({ datos }: { datos: EstatusFlota }) {
         titulo={`MES EN CURSO (${nombreMes.toUpperCase()}, AL ${fmtFechaCorta(datos.hasta)})`}
         categorias={datos.gastoPorCategoriaMes}
         total={datos.gastoTotalMes}
+      />
+      <SubtablaGastoPorPartida
+        titulo={`ACUMULADO ANUAL (1 ENE – ${fmtFechaCorta(datos.hasta)})`}
+        categorias={datos.gastoPorCategoriaAnio}
+        total={datos.gastoAcumuladoAnio}
       />
     </View>
   );
@@ -306,10 +311,11 @@ function TablaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
       <View style={styles.tablaContenedor}>
         <View style={styles.tablaHeaderFila}>
           <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>ECONÓMICO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 140 }}>VEHÍCULO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 60 }}>TIPO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, width: 110 }}>PROYECTO</Text>
-          <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>MOTIVO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 130, paddingRight: 6 }}>VEHÍCULO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>TIPO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 100 }}>PROYECTO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, width: 85 }}>MOTIVO</Text>
+          <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>DESCRIPCIÓN</Text>
           <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>INGRESO</Text>
           <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>SALIDA EST.</Text>
           <Text style={{ ...styles.tablaCeldaHeader, width: 60, textAlign: "right" }}>GASTO</Text>
@@ -317,13 +323,11 @@ function TablaUnidadesNoDisponibles({ datos }: { datos: EstatusFlota }) {
         {filas.map((u, i) => (
           <View key={`${u.numeroEconomico}-${i}`} style={styles.tablaFila}>
             <Text style={{ ...styles.tablaCeldaTexto, width: 55, fontWeight: "bold" }}>{u.numeroEconomico}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 140 }}>{u.vehiculo ?? "—"}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 60 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, width: 110 }}>{u.proyecto ?? "—"}</Text>
-            <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>
-              {u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo]}
-              {u.motivoDetalle ? ` — ${u.motivoDetalle}` : ""}
-            </Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 130, paddingRight: 6 }}>{u.vehiculo ?? "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{u.tipoVehiculo ? TIPO_VEHICULO_LABEL[u.tipoVehiculo] : "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 100 }}>{u.proyecto ?? "—"}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, width: 85 }}>{u.motivo === "SIN_MOTIVO" ? "Sin motivo" : LABEL_MOTIVO[u.motivo]}</Text>
+            <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>{u.motivoDetalle ?? "—"}</Text>
             <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{u.fechaIngresoTaller ? fmtFechaCorta(u.fechaIngresoTaller) : "—"}</Text>
             <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{u.fechaEstimadaSalida ? fmtFechaCorta(u.fechaEstimadaSalida) : "—"}</Text>
             <Text style={{ ...styles.tablaCeldaTexto, width: 60, textAlign: "right" }}>{u.costoMantenimiento !== null ? fmtMoneyPdf(u.costoMantenimiento) : "—"}</Text>

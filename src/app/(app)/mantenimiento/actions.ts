@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
+import { CategoriaGasto } from "@/generated/prisma/enums";
 
 export type ResultadoEliminarGasto = { ok: boolean; error?: string };
 export type ResultadoCrearGasto = { ok: boolean; error?: string; id?: string };
@@ -163,7 +164,9 @@ export async function buscarHistorialGastos(query: string): Promise<GastoRow[]> 
 
 export async function marcarRealizado(formData: FormData): Promise<ResultadoEliminarGasto> {
   try {
-    await exigirPermisoModulo("C", "aprobar");
+    // "editar", no "aprobar": "Editar orden" (actualizarGasto) ya permite poner
+    // REALIZADO con "editar", así que exigir más aquí solo bloqueaba el atajo.
+    await exigirPermisoModulo("C", "editar");
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para realizar esta acción." };
   }
@@ -225,8 +228,14 @@ export async function actualizarGasto(formData: FormData) {
   const apoyoPago = formData.get("apoyoPago") === "on";
   const departamentoApoyoId = String(formData.get("departamentoApoyoId") ?? "").trim() || null;
   const estatus = String(formData.get("estatus") ?? "");
+  const categoriaRaw = String(formData.get("categoria") ?? "");
 
   if (!costo || !estatus) throw new Error("Costo y estatus son obligatorios.");
+
+  // La categoría solo la puede cambiar el Administrador; para cualquier otro
+  // perfil se ignora aunque llegue en el formulario.
+  const esCategoriaValida = (Object.values(CategoriaGasto) as string[]).includes(categoriaRaw);
+  const categoria = esCategoriaValida && (await esRolGlobal()) ? (categoriaRaw as CategoriaGasto) : undefined;
 
   const actual = await prisma.gastoVehicular.findUnique({
     where: { id },
@@ -260,6 +269,7 @@ export async function actualizarGasto(formData: FormData) {
       fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
       fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
       estatus: estatus as never,
+      ...(categoria ? { categoria } : {}),
       apoyoPago,
       departamentoApoyoId: apoyoPago ? departamentoApoyoId : null,
     },

@@ -26,7 +26,7 @@ export function UnidadesNoDisponiblesTabla({ filas }: { filas: Fila[] }) {
   }
 
   return (
-    <Table headers={["Económico", "Vehículo", "Proyecto", "Motivo", "Ingreso a taller", "Salida", "Costo de reparación"]} minWidth={860}>
+    <Table headers={["Económico", "Vehículo", "Proyecto", "Motivo", "Descripción", "Ingreso a taller", "Salida", "Costo de reparación"]} minWidth={1040}>
       {filas.map((f) => (
         <tr key={f.numeroEconomico} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{f.numeroEconomico}</td>
@@ -34,7 +34,9 @@ export function UnidadesNoDisponiblesTabla({ filas }: { filas: Fila[] }) {
           <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>{f.proyecto}</td>
           <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>
             {f.motivo}
-            {f.motivoDetalle && <span style={{ color: "var(--sidebar-text)" }}> — {f.motivoDetalle}</span>}
+          </td>
+          <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)", maxWidth: 320 }}>
+            {f.motivoDetalle ?? "—"}
           </td>
           <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" }}>
             {f.fechaIngreso ? fmtFecha(f.fechaIngreso) : "—"}

@@ -292,8 +292,10 @@ export function EstatusFlotaModal({
       periodoDias: item.periodoDias,
       destinatarios: listaDestinatarios,
       activo: item.activo,
-      camposExtra: item.camposExtra,
-      ordenSecciones: item.ordenSecciones,
+      // Datos adicionales y orden de secciones se editan solo arriba (compartidos
+      // por todos los envíos); la copia del item quedaría desactualizada.
+      camposExtra,
+      ordenSecciones,
       incluirGeneral: item.incluirGeneral,
     });
     setGuardandoIdx(null);

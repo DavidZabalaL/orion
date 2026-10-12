@@ -29,6 +29,7 @@ export function DashboardsUnificado({
   metricasDisponibles,
   tabInicial,
   configuracionesEstatusFlota,
+  abrirEstatusFlota = false,
 }: {
   vistas: VistaDashboard[];
   puedeEditar: boolean;
@@ -36,9 +37,11 @@ export function DashboardsUnificado({
   metricasDisponibles: MetricaDisponible[];
   tabInicial: TabId;
   configuracionesEstatusFlota: ConfigEstatusFlotaProgramado[];
+  /** Abre el configurador de "Estatus de flota" al cargar (botón Editar de /reportes/programados). */
+  abrirEstatusFlota?: boolean;
 }) {
   const [tab, setTab] = useState<TabId>(tabInicial);
-  const [mostrarEstatusFlota, setMostrarEstatusFlota] = useState(false);
+  const [mostrarEstatusFlota, setMostrarEstatusFlota] = useState(abrirEstatusFlota);
 
   return (
     <ExportRegistryProvider>

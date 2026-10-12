@@ -15,10 +15,10 @@ export const dynamic = "force-dynamic";
 export default async function DashboardsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; generar?: string }>;
 }) {
   await requerirPermisoModulo("M");
-  const { tab } = await searchParams;
+  const { tab, generar } = await searchParams;
 
   const proyectosPermitidos = await proyectosPermitidosParaModulo("M");
   const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reportesEstatusFlota] = await Promise.all([
@@ -76,6 +76,7 @@ export default async function DashboardsPage({
       metricasDisponibles={metricasDisponibles}
       tabInicial={tab === "explorador" ? "explorador" : "propios"}
       configuracionesEstatusFlota={configuracionesEstatusFlota}
+      abrirEstatusFlota={generar === "estatus-flota"}
     />
   );
 }

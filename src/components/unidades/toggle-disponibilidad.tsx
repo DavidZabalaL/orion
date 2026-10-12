@@ -26,6 +26,25 @@ const MOTIVOS: { value: string; label: string }[] = [
   { value: "OTRO", label: "Otro" },
 ];
 
+function CampoDescripcion({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block mb-2">
+      <span className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)" }}>
+        Descripción del motivo *
+      </span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={300}
+        rows={3}
+        placeholder="Ej. En taller por cambio de clutch, salida estimada el viernes."
+        className="w-full rounded-lg px-3 py-2 outline-none resize-none"
+        style={{ border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}
+      />
+    </label>
+  );
+}
+
 export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, onMotivoActualizado, deshabilitado, variante = "compacto" }: Props) {
   const [pending, startTransition] = useTransition();
   const [pendingUpdate, startUpdateTransition] = useTransition();
@@ -74,12 +93,20 @@ export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, on
       setError("Selecciona un motivo.");
       return;
     }
-    enviar(false, motivo, motivoDetalle);
+    if (!motivoDetalle.trim()) {
+      setError("Describe el motivo de indisponibilidad.");
+      return;
+    }
+    enviar(false, motivo, motivoDetalle.trim());
   }
 
   function confirmarActualizacion() {
     if (!motivoUpdate) {
       setErrorUpdate("Selecciona un motivo.");
+      return;
+    }
+    if (!motivoDetalleUpdate.trim()) {
+      setErrorUpdate("Describe el motivo de indisponibilidad.");
       return;
     }
     setErrorUpdate(null);
@@ -137,15 +164,7 @@ export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, on
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
-        {motivo === "OTRO" && (
-          <input
-            value={motivoDetalle}
-            onChange={(e) => setMotivoDetalle(e.target.value)}
-            placeholder="Describe el motivo…"
-            className="w-full rounded-lg px-3 py-2 mb-2 outline-none"
-            style={{ border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}
-          />
-        )}
+        <CampoDescripcion value={motivoDetalle} onChange={setMotivoDetalle} />
         {error && <p className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{error}</p>}
         <div className="flex justify-end gap-2 mt-2">
           <button onClick={() => setPidiendoMotivo(false)} className="px-3 py-2 rounded-lg" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
@@ -194,15 +213,7 @@ export function ToggleDisponibilidad({ numeroEconomico, disponible, onCambio, on
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
-        {motivoUpdate === "OTRO" && (
-          <input
-            value={motivoDetalleUpdate}
-            onChange={(e) => setMotivoDetalleUpdate(e.target.value)}
-            placeholder="Describe el motivo…"
-            className="w-full rounded-lg px-3 py-2 mb-2 outline-none"
-            style={{ border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}
-          />
-        )}
+        <CampoDescripcion value={motivoDetalleUpdate} onChange={setMotivoDetalleUpdate} />
         {errorUpdate && <p className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-status-escena)" }}>{errorUpdate}</p>}
         <div className="flex justify-end gap-2 mt-2">
           <button onClick={() => setActualizandoMotivo(false)} className="px-3 py-2 rounded-lg" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>

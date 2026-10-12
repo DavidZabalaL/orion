@@ -70,6 +70,8 @@ export type EstatusFlota = {
   presupuestoAnual: number;
   /** Gasto acumulado del año de `hasta` (del 1 de enero a `hasta`), mismas 3 fuentes que `gastoTotal` — se muestra junto a `presupuestoAnual` para comparar lo presupuestado contra lo realmente gastado en lo que va del año. */
   gastoAcumuladoAnio: number;
+  /** Desglose por partida de `gastoAcumuladoAnio` (1 de enero del año de `hasta` a `hasta`). */
+  gastoPorCategoriaAnio: { categoria: CategoriaGasto; monto: number }[];
   /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
   checklistsPromedioDiario: number;
   /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
@@ -252,7 +254,7 @@ export async function calcularEstatusFlota({
   const [
     gastosPorCategoria, combustibleAgg, tagAgg,
     gastosPorCategoriaMes, combustibleAggMes, tagAggMes,
-    gastoAnioAgg, combustibleAnioAgg, tagAnioAgg,
+    gastosPorCategoriaAnio, combustibleAnioAgg, tagAnioAgg,
     presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg,
   ] = await Promise.all([
     prisma.gastoVehicular.groupBy({
@@ -281,7 +283,8 @@ export async function calcularEstatusFlota({
       where: { fecha: { gte: inicioMes, lte: hasta }, ...filtroProyectoGasto },
       _sum: { monto: true },
     }),
-    prisma.gastoVehicular.aggregate({
+    prisma.gastoVehicular.groupBy({
+      by: ["categoria"],
       where: { fecha: { gte: inicioAnio, lte: hasta }, ...filtroProyectoGasto },
       _sum: { costo: true },
     }),
@@ -328,7 +331,8 @@ export async function calcularEstatusFlota({
   const gastoTotal = gastoPorCategoria.reduce((acc, g) => acc + g.monto, 0);
   const gastoPorCategoriaMes = armarGastoPorCategoria(gastosPorCategoriaMes, combustibleAggMes, tagAggMes);
   const gastoTotalMes = gastoPorCategoriaMes.reduce((acc, g) => acc + g.monto, 0);
-  const gastoAcumuladoAnio = Number(gastoAnioAgg._sum.costo ?? 0) + Number(combustibleAnioAgg._sum.costo ?? 0) + Number(tagAnioAgg._sum.monto ?? 0);
+  const gastoPorCategoriaAnio = armarGastoPorCategoria(gastosPorCategoriaAnio, combustibleAnioAgg, tagAnioAgg);
+  const gastoAcumuladoAnio = gastoPorCategoriaAnio.reduce((acc, g) => acc + g.monto, 0);
 
   return {
     proyectoLabel,
@@ -350,6 +354,7 @@ export async function calcularEstatusFlota({
     presupuestoMes,
     presupuestoAnual,
     gastoAcumuladoAnio,
+    gastoPorCategoriaAnio,
     checklistsPromedioDiario,
     camposExtra,
   };

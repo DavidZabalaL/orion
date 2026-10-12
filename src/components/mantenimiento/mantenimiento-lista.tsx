@@ -224,6 +224,16 @@ function OrdenDetalle({ g, isAdmin, onGuardado, departamentos = [] }: { g: Gasto
             ))}
           </select>
         </div>
+        {isAdmin && (
+          <div>
+            <label style={labelStyle}>Categoría</label>
+            <select name="categoria" defaultValue={g.categoria} style={fieldStyle}>
+              {Object.entries(CATEGORIA_GASTO_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label style={labelStyle}>Proveedor</label>
           <input name="proveedor" defaultValue={g.proveedor ?? ""} style={fieldStyle} />

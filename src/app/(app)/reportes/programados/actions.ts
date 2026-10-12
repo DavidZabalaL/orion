@@ -31,6 +31,8 @@ export type ReporteProgramadoRow = {
   ultimoEstatus: string | null;
   ultimoErrorDetalle: string | null;
   creadoPorNombre: string;
+  /** Solo para tipo "bi_tabla" — lo que necesita el modal para abrirse en modo edición. */
+  biTabla: { datasetId: string; columnas: string[]; filtros: FiltroGuardable[]; proyectoIds: string[] } | null;
 };
 
 export async function listarReportesProgramados(): Promise<ReporteProgramadoRow[]> {
@@ -39,7 +41,14 @@ export async function listarReportesProgramados(): Promise<ReporteProgramadoRow[
     include: { creadoPor: { select: { nombre: true } } },
     orderBy: { createdAt: "desc" },
   });
-  return reportes.map((r) => ({
+  return reportes.map((r) => {
+    const campos = r.camposJson as { datasetId?: string; columnas?: string[] } | null;
+    const filtros = r.filtrosJson as { filtros?: FiltroGuardable[]; proyectoIds?: string[] } | null;
+    const biTabla =
+      r.tipo === TIPO_BI_TABLA && campos?.datasetId
+        ? { datasetId: campos.datasetId, columnas: campos.columnas ?? [], filtros: filtros?.filtros ?? [], proyectoIds: filtros?.proyectoIds ?? [] }
+        : null;
+    return {
     id: r.id,
     nombre: r.nombre,
     tipo: r.tipo,
@@ -54,7 +63,9 @@ export async function listarReportesProgramados(): Promise<ReporteProgramadoRow[
     ultimoEstatus: r.ultimoEstatus,
     ultimoErrorDetalle: r.ultimoErrorDetalle,
     creadoPorNombre: r.creadoPor.nombre,
-  }));
+    biTabla,
+    };
+  });
 }
 
 export type ResultadoReporteProgramado = { ok: true; id?: string } | { ok: false; error: string };
@@ -92,6 +103,12 @@ export async function guardarReporteBiTabla(input: {
 
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };
+
+  if (input.id) {
+    const existente = await prisma.reporteProgramado.findUnique({ where: { id: input.id }, select: { tipo: true } });
+    if (!existente) return { ok: false, error: "El reporte ya no existe." };
+    if (existente.tipo !== TIPO_BI_TABLA) return { ok: false, error: "Este reporte se edita desde su propio configurador." };
+  }
 
   const data = {
     nombre,
