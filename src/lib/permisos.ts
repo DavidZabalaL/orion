@@ -64,8 +64,8 @@ export async function puedeCargarPresupuesto(): Promise<boolean> {
  * a Dirección y Gerente administrativo — si alguno de esos roles se renombra desde
  * /usuarios/roles, esta lista debe actualizarse.
  */
-const ROLES_VER_POLIZA_SEGURO = ["Dirección", "Gerente administrativo", "Jurídico"];
-const ROLES_DESCARGAR_POLIZA_SEGURO = ["Dirección", "Gerente administrativo", "Jurídico"];
+const ROLES_VER_POLIZA_SEGURO = ["Dirección", "Gerente administrativo", "Jurídico", "Control Vehicular"];
+const ROLES_DESCARGAR_POLIZA_SEGURO = ["Dirección", "Gerente administrativo", "Jurídico", "Control Vehicular"];
 /** Corregir cualquier campo de una póliza ya existente (aseguradora, número, fechas, costo,
  * coberturas) — más allá de crear/renovar/subir documento, que ya cubre el permiso "editar"
  * genérico del módulo F. */

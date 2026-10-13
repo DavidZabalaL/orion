@@ -130,7 +130,19 @@ export async function alternarEstatusUsuario(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const estatusActual = String(formData.get("estatus") ?? "");
   const nuevoEstatus = estatusActual === "DESACTIVADO" ? "ACTIVO" : "DESACTIVADO";
-  await prisma.usuario.update({ where: { id }, data: { estatus: nuevoEstatus } });
+
+  const usuario = await prisma.usuario.findUnique({ where: { id }, select: { operadorId: true } });
+
+  await prisma.$transaction([
+    prisma.usuario.update({ where: { id }, data: { estatus: nuevoEstatus } }),
+    // Si esta cuenta es también un Operador, su estatus en "Gestión de
+    // Operadores" debe reflejar lo mismo — antes quedaban desligados: se
+    // desactivaba la cuenta de acceso aquí pero el operador seguía viéndose
+    // "Activo" en /operadores, sin ninguna relación entre los dos.
+    ...(usuario?.operadorId
+      ? [prisma.operador.update({ where: { id: usuario.operadorId }, data: { estatus: nuevoEstatus === "DESACTIVADO" ? "BAJA" : "ACTIVO" } })]
+      : []),
+  ]);
 
   const session = await auth();
   if (session?.user?.id) {

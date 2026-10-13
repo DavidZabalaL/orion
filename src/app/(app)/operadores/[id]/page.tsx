@@ -29,6 +29,7 @@ export default async function FichaOperadorPage({ params }: { params: Promise<{ 
         orderBy: { inicio: "desc" },
         take: 200,
       },
+      usuario: { select: { id: true, correo: true } },
     } as never,
   });
 

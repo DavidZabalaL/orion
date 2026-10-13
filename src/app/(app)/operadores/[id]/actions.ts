@@ -9,6 +9,47 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 
+/**
+ * Alterna ACTIVO/BAJA de un Operador desde "Gestión de Operadores". Si esta
+ * persona tiene también una cuenta de acceso (Usuario), se sincroniza su
+ * estatus — antes estaban desligados: desactivar la cuenta en Administración
+ * de usuarios no se reflejaba aquí, y no existía ningún control para dar de
+ * baja a un operador desde esta pantalla (el campo nunca se tocaba).
+ */
+export async function alternarEstatusOperador(formData: FormData) {
+  await exigirPermisoModulo("L", "editar");
+
+  const id = String(formData.get("id") ?? "");
+  const estatusActual = String(formData.get("estatus") ?? "");
+  const nuevoEstatus = estatusActual === "BAJA" ? "ACTIVO" : "BAJA";
+
+  const operador = await prisma.operador.findUnique({ where: { id }, select: { usuario: { select: { id: true } } } });
+  if (!operador) throw new Error("El operador no existe.");
+
+  await prisma.$transaction([
+    prisma.operador.update({ where: { id }, data: { estatus: nuevoEstatus as never } }),
+    ...(operador.usuario
+      ? [prisma.usuario.update({ where: { id: operador.usuario.id }, data: { estatus: nuevoEstatus === "BAJA" ? "DESACTIVADO" : "ACTIVO" } })]
+      : []),
+  ]);
+
+  const session = await auth();
+  if (session?.user?.id) {
+    await logActivity({
+      userId: session.user.id,
+      modulo: "operadores",
+      accion: "update",
+      entidad: "Operador",
+      entidadId: id,
+      detalle: { campo: "estatus", nuevo: nuevoEstatus },
+    });
+  }
+
+  revalidatePath(`/operadores/${id}`);
+  revalidatePath("/operadores");
+  invalidarCacheBI(["operadores"]);
+}
+
 export async function actualizarOperador(formData: FormData) {
   await exigirPermisoModulo("L", "editar");
 

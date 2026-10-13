@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronLeft, FileBadge, Pencil, TriangleAlert, Car, GraduationCap, AlertTriangle } from "lucide-react";
+import { ChevronLeft, FileBadge, Pencil, TriangleAlert, Car, GraduationCap, AlertTriangle, UserX, UserCheck } from "lucide-react";
+import { alternarEstatusOperador } from "@/app/(app)/operadores/[id]/actions";
 import { Badge } from "@/components/ui/badge";
 import { Table, EmptyState, Field, panelStyle, tdStyle } from "@/components/ui/table";
 import {
@@ -57,8 +58,19 @@ function duracionTurno(inicio: string | Date, fin: string | Date | null): string
 
 export function FichaOperador({ operador }: { operador: Operador }) {
   const [tab, setTab] = useState<TabId>("historial");
+  const [pendienteEstatus, startTransitionEstatus] = useTransition();
   const licencia = operador.documentos.find((d: Operador) => d.tipoDocumento === "LICENCIA");
   const licenciaIdx = licencia?.tipoLicencia ? LICENCIA_ORDEN.indexOf(licencia.tipoLicencia) : -1;
+  const estaActivo = operador.estatus !== "BAJA";
+
+  function alternarEstatus() {
+    const fd = new FormData();
+    fd.set("id", operador.id);
+    fd.set("estatus", operador.estatus);
+    startTransitionEstatus(() => {
+      alternarEstatusOperador(fd);
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -89,9 +101,31 @@ export function FichaOperador({ operador }: { operador: Operador }) {
             </div>
           </div>
 
-          <Link href={`/operadores/${operador.id}/editar`} className="flex items-center gap-2 rounded-md px-3 h-9" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
-            <Pencil size={15} /> Editar
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={alternarEstatus}
+              disabled={pendienteEstatus}
+              className="flex items-center gap-2 rounded-md px-3 h-9 disabled:opacity-60"
+              style={{
+                background: estaActivo ? "var(--status-escena-bg)" : "var(--status-cerrado-bg)",
+                color: estaActivo ? "var(--color-status-escena)" : "var(--color-status-cerrado)",
+                fontFamily: "var(--font-ui)",
+                fontSize: "var(--text-base)",
+              }}
+              title={
+                operador.usuario
+                  ? `También ${estaActivo ? "desactivará" : "reactivará"} su cuenta de acceso (${operador.usuario.correo}).`
+                  : undefined
+              }
+            >
+              {estaActivo ? <UserX size={15} /> : <UserCheck size={15} />}
+              {estaActivo ? "Dar de baja" : "Reactivar"}
+            </button>
+            <Link href={`/operadores/${operador.id}/editar`} className="flex items-center gap-2 rounded-md px-3 h-9" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+              <Pencil size={15} /> Editar
+            </Link>
+          </div>
         </div>
       </div>
 
