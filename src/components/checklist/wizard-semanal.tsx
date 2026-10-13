@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Camera, CheckCircle2, ChevronLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Camera, CheckCircle2, ChevronLeft, Loader2, TriangleAlert, X, Image as ImageIcon } from "lucide-react";
 import { crearChecklistSemanal, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { FirmaPad } from "@/components/checklist/firma-pad";
@@ -86,8 +86,11 @@ const COLORES_OPCION: Record<string, { bg: string; color: string }> = {
   "MAL ESTADO": { bg: "#dc2626", color: "#fff" },
   "N/A": { bg: "#64748b", color: "#fff" },
   "NA": { bg: "#64748b", color: "#fff" },
+  // Antes "Medio" se veía como advertencia (ámbar) — es el nivel correcto/
+  // esperado de un líquido, no un hallazgo, así que se muestra como "Óptimo"
+  // en verde igual que "Máximo" (ver etiquetaOpcionNivel más abajo).
   "MAXIMO": { bg: "#16a34a", color: "#fff" },
-  "MEDIO": { bg: "#d97706", color: "#fff" },
+  "MEDIO": { bg: "#16a34a", color: "#fff" },
   "MINIMO": { bg: "#dc2626", color: "#fff" },
   "NO APLICA": { bg: "#64748b", color: "#fff" },
   "Y": { bg: "#16a34a", color: "#fff" },
@@ -99,6 +102,16 @@ const COLORES_OPCION: Record<string, { bg: string; color: string }> = {
   "25%": { bg: "#ea580c", color: "#fff" },
   "0% (REEMPLAZAR)": { bg: "#dc2626", color: "#fff" },
 };
+
+// Solo para los 6 campos de nivel de líquido (ESTADO_3/ESTADO_4 en
+// lib/checklist-semanal.ts): el valor guardado sigue siendo "MEDIO"/"MAXIMO"
+// (no se renombra el dato ni se migra el histórico), solo cambia cómo se
+// muestra — "Medio" pasa a leerse "Óptimo" (es el nivel correcto, no una
+// advertencia) y "Máximo" lleva un aviso de sobrellenado.
+function etiquetaOpcionNivel(opcion: string): string {
+  if (opcion === "MEDIO") return "ÓPTIMO";
+  return opcion;
+}
 
 function estiloOpcion(opcion: string, seleccionada: boolean): React.CSSProperties {
   if (!seleccionada) {
@@ -926,10 +939,20 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
                     cursor: "pointer",
                   }}
                 >
-                  {respuestas[item.key] === op ? "✓ " : ""}{op}
+                  {respuestas[item.key] === op ? "✓ " : ""}{item.opciones.includes("MAXIMO") ? etiquetaOpcionNivel(op) : op}
                 </button>
               ))}
             </div>
+
+            {/* Nivel al máximo: no es una falla, pero sí un recordatorio de seguridad */}
+            {respuestas[item.key] === "MAXIMO" && (
+              <div className="flex items-start gap-2 rounded-xl px-4 py-3" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)" }}>
+                <TriangleAlert size={16} color="#16a34a" className="shrink-0 mt-0.5" />
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#15803d" }}>
+                  Evita derramamientos por calentamiento del vehículo.
+                </span>
+              </div>
+            )}
 
             {/* Foto asociada — aparece al seleccionar una opción, salvo "no aplica" */}
             {respuestas[item.key] && item.fotoKey && !esNoAplica(respuestas[item.key]) && (

@@ -801,7 +801,7 @@ export const BI_DATASETS: DatasetMeta[] = [
       // expresión da NULL y el motor descarta esas filas de la dimensión, así
       // que agrupar por cualquiera de estos 3 automáticamente solo cuenta
       // checklists semanales, sin necesidad de filtrar `tipo` a mano.
-      { id: "nivelAceite", label: "Nivel de aceite (checklist semanal)", tipo: "texto", expr: `ch."respuestasSemanal"->>'niv_nivel_aceite'`, opciones: [{ valor: "MINIMO", label: "Mínimo" }, { valor: "MEDIO", label: "Medio" }, { valor: "MAXIMO", label: "Máximo" }] },
+      { id: "nivelAceite", label: "Nivel de aceite (checklist semanal)", tipo: "texto", expr: `ch."respuestasSemanal"->>'niv_nivel_aceite'`, opciones: [{ valor: "MINIMO", label: "Mínimo" }, { valor: "MEDIO", label: "Óptimo" }, { valor: "MAXIMO", label: "Máximo" }] },
       { id: "estadoGato", label: "Estado del gato hidráulico (checklist semanal)", tipo: "texto", expr: `ch."respuestasSemanal"->>'her_gato'`, opciones: [{ valor: "BUEN ESTADO", label: "Buen estado" }, { valor: "MAL ESTADO", label: "Mal estado" }, { valor: "NA", label: "No aplica" }] },
       {
         id: "peorLlanta",

@@ -8,15 +8,18 @@ export function ColorChip({ value }: { value: string }) {
   const v = value?.toUpperCase() ?? "";
   let bg = "var(--chip)";
   let color = "var(--sidebar-text)";
-  if (["BUEN ESTADO", "MAXIMO", "Y", "OK", "SÍ", "CON VIGENCIA", "100% (NUEVA)", "75%"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
+  // "MEDIO" es el nivel correcto/esperado de un líquido (no un hallazgo),
+  // igual que "MAXIMO" — se muestra en verde con la etiqueta "ÓPTIMO"
+  // (ver etiquetaOpcionNivel en wizard-semanal.tsx, mismo criterio).
+  if (["BUEN ESTADO", "MAXIMO", "MEDIO", "Y", "OK", "SÍ", "CON VIGENCIA", "100% (NUEVA)", "75%"].includes(v)) { bg = "var(--status-cerrado-bg)"; color = "var(--color-status-cerrado)"; }
   else if (["MAL ESTADO", "MINIMO", "N", "REVISAR", "FALLA", "NO", "SIN VIGENCIA", "ROTO", "ESTRELLADO", "25%", "0% (REEMPLAZAR)"].includes(v)) { bg = "var(--status-escena-bg, #fef2f2)"; color = "var(--color-status-escena)"; }
-  else if (v === "MEDIO" || v === "50%") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
+  else if (v === "50%") { bg = "var(--status-revision-bg)"; color = "var(--color-status-revision)"; }
   return (
     <span
       className="inline-block rounded-full whitespace-nowrap"
       style={{ background: bg, color, fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", letterSpacing: "0.03em" }}
     >
-      {value}
+      {v === "MEDIO" ? "ÓPTIMO" : value}
     </span>
   );
 }

@@ -10,7 +10,7 @@ type FiltroIndicador = "aceiteBajo" | "aceiteMedio" | "sinGato" | "llantaCritica
 
 const FILTROS: { id: FiltroIndicador; label: string; coincide: (u: IndicadorChecklistUnidad) => boolean }[] = [
   { id: "aceiteBajo", label: "Aceite bajo", coincide: (u) => u.nivelAceite === "MINIMO" },
-  { id: "aceiteMedio", label: "Aceite medio", coincide: (u) => u.nivelAceite === "MEDIO" },
+  { id: "aceiteMedio", label: "Aceite óptimo", coincide: (u) => u.nivelAceite === "MEDIO" },
   // "Gato" se captura como BUEN ESTADO / MAL ESTADO / NA — tanto mal estado
   // como no aplica (no cuenta con gato) son una unidad sin gato funcional.
   { id: "sinGato", label: "Sin gato (mal estado o N/A)", coincide: (u) => u.estadoGato === "MAL ESTADO" || u.estadoGato === "NA" },
