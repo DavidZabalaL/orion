@@ -537,7 +537,7 @@ export function FichaUnidad({
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
           {tab === "documentos" && <DocumentosUnidad numeroEconomico={unidad.numeroEconomico} documentos={unidad.documentos ?? []} />}
-          {tab === "gps" && <TabGps numeroEconomico={unidad.numeroEconomico} posiciones={unidad.posicionesGps ?? []} />}
+          {tab === "gps" && <TabGps numeroEconomico={unidad.numeroEconomico} posiciones={unidad.posicionesGps ?? []} rendimientoPromedio={unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
           {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} bloqueada={!unidad.proyectoId} />}
@@ -1128,13 +1128,31 @@ function ResumenGpsPeriodoPanel({ numeroEconomico }: { numeroEconomico: string }
   );
 }
 
-function TabGps({ numeroEconomico, posiciones }: { numeroEconomico: string; posiciones: Unidad[] }) {
+function TabGps({ numeroEconomico, posiciones, rendimientoPromedio }: { numeroEconomico: string; posiciones: Unidad[]; rendimientoPromedio: number | null }) {
   const [busqueda, setBusqueda] = useState("");
+
+  // posiciones viene ordenado desc (más reciente primero): para cada lectura,
+  // la "anterior" en el tiempo es la siguiente del arreglo (i+1) — de ahí se
+  // saca el km recorrido en ese tramo y, con el rendimiento promedio del
+  // vehículo, una estimación de litros consumidos (no hay sensor de nivel
+  // por tramo, así que es la misma estimación que ya usa el resto de la app).
+  const conTramos = useMemo(
+    () =>
+      posiciones.map((p, i) => {
+        const anterior = posiciones[i + 1];
+        const kmTramo = p.kmValidado != null && anterior?.kmValidado != null ? p.kmValidado - anterior.kmValidado : null;
+        const kmRecorrido = kmTramo != null && kmTramo >= 0 ? kmTramo : null;
+        const litrosEstimados = kmRecorrido != null && rendimientoPromedio ? kmRecorrido / rendimientoPromedio : null;
+        return { ...p, kmRecorrido, litrosEstimados };
+      }),
+    [posiciones, rendimientoPromedio]
+  );
+
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
-    if (!q) return posiciones;
-    return posiciones.filter((p) => new Date(p.timestamp).toLocaleString("es-MX").toUpperCase().includes(q));
-  }, [posiciones, busqueda]);
+    if (!q) return conTramos;
+    return conTramos.filter((p) => new Date(p.timestamp).toLocaleString("es-MX").toUpperCase().includes(q));
+  }, [conTramos, busqueda]);
 
   // posiciones viene ordenado desc (más reciente primero) — el mapa necesita
   // orden ascendente para dibujar la ruta en el sentido correcto.
@@ -1166,7 +1184,10 @@ function TabGps({ numeroEconomico, posiciones }: { numeroEconomico: string; posi
       </div>
       <RutaMapLazy ruta={ruta} />
       <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar fecha…" />
-      <Table headers={["Fecha / hora", "Lat", "Lng", "Velocidad", "Km validado", "Anómalo"]}>
+      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+        &quot;Km recorrido&quot; y &quot;Litros estimados&quot; son por tramo, entre esta lectura y la anterior — los litros se estiman con el rendimiento promedio del vehículo (no hay sensor de nivel por tramo).
+      </span>
+      <Table headers={["Fecha / hora", "Lat", "Lng", "Velocidad", "Km validado", "Km recorrido (tramo)", "Litros estimados (tramo)", "Anómalo"]}>
       {filtradas.map((p) => (
         <tr key={p.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{new Date(p.timestamp).toLocaleString("es-MX")}</td>
@@ -1174,6 +1195,8 @@ function TabGps({ numeroEconomico, posiciones }: { numeroEconomico: string; posi
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.lng}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.velocidad ?? "—"}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.kmValidado != null ? p.kmValidado.toLocaleString("es-MX") : "—"}</td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.kmRecorrido != null ? `${p.kmRecorrido.toLocaleString("es-MX")} km` : "—"}</td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{p.litrosEstimados != null ? `${p.litrosEstimados.toFixed(2)} L` : "—"}</td>
           <td className="px-4 py-3">
             {p.esAnomalo ? (
               <Badge label={p.motivoAnomalia ?? "Anómalo"} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
