@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
+import { posicionLlantaAplica } from "@/lib/llantas";
 import { CategoriaGasto } from "@/generated/prisma/enums";
 
 export type ResultadoEliminarGasto = { ok: boolean; error?: string };
@@ -38,9 +39,24 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   const fechaEstimadaSalida = String(formData.get("fechaEstimadaSalida") ?? "") || null;
   const apoyoPago = formData.get("apoyoPago") === "on";
   const departamentoApoyoId = String(formData.get("departamentoApoyoId") ?? "").trim() || null;
+  // Solo para categoria=CONSUMIBLES: liga la orden de compra al inventario de
+  // Insumos del proyecto (módulo N) — al guardar el gasto, se suma de una
+  // vez la cantidad comprada a las existencias, sin tener que capturarla
+  // otra vez a mano en Insumos.
+  const insumoId = String(formData.get("insumoId") ?? "").trim() || null;
+  const cantidadInsumoStr = String(formData.get("cantidadInsumo") ?? "").trim();
+  // Solo para categoria=LLANTAS: posiciones que se reemplazaron en esta orden
+  // (ver PosicionLlanta en el schema) + marca/medida de la llanta nueva,
+  // aplicadas a todas las posiciones seleccionadas de este mismo gasto.
+  const llantaPosiciones = formData.getAll("llantaPosiciones").map((v) => String(v)).filter(Boolean);
+  const llantaMarca = String(formData.get("llantaMarca") ?? "").trim() || null;
+  const llantaMedida = String(formData.get("llantaMedida") ?? "").trim() || null;
 
   if (!categoria || !fecha || !costo) {
     return { ok: false, error: "Categoría, fecha y costo son obligatorios." };
+  }
+  if (insumoId && (!cantidadInsumoStr || parseFloat(cantidadInsumoStr) <= 0)) {
+    return { ok: false, error: "Captura la cantidad del insumo a dar de entrada." };
   }
 
   const aplicaAUnidad = CATEGORIA_APLICA_A_UNIDAD[categoria] ?? true;
@@ -52,13 +68,17 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   }
 
   let historicoProyectoId: string | null = null;
+  let proyectoIdGasto: string | null = null;
+  let dobleRodadoTrasero = false;
 
   const permitidos = await proyectosPermitidosParaModulo("C");
   if (aplicaAUnidad) {
-    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: numeroEconomico! }, select: { proyectoId: true } });
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: numeroEconomico! }, select: { proyectoId: true, dobleRodadoTrasero: true } });
     if (permitidos !== null && (!unidad?.proyectoId || !permitidos.includes(unidad.proyectoId))) {
       return { ok: false, error: "No tienes permiso para realizar esta acción." };
     }
+    proyectoIdGasto = unidad?.proyectoId ?? null;
+    dobleRodadoTrasero = unidad?.dobleRodadoTrasero ?? false;
 
     // El gasto se liga al periodo de proyecto vigente de la unidad (UnidadHistoricoProyecto),
     // no solo a su proyectoId actual — así el historial no cambia de proyecto retroactivamente
@@ -74,33 +94,115 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
       const creado = await prisma.unidadHistoricoProyecto.create({ data: { numeroEconomico: numeroEconomico!, proyectoId: unidad.proyectoId } });
       historicoProyectoId = creado.id;
     }
-  } else if (permitidos !== null && !permitidos.includes(proyectoReportanteId!)) {
-    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  } else {
+    if (permitidos !== null && !permitidos.includes(proyectoReportanteId!)) {
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
+    }
+    proyectoIdGasto = proyectoReportanteId;
   }
 
-  const gasto = await prisma.gastoVehicular.create({
-    data: {
-      numeroEconomico: aplicaAUnidad ? numeroEconomico : null,
-      proyectoReportanteId: aplicaAUnidad ? null : proyectoReportanteId,
-      historicoProyectoId,
-      categoria: categoria as never,
-      descripcion,
-      fecha: parseFechaLocalMx(fecha)!,
-      costo,
-      kmAlMomento,
-      proveedor,
-      notas,
-      sc,
-      odc,
-      estatus: estatus as never,
-      fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
-      fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
-      apoyoPago,
-      departamentoApoyoId: apoyoPago ? departamentoApoyoId : null,
-    },
-  });
+  // Si se ligó un insumo, se valida que pertenezca al mismo proyecto del
+  // gasto (nunca se mezclan existencias entre proyectos) antes de crear nada.
+  let insumoValidado: { id: string; existencias: unknown } | null = null;
+  const cantidadInsumo = insumoId ? parseFloat(cantidadInsumoStr) : 0;
+  if (insumoId) {
+    const insumo = await prisma.insumoInventario.findUnique({ where: { id: insumoId }, select: { id: true, proyectoId: true, existencias: true } });
+    if (!insumo || insumo.proyectoId !== proyectoIdGasto) {
+      return { ok: false, error: "El insumo seleccionado no pertenece al proyecto de este gasto." };
+    }
+    insumoValidado = insumo;
+  }
+
+  // Si se reemplazaron llantas, se valida que las posiciones elegidas
+  // apliquen a esta unidad (las "interior" solo en doble rodado trasero) y
+  // se trae la llanta actualmente instalada en cada una (si existe) para
+  // cerrarla al mismo tiempo que se abre la nueva — ver HistorialLlanta.
+  let llantasActuales: { posicion: string; id: string }[] = [];
+  if (categoria === "LLANTAS" && llantaPosiciones.length > 0) {
+    if (!aplicaAUnidad || !numeroEconomico) {
+      return { ok: false, error: "Selecciona la unidad para registrar el reemplazo de llantas." };
+    }
+    const invalida = llantaPosiciones.find((p) => !posicionLlantaAplica(p, dobleRodadoTrasero));
+    if (invalida) {
+      return { ok: false, error: "Esta unidad no tiene doble rodado trasero — esa posición no aplica." };
+    }
+    llantasActuales = await prisma.historialLlanta.findMany({
+      where: { numeroEconomico, posicion: { in: llantaPosiciones as never }, fechaRetiro: null },
+      select: { id: true, posicion: true },
+    });
+  }
 
   const sesionCrear = await auth();
+  const gastoId = crypto.randomUUID();
+  const fechaGasto = parseFechaLocalMx(fecha)!;
+
+  const [gasto] = await prisma.$transaction([
+    prisma.gastoVehicular.create({
+      data: {
+        id: gastoId,
+        numeroEconomico: aplicaAUnidad ? numeroEconomico : null,
+        proyectoReportanteId: aplicaAUnidad ? null : proyectoReportanteId,
+        historicoProyectoId,
+        categoria: categoria as never,
+        descripcion,
+        fecha: fechaGasto,
+        costo,
+        kmAlMomento,
+        proveedor,
+        notas,
+        sc,
+        odc,
+        estatus: estatus as never,
+        fechaIngresoTaller: parseFechaLocalMx(fechaIngresoTaller),
+        fechaEstimadaSalida: parseFechaLocalMx(fechaEstimadaSalida),
+        apoyoPago,
+        departamentoApoyoId: apoyoPago ? departamentoApoyoId : null,
+      },
+    }),
+    ...(insumoValidado && sesionCrear?.user?.id
+      ? [
+          prisma.entradaInsumo.create({
+            data: {
+              insumoId: insumoValidado.id,
+              cantidad: cantidadInsumo as never,
+              proveedor,
+              nota: `Entrada automática desde orden de compra${odc ? ` ${odc}` : ""} (Mantenimiento)`,
+              fecha: fechaGasto,
+              registradoPorId: sesionCrear.user.id,
+            },
+          }),
+          prisma.insumoInventario.update({
+            where: { id: insumoValidado.id },
+            data: { existencias: (Number(insumoValidado.existencias) + cantidadInsumo) as never },
+          }),
+        ]
+      : []),
+    ...llantaPosiciones.flatMap((posicion) => {
+      const actual = llantasActuales.find((l) => l.posicion === posicion);
+      return [
+        ...(actual
+          ? [
+              prisma.historialLlanta.update({
+                where: { id: actual.id },
+                data: { fechaRetiro: fechaGasto, kmRetiro: kmAlMomento, motivoRetiro: "Reemplazo por nueva llanta" },
+              }),
+            ]
+          : []),
+        prisma.historialLlanta.create({
+          data: {
+            numeroEconomico: numeroEconomico!,
+            posicion: posicion as never,
+            marca: llantaMarca,
+            medida: llantaMedida,
+            fechaInstalacion: fechaGasto,
+            kmInstalacion: kmAlMomento,
+            gastoInstalacionId: gastoId,
+          },
+        }),
+      ];
+    }),
+  ]);
+
   if (sesionCrear?.user?.id) {
     await logActivity({
       userId: sesionCrear.user.id,
@@ -115,6 +217,10 @@ export async function crearGasto(formData: FormData): Promise<ResultadoCrearGast
   revalidatePath("/mantenimiento");
   invalidarCacheBI(["mantenimiento", "presupuesto_partida", "unidades"]);
   if (aplicaAUnidad && numeroEconomico) revalidatePath(`/unidades/${numeroEconomico}`);
+  if (insumoValidado) {
+    revalidatePath("/inventario-insumos");
+    invalidarCacheBI(["inventario_insumos"]);
+  }
   return { ok: true, id: gasto.id };
 }
 

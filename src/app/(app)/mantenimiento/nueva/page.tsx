@@ -11,7 +11,7 @@ export default async function NuevaOrdenPage() {
   await requerirPermisoModulo("C", "editar");
   const proyectosPermitidos = await proyectosPermitidosParaModulo("C");
 
-  const [unidades, proyectos, departamentos] = await Promise.all([
+  const [unidades, proyectos, departamentos, insumosRaw] = await Promise.all([
     prisma.unidad.findMany({
       where: { estatus: { not: "BAJA" }, ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}) },
       select: { numeroEconomico: true },
@@ -23,7 +23,13 @@ export default async function NuevaOrdenPage() {
       orderBy: { nombre: "asc" },
     }),
     prisma.departamentoApoyo.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    prisma.insumoInventario.findMany({
+      where: proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {},
+      select: { id: true, nombre: true, unidad: true, proyecto: { select: { nombre: true } } },
+      orderBy: { nombre: "asc" },
+    }),
   ]);
+  const insumos = insumosRaw.map((i) => ({ id: i.id, nombre: i.nombre, unidad: i.unidad, proyectoNombre: i.proyecto.nombre }));
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-2xl">
@@ -37,7 +43,7 @@ export default async function NuevaOrdenPage() {
       </div>
 
       <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-        <NuevaOrdenForm unidades={unidades} proyectos={proyectos} departamentos={departamentos} />
+        <NuevaOrdenForm unidades={unidades} proyectos={proyectos} departamentos={departamentos} insumos={insumos} />
       </div>
     </div>
   );

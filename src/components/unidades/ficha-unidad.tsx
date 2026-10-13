@@ -48,6 +48,7 @@ import { contarAlertasPorCategoria } from "@/lib/checklist-semanal";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
 import { ComparativoCombustibleLista, type FilaComparativoCombustibleRow } from "@/components/checklist/comparativo-combustible-lista";
+import { POSICIONES_LLANTA, POSICION_LLANTA_LABEL, posicionLlantaAplica } from "@/lib/llantas";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -56,6 +57,7 @@ const TABS = [
   { id: "general", label: "Datos generales" },
   { id: "mantenimiento", label: "Mantenimiento" },
   { id: "gastos", label: "Gastos" },
+  { id: "llantas", label: "Llantas" },
   { id: "combustible", label: "Combustible" },
   { id: "combustible-comparativo", label: "Comparativo combustible" },
   { id: "tag", label: "TAG" },
@@ -240,7 +242,7 @@ function BotonAgregarModal({
   );
 }
 
-function BotonAgregarMantenimiento({ numeroEconomico }: { numeroEconomico: string }) {
+function BotonAgregarMantenimiento({ numeroEconomico, insumos, dobleRodadoTrasero }: { numeroEconomico: string; insumos: { id: string; nombre: string; unidad: string }[]; dobleRodadoTrasero: boolean }) {
   const router = useRouter();
   return (
     <BotonAgregarModal label="Agregar mantenimiento" tituloModal={`Nueva orden — ${numeroEconomico}`}>
@@ -248,7 +250,9 @@ function BotonAgregarMantenimiento({ numeroEconomico }: { numeroEconomico: strin
         <NuevaOrdenForm
           unidades={[]}
           proyectos={[]}
+          insumos={insumos}
           numeroEconomicoFijo={numeroEconomico}
+          dobleRodadoTrasero={dobleRodadoTrasero}
           onExito={() => {
             cerrar();
             router.refresh();
@@ -525,8 +529,9 @@ export function FichaUnidad({
 
         <div className="pt-5">
           {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
-          {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} insumos={insumos} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
+          {tab === "llantas" && <TabLlantas historial={unidad.historialLlantas ?? []} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "combustible-comparativo" && puedeVerComparativoCombustible && <ComparativoCombustibleLista filas={comparativoCombustible} mostrarUnidad={false} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
@@ -703,7 +708,7 @@ function Table({ headers, children }: { headers: string[]; children: React.React
 
 const td: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" };
 
-function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numeroEconomico: string }) {
+function TabMantenimiento({ gastos, numeroEconomico, insumos, dobleRodadoTrasero }: { gastos: Unidad[]; numeroEconomico: string; insumos: { id: string; nombre: string; unidad: string }[]; dobleRodadoTrasero: boolean }) {
   const [busqueda, setBusqueda] = useState("");
   const gastosMantenimiento = useMemo(() => gastos.filter((g) => CATEGORIAS_MANTENIMIENTO.has(g.categoria)), [gastos]);
   const filtrados = useMemo(() => {
@@ -722,7 +727,7 @@ function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numer
     return (
       <div className="flex flex-col gap-4">
         <EmptyState>Sin órdenes de mantenimiento registradas.</EmptyState>
-        <div><BotonAgregarMantenimiento numeroEconomico={numeroEconomico} /></div>
+        <div><BotonAgregarMantenimiento numeroEconomico={numeroEconomico} insumos={insumos} dobleRodadoTrasero={dobleRodadoTrasero} /></div>
       </div>
     );
   }
@@ -730,7 +735,7 @@ function TabMantenimiento({ gastos, numeroEconomico }: { gastos: Unidad[]; numer
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar tipo, descripción o fecha…" />
-        <BotonAgregarMantenimiento numeroEconomico={numeroEconomico} />
+        <BotonAgregarMantenimiento numeroEconomico={numeroEconomico} insumos={insumos} dobleRodadoTrasero={dobleRodadoTrasero} />
       </div>
       <Table headers={["Fecha", "Tipo", "Descripción", "Ingreso taller", "Salida estimada", "Costo", "Estatus"]}>
         {filtrados.map((g) => {
@@ -821,6 +826,79 @@ function TabGastos({ gastos, historicos, proyectoActual }: { gastos: Unidad[]; h
           </tr>
         ))}
       </Table>
+    </div>
+  );
+}
+
+function TabLlantas({ historial, dobleRodadoTrasero }: { historial: Unidad[]; dobleRodadoTrasero: boolean }) {
+  const porPosicion = useMemo(() => {
+    const mapa = new Map<string, Unidad[]>();
+    for (const h of historial) {
+      const lista = mapa.get(h.posicion) ?? [];
+      lista.push(h);
+      mapa.set(h.posicion, lista);
+    }
+    for (const lista of mapa.values()) {
+      lista.sort((a, b) => new Date(b.fechaInstalacion).getTime() - new Date(a.fechaInstalacion).getTime());
+    }
+    return mapa;
+  }, [historial]);
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {POSICIONES_LLANTA.map((posicion) => {
+        const aplica = posicionLlantaAplica(posicion, dobleRodadoTrasero);
+        const lista = porPosicion.get(posicion) ?? [];
+        const actual = lista.find((l) => !l.fechaRetiro);
+        const historicas = lista.filter((l) => l.fechaRetiro);
+
+        return (
+          <div key={posicion} className="rounded-xl p-4 flex flex-col gap-2" style={panelStyle}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontFamily: "var(--font)", fontSize: "var(--text-md)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+                {POSICION_LLANTA_LABEL[posicion]}
+              </span>
+              {!aplica && <Badge label="No aplica" color="var(--sidebar-text)" bg="var(--chip)" />}
+            </div>
+            {!aplica ? (
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+                Esta unidad no tiene doble rodado trasero.
+              </span>
+            ) : actual ? (
+              <div className="flex flex-col gap-1">
+                <Badge label="Instalada actualmente" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+                  {actual.marca ?? "Marca no registrada"}{actual.medida ? ` · ${actual.medida}` : ""}
+                </span>
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                  Instalada el {fmtFecha(actual.fechaInstalacion)}{actual.kmInstalacion != null ? ` · ${actual.kmInstalacion.toLocaleString("es-MX")} km` : ""}
+                </span>
+              </div>
+            ) : (
+              <EmptyState>Sin llanta registrada en esta posición.</EmptyState>
+            )}
+            {historicas.length > 0 && (
+              <details className="mt-1">
+                <summary style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", cursor: "pointer" }}>
+                  Historial ({historicas.length})
+                </summary>
+                <div className="flex flex-col gap-2 mt-2">
+                  {historicas.map((h) => (
+                    <div key={h.id} className="rounded-md p-2" style={{ background: "var(--field-bg)" }}>
+                      <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--field-text)" }}>
+                        {h.marca ?? "Marca no registrada"}{h.medida ? ` · ${h.medida}` : ""}
+                      </div>
+                      <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                        {fmtFecha(h.fechaInstalacion)} — {fmtFecha(h.fechaRetiro)} ({h.motivoRetiro ?? "retiro"})
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

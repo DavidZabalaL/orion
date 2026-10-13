@@ -483,6 +483,11 @@ model Unidad {
   rendimientoPromedio   Decimal?        @db.Decimal(6, 2)
   kmOficial             Int             @default(0)
   capacidadTanqueLitros Decimal?        @db.Decimal(6, 2)
+  /// Doble rodado trasero (ej. grúas/camiones de carga) — habilita las 2
+  /// posiciones de llanta "interior" (trasera izq/der interior) en el
+  /// seguimiento de vida útil de llantas; en unidades sin doble rodado esas
+  /// posiciones no aplican.
+  dobleRodadoTrasero    Boolean         @default(false)
 
   proyectoId String?
   proyecto   Proyecto? @relation(fields: [proyectoId], references: [id])
@@ -536,6 +541,7 @@ model Unidad {
   siniestros         Siniestro[]
   consumosInsumos    ConsumoInsumo[]
   documentos         DocumentoUnidad[]
+  historialLlantas   HistorialLlanta[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -797,6 +803,8 @@ model GastoVehicular {
   historicoProyectoId String?
   historicoProyecto   UnidadHistoricoProyecto? @relation(fields: [historicoProyectoId], references: [id])
 
+  llantasInstaladas HistorialLlanta[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -804,6 +812,44 @@ model GastoVehicular {
   @@index([categoria])
   @@index([proyectoReportanteId])
   @@index([departamentoApoyoId])
+}
+
+/// 6 posiciones posibles de llanta — las 2 "interior" solo aplican a
+/// unidades con doble rodado trasero (ver Unidad.dobleRodadoTrasero).
+enum PosicionLlanta {
+  DELANTERA_IZQUIERDA
+  DELANTERA_DERECHA
+  TRASERA_IZQUIERDA_EXTERIOR
+  TRASERA_IZQUIERDA_INTERIOR
+  TRASERA_DERECHA_EXTERIOR
+  TRASERA_DERECHA_INTERIOR
+}
+
+/// Ciclo de vida de llantas por posición: un registro abierto (fechaRetiro =
+/// null) es la llanta actualmente instalada en esa posición; al reemplazarla
+/// se cierra (fechaRetiro/kmRetiro/motivoRetiro) y se abre uno nuevo — nunca
+/// se sobreescribe, así se conserva el historial completo por posición.
+model HistorialLlanta {
+  id              String         @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad         @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  posicion        PosicionLlanta
+  marca           String?
+  medida          String?
+
+  fechaInstalacion DateTime
+  kmInstalacion    Int?
+
+  fechaRetiro  DateTime?
+  kmRetiro     Int?
+  motivoRetiro String?
+
+  gastoInstalacionId String?
+  gastoInstalacion   GastoVehicular? @relation(fields: [gastoInstalacionId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([numeroEconomico, posicion])
 }
 
 // ───────────────────────── MÓDULO D — COMBUSTIBLE ─────────────────────────

@@ -6,6 +6,7 @@ import { crearGasto } from "@/app/(app)/mantenimiento/actions";
 import { CamposCategoriaGasto } from "@/components/mantenimiento/campos-categoria-gasto";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 import { ESTATUS_GASTO_LABEL } from "@/lib/categorias-gasto";
+import { POSICIONES_LLANTA, POSICION_LLANTA_LABEL, posicionLlantaAplica } from "@/lib/llantas";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -34,19 +35,28 @@ export function NuevaOrdenForm({
   unidades,
   proyectos,
   departamentos = [],
+  insumos = [],
   numeroEconomicoFijo,
+  dobleRodadoTrasero = true,
   onExito,
 }: {
   unidades: { numeroEconomico: string }[];
   proyectos: { id: string; nombre: string }[];
   /** Catálogo de "Departamentos de apoyo" (ver /usuarios/departamentos) — solo los activos, para el campo "Apoyo de pagos". */
   departamentos?: { id: string; nombre: string }[];
+  /** Insumos del Inventario (módulo N) de los proyectos permitidos — para ligar la orden de compra (categoría Consumibles) a sus existencias. */
+  insumos?: { id: string; nombre: string; unidad: string; proyectoNombre?: string }[];
   numeroEconomicoFijo?: string;
+  /** Solo se conoce cuando se captura desde la ficha de una unidad fija — si no, se permiten las 6 posiciones y el servidor valida al guardar. */
+  dobleRodadoTrasero?: boolean;
   onExito?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [apoyoPago, setApoyoPago] = useState(false);
+  const [categoria, setCategoria] = useState<string>("");
+  const [insumoId, setInsumoId] = useState("");
+  const [llantaPosiciones, setLlantaPosiciones] = useState<string[]>([]);
   const router = useRouter();
 
   return (
@@ -66,7 +76,7 @@ export function NuevaOrdenForm({
       }}
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <CamposCategoriaGasto unidades={unidades} proyectos={proyectos} fieldStyle={fieldStyle} labelStyle={labelStyle} numeroEconomicoFijo={numeroEconomicoFijo} />
+        <CamposCategoriaGasto unidades={unidades} proyectos={proyectos} fieldStyle={fieldStyle} labelStyle={labelStyle} numeroEconomicoFijo={numeroEconomicoFijo} onCategoriaChange={setCategoria} />
         <div className="md:col-span-2">
           <CampoAyuda style={labelStyle} texto="Detalle libre de qué se hizo o qué se va a hacer.">Descripción</CampoAyuda>
           <input name="descripcion" style={fieldStyle} />
@@ -119,6 +129,69 @@ export function NuevaOrdenForm({
           <CampoAyuda style={labelStyle} texto="Fecha estimada de entrega del taller. Si se supera, se genera alerta.">Fecha estimada de salida</CampoAyuda>
           <input name="fechaEstimadaSalida" type="date" style={fieldStyle} />
         </div>
+        {categoria === "LLANTAS" && (
+          <div className="md:col-span-2 flex flex-col gap-3 rounded-md p-3" style={{ background: "var(--field-bg)" }}>
+            <CampoAyuda style={labelStyle} texto="Marca las posiciones donde se instaló la llanta nueva de esta orden — queda registrado el historial de vida útil por posición.">
+              Posiciones reemplazadas (opcional)
+            </CampoAyuda>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {POSICIONES_LLANTA.map((p) => {
+                const aplica = posicionLlantaAplica(p, dobleRodadoTrasero);
+                return (
+                  <label
+                    key={p}
+                    className="flex items-center gap-2"
+                    style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: aplica ? "var(--sidebar-text-active)" : "var(--sidebar-text)", opacity: aplica ? 1 : 0.5 }}
+                  >
+                    <input
+                      type="checkbox"
+                      name="llantaPosiciones"
+                      value={p}
+                      disabled={!aplica}
+                      checked={llantaPosiciones.includes(p)}
+                      onChange={(e) =>
+                        setLlantaPosiciones((prev) => (e.target.checked ? [...prev, p] : prev.filter((x) => x !== p)))
+                      }
+                    />
+                    {POSICION_LLANTA_LABEL[p]}
+                    {!aplica && " — no aplica (sin doble rodado)"}
+                  </label>
+                );
+              })}
+            </div>
+            {llantaPosiciones.length > 0 && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <CampoAyuda style={labelStyle} texto="Marca de la llanta instalada (opcional).">Marca</CampoAyuda>
+                  <input name="llantaMarca" style={fieldStyle} />
+                </div>
+                <div>
+                  <CampoAyuda style={labelStyle} texto="Medida de la llanta instalada, ej. 295/80 R22.5 (opcional).">Medida</CampoAyuda>
+                  <input name="llantaMedida" style={fieldStyle} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {categoria === "CONSUMIBLES" && insumos.length > 0 && (
+          <div className="md:col-span-2 flex flex-col gap-3 rounded-md p-3" style={{ background: "var(--field-bg)" }}>
+            <CampoAyuda style={labelStyle} texto="Al guardar, la cantidad capturada se suma automáticamente a las existencias de este insumo en Inventario de Insumos (módulo N) — no hace falta registrarla ahí también.">
+              Ligar a insumo (opcional)
+            </CampoAyuda>
+            <select name="insumoId" style={fieldStyle} value={insumoId} onChange={(e) => setInsumoId(e.target.value)}>
+              <option value="">No ligar a ningún insumo</option>
+              {insumos.map((i) => (
+                <option key={i.id} value={i.id}>{i.nombre} ({i.unidad}){i.proyectoNombre ? ` — ${i.proyectoNombre}` : ""}</option>
+              ))}
+            </select>
+            {insumoId && (
+              <div>
+                <CampoAyuda style={labelStyle} texto="Cantidad comprada que se dará de entrada al inventario.">Cantidad comprada *</CampoAyuda>
+                <input name="cantidadInsumo" type="number" step="0.01" min="0.01" required style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+              </div>
+            )}
+          </div>
+        )}
         <div className="md:col-span-2 flex flex-col gap-2 rounded-md p-3" style={{ background: "var(--field-bg)" }}>
           <label className="flex items-center gap-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
             <input type="checkbox" name="apoyoPago" checked={apoyoPago} onChange={(e) => setApoyoPago(e.target.checked)} />

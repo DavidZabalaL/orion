@@ -62,6 +62,7 @@ export default async function FichaUnidadPage({
           include: { archivo: true, subidoPor: { select: { nombre: true } } },
           orderBy: { createdAt: "desc" },
         },
+        historialLlantas: { orderBy: { fechaInstalacion: "desc" } },
       } as never,
     }),
     puedeEditarCapacidadTanque(),

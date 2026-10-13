@@ -343,6 +343,7 @@ export async function actualizarUnidad(formData: FormData) {
   const tagIave = String(formData.get("tagIave") ?? "").trim() || null;
   const numeroTarjetaCombustible = String(formData.get("numeroTarjetaCombustible") ?? "").trim() || null;
   const licenciaRequerida = String(formData.get("licenciaRequerida") ?? "") || null;
+  const dobleRodadoTrasero = formData.get("dobleRodadoTrasero") === "on";
 
   if (!placas || !marca || !unidadModelo || !anio || !tipoVehiculo || !tipoCombustible || !propietario || !origenPlaca) {
     throw new Error("Faltan campos obligatorios.");
@@ -393,6 +394,7 @@ export async function actualizarUnidad(formData: FormData) {
       tagIave,
       numeroTarjetaCombustible,
       licenciaRequerida: licenciaRequerida as "TIPO_A" | "TIPO_B" | null,
+      dobleRodadoTrasero,
     },
   });
 

@@ -131,6 +131,12 @@ export default async function EditarUnidadPage({
             <CampoAyuda style={labelStyle} texto="Litros que soporta el tanque; se usa para alertar sobrellenados.">Capacidad máxima de tanque (litros)</CampoAyuda>
             <input name="capacidadTanqueLitros" type="number" step="0.1" min={1} defaultValue={unidad.capacidadTanqueLitros ? Number(unidad.capacidadTanqueLitros) : ""} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
           </div>
+          <div className="flex items-center gap-2 pt-6">
+            <input type="checkbox" id="dobleRodadoTrasero" name="dobleRodadoTrasero" defaultChecked={!!(unidad as never as { dobleRodadoTrasero?: boolean }).dobleRodadoTrasero} />
+            <label htmlFor="dobleRodadoTrasero" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+              Doble rodado trasero (habilita las posiciones interiores en el seguimiento de llantas)
+            </label>
+          </div>
         </Bloque>
 
         <Bloque titulo="Asignación">
