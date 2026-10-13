@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad, puedeVerPolizaSeguro } from "@/lib/permisos";
+import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad, puedeVerPolizaSeguro, tienePermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { FichaUnidad } from "@/components/unidades/ficha-unidad";
 import { obtenerAlertaPreventivaUnidad } from "@/lib/mantenimiento-preventivo";
 import { calcularSlaMensualPorUnidad } from "@/lib/sla-disponibilidad";
+import { obtenerComparativoCargaCombustible } from "@/app/(app)/checklist/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,16 @@ export default async function FichaUnidadPage({
       })
     : [];
 
+  // No se reutiliza `unidad.checklists` (limitado a 30 registros mezclando
+  // todos los tipos) porque en unidades con mucha actividad diaria/semanal
+  // eso puede dejar fuera cargas de combustible viejas — aquí se trae el
+  // historial completo de CARGA_COMBUSTIBLE de esta unidad, ya con las
+  // alertas de discrepancia calculadas (mismo criterio que /checklist/combustible).
+  const puedeVerComparativoCombustible = await tienePermisoModulo("A.1");
+  const comparativoCombustible = puedeVerComparativoCombustible
+    ? await obtenerComparativoCargaCombustible({ desde: "2000-01-01", hasta: new Date().toISOString().slice(0, 10), numeroEconomico })
+    : [];
+
   // FichaUnidad es un Client Component: cualquier campo que viaje en `unidad` llega al
   // navegador aunque el JSX no lo pinte. Si el rol no puede ver el detalle comercial de la
   // póliza, se recorta aquí (no solo se oculta en el render) para no filtrar aseguradora/costo/coberturas.
@@ -116,6 +127,7 @@ export default async function FichaUnidadPage({
   const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
   const historicoSerializado = JSON.parse(JSON.stringify(historicoIndisponibilidad));
+  const comparativoCombustibleSerializado = JSON.parse(JSON.stringify(comparativoCombustible));
 
   return (
     <FichaUnidad
@@ -128,6 +140,8 @@ export default async function FichaUnidadPage({
       slaMensual={slaMensual}
       puedeVerPolizaSeguro={puedeVerPoliza}
       historicoIndisponibilidad={historicoSerializado}
+      puedeVerComparativoCombustible={puedeVerComparativoCombustible}
+      comparativoCombustible={comparativoCombustibleSerializado}
     />
   );
 }

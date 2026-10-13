@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -29,7 +29,8 @@ import {
   estatusVisibleUnidad,
 } from "@/lib/estatus";
 import { fmtMoney, fmtFecha, diasPara } from "@/lib/formato";
-import { actualizarCapacidadTanque, reasignarProyecto } from "@/app/(app)/unidades/actions";
+import { actualizarCapacidadTanque, reasignarProyecto, obtenerResumenGpsUnidad } from "@/app/(app)/unidades/actions";
+import type { ResumenGpsPeriodo } from "@/lib/gps-resumen";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 import { calcularDiasSinOperar, labelFuenteActividad } from "@/lib/actividad-unidad";
@@ -46,6 +47,7 @@ import { RutaMapLazy } from "@/components/mapa/ruta-map-lazy";
 import { contarAlertasPorCategoria } from "@/lib/checklist-semanal";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { NOMBRE_MES, type SlaMensual } from "@/lib/sla-disponibilidad-tipos";
+import { ComparativoCombustibleLista, type FilaComparativoCombustibleRow } from "@/components/checklist/comparativo-combustible-lista";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Unidad = any;
@@ -55,6 +57,7 @@ const TABS = [
   { id: "mantenimiento", label: "Mantenimiento" },
   { id: "gastos", label: "Gastos" },
   { id: "combustible", label: "Combustible" },
+  { id: "combustible-comparativo", label: "Comparativo combustible" },
   { id: "tag", label: "TAG" },
   { id: "seguro", label: "Seguro" },
   { id: "documentos", label: "Documentos" },
@@ -328,6 +331,8 @@ export function FichaUnidad({
   slaMensual = [],
   puedeVerPolizaSeguro = false,
   historicoIndisponibilidad = [],
+  puedeVerComparativoCombustible = false,
+  comparativoCombustible = [],
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -338,6 +343,8 @@ export function FichaUnidad({
   slaMensual?: SlaMensual[];
   puedeVerPolizaSeguro?: boolean;
   historicoIndisponibilidad?: HistoricoIndisponibilidad[];
+  puedeVerComparativoCombustible?: boolean;
+  comparativoCombustible?: FilaComparativoCombustibleRow[];
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -498,7 +505,7 @@ export function FichaUnidad({
       {/* Tabs */}
       <div>
         <div className="flex gap-1 overflow-x-auto border-b" style={{ borderColor: "var(--field-border)" }}>
-          {TABS.filter((t) => t.id !== "sla" || puedeVerSla).map((t) => (
+          {TABS.filter((t) => t.id !== "sla" || puedeVerSla).filter((t) => t.id !== "combustible-comparativo" || puedeVerComparativoCombustible).map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -521,6 +528,7 @@ export function FichaUnidad({
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "combustible-comparativo" && puedeVerComparativoCombustible && <ComparativoCombustibleLista filas={comparativoCombustible} mostrarUnidad={false} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
           {tab === "documentos" && <DocumentosUnidad numeroEconomico={unidad.numeroEconomico} documentos={unidad.documentos ?? []} />}
@@ -972,6 +980,76 @@ function TabSeguro({ seguros, numeroEconomico, puedeVerPoliza }: { seguros: Unid
   );
 }
 
+const OPCIONES_DIAS_GPS = [7, 15, 30] as const;
+
+function ResumenGpsPeriodoPanel({ numeroEconomico }: { numeroEconomico: string }) {
+  const [dias, setDias] = useState<(typeof OPCIONES_DIAS_GPS)[number]>(7);
+  const [resumen, setResumen] = useState<ResumenGpsPeriodo | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    startTransition(() => {
+      obtenerResumenGpsUnidad(numeroEconomico, dias).then(setResumen).catch(() => setResumen(null));
+    });
+  }, [numeroEconomico, dias]);
+
+  return (
+    <div className="rounded-xl p-4 flex flex-col gap-3" style={panelStyle}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span style={labelStyle}>Distancia y combustible estimado por período</span>
+        <div className="flex items-center gap-1 rounded-md p-1" style={{ background: "var(--field-bg)" }}>
+          {OPCIONES_DIAS_GPS.map((d) => (
+            <button
+              key={d}
+              onClick={() => setDias(d)}
+              className="rounded px-3 py-1"
+              style={{
+                background: dias === d ? "var(--color-primary)" : "transparent",
+                color: dias === d ? "#fff" : "var(--sidebar-text)",
+                fontFamily: "var(--font-ui)",
+                fontSize: "var(--text-sm)",
+                fontWeight: 600,
+              }}
+            >
+              {d} días
+            </button>
+          ))}
+        </div>
+      </div>
+      {pending && !resumen ? (
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Calculando…</span>
+      ) : resumen ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <div style={labelStyle}>Km recorridos (últimos {resumen.dias} días)</div>
+            <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+              {resumen.kmRango.toLocaleString("es-MX")} km
+            </div>
+            <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{resumen.lecturas} lecturas GPS con km validado</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Combustible estimado hoy</div>
+            {resumen.combustibleEstimado ? (
+              <>
+                <div style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+                  {resumen.combustibleEstimado.porcentaje}% · {resumen.combustibleEstimado.litros} L
+                </div>
+                <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>de {resumen.combustibleEstimado.capacidad} L de capacidad — estimado por rendimiento, no un sensor de nivel</div>
+              </>
+            ) : (
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+                Sin datos suficientes (capacidad de tanque, rendimiento promedio o carga de combustible previa).
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin datos para este período.</span>
+      )}
+    </div>
+  );
+}
+
 function TabGps({ numeroEconomico, posiciones }: { numeroEconomico: string; posiciones: Unidad[] }) {
   const [busqueda, setBusqueda] = useState("");
   const filtradas = useMemo(() => {
@@ -995,6 +1073,7 @@ function TabGps({ numeroEconomico, posiciones }: { numeroEconomico: string; posi
     );
   return (
     <div className="flex flex-col gap-3">
+      <ResumenGpsPeriodoPanel numeroEconomico={numeroEconomico} />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
           Últimas {posiciones.length} lecturas

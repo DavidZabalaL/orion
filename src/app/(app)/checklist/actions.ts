@@ -19,6 +19,7 @@ import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
 import { tieneAlertaChecklist, construirHojasExcelChecklists, construirHojaIndicadores, TIPO_CHECKLIST_LABEL } from "@/lib/checklist-exportar";
 import { generarExcelBuffer } from "@/lib/exportar-excel";
 import { enviarChecklistsExcel } from "@/lib/email";
+import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
 import type { TipoChecklist, TipoVehiculo } from "@/generated/prisma/enums";
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
@@ -748,4 +749,93 @@ export async function cerrarReporteFalla(input: { id: string; costoResolucion?: 
   revalidatePath("/checklist/historial");
   revalidatePath(`/unidades/${checklist.numeroEconomico}`);
   return { ok: true };
+}
+
+export type FilaComparativoCombustible = {
+  id: string;
+  fecha: Date;
+  numeroEconomico: string;
+  marcaModelo: string;
+  proyecto: string | null;
+  responsable: string | null;
+  tipoCombustible: string | null;
+  porcentajeAntes: number | null;
+  porcentajeDespues: number | null;
+  litrosCargados: number | null;
+  cantidadPagada: number | null;
+  precioLitro: number | null;
+  alertas: string[];
+};
+
+/**
+ * Comparativo histórico de cargas de combustible (checklist tipo
+ * CARGA_COMBUSTIBLE): %antes/después, litros, importe y las mismas alertas de
+ * posible discrepancia que ya detecta detectarAlertasCargaCombustible — aquí
+ * se exponen los mensajes completos (no solo si hay o no alerta), para el
+ * reporte de /checklist/combustible y la pestaña "Comparativo combustible" de
+ * la ficha de unidad.
+ */
+export async function obtenerComparativoCargaCombustible(input: {
+  desde: string;
+  hasta: string;
+  proyectoId?: string;
+  numeroEconomico?: string;
+  tipoVehiculo?: string;
+}): Promise<FilaComparativoCombustible[]> {
+  await exigirPermisoModulo("A.1");
+
+  const proyectosPermitidos = await proyectosPermitidosParaModulo("A.1");
+  const inicio = parseFechaLocalMx(input.desde)!;
+  const fin = new Date(parseFechaLocalMx(input.hasta)!.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+  const [checklists, precioPromedioLitroCombustible] = await Promise.all([
+    prisma.checklist.findMany({
+      where: {
+        tipo: "CARGA_COMBUSTIBLE",
+        fecha: { gte: inicio, lte: fin },
+        ...(input.numeroEconomico ? { numeroEconomico: input.numeroEconomico } : {}),
+        unidad: {
+          ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}),
+          ...(input.proyectoId ? { proyectoId: input.proyectoId } : {}),
+          ...(input.tipoVehiculo ? { tipoVehiculo: input.tipoVehiculo as TipoVehiculo } : {}),
+        },
+      },
+      include: {
+        unidad: { select: { numeroEconomico: true, marca: true, unidadModelo: true, capacidadTanqueLitros: true, proyecto: { select: { nombre: true } } } },
+      },
+      orderBy: { fecha: "desc" },
+      take: 5000,
+    }),
+    obtenerPrecioPromedioLitroCargaCombustible(),
+  ]);
+
+  return checklists.map((c) => {
+    const r = (c.respuestasSemanal as Record<string, string>) ?? {};
+    const capacidadTanqueLitros = c.unidad.capacidadTanqueLitros ? Number(c.unidad.capacidadTanqueLitros) : null;
+    const alertas = detectarAlertasCargaCombustible({
+      porcentajeAntes: r.porcentaje_antes,
+      porcentajeDespues: r.porcentaje_despues,
+      litrosCargados: r.litros_cargados,
+      cantidadPagada: r.cantidad_pagada,
+      capacidadTanqueLitros,
+      precioPromedioLitro: precioPromedioLitroCombustible,
+    });
+    const litros = r.litros_cargados ? Number(r.litros_cargados) : null;
+    const importe = r.cantidad_pagada ? Number(r.cantidad_pagada) : null;
+    return {
+      id: c.id,
+      fecha: c.fecha,
+      numeroEconomico: c.unidad.numeroEconomico,
+      marcaModelo: `${c.unidad.marca} ${c.unidad.unidadModelo}`,
+      proyecto: c.unidad.proyecto?.nombre ?? null,
+      responsable: r.responsable ?? null,
+      tipoCombustible: r.tipo_combustible ?? null,
+      porcentajeAntes: r.porcentaje_antes ? Number(r.porcentaje_antes) : null,
+      porcentajeDespues: r.porcentaje_despues ? Number(r.porcentaje_despues) : null,
+      litrosCargados: litros,
+      cantidadPagada: importe,
+      precioLitro: litros && importe ? importe / litros : null,
+      alertas,
+    };
+  });
 }

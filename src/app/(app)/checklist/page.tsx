@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Fuel } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { obtenerIndicadoresChecklistSemanal, obtenerPrecioPromedioLitroCargaCombustible } from "./actions";
 import { IndicadoresChecklist } from "@/components/checklist/indicadores-checklist";
@@ -213,6 +213,18 @@ export default async function ChecklistPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ExportarChecklistModal proyectos={proyectos} />
+          <Link
+            href="/checklist/combustible"
+            className="flex items-center gap-2 rounded-md px-4 h-10"
+            style={{
+              background: "var(--panel-bg)",
+              color: "var(--sidebar-text-active)",
+              fontFamily: "var(--font-ui)",
+              fontSize: "var(--text-base)",
+            }}
+          >
+            <Fuel size={16} /> Comparativo de combustible
+          </Link>
           <Link
             href="/checklist/historial"
             className="flex items-center gap-2 rounded-md px-4 h-10"

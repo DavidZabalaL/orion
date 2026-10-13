@@ -13,6 +13,7 @@ import { registrarCambioResguardante } from "@/lib/resguardo";
 import { CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { TIPOS_DOCUMENTO_UNIDAD, REQUIERE_ANIO } from "@/lib/catalogo-documentos-unidad";
+import { calcularResumenGpsPeriodo, type ResumenGpsPeriodo } from "@/lib/gps-resumen";
 import type { TipoDocumentoUnidad, MotivoIndisponibilidad } from "@/generated/prisma/enums";
 
 const MOTIVOS_INDISPONIBILIDAD: MotivoIndisponibilidad[] = ["MANTENIMIENTO", "SINIESTRO", "SIN_OPERADOR", "TRAMITE_DOCUMENTACION", "SIN_COMBUSTIBLE", "FALLA_MECANICA", "OTRO"];
@@ -464,4 +465,15 @@ export async function alternarOcultarSlaDisponibilidad(oculto: boolean): Promise
     create: { usuarioId: session.user.id, clave: CLAVE_OCULTAR_SLA_DISPONIBILIDAD, valor: oculto },
     update: { valor: oculto },
   });
+}
+
+/**
+ * Distancia recorrida (según el odómetro reportado por GPS) y estimación de
+ * combustible restante en los últimos N días — pestaña GPS de la ficha de
+ * unidad (módulo A). Separado del endpoint del mapa en vivo (módulo G) para
+ * no exigirle ese permiso a quien solo puede ver el inventario de unidades.
+ */
+export async function obtenerResumenGpsUnidad(numeroEconomico: string, dias: number): Promise<ResumenGpsPeriodo> {
+  await exigirPermisoModulo("A", "ver");
+  return calcularResumenGpsPeriodo(numeroEconomico, dias);
 }
