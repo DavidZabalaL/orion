@@ -21,7 +21,8 @@ type Pendiente = {
 
 type RendimientoPorUnidad = {
   numeroEconomico: string;
-  _avg: { rendimientoCalculado: number | string | null };
+  /** km/L ponderado por litros, solo con cargas válidas; null = sin datos suficientes. */
+  rendimiento: number | null;
 };
 
 export function CombustiblePanel({
@@ -42,7 +43,7 @@ export function CombustiblePanel({
   rendimientoPorUnidad: RendimientoPorUnidad[];
   litrosAcumulados: number;
   gastoAcumulado: string | number | null;
-  rendimientoPromedioFlota: number;
+  rendimientoPromedioFlota: number | null;
   isAdmin: boolean;
 }) {
   const [soloPendientes, setSoloPendientes] = useState(false);
@@ -52,7 +53,7 @@ export function CombustiblePanel({
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <StatCard label="Litros acumulados" value={`${litrosAcumulados.toLocaleString("es-MX")} L`} icon={Fuel} accent="var(--color-primary)" onClick={() => setSoloPendientes(false)} seleccionado={!soloPendientes} />
         <StatCard label="Gasto acumulado" value={fmtMoney(gastoAcumulado)} icon={DollarSign} accent="var(--color-status-cerrado)" onClick={() => setSoloPendientes(false)} seleccionado={!soloPendientes} />
-        <StatCard label="Rendimiento promedio flota" value={`${rendimientoPromedioFlota.toFixed(1)} km/L`} icon={Gauge} accent="var(--color-status-revision)" onClick={() => setSoloPendientes(false)} seleccionado={!soloPendientes} />
+        <StatCard label="Rendimiento promedio flota" value={rendimientoPromedioFlota !== null ? `${rendimientoPromedioFlota.toFixed(1)} km/L` : "—"} icon={Gauge} accent="var(--color-status-revision)" onClick={() => setSoloPendientes(false)} seleccionado={!soloPendientes} />
         <StatCard label="Unidades con carga" value={rendimientoPorUnidad.length} icon={Fuel} accent="var(--color-status-asignado)" onClick={() => setSoloPendientes(false)} seleccionado={!soloPendientes} />
         <StatCard label="Pendientes de asignar" value={pendientes.length} icon={Inbox} accent="var(--color-status-revision)" onClick={() => setSoloPendientes((v) => !v)} seleccionado={soloPendientes} />
       </div>
@@ -114,7 +115,7 @@ export function CombustiblePanel({
                       {r.numeroEconomico}
                     </Link>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                      {r._avg.rendimientoCalculado ? `${Number(r._avg.rendimientoCalculado).toFixed(1)} km/L` : "—"}
+                      {r.rendimiento !== null ? `${r.rendimiento.toFixed(1)} km/L` : "—"}
                     </span>
                   </div>
                 ))

@@ -9,6 +9,7 @@ import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
+import { recalcularCombustibleUnidad } from "@/lib/combustible-estimado";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
@@ -26,11 +27,10 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
   if (proyectoFallbackId && permitidos !== null && !permitidos.includes(proyectoFallbackId)) {
     throw new Error("No tienes permiso para asignar al proyecto seleccionado.");
   }
-  const unidades = await prisma.unidad.findMany({ select: { numeroEconomico: true, capacidadTanqueLitros: true, rendimientoPromedio: true, proyectoId: true } });
+  const unidades = await prisma.unidad.findMany({ select: { numeroEconomico: true, proyectoId: true } });
   const unidadPorEconomico = new Map(unidades.map((u) => [u.numeroEconomico, u]));
+  const creadasPorUnidad: { id: string; numFila: number; numeroEconomico: string }[] = [];
 
-  // Se procesa en orden por unidad y kilometraje para que el rendimiento y el
-  // nivel estimado de tanque se calculen encadenados, igual que en captura manual.
   const filasConIndice = filas.map((fila, i) => ({ fila, numFila: i + 2 }));
   filasConIndice.sort((a, b) => {
     const ea = String(a.fila.numeroEconomico ?? "").trim().toUpperCase();
@@ -86,7 +86,7 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
     // nivel de tanque (el bloque de abajo ya lo omite solo cuando falta).
     const kmActual = !isNaN(kmActualBruto) && kmActualBruto > 0 ? kmActualBruto : null;
     if (unidad && !kmActual) {
-      resultado.advertencias.push({ fila: numFila, mensaje: `${numeroEconomico}: sin kilometraje en el archivo; se guardó sin rendimiento ni nivel de tanque.` });
+      resultado.advertencias.push({ fila: numFila, mensaje: `${numeroEconomico}: sin kilometraje en el archivo; el rendimiento y el nivel de tanque se tomarán del GPS si hay lecturas.` });
     }
 
     // `fecha` no lleva hora (el importador no captura hora ni tarjeta, solo el
@@ -111,44 +111,8 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
       }
     }
 
-    let rendimientoCalculado: number | null = null;
-    let alertaSobrellenado = false;
-    let nivelEstimadoDespues: number | null = null;
-
-    if (unidad && numeroEconomico && kmActual) {
-      const capacidadTanqueLitros = unidad.capacidadTanqueLitros ? Number(unidad.capacidadTanqueLitros) : null;
-      const rendimientoPromedio = unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null;
-
-      const anterior = await prisma.combustible.findFirst({
-        where: { numeroEconomico, kmActual: { lt: kmActual } },
-        orderBy: { kmActual: "desc" },
-      });
-      const rendimientoCrudo = anterior?.kmActual != null ? (kmActual - anterior.kmActual) / litros : null;
-      // rendimientoCalculado es Decimal(6,2) — un salto de kilometraje mal
-      // capturado en el archivo (típico: un dígito de más/de menos en KM IN/KM
-      // FIN de una carga anterior) puede dar un rendimiento absurdo que no
-      // cabe en la columna y tumbaría la fila completa, perdiendo un gasto
-      // real por un dato derivado poco confiable. Se descarta el cálculo (no
-      // el gasto) cuando se sale de un rango físicamente razonable.
-      rendimientoCalculado = rendimientoCrudo !== null && Math.abs(rendimientoCrudo) < 9999.99 ? rendimientoCrudo : null;
-
-      if (capacidadTanqueLitros) {
-        const litrosConsumidosEstimados =
-          anterior?.kmActual != null && rendimientoPromedio && kmActual > anterior.kmActual ? (kmActual - anterior.kmActual) / rendimientoPromedio : 0;
-        const nivelAntes = anterior?.nivelEstimadoDespues != null
-          ? Math.max(0, Math.min(Number(anterior.nivelEstimadoDespues), capacidadTanqueLitros) - litrosConsumidosEstimados)
-          : 0;
-        const nivelCrudo = nivelAntes + litros;
-        nivelEstimadoDespues = Math.abs(nivelCrudo) < 9999.99 ? nivelCrudo : null;
-        alertaSobrellenado = nivelEstimadoDespues !== null && nivelEstimadoDespues > capacidadTanqueLitros;
-        if (alertaSobrellenado) {
-          resultado.advertencias.push({ fila: numFila, mensaje: `${numeroEconomico}: la carga excede la capacidad máxima registrada de tanque.` });
-        }
-      }
-    }
-
     try {
-      await prisma.combustible.create({
+      const creada = await prisma.combustible.create({
         data: {
           numeroEconomico,
           proyectoReportanteId: numeroEconomico ? null : (proyectoFallbackId || null),
@@ -158,14 +122,23 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
           kmActual,
           estacion,
           fuente: "ARCHIVO",
-          rendimientoCalculado,
-          nivelEstimadoDespues,
-          alertaSobrellenado,
         },
       });
+      if (numeroEconomico) creadasPorUnidad.push({ id: creada.id, numFila, numeroEconomico });
       resultado.creadas.push(numeroEconomico ? `${numeroEconomico} · ${fecha.toISOString().slice(0, 10)}` : `Sin asignar · ${fecha.toISOString().slice(0, 10)}`);
     } catch (e) {
       resultado.omitidas.push({ fila: numFila, motivo: e instanceof Error ? e.message : "Error desconocido al guardar." });
+    }
+  }
+
+  // Km recorridos, rendimiento y nivel de tanque se calculan al final, una vez
+  // por unidad y ya con todas sus cargas nuevas (ver combustible-estimado.ts).
+  for (const numeroEconomico of new Set(creadasPorUnidad.map((c) => c.numeroEconomico))) {
+    const { estimados } = await recalcularCombustibleUnidad(numeroEconomico);
+    for (const c of creadasPorUnidad) {
+      if (c.numeroEconomico === numeroEconomico && estimados.get(c.id)?.alertaSobrellenado) {
+        resultado.advertencias.push({ fila: c.numFila, mensaje: `${numeroEconomico}: la carga excede la capacidad estimada del tanque.` });
+      }
     }
   }
 

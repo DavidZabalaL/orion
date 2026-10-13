@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
+import { recalcularCombustibleUnidad } from "@/lib/combustible-estimado";
 
 export type ResultadoCrearCombustible = { ok: boolean; error?: string; alertaSobrellenado?: boolean };
 export type ResultadoEliminarCombustible = { ok: boolean; error?: string };
@@ -54,7 +55,7 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
 
   const unidad = await prisma.unidad.findUnique({
     where: { numeroEconomico },
-    select: { capacidadTanqueLitros: true, rendimientoPromedio: true, proyectoId: true },
+    select: { capacidadTanqueLitros: true, proyectoId: true },
   });
   if (!unidad) return { ok: false, error: "La unidad no existe." };
 
@@ -64,39 +65,11 @@ export async function crearCombustible(formData: FormData): Promise<ResultadoCre
   if (!unidad.capacidadTanqueLitros) {
     return { ok: false, error: "Esta unidad no tiene capacidad de tanque registrada. Captúrala en su ficha antes de registrar cargas." };
   }
-  const capacidadTanqueLitros = Number(unidad.capacidadTanqueLitros);
-
-  const anterior = await prisma.combustible.findFirst({
-    where: { numeroEconomico, kmActual: { lt: kmActual } },
-    orderBy: { kmActual: "desc" },
-  });
-  const rendimientoCalculado = anterior?.kmActual != null ? (kmActual - anterior.kmActual) / litros : null;
-
-  const rendimientoPromedio = unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null;
-  const litrosConsumidosEstimados =
-    anterior?.kmActual != null && rendimientoPromedio && kmActual > anterior.kmActual
-      ? (kmActual - anterior.kmActual) / rendimientoPromedio
-      : 0;
-  const nivelAntes = anterior?.nivelEstimadoDespues != null
-    ? Math.max(0, Math.min(Number(anterior.nivelEstimadoDespues), capacidadTanqueLitros) - litrosConsumidosEstimados)
-    : 0;
-  const nivelEstimadoDespues = nivelAntes + litros;
-  const alertaSobrellenado = nivelEstimadoDespues > capacidadTanqueLitros;
-
   const combustible = await prisma.combustible.create({
-    data: {
-      numeroEconomico,
-      fecha: parseFechaLocalMx(fecha)!,
-      litros,
-      costo,
-      kmActual,
-      estacion,
-      fuente: "MANUAL",
-      rendimientoCalculado,
-      nivelEstimadoDespues,
-      alertaSobrellenado,
-    },
+    data: { numeroEconomico, fecha: parseFechaLocalMx(fecha)!, litros, costo, kmActual, estacion, fuente: "MANUAL" },
   });
+  const { estimados } = await recalcularCombustibleUnidad(numeroEconomico);
+  const alertaSobrellenado = estimados.get(combustible.id)?.alertaSobrellenado ?? false;
 
   const session = await auth();
   if (session?.user?.id) {
@@ -134,7 +107,11 @@ export async function asignarEconomicoCombustible(formData: FormData) {
     }
   }
 
+  const previo = await prisma.combustible.findUnique({ where: { id }, select: { numeroEconomico: true } });
   await prisma.combustible.update({ where: { id }, data: { numeroEconomico, proyectoReportanteId } });
+  // La carga entra (o sale) de la cadena de una unidad: se recalculan ambas.
+  if (numeroEconomico) await recalcularCombustibleUnidad(numeroEconomico);
+  if (previo?.numeroEconomico && previo.numeroEconomico !== numeroEconomico) await recalcularCombustibleUnidad(previo.numeroEconomico);
 
   const session = await auth();
   if (session?.user?.id) {
@@ -204,6 +181,7 @@ export async function eliminarCombustible(formData: FormData): Promise<Resultado
   if (!registro) return { ok: false, error: "Registro no encontrado." };
 
   await prisma.combustible.delete({ where: { id } });
+  if (registro.numeroEconomico) await recalcularCombustibleUnidad(registro.numeroEconomico);
 
   const session = await auth();
   if (session?.user?.id) {

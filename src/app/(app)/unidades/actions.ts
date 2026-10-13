@@ -14,6 +14,7 @@ import { CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
 import { crearDocumento } from "@/lib/subir-archivo";
 import { TIPOS_DOCUMENTO_UNIDAD, REQUIERE_ANIO } from "@/lib/catalogo-documentos-unidad";
 import { calcularResumenGpsPeriodo, type ResumenGpsPeriodo } from "@/lib/gps-resumen";
+import { recalcularCombustibleUnidad } from "@/lib/combustible-estimado";
 import type { TipoDocumentoUnidad, MotivoIndisponibilidad } from "@/generated/prisma/enums";
 
 const MOTIVOS_INDISPONIBILIDAD: MotivoIndisponibilidad[] = ["MANTENIMIENTO", "SINIESTRO", "SIN_OPERADOR", "TRAMITE_DOCUMENTACION", "SIN_COMBUSTIBLE", "FALLA_MECANICA", "OTRO"];
@@ -32,6 +33,7 @@ export async function actualizarCapacidadTanque(formData: FormData): Promise<Res
   }
 
   await prisma.unidad.update({ where: { numeroEconomico }, data: { capacidadTanqueLitros } });
+  await recalcularCombustibleUnidad(numeroEconomico);
 
   const session = await auth();
   if (session?.user?.id) {
@@ -397,6 +399,11 @@ export async function actualizarUnidad(formData: FormData) {
       dobleRodadoTrasero,
     },
   });
+
+  const numeroOAnulo = (v: unknown) => (v == null ? null : Number(v));
+  if (numeroOAnulo(anterior.capacidadTanqueLitros) !== capacidadTanqueLitros || numeroOAnulo(anterior.rendimientoPromedio) !== rendimientoPromedio) {
+    await recalcularCombustibleUnidad(numeroEconomico);
+  }
 
   if (anterior.proyectoId !== proyectoId) {
     if (anterior.proyectoId) {

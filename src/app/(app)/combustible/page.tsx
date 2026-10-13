@@ -46,16 +46,22 @@ export default async function CombustiblePage({ searchParams }: { searchParams: 
           include: { proyectoReportante: { select: { nombre: true } } },
           orderBy: { fecha: "desc" },
         }),
-    prisma.combustible.aggregate({ where: filtroProyecto, _sum: { litros: true, costo: true }, _avg: { rendimientoCalculado: true } }),
+    prisma.combustible.aggregate({ where: filtroProyecto, _sum: { litros: true, costo: true } }),
   ]);
 
-  const rendimientoPorUnidad = await prisma.combustible.groupBy({
-    by: ["numeroEconomico"],
-    where: filtroProyecto,
-    _avg: { rendimientoCalculado: true },
-    _sum: { litros: true, costo: true },
-    orderBy: { numeroEconomico: "asc" },
-  });
+  // Rendimiento ponderado por litros (km totales ÷ litros totales) y solo con
+  // cargas válidas — un promedio simple de cargas deja que una sola carga
+  // chica o un km mal capturado distorsione el resultado.
+  const filtroRendimientoValido = { AND: [filtroProyecto, { rendimientoCalculado: { not: null } }, { kmRecorridos: { not: null } }] };
+  const [unidadesConCarga, rendimientoValidoPorUnidad, rendimientoValidoFlota] = await Promise.all([
+    prisma.combustible.groupBy({ by: ["numeroEconomico"], where: { AND: [filtroProyecto, { numeroEconomico: { not: null } }] }, orderBy: { numeroEconomico: "asc" } }),
+    prisma.combustible.groupBy({ by: ["numeroEconomico"], where: filtroRendimientoValido, _sum: { kmRecorridos: true, litros: true } }),
+    prisma.combustible.aggregate({ where: filtroRendimientoValido, _sum: { kmRecorridos: true, litros: true } }),
+  ]);
+  const ponderado = (km: number | null | undefined, litros: unknown) => (km && Number(litros) > 0 ? km / Number(litros) : null);
+  const rendimientoValidoMapa = new Map(rendimientoValidoPorUnidad.map((r) => [r.numeroEconomico, ponderado(r._sum.kmRecorridos, r._sum.litros)]));
+  const rendimientoPorUnidad = unidadesConCarga.map((u) => ({ numeroEconomico: u.numeroEconomico as string, rendimiento: rendimientoValidoMapa.get(u.numeroEconomico) ?? null }));
+  const rendimientoPromedioFlota = ponderado(rendimientoValidoFlota._sum.kmRecorridos, rendimientoValidoFlota._sum.litros);
 
   // Se agrupa por número económico, igual que ya hace TAG, para no perder
   // información en una sola lista plana: cada unidad se ve resumida y se
@@ -74,10 +80,7 @@ export default async function CombustiblePage({ searchParams }: { searchParams: 
     grupo.transacciones.push(JSON.parse(JSON.stringify(t)));
   }
   for (const grupo of gruposPorEconomico.values()) {
-    const conRendimiento = grupo.transacciones.filter((t) => t.rendimientoCalculado);
-    grupo.rendimientoPromedio = conRendimiento.length
-      ? conRendimiento.reduce((acc, t) => acc + Number(t.rendimientoCalculado), 0) / conRendimiento.length
-      : null;
+    grupo.rendimientoPromedio = rendimientoValidoMapa.get(grupo.numeroEconomico) ?? null;
   }
   const grupos = Array.from(gruposPorEconomico.values()).sort((a, b) => a.numeroEconomico.localeCompare(b.numeroEconomico));
 
@@ -112,10 +115,10 @@ export default async function CombustiblePage({ searchParams }: { searchParams: 
         proyectos={proyectos}
         grupos={grupos}
         pendientes={JSON.parse(JSON.stringify(pendientes))}
-        rendimientoPorUnidad={JSON.parse(JSON.stringify(rendimientoPorUnidad))}
+        rendimientoPorUnidad={rendimientoPorUnidad}
         litrosAcumulados={Number(agregados._sum.litros ?? 0)}
         gastoAcumulado={JSON.parse(JSON.stringify(agregados._sum.costo))}
-        rendimientoPromedioFlota={Number(agregados._avg.rendimientoCalculado ?? 0)}
+        rendimientoPromedioFlota={rendimientoPromedioFlota}
         isAdmin={isAdmin}
       />
     </div>

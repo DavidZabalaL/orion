@@ -16,6 +16,8 @@ type Combustible = {
   estacion: string | null;
   rendimientoCalculado: string | null;
   alertaSobrellenado: boolean;
+  kmRecorridos: number | null;
+  fuenteKmRecorridos: "GPS" | "CAPTURA" | null;
 };
 
 const td: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" };
@@ -46,6 +48,16 @@ export function CombustibleRow({ registro: r, isAdmin = false }: { registro: Com
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(r.litros).toFixed(1)} L</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(r.costo)}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual != null ? r.kmActual.toLocaleString("es-MX") : "—"}</td>
+        <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>
+          {r.kmRecorridos != null ? (
+            <span title={r.fuenteKmRecorridos === "GPS" ? "Odómetro GPS entre esta carga y la anterior" : "Km capturado entre esta carga y la anterior"}>
+              {r.kmRecorridos.toLocaleString("es-MX")}{" "}
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{r.fuenteKmRecorridos === "GPS" ? "GPS" : "Captura"}</span>
+            </span>
+          ) : (
+            "—"
+          )}
+        </td>
         <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.rendimientoCalculado ? `${Number(r.rendimientoCalculado).toFixed(1)} km/L` : "—"}</td>
         <td className="px-4 py-3">
@@ -65,7 +77,7 @@ export function CombustibleRow({ registro: r, isAdmin = false }: { registro: Com
       </tr>
       {confirmando && (
         <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td colSpan={7} className="px-4 py-4" style={{ background: "var(--status-escena-bg)" }}>
+          <td colSpan={8}className="px-4 py-4" style={{ background: "var(--status-escena-bg)" }}>
             <form action={handleEliminar} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={r.id} />
               <div className="flex items-start gap-2">

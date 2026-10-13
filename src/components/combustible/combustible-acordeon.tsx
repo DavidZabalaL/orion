@@ -17,6 +17,8 @@ export type CombustibleTransaccion = {
   estacion: string | null;
   rendimientoCalculado: string | null;
   alertaSobrellenado: boolean;
+  kmRecorridos: number | null;
+  fuenteKmRecorridos: "GPS" | "CAPTURA" | null;
 };
 
 export type GrupoCombustible = {
@@ -86,10 +88,10 @@ export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: Grupo
 
               {abierto && (
                 <div className="overflow-x-auto" style={{ borderTop: "1px solid var(--field-border)" }}>
-                  <table className="w-full min-w-[700px] border-collapse">
+                  <table className="w-full min-w-[820px] border-collapse">
                     <thead>
                       <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                        {["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento", ""].map((h) => (
+                        {["Fecha", "Litros", "Costo", "Km", "Km recorridos", "Estación", "Rendimiento", ""].map((h) => (
                           <th key={h} className="text-left px-4 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                         ))}
                       </tr>

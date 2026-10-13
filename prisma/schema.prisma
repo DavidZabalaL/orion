@@ -171,6 +171,11 @@ enum FuenteCombustible {
   MANUAL
 }
 
+enum FuenteKmRecorridos {
+  GPS
+  CAPTURA
+}
+
 enum ProveedorTag {
   IAVE
   PASE
@@ -885,6 +890,12 @@ model Combustible {
   rendimientoCalculado Decimal?                           @db.Decimal(6, 2)
   nivelEstimadoDespues Decimal?                           @db.Decimal(6, 2)
   alertaSobrellenado   Boolean                            @default(false)
+  // Odómetro GPS validado al momento de la carga y km recorridos desde la carga
+  // anterior (de GPS o, si no hay, del km capturado) — ver src/lib/combustible-estimado.ts.
+  // Nulos = sin dato confiable (no es lo mismo que 0 km).
+  kmGps                Int?
+  kmRecorridos         Int?
+  fuenteKmRecorridos   FuenteKmRecorridos?
 
   createdAt DateTime @default(now())
 
