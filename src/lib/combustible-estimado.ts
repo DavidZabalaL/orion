@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import type { FuenteKmRecorridos } from "@/generated/prisma/enums";
 
 /**
@@ -203,8 +204,26 @@ export async function recalcularCombustibleUnidad(
   });
 
   if (aplicar) {
-    for (let i = 0; i < actualizaciones.length; i += 50) {
-      await prisma.$transaction(actualizaciones.slice(i, i + 50).map((u) => prisma.combustible.update({ where: { id: u.id }, data: u.data })));
+    // Un solo UPDATE ... FROM (VALUES ...) por lote: una ida a la base y atómico.
+    // Con un update por fila dentro de $transaction, la latencia a Neon rebasaba
+    // el límite de 5 s de la transacción en unidades con muchas cargas.
+    for (let i = 0; i < actualizaciones.length; i += 200) {
+      const valores = Prisma.join(
+        actualizaciones.slice(i, i + 200).map(
+          ({ id, data: d }) =>
+            Prisma.sql`(${id}, ${d.kmGps}::int, ${d.kmRecorridos}::int, ${d.fuenteKmRecorridos}::text, ${d.rendimientoCalculado}::numeric, ${d.nivelEstimadoDespues}::numeric, ${d.alertaSobrellenado}::boolean)`
+        )
+      );
+      await prisma.$executeRaw`
+        UPDATE "Combustible" AS c SET
+          "kmGps" = v.km_gps,
+          "kmRecorridos" = v.km_recorridos,
+          "fuenteKmRecorridos" = v.fuente::"FuenteKmRecorridos",
+          "rendimientoCalculado" = v.rendimiento,
+          "nivelEstimadoDespues" = v.nivel,
+          "alertaSobrellenado" = v.alerta
+        FROM (VALUES ${valores}) AS v(id, km_gps, km_recorridos, fuente, rendimiento, nivel, alerta)
+        WHERE c.id = v.id`;
     }
   }
   return { cambios: actualizaciones.length, estimados: porId, antes };
