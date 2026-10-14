@@ -1,5 +1,6 @@
 "use client";
 
+import { formatearValorBI } from "@/lib/bi/formato-valor";
 import { useEffect, useId, useRef, useState } from "react";
 import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
 import { resolverEstado } from "@/lib/bi/estados-mexico";
@@ -27,7 +28,7 @@ function colorFor(i: number, dark: boolean) {
 }
 
 function fmtNumero(n: number, sufijo = "") {
-  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(n) + sufijo;
+  return formatearValorBI(n, sufijo);
 }
 
 const TAMANO_INICIAL = { width: 640, height: 320 };

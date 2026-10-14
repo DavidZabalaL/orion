@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { formatearValorBI, formatearCeldaBI } from "@/lib/bi/formato-valor";
+import type { VistaDashboardReporte, WidgetReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import { Document, Page, Text, View, StyleSheet, Svg, Circle, Image } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
@@ -215,11 +217,11 @@ function cubiertoPorDashboard(indicadoresDashboard: IndicadorDashboard[] | undef
   return palabrasClave.some((p) => titulos.some((t) => t.includes(p)));
 }
 
-function TarjetaKpi({ titulo, valor, caption, campoLabel, reglasColor }: { titulo: string; valor: number; caption: string; campoLabel: string; reglasColor?: ReglaColorColumna[] }) {
+function TarjetaKpi({ titulo, valor, caption, campoLabel, reglasColor, sufijo }: { titulo: string; valor: number; caption: string; campoLabel: string; reglasColor?: ReglaColorColumna[]; sufijo?: string }) {
   const color = colorParaValor(valor, campoLabel, reglasColor);
   return (
     <Tarjeta titulo={titulo}>
-      <Text style={color ? { ...styles.kpiValor, color } : styles.kpiValor}>{valor.toLocaleString("es-MX", { maximumFractionDigits: 2 })}</Text>
+      <Text style={color ? { ...styles.kpiValor, color } : styles.kpiValor}>{formatearValorBI(valor, sufijo)}</Text>
       <Text style={styles.kpiCaption}>{caption}</Text>
     </Tarjeta>
   );
@@ -552,6 +554,7 @@ function PaginaEstatus({
               caption={`${detalleCampo} · ${etiquetaPeriodo}`}
               campoLabel={c.campoLabel}
               reglasColor={c.reglasColor}
+              sufijo={c.sufijo}
             />
           ) : (
             <TarjetaBarras
@@ -559,6 +562,7 @@ function PaginaEstatus({
               titulo={tituloPeriodo}
               vacio="Sin datos."
               filas={(c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+              formatear={(v) => formatearValorBI(v, c.sufijo)}
               reglasColor={c.reglasColor}
               pie={`${detalleCampo} · ${etiquetaPeriodo}`}
             />
@@ -576,6 +580,7 @@ function PaginaEstatus({
                 caption={`${detalleCampo} · ${etiquetaAnio}`}
                 campoLabel={c.campoLabel}
                 reglasColor={c.reglasColor}
+                sufijo={c.sufijo}
               />
             ) : (
               <TarjetaBarras
@@ -583,6 +588,7 @@ function PaginaEstatus({
                 titulo={tituloAnio}
                 vacio="Sin datos."
                 filas={(c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor }))}
+                formatear={(v) => formatearValorBI(v, c.sufijo)}
                 reglasColor={c.reglasColor}
                 pie={`${detalleCampo} · ${etiquetaAnio}`}
               />
@@ -627,6 +633,88 @@ function PaginaEstatus({
   );
 }
 
+/** Tabla de un widget de la vista de dashboard incluida en el reporte. */
+function TablaWidgetVista({ widget }: { widget: Extract<WidgetReporte, { tipo: "tabla" }> }) {
+  return (
+    <View style={{ marginBottom: 14 }} wrap={widget.filas.length > 15}>
+      <Text style={styles.seccionTitulo}>{widget.titulo.toUpperCase()}</Text>
+      <View style={styles.tablaContenedor}>
+        <View style={styles.tablaHeaderFila} fixed>
+          {widget.columnas.map((c, i) => (
+            <Text key={i} style={{ ...styles.tablaCeldaHeader, flex: 1, textAlign: c.numerica ? "right" : "left" }}>{c.label.toUpperCase()}</Text>
+          ))}
+        </View>
+        {widget.filas.length === 0 ? (
+          <View style={styles.tablaFila}>
+            <Text style={{ ...styles.tablaCeldaTexto, color: SLATE, fontStyle: "italic" }}>Sin registros.</Text>
+          </View>
+        ) : (
+          widget.filas.map((fila, i) => (
+            <View key={i} style={styles.tablaFila} wrap={false}>
+              {fila.map((v, j) => (
+                <Text key={j} style={{ ...styles.tablaCeldaTexto, flex: 1, textAlign: widget.columnas[j]?.numerica ? "right" : "left" }}>
+                  {formatearCeldaBI(v, widget.columnas[j]?.numerica ? "numero" : "texto", widget.columnas[j]?.sufijo)}
+                </Text>
+              ))}
+            </View>
+          ))
+        )}
+      </View>
+      {widget.totalFilas > widget.filas.length && (
+        <Text style={{ ...styles.kpiCaption, marginTop: 4 }}>Se muestran {widget.filas.length} de {widget.totalFilas} registros — el detalle completo está en el dashboard.</Text>
+      )}
+    </View>
+  );
+}
+
+/** Página con la vista de "Mis dashboards" elegida al generar el reporte — sus KPIs y tablas, en el orden de la cuadrícula. */
+function PaginaVistaDashboard({ vista }: { vista: VistaDashboardReporte }) {
+  const kpis = vista.widgets.filter((w): w is Extract<WidgetReporte, { tipo: "kpi" }> => w.tipo === "kpi");
+  const resto = vista.widgets.filter((w) => w.tipo !== "kpi");
+  return (
+    <Page size="A4" orientation="landscape" style={styles.page}>
+      <View style={styles.headerCard}>
+        <View>
+          <Text style={styles.headerTitulo}>{vista.nombre}</Text>
+          <Text style={styles.headerSubtitulo}>DASHBOARD · CIFRAS AL {fmtFechaPdf(new Date()).toUpperCase()}</Text>
+        </View>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
+        <Image src={KABAT_LOGO_DATA_URI} style={styles.headerLogo} />
+      </View>
+
+      {enGrupos(kpis, TARJETAS_POR_FILA).map((grupo, i) => (
+        <View key={`kpi-${i}`} style={styles.fila} wrap={false}>
+          {grupo.map((k, j) => (
+            <Tarjeta key={j} titulo={k.titulo}>
+              <Text style={styles.kpiValor}>{formatearValorBI(k.valor, k.sufijo)}</Text>
+              <Text style={styles.kpiCaption}>{k.detalle}</Text>
+            </Tarjeta>
+          ))}
+          {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
+            <View key={`kpi-hueco-${j}`} style={{ flex: 1 }} />
+          ))}
+        </View>
+      ))}
+
+      {resto.map((w, i) =>
+        w.tipo === "tabla" ? (
+          <TablaWidgetVista key={i} widget={w} />
+        ) : w.tipo === "nota" ? (
+          <View key={i} style={{ marginBottom: 14 }} wrap={false}>
+            <Text style={styles.seccionTitulo}>{w.titulo.toUpperCase()}</Text>
+            <Text style={styles.listaVacio}>{w.texto}</Text>
+          </View>
+        ) : null
+      )}
+
+      <View style={styles.footer} fixed>
+        <Text style={styles.footerText}>Orión · Control Vehicular — Grupo Kabat</Text>
+        <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+      </View>
+    </Page>
+  );
+}
+
 /**
  * Documento PDF del reporte "Estatus semanal de flota" — una página por
  * alcance: primero el resumen general (todos los proyectos permitidos, si se
@@ -638,9 +726,12 @@ export function EstatusFlotaDocument({
   indicadoresDashboard,
   ordenSecciones,
   incluirGeneral = true,
+  vistaDashboard,
 }: {
   datos: EstatusFlotaReporte;
   indicadoresDashboard?: IndicadorDashboard[];
+  /** Vista guardada de "Mis dashboards" elegida en el modal — va como primera página. */
+  vistaDashboard?: VistaDashboardReporte | null;
   /** Orden en que se muestran las secciones — ver EstatusFlotaModal. Sin especificar, usa ORDEN_SECCIONES_DEFAULT. */
   ordenSecciones?: SeccionReporteId[];
   /** Alcance completo de la plataforma (o de todo lo permitido al usuario) — independiente de qué proyectos se hayan seleccionado para desglosar. Se sigue calculando siempre (ver calcularEstatusFlotaReporte); esto solo decide si se incluye en el documento. */
@@ -648,6 +739,7 @@ export function EstatusFlotaDocument({
 }) {
   return (
     <Document>
+      {vistaDashboard && <PaginaVistaDashboard vista={vistaDashboard} />}
       {/* Los indicadores del dashboard actual solo aplican al alcance general —
           es el mismo alcance que se ve al abrir "Mis dashboards". */}
       {incluirGeneral && <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />}

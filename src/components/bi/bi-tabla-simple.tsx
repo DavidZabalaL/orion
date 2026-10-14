@@ -1,8 +1,8 @@
 "use client";
 
+import { formatearValorBI } from "@/lib/bi/formato-valor";
 import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
-const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
 /** Tabla de la vista "Ver tabla" para cualquier gráfica simple (dimensión + valor) — barras, líneas, pie, puntos, divergente, etc. */
 export function TablaSimple({
@@ -37,7 +37,7 @@ export function TablaSimple({
         {mostrarTotal && (
           <tr style={{ borderBottom: "1px solid var(--field-border)", color: "var(--sidebar-text-active)", fontWeight: 700 }}>
             <td className="py-2">Total</td>
-            <td className="py-2">{fmt.format(total)}{ejeYSufijo}</td>
+            <td className="py-2">{formatearValorBI(total, ejeYSufijo)}</td>
           </tr>
         )}
         {datos.map((d) => {
@@ -45,7 +45,7 @@ export function TablaSimple({
           return (
             <tr key={d.dimension} style={{ borderTop: "1px solid var(--field-border)", color: "var(--sidebar-text-active)" }}>
               <td className="py-2">{d.dimension}</td>
-              <td className="py-2" style={color ? { color, fontWeight: 600 } : undefined}>{fmt.format(d.valor)}{ejeYSufijo}</td>
+              <td className="py-2" style={color ? { color, fontWeight: 600 } : undefined}>{formatearValorBI(d.valor, ejeYSufijo)}</td>
             </tr>
           );
         })}

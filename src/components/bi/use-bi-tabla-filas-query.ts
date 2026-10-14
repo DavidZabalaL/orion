@@ -11,7 +11,7 @@ export type BiTablaFilasParams = {
 };
 
 export type BiTablaFilasResultado = {
-  columnas: { id: string; label: string }[];
+  columnas: { id: string; label: string; tipo?: string; sufijo?: string }[];
   filas: Record<string, string | number | null>[];
   truncado: boolean;
   cargando: boolean;

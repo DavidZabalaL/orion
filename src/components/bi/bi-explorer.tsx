@@ -1,5 +1,6 @@
 "use client";
 
+import { formatearValorBI } from "@/lib/bi/formato-valor";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Table2 } from "lucide-react";
 import { BI_DATASETS, BI_COMBINACIONES_SUGERIDAS, obtenerDataset } from "@/lib/bi/metadata";
@@ -17,7 +18,6 @@ import { useRegisterExportable } from "@/components/dashboard/ExportRegistryCont
 
 // Misma precisión que fmtNumero() en bi-chart.tsx (no exportado desde ahí) —
 // para que el KPI exportado al PDF muestre el mismo redondeo que el "Contador" en pantalla.
-const FMT_KPI = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
 export type MetricaDisponible = {
   id: string;
@@ -97,7 +97,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   // unidad): el KPI exportado terminaba mostrando un número distinto al que
   // se ve en pantalla.
   const totalContador =
-    datos.length > 0 ? FMT_KPI.format(datos.reduce((acc, d) => acc + d.valor, 0) / (combinacion.agregacion === "promedio" ? datos.length : 1)) : undefined;
+    datos.length > 0 ? formatearValorBI(datos.reduce((acc, d) => acc + d.valor, 0) / (combinacion.agregacion === "promedio" ? datos.length : 1), ejeYSufijo) : undefined;
 
   // Igual que en BiCard: la combinación libre del explorador se registra
   // para el exportador de resumen ejecutivo mientras tiene datos visibles.
@@ -105,7 +105,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
     cargando || error || verTabla
       ? null
       : combinacion.tipoGrafica === "contador"
-      ? { id: idExportable, type: "kpi", title: dataset.label, value: totalContador !== undefined ? `${totalContador}${ejeYSufijo}` : undefined }
+      ? { id: idExportable, type: "kpi", title: dataset.label, value: totalContador }
       : { id: idExportable, type: "chart", title: dataset.label, domRef: graficaRef }
   );
 

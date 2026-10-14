@@ -1,9 +1,9 @@
 "use client";
 
+import { formatearValorBI } from "@/lib/bi/formato-valor";
 import type { BiCruzado } from "@/components/bi/bi-chart";
 import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 
-const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
 /** Tabla cruzada (pivote): filas = dimensión del eje X, columnas = segundo grupo. Misma forma que alimenta las barras agrupadas. */
 export function BiTablaCruzada({
@@ -43,7 +43,7 @@ export function BiTablaCruzada({
               <td className="py-2 pr-3">Total</td>
               {cruzado.series.map((s) => (
                 <td key={s} className="py-2 pr-3 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {fmt.format(totalPorSerie[s] ?? 0)}{ejeYSufijo}
+                  {formatearValorBI(totalPorSerie[s] ?? 0, ejeYSufijo)}
                 </td>
               ))}
             </tr>
@@ -56,7 +56,7 @@ export function BiTablaCruzada({
                 const color = colorParaValor(valor, s, reglasColor, promedioPorSerie[s]);
                 return (
                   <td key={s} className="py-2 pr-3 text-right" style={{ fontVariantNumeric: "tabular-nums", ...(color ? { color, fontWeight: 600 } : {}) }}>
-                    {fmt.format(valor)}{ejeYSufijo}
+                    {formatearValorBI(valor, ejeYSufijo)}
                   </td>
                 );
               })}

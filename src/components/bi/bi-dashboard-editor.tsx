@@ -6,11 +6,12 @@ import "react-resizable/css/styles.css";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Responsive, useContainerWidth, type Layout, type ResponsiveLayouts } from "react-grid-layout";
-import { Pencil, Plus, Save, Trash2, X, TriangleAlert, CheckCircle2 } from "lucide-react";
+import { Pencil, Plus, Save, Trash2, X, TriangleAlert, CheckCircle2, Copy } from "lucide-react";
 import { WIDGETS_BI_DEFAULT, type WidgetDashboardBI, type FiltroGuardable } from "@/lib/bi/metadata";
 import { BiCard } from "@/components/bi/bi-card";
 import { BiCardTablaFilas } from "@/components/bi/bi-card-tabla-filas";
 import { BiAgregarWidget } from "@/components/bi/bi-agregar-widget";
+import { Modal } from "@/components/ui/modal";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
@@ -59,6 +60,8 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
   const [formulario, setFormulario] = useState<"agregar" | { editarId: string } | null>(null);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>("lg");
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [nombreDuplicado, setNombreDuplicado] = useState<string | null>(null);
 
   // Cross-filter (Fase 6): un único filtro de interacción global, activado al
   // hacer clic en una categoría de un widget marcado "emite" — se ofrece a
@@ -101,11 +104,11 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
     }
   }
 
-  function handleGuardar(comoNueva: boolean) {
+  function handleGuardar() {
     setMensaje(null);
     startTransition(async () => {
       const res = await guardarVistaDashboard({
-        id: comoNueva ? undefined : vistaActivaId !== TEMPORAL ? vistaActivaId : undefined,
+        id: vistaActivaId !== TEMPORAL ? vistaActivaId : undefined,
         nombre: nombreVista,
         widgets,
       });
@@ -119,11 +122,36 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
     });
   }
 
+  function handleDuplicar() {
+    const nombre = (nombreDuplicado ?? "").trim();
+    if (!nombre) return;
+    setMensaje(null);
+    startTransition(async () => {
+      const res = await guardarVistaDashboard({ nombre, widgets });
+      if (res.ok && res.id) {
+        setNombreDuplicado(null);
+        setVistaActivaId(res.id);
+        setNombreVista(nombre);
+        setMensaje({ tipo: "ok", texto: `Vista duplicada como "${nombre}".` });
+        router.refresh();
+      } else {
+        setMensaje({ tipo: "error", texto: res.error ?? "No se pudo duplicar la vista." });
+      }
+    });
+  }
+
+  function salirDeEdicion() {
+    setEditMode(false);
+    setFormulario(null);
+    cambiarVista(vistaActivaId);
+  }
+
   function handleEliminar() {
     if (vistaActivaId === TEMPORAL) return;
     setMensaje(null);
     startTransition(async () => {
       const res = await eliminarVistaDashboard(vistaActivaId);
+      setConfirmarEliminar(false);
       if (res.ok) {
         router.refresh();
         cambiarVista(TEMPORAL);
@@ -212,14 +240,43 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
 
         {!editMode && mensajeEl && <div className="mb-5">{mensajeEl}</div>}
 
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
             {nombreVista}
           </h2>
           {editMode && (
-            <span className="shrink-0 rounded-full px-2.5 py-1" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }} data-no-print>
-              Editando
-            </span>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2" data-no-print>
+              <span className="rounded-full px-2.5 py-1" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}>
+                Editando
+              </span>
+              <button
+                onClick={() => setNombreDuplicado(`${nombreVista} (copia)`)}
+                disabled={pending}
+                className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+                title="Crear una copia de esta vista con otro nombre"
+              >
+                <Copy size={13} /> Duplicar vista
+              </button>
+              {vistaActivaId !== TEMPORAL && (
+                <button
+                  onClick={() => setConfirmarEliminar(true)}
+                  disabled={pending}
+                  className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+                  style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+                >
+                  <Trash2 size={13} /> Eliminar vista
+                </button>
+              )}
+              <button
+                onClick={salirDeEdicion}
+                className="flex items-center gap-1.5 rounded-md px-3 h-9"
+                style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+                title="Salir de edición sin guardar los cambios pendientes"
+              >
+                <X size={13} /> Cerrar edición
+              </button>
+            </div>
           )}
         </div>
 
@@ -317,43 +374,12 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
 
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => handleGuardar(false)}
+                onClick={handleGuardar}
                 disabled={pending}
                 className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
                 style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
               >
                 <Save size={13} /> {vistaActivaId === TEMPORAL ? "Guardar" : "Guardar cambios"}
-              </button>
-              {vistaActivaId !== TEMPORAL && (
-                <button
-                  onClick={() => handleGuardar(true)}
-                  disabled={pending}
-                  className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
-                  style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-                >
-                  Guardar como nueva
-                </button>
-              )}
-              {vistaActivaId !== TEMPORAL && (
-                <button
-                  onClick={handleEliminar}
-                  disabled={pending}
-                  className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
-                  style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-                >
-                  <Trash2 size={13} /> Eliminar vista
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setEditMode(false);
-                  setFormulario(null);
-                  cambiarVista(vistaActivaId);
-                }}
-                className="flex items-center justify-center gap-1.5 rounded-md px-3 h-9"
-                style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}
-              >
-                <X size={13} /> Salir de edición
               </button>
             </div>
 
@@ -406,6 +432,75 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
             )}
           </div>
         </aside>
+      )}
+
+      {confirmarEliminar && (
+        <Modal title="Eliminar vista" onClose={() => setConfirmarEliminar(false)} maxWidth={420}>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+            ¿Seguro que quieres eliminar la vista <strong>{nombreVista}</strong>? Esta acción no se puede deshacer.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmarEliminar(false)}
+              className="rounded-md px-3 h-9"
+              style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleEliminar}
+              disabled={pending}
+              className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+              style={{ background: "var(--color-status-escena)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+            >
+              <Trash2 size={13} /> {pending ? "Eliminando…" : "Sí, eliminar"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {nombreDuplicado !== null && (
+        <Modal title="Duplicar vista" onClose={() => setNombreDuplicado(null)} maxWidth={420}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleDuplicar();
+            }}
+          >
+            <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em", display: "block", marginBottom: 6 }}>
+              Nombre de la nueva vista
+            </label>
+            <input
+              autoFocus
+              onFocus={(e) => e.currentTarget.select()}
+              value={nombreDuplicado}
+              onChange={(e) => setNombreDuplicado(e.target.value)}
+              maxLength={120}
+              style={{ ...fieldStyle, width: "100%" }}
+            />
+            <p className="mt-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              Se copia la vista tal como la ves ahora, incluidos los cambios sin guardar. La original no se modifica.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setNombreDuplicado(null)}
+                className="rounded-md px-3 h-9"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={pending || !nombreDuplicado.trim()}
+                className="flex items-center gap-1.5 rounded-md px-3 h-9 disabled:opacity-60"
+                style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+              >
+                <Copy size={13} /> {pending ? "Duplicando…" : "Duplicar"}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

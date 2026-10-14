@@ -365,6 +365,13 @@ export const BI_DATASETS: DatasetMeta[] = [
     fechaActividadExpr: `g."fecha"`,
     campos: [
       { id: "categoria", label: "Categoría de gasto", tipo: "texto", expr: `g."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `COALESCE(g."numeroEconomico", 'Sin unidad')` },
+      { id: "sc", label: "SC / Requisición", tipo: "texto", expr: `g."sc"` },
+      { id: "odc", label: "ODC (Orden de compra)", tipo: "texto", expr: `g."odc"` },
+      { id: "servicio", label: "Servicio", tipo: "texto", expr: `g."servicio"` },
+      { id: "descripcion", label: "Descripción", tipo: "texto", expr: `g."descripcion"` },
+      { id: "diaRequisicion", label: "Fecha de requisición", tipo: "fecha_dia", expr: `g."fechaRequisicion"` },
+      { id: "diaOdc", label: "Fecha de ODC", tipo: "fecha_dia", expr: `g."fechaOdc"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `g."estatus"`, opciones: opcionesDe(ESTATUS_GASTO_LABEL) },
       { id: "proveedor", label: "Proveedor", tipo: "texto", expr: `COALESCE(g."proveedor", 'Sin proveedor')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
@@ -402,6 +409,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     campos: [
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `c."fecha"` },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `COALESCE(c."numeroEconomico", 'Sin unidad')` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `c."fecha"` },
       { id: "litros", label: "Litros", tipo: "numero", expr: `c."litros"`, sufijo: " L" },
       { id: "costo", label: "Costo", tipo: "numero", expr: `c."costo"`, sufijo: " MXN" },
@@ -425,6 +433,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     tablasBase: ["Seguro", "Unidad", "Proyecto"],
     campos: [
       { id: "aseguradora", label: "Aseguradora", tipo: "texto", expr: `s."aseguradora"` },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `s."numeroEconomico"` },
       { id: "estatus", label: "Estatus", tipo: "texto", expr: `s."estatus"`, opciones: opcionesDe(ESTATUS_SEGURO_LABEL) },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mesVencimiento", label: "Mes de vencimiento", tipo: "fecha_mes", expr: `s."fechaVencimiento"` },
@@ -471,6 +480,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     fechaActividadExpr: `t."fecha"`,
     campos: [
       { id: "proveedorTag", label: "Proveedor de TAG", tipo: "texto", expr: `t."proveedorTag"`, opciones: [{ valor: "IAVE", label: "IAVE" }, { valor: "PASE", label: "PASE" }, { valor: "TELEVIA", label: "Televía" }] },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `COALESCE(t."numeroEconomico", 'Sin unidad')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `t."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `t."fecha"` },
@@ -487,14 +497,14 @@ export const BI_DATASETS: DatasetMeta[] = [
     // el mismo gasto total por proyecto y/o por partida (categoría), en vez
     // de solo verlo como un número único en la tarjeta de presupuesto.
     from: `(
-      SELECT g."categoria"::text AS categoria, COALESCE(u."proyectoId", g."proyectoReportanteId") AS "proyectoId", g."costo" AS costo, g."fecha" AS fecha
+      SELECT g."categoria"::text AS categoria, g."numeroEconomico" AS "numeroEconomico", COALESCE(u."proyectoId", g."proyectoReportanteId") AS "proyectoId", g."costo" AS costo, g."fecha" AS fecha
       FROM "GastoVehicular" g LEFT JOIN "Unidad" u ON u."numeroEconomico" = g."numeroEconomico"
       WHERE g."categoria" NOT IN ('GASOLINA', 'CASETAS')
       UNION ALL
-      SELECT 'GASOLINA' AS categoria, COALESCE(u2."proyectoId", c."proyectoReportanteId") AS "proyectoId", c."costo" AS costo, c."fecha" AS fecha
+      SELECT 'GASOLINA' AS categoria, c."numeroEconomico" AS "numeroEconomico", COALESCE(u2."proyectoId", c."proyectoReportanteId") AS "proyectoId", c."costo" AS costo, c."fecha" AS fecha
       FROM "Combustible" c LEFT JOIN "Unidad" u2 ON u2."numeroEconomico" = c."numeroEconomico"
       UNION ALL
-      SELECT 'CASETAS' AS categoria, COALESCE(u3."proyectoId", t."proyectoReportanteId") AS "proyectoId", t."monto" AS costo, t."fecha" AS fecha
+      SELECT 'CASETAS' AS categoria, t."numeroEconomico" AS "numeroEconomico", COALESCE(u3."proyectoId", t."proyectoReportanteId") AS "proyectoId", t."monto" AS costo, t."fecha" AS fecha
       FROM "Tag" t LEFT JOIN "Unidad" u3 ON u3."numeroEconomico" = t."numeroEconomico"
     ) gc LEFT JOIN "Proyecto" p ON p.id = gc."proyectoId"`,
     proyectoScopeExpr: `gc."proyectoId"`,
@@ -502,6 +512,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     fechaActividadExpr: `gc."fecha"`,
     campos: [
       { id: "partida", label: "Partida (categoría de gasto)", tipo: "texto", expr: `gc."categoria"`, opciones: opcionesDe(CATEGORIA_GASTO_LABEL) },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `COALESCE(gc."numeroEconomico", 'Sin unidad')` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `gc."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `gc."fecha"` },
@@ -674,6 +685,7 @@ export const BI_DATASETS: DatasetMeta[] = [
         ],
       },
       { id: "aseguradora", label: "Aseguradora", tipo: "texto", expr: `COALESCE(s."aseguradora", 'Sin aseguradora')` },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `s."numeroEconomico"` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `s."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `s."fecha"` },
@@ -691,6 +703,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     fechaActividadExpr: `a."fecha"`,
     campos: [
       { id: "tipo", label: "Tipo", tipo: "texto", expr: `a."tipo"` },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `a."numeroEconomico"` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `a."fecha"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `a."fecha"` },
@@ -856,6 +869,7 @@ export const BI_DATASETS: DatasetMeta[] = [
         opciones: [{ valor: "Anómalo", label: "Anómalo" }, { valor: "Normal", label: "Normal" }],
       },
       { id: "motivoAnomalia", label: "Motivo de anomalía", tipo: "texto", expr: `COALESCE(g."motivoAnomalia"::text, 'N/A')` },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `g."numeroEconomico"` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes", tipo: "fecha_mes", expr: `g."timestamp"` },
       { id: "dia", label: "Día", tipo: "fecha_dia", expr: `g."timestamp"` },
@@ -886,6 +900,7 @@ export const BI_DATASETS: DatasetMeta[] = [
         expr: `CASE WHEN h."patronRecurrente" THEN 'Recurrente' ELSE 'Aislado' END`,
         opciones: [{ valor: "Recurrente", label: "Recurrente" }, { valor: "Aislado", label: "Aislado" }],
       },
+      { id: "numeroEconomico", label: "Número económico", tipo: "texto", expr: `h."numeroEconomico"` },
       { id: "proyecto", label: "Proyecto", tipo: "texto", expr: `COALESCE(p."nombre", 'Sin proyecto')` },
       { id: "mes", label: "Mes de inicio", tipo: "fecha_mes", expr: `h."timestampInicio"` },
       { id: "dia", label: "Día de inicio", tipo: "fecha_dia", expr: `h."timestampInicio"` },

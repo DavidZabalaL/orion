@@ -1,12 +1,12 @@
 "use client";
 
+import { formatearValorBI } from "@/lib/bi/formato-valor";
 import { useState, useTransition } from "react";
 import { TrendingUp, Filter, Layers } from "lucide-react";
 import { obtenerDataset, agregacionesDisponibles, AGREGACION_LABEL, type TipoAgregacion, type FiltroGuardable } from "@/lib/bi/metadata";
 import { fieldStyle, labelStyle } from "@/components/bi/selectores-combinacion";
 
 const fmtPct = new Intl.NumberFormat("es-MX", { style: "percent", maximumFractionDigits: 1 });
-const fmtNum = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
 type Tab = "variacion" | "funnel" | "cohorte";
 
@@ -42,6 +42,7 @@ export function AnalisisAvanzado({
   const [campoXVar, setCampoXVar] = useState(camposFecha[0]?.id ?? "");
   const [campoYVar, setCampoYVar] = useState(dataset.campos[0]?.id ?? "");
   const [agregacionVar, setAgregacionVar] = useState<TipoAgregacion>("conteo");
+  const sufijoVar = agregacionVar === "conteo" ? "" : dataset.campos.find((c) => c.id === campoYVar)?.sufijo ?? "";
   const [comparacion, setComparacion] = useState<"periodo_anterior" | "mismo_periodo_anio_anterior">("periodo_anterior");
   const [filasVariacion, setFilasVariacion] = useState<FilaVariacion[] | null>(null);
 
@@ -203,8 +204,8 @@ export function AnalisisAvanzado({
                 {filasVariacion.map((f) => (
                   <tr key={f.dimension} style={{ borderTop: "1px solid var(--field-border)", color: "var(--sidebar-text-active)" }}>
                     <td className="py-2">{f.dimension}</td>
-                    <td className="py-2">{fmtNum.format(f.valor)}</td>
-                    <td className="py-2">{f.valorComparacion === null ? "—" : fmtNum.format(f.valorComparacion)}</td>
+                    <td className="py-2">{formatearValorBI(f.valor, sufijoVar)}</td>
+                    <td className="py-2">{f.valorComparacion === null ? "—" : formatearValorBI(f.valorComparacion, sufijoVar)}</td>
                     <td className="py-2" style={{ color: f.variacionPct === null ? undefined : f.variacionPct >= 0 ? "var(--color-success)" : "var(--color-error)" }}>
                       {f.variacionPct === null ? "—" : fmtPct.format(f.variacionPct)}
                     </td>

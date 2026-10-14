@@ -115,6 +115,7 @@ export function DashboardsUnificado({
             proyectosDisponibles={proyectosDisponibles}
             configuracionesIniciales={configuracionesEstatusFlota}
             puedeEditar={puedeEditar}
+            vistasDashboard={vistas.map((v) => ({ id: v.id, nombre: v.nombre }))}
           />
         )}
       </div>

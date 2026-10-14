@@ -5,6 +5,7 @@ import { X, Pencil, GripVertical, Download } from "lucide-react";
 import { Table, EmptyState } from "@/components/ui/table";
 import { useBiTablaFilasQuery } from "@/components/bi/use-bi-tabla-filas-query";
 import { exportarExcel } from "@/lib/exportar-excel";
+import { formatearCeldaBI } from "@/lib/bi/formato-valor";
 import { colorParaValor, promedioDe, type ReglaColorColumna } from "@/lib/bi/reglas-color";
 import type { FiltroGuardable } from "@/lib/bi/metadata";
 
@@ -36,7 +37,13 @@ export function BiCardTablaFilas({
   // operadores "sobre/bajo promedio" de las reglas de color, igual que en
   // TablaSimple/BiTablaCruzada.
   const promedioPorColumna = useMemo(
-    () => Object.fromEntries(columnasResueltas.map((c) => [c.id, promedioDe(filas.map((f) => f[c.id]).filter((v): v is number => typeof v === "number"))])),
+    () =>
+      Object.fromEntries(
+        columnasResueltas.map((c) => [
+          c.id,
+          promedioDe(c.tipo === "numero" ? filas.map((f) => f[c.id]).filter((v) => v !== null && v !== "").map(Number).filter((v) => Number.isFinite(v)) : []),
+        ])
+      ),
     [columnasResueltas, filas]
   );
 
@@ -45,7 +52,7 @@ export function BiCardTablaFilas({
       {
         nombre: label.slice(0, 31) || "Tabla",
         headers: columnasResueltas.map((c) => c.label),
-        filas: filas.map((f) => columnasResueltas.map((c) => f[c.id] ?? "")),
+        filas: filas.map((f) => columnasResueltas.map((c) => (c.tipo === "numero" && f[c.id] !== null && f[c.id] !== "" ? Number(f[c.id]) : f[c.id] ?? ""))),
       },
     ]);
   }
@@ -127,14 +134,15 @@ export function BiCardTablaFilas({
                 <tr key={i} style={{ borderBottom: "1px solid var(--field-border)" }}>
                   {columnasResueltas.map((c) => {
                     const valor = fila[c.id];
-                    const color = typeof valor === "number" ? colorParaValor(valor, c.label, reglasColor, promedioPorColumna[c.id]) : null;
+                    const numero = c.tipo === "numero" && valor !== null && valor !== "" ? Number(valor) : null;
+                    const color = numero !== null && Number.isFinite(numero) ? colorParaValor(numero, c.label, reglasColor, promedioPorColumna[c.id]) : null;
                     return (
                       <td
                         key={c.id}
                         className="px-4 py-2.5 whitespace-nowrap"
-                        style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: color ?? "var(--field-text)", fontWeight: color ? 700 : 400 }}
+                        style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: color ?? "var(--field-text)", fontWeight: color ? 700 : 400, textAlign: c.tipo === "numero" ? "right" : undefined, fontVariantNumeric: c.tipo === "numero" ? "tabular-nums" : undefined }}
                       >
-                        {valor ?? "—"}
+                        {formatearCeldaBI(valor, c.tipo, c.sufijo)}
                       </td>
                     );
                   })}

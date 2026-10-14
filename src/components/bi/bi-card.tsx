@@ -1,5 +1,6 @@
 "use client";
 
+import { formatearValorBI } from "@/lib/bi/formato-valor";
 import { useId, useMemo, useRef, useState } from "react";
 import { X, Pencil, GripVertical, Table2 } from "lucide-react";
 import { BiChart } from "@/components/bi/bi-chart";
@@ -14,7 +15,6 @@ import type { ReglaColorColumna } from "@/lib/bi/reglas-color";
 
 // Misma precisión que fmtNumero() en bi-chart.tsx (no exportado desde ahí) —
 // para que el KPI exportado al PDF muestre el mismo redondeo que el "Contador" en pantalla.
-const FMT_KPI = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 });
 
 export function BiCard({
   label,
@@ -120,13 +120,13 @@ export function BiCard({
   // (ej. SLA promedio por unidad): el KPI exportado terminaba mostrando un
   // número distinto al que se ve en pantalla.
   const totalContador =
-    datos.length > 0 ? FMT_KPI.format(datos.reduce((acc, d) => acc + d.valor, 0) / (agregacion === "promedio" ? datos.length : 1)) : undefined;
+    datos.length > 0 ? formatearValorBI(datos.reduce((acc, d) => acc + d.valor, 0) / (agregacion === "promedio" ? datos.length : 1), ejeYSufijo) : undefined;
 
   useRegisterExportable(
     cargando || error
       ? null
       : tipoGrafica === "contador"
-      ? { id: idExportable, type: "kpi", title: label, value: totalContador !== undefined ? `${totalContador}${ejeYSufijo}` : undefined }
+      ? { id: idExportable, type: "kpi", title: label, value: totalContador }
       : { id: idExportable, type: "chart", title: label, domRef: graficaRef, chartKind: tipoGrafica }
   );
 

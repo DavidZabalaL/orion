@@ -73,6 +73,8 @@ export type CampoExtraResultado = {
   agrupacionTemporal?: AgrupacionTemporal;
   /** Semáforo condicional sobre el valor de este dato, ecoado desde la selección — ver src/lib/bi/reglas-color.ts. */
   reglasColor?: ReglaColorColumna[];
+  /** Sufijo del campo cuando el valor es una suma de ese campo (KPI o desglose por periodo) — " MXN" se formatea como moneda (ver src/lib/bi/formato-valor.ts). Vacío si el valor es un conteo. */
+  sufijo?: string;
   /** Solo si tipoVisualizacion="kpi": suma total en el alcance de proyectos del reporte (acotada al periodo si `periodoAcotado`, histórica si no). */
   valorKpi?: number;
   /** Solo si tipoVisualizacion="barras": conteo/suma agrupado, ya limitado a un máximo de filas para el PDF. Si `agrupacionTemporal` está presente, viene ordenado cronológicamente en vez de por valor descendente. */

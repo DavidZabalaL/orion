@@ -8,6 +8,8 @@ import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { fmtMoney } from "@/lib/formato";
+import { formatearValorBI, formatearCeldaBI } from "@/lib/bi/formato-valor";
+import type { VistaDashboardReporte, WidgetReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
 import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
@@ -337,11 +339,11 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
           c.tipoVisualizacion === "kpi"
             ? tarjeta(
                 tituloPeriodo,
-                kpi((c.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `${detalleCampo} · ${etiquetaPeriodo}`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor))
+                kpi(esc(formatearValorBI(c.valorKpi ?? 0, c.sufijo)), `${detalleCampo} · ${etiquetaPeriodo}`, colorParaValor(c.valorKpi ?? 0, c.campoLabel, c.reglasColor))
               )
             : tarjeta(
                 tituloPeriodo,
-                barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor) +
+                barrasHorizontal((c.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => formatearValorBI(v, c.sufijo), c.reglasColor) +
                   `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${esc(detalleCampo)} · ${etiquetaPeriodo}</div>`
               )
         );
@@ -352,11 +354,11 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
             c.tipoVisualizacion === "kpi"
               ? tarjeta(
                   tituloAnio,
-                  kpi((c.acumuladoAnio.valorKpi ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }), `${detalleCampo} · ${etiquetaAnio}`, colorParaValor(c.acumuladoAnio.valorKpi ?? 0, c.campoLabel, c.reglasColor))
+                  kpi(esc(formatearValorBI(c.acumuladoAnio.valorKpi ?? 0, c.sufijo)), `${detalleCampo} · ${etiquetaAnio}`, colorParaValor(c.acumuladoAnio.valorKpi ?? 0, c.campoLabel, c.reglasColor))
                 )
               : tarjeta(
                   tituloAnio,
-                  barrasHorizontal((c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => String(v), c.reglasColor) +
+                  barrasHorizontal((c.acumuladoAnio.filas ?? []).map((f) => ({ label: f.label, valor: f.valor })), "Sin datos.", (v) => formatearValorBI(v, c.sufijo), c.reglasColor) +
                     `<div style="font-size:10px; color:${SLATE}; margin-top:6px;">${esc(detalleCampo)} · ${etiquetaAnio}</div>`
                 )
           );
@@ -378,6 +380,64 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
     </div>`;
 }
 
+function tablaWidgetVista(w: Extract<WidgetReporte, { tipo: "tabla" }>): string {
+  const celdaHeader = (texto: string, derecha: boolean) =>
+    `<td${derecha ? ' align="right"' : ""} style="padding:6px 12px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">${esc(texto.toUpperCase())}</td>`;
+  const cuerpo =
+    w.filas.length === 0
+      ? `<tr><td colspan="${w.columnas.length}" style="padding:6px 12px; color:${SLATE}; font-style:italic;">Sin registros.</td></tr>`
+      : w.filas
+          .map(
+            (fila) => `
+          <tr>${fila
+            .map((v, j) => {
+              const col = w.columnas[j];
+              return `<td${col?.numerica ? ' align="right"' : ""} style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(formatearCeldaBI(v, col?.numerica ? "numero" : "texto", col?.sufijo))}</td>`;
+            })
+            .join("")}</tr>`
+          )
+          .join("");
+  const nota =
+    w.totalFilas > w.filas.length
+      ? `<div style="font-size:10px; color:${SLATE}; margin-top:4px;">Se muestran ${w.filas.length} de ${w.totalFilas} registros — el detalle completo está en el dashboard.</div>`
+      : "";
+  return `
+    <div style="margin-bottom:16px;">
+      ${seccionTitulo(w.titulo.toUpperCase())}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; border-collapse:collapse; font-size:11px;">
+        <tr style="background:${SURFACE};">${w.columnas.map((c) => celdaHeader(c.label, c.numerica)).join("")}</tr>
+        ${cuerpo}
+      </table>
+      ${nota}
+    </div>`;
+}
+
+/** Bloque con la vista de "Mis dashboards" elegida al generar el reporte — mismo contenido que PaginaVistaDashboard del PDF. */
+function bloqueVistaDashboard(vista: VistaDashboardReporte): string {
+  const kpis = vista.widgets.filter((w): w is Extract<WidgetReporte, { tipo: "kpi" }> => w.tipo === "kpi");
+  const filasKpi = Array.from({ length: Math.ceil(kpis.length / 3) })
+    .map((_, i) => filaTarjetas(kpis.slice(i * 3, i * 3 + 3).map((k) => tarjeta(k.titulo, kpi(esc(formatearValorBI(k.valor, k.sufijo)), k.detalle)))))
+    .join("");
+  const resto = vista.widgets
+    .map((w) =>
+      w.tipo === "tabla"
+        ? tablaWidgetVista(w)
+        : w.tipo === "nota"
+          ? `<div style="margin-bottom:16px;">${seccionTitulo(w.titulo.toUpperCase())}<div style="font-size:11px; color:${SLATE}; font-style:italic;">${esc(w.texto)}</div></div>`
+          : ""
+    )
+    .join("");
+  return `
+    <div style="margin-bottom:24px;">
+      <div style="background:${NAVY}; border-radius:8px; border-left:4px solid ${BLUE}; padding:14px 18px; margin-bottom:14px;">
+        <div style="font-size:16px; font-weight:bold; color:#ffffff;">${esc(vista.nombre)}</div>
+        <div style="font-size:10px; color:#a8b4c8; margin-top:3px; letter-spacing:0.3px;">DASHBOARD · CIFRAS AL ${esc(fmtFechaHtml(new Date()).toUpperCase())}</div>
+      </div>
+      ${filasKpi}
+      ${resto}
+    </div>`;
+}
+
 /**
  * Cuerpo HTML completo del correo de "Estatus de flota" — un bloque por
  * alcance (general, cada proyecto seleccionado), mismo contenido y orden de
@@ -388,9 +448,11 @@ export function generarEstatusFlotaHtml(
   datos: EstatusFlotaReporte,
   indicadoresDashboard?: IndicadorDashboard[],
   ordenSecciones: SeccionReporteId[] = ORDEN_SECCIONES_DEFAULT,
-  incluirGeneral = true
+  incluirGeneral = true,
+  vistaDashboard?: VistaDashboardReporte | null
 ): string {
   const bloques = [
+    vistaDashboard ? bloqueVistaDashboard(vistaDashboard) : "",
     incluirGeneral ? bloqueEstatus(datos.general, indicadoresDashboard, ordenSecciones) : "",
     ...datos.porProyecto.map((p) => bloqueEstatus(p, undefined, ordenSecciones)),
   ].join("");

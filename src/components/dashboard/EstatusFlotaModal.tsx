@@ -102,7 +102,7 @@ type ProgramacionItem = Omit<ConfigEstatusFlotaProgramado, "destinatarios"> & {
 };
 
 let contadorClaveLocal = 0;
-function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtraSeleccionado[]; ordenSecciones: SeccionReporteId[]; incluirGeneral: boolean }): ProgramacionItem {
+function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtraSeleccionado[]; ordenSecciones: SeccionReporteId[]; incluirGeneral: boolean; vistaDashboardId: string | null }): ProgramacionItem {
   contadorClaveLocal += 1;
   return {
     claveLocal: `nueva-${contadorClaveLocal}`,
@@ -117,6 +117,7 @@ function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtr
     camposExtra: base.camposExtra,
     ordenSecciones: base.ordenSecciones,
     incluirGeneral: base.incluirGeneral,
+    vistaDashboardId: base.vistaDashboardId,
   };
 }
 
@@ -125,9 +126,12 @@ export function EstatusFlotaModal({
   proyectosDisponibles,
   configuracionesIniciales,
   puedeEditar,
+  vistasDashboard,
 }: {
   onClose: () => void;
   proyectosDisponibles: ProyectoDisponible[];
+  /** Vistas guardadas de "Mis dashboards" que se pueden incluir en el reporte. */
+  vistasDashboard: { id: string; nombre: string }[];
   configuracionesIniciales: ConfigEstatusFlotaProgramado[];
   puedeEditar: boolean;
 }) {
@@ -140,6 +144,9 @@ export function EstatusFlotaModal({
   const [mostrarSelectorCampos, setMostrarSelectorCampos] = useState(false);
   const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(primera?.ordenSecciones ?? ORDEN_SECCIONES_DEFAULT);
   const [incluirGeneral, setIncluirGeneral] = useState(primera?.incluirGeneral ?? true);
+  const [vistaDashboardId, setVistaDashboardId] = useState<string>(
+    primera?.vistaDashboardId && vistasDashboard.some((v) => v.id === primera.vistaDashboardId) ? primera.vistaDashboardId : ""
+  );
 
   const [programaciones, setProgramaciones] = useState<ProgramacionItem[]>(
     configuracionesIniciales.map((c) => {
@@ -160,9 +167,12 @@ export function EstatusFlotaModal({
   // para que nunca diga un número distinto al que la persona ve en pantalla.
   // Vacío si el tab activo es "Explorador libre" en vez de "Mis dashboards".
   const { items } = useExportRegistry();
-  const indicadoresDashboard: IndicadorDashboard[] = items
+  const indicadoresVistaAbierta: IndicadorDashboard[] = items
     .filter((i) => i.type === "kpi" && i.value !== undefined)
     .map((i) => ({ title: i.title, value: String(i.value) }));
+  // Con una vista elegida, sus KPIs ya van completos en el reporte — no se
+  // repiten los de la vista que esté abierta en pantalla.
+  const indicadoresDashboard: IndicadorDashboard[] = vistaDashboardId ? [] : indicadoresVistaAbierta;
 
   function alternarProyecto(id: string) {
     setSeleccionados((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -213,7 +223,7 @@ export function EstatusFlotaModal({
     setDescargando(true);
     setMensaje(null);
     try {
-      const res = await obtenerDatosEstatusFlota({ proyectoIds: seleccionados, desde, hasta, camposExtra });
+      const res = await obtenerDatosEstatusFlota({ proyectoIds: seleccionados, desde, hasta, camposExtra, vistaDashboardId: vistaDashboardId || null });
       if (!res.ok) {
         setMensaje({ tipo: "error", texto: res.error });
         return;
@@ -229,7 +239,7 @@ export function EstatusFlotaModal({
         porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
         general: rehidratarFechasAlcance(res.datos.general),
       };
-      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} incluirGeneral={incluirGeneral} />).toBlob();
+      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} incluirGeneral={incluirGeneral} vistaDashboard={res.vistaDashboard} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -256,13 +266,13 @@ export function EstatusFlotaModal({
     }
     setEnviando(true);
     setMensaje(null);
-    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard, ordenSecciones, incluirGeneral });
+    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard, ordenSecciones, incluirGeneral, vistaDashboardId: vistaDashboardId || null });
     setEnviando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }
 
   function agregarProgramacion() {
-    setProgramaciones((prev) => [...prev, nuevaProgramacion({ proyectoIds: seleccionados, camposExtra, ordenSecciones, incluirGeneral })]);
+    setProgramaciones((prev) => [...prev, nuevaProgramacion({ proyectoIds: seleccionados, camposExtra, ordenSecciones, incluirGeneral, vistaDashboardId: vistaDashboardId || null })]);
   }
 
   function actualizarProgramacion(idx: number, patch: Partial<ProgramacionItem>) {
@@ -297,6 +307,7 @@ export function EstatusFlotaModal({
       camposExtra,
       ordenSecciones,
       incluirGeneral: item.incluirGeneral,
+      vistaDashboardId: vistaDashboardId || null,
     });
     setGuardandoIdx(null);
     if (res.ok) {
@@ -338,6 +349,19 @@ export function EstatusFlotaModal({
             <input type="checkbox" checked={incluirGeneral} onChange={(e) => setIncluirGeneral(e.target.checked)} />
             Incluir resumen general (toda la plataforma, no solo lo seleccionado abajo)
           </label>
+
+          <div>
+            <label style={labelStyle}>Dashboard a incluir (opcional)</label>
+            <select value={vistaDashboardId} onChange={(e) => setVistaDashboardId(e.target.value)} style={fieldStyle}>
+              <option value="">Ninguno — solo los indicadores de la vista abierta</option>
+              {vistasDashboard.map((v) => (
+                <option key={v.id} value={v.id}>{v.nombre}</option>
+              ))}
+            </select>
+            <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              Agrega al PDF y al correo (inmediato o automático) los indicadores y tablas de esa vista; las gráficas se incluyen como tabla de datos.
+            </p>
+          </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -571,7 +595,7 @@ export function EstatusFlotaModal({
                 Envíos automáticos
               </p>
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                Cada envío tiene su propio día, hora, periodo de datos, proyectos y destinatarios — puedes tener más de uno (ej. uno semanal para toda la flota y otro mensual solo para un proyecto). Todos usan los mismos &ldquo;Datos adicionales&rdquo; y &ldquo;Orden de las secciones&rdquo; de arriba; las fechas Desde/Hasta de arriba solo aplican a la descarga o el envío inmediato.
+                Cada envío tiene su propio día, hora, periodo de datos, proyectos y destinatarios — puedes tener más de uno (ej. uno semanal para toda la flota y otro mensual solo para un proyecto). Todos usan el mismo &ldquo;Dashboard a incluir&rdquo;, &ldquo;Datos adicionales&rdquo; y &ldquo;Orden de las secciones&rdquo; de arriba; las fechas Desde/Hasta de arriba solo aplican a la descarga o el envío inmediato.
               </p>
 
               {programaciones.map((item, idx) => {

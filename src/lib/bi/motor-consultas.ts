@@ -171,7 +171,7 @@ export function validarColumnasTabla(dataset: DatasetMeta, columnaIds: unknown):
 
 export type ResultadoTablaFilas = {
   dataset: string;
-  columnas: { id: string; label: string }[];
+  columnas: { id: string; label: string; tipo: string; sufijo: string }[];
   filas: Record<string, string | number | null>[];
   truncado: boolean;
 };
@@ -198,7 +198,7 @@ export async function ejecutarTablaFilas(
     const filas = await prisma.$queryRaw<Record<string, string | number | null>[]>(query);
     return {
       dataset: dataset.id,
-      columnas: columnas.map((c) => ({ id: c.id, label: c.label })),
+      columnas: columnas.map((c) => ({ id: c.id, label: c.label, tipo: c.tipo, sufijo: c.sufijo ?? "" })),
       filas: filas.slice(0, MAX_FILAS_TABLA),
       truncado: filas.length > MAX_FILAS_TABLA,
     };

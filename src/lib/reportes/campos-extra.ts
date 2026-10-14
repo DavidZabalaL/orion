@@ -152,6 +152,7 @@ export async function calcularCamposExtra(
         periodoAcotado,
         agrupacionTemporal: sel.agrupacionTemporal,
         reglasColor: sel.reglasColor,
+        sufijo: campo.sufijo,
         filas: filasRaw.slice(0, MAX_FILAS_BARRAS).map((f) => ({ label: formatearBucket(f.bucket, sel.agrupacionTemporal!), valor: Number(f.v ?? 0) })),
         acumuladoAnio: await calcularAcumuladoAnio(),
       });
@@ -167,6 +168,7 @@ export async function calcularCamposExtra(
       tipoVisualizacion,
       periodoAcotado,
       reglasColor: sel.reglasColor,
+      sufijo: tipoVisualizacion === "kpi" ? campo.sufijo : undefined,
       ...datoPeriodo,
       acumuladoAnio: await calcularAcumuladoAnio(),
     });
