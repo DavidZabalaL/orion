@@ -10,13 +10,30 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
   if (!url) return new NextResponse("URL requerida", { status: 400 });
 
-  if (!url.includes(".blob.vercel-storage.com")) {
+  // Validación estricta contra SSRF / fuga del token de Blob.
+  // Antes se usaba url.includes(".blob.vercel-storage.com"), que dejaba pasar
+  // URLs como https://evil.com/x?.blob.vercel-storage.com y enviaba el token
+  // Authorization a un host arbitrario del atacante.
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return new NextResponse("URL inválida", { status: 400 });
+  }
+  if (
+    parsed.protocol !== "https:" ||
+    !parsed.hostname.endsWith(".blob.vercel-storage.com") ||
+    parsed.username !== "" ||
+    parsed.password !== "" ||
+    (parsed.port !== "" && parsed.port !== "443")
+  ) {
     return new NextResponse("URL no permitida", { status: 403 });
   }
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  const response = await fetch(url, {
+  const response = await fetch(parsed.toString(), {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+    redirect: "manual",
   });
 
   if (!response.ok) {
