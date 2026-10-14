@@ -1594,3 +1594,38 @@ model IntentoRegistroOperador {
 
   @@index([curp, createdAt])
 }
+
+// Bitácora de cada sincronización automática del padrón (Power Automate →
+// /api/cron/sincronizar-padron) — ver src/lib/sincronizar-padron.ts.
+model SincronizacionPadron {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  // false = frenada por seguridad (no se tocó el padrón ni ningún acceso).
+  aplicada      Boolean
+  motivoFreno   String?
+  filasArchivo  Int
+  validas       Int
+  altasPadron   Int
+  bajasPadron   Int
+  // [{ fila, nombre, curp, motivo }]
+  invalidas     Json
+  // [{ curp, nombre, correo }]
+  revocados     Json
+  reactivados   Json
+  enObservacion Json
+  // Ausentes por CURP pero cuyo nombre sí aparece (CURP distinto o mal capturado): no se revocan.
+  coincidenPorNombre Json
+
+  @@index([createdAt])
+}
+
+// Operador con cuenta que dejó de aparecer en el padrón. Se revoca hasta la
+// 2a lectura seguida (y ≥20 h después de la primera); si vuelve a aparecer se
+// borra este registro y, si se había revocado, se reactiva su usuario.
+model AusenciaPadron {
+  curp            String    @id
+  usuarioId       String
+  primeraAusencia DateTime  @default(now())
+  lecturas        Int       @default(1)
+  revocadoEn      DateTime?
+}

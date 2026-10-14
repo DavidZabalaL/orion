@@ -71,7 +71,7 @@ function parsearCsv(texto: string, nombre: string): HojaParseada {
 // Se usa SheetJS (xlsx) en vez de exceljs porque exceljs solo lee el formato
 // OOXML moderno (.xlsx); muchos reportes de proveedores (p.ej. Efectivale)
 // vienen en el formato binario antiguo (.xls, BIFF/OLE2), que SheetJS sí soporta.
-function parsearExcelConSheetJS(buffer: ArrayBuffer): HojaParseada[] {
+function parsearExcelConSheetJS(buffer: ArrayBuffer, maxFilas = 500): HojaParseada[] {
   const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
   const hojas: HojaParseada[] = [];
 
@@ -84,10 +84,15 @@ function parsearExcelConSheetJS(buffer: ArrayBuffer): HojaParseada[] {
 
     if (filas.length === 0) continue;
     const [headers, ...resto] = filas;
-    hojas.push({ nombre, headers, filas: resto.slice(0, 500) });
+    hojas.push({ nombre, headers, filas: resto.slice(0, maxFilas) });
   }
 
   return hojas;
+}
+
+/** Para archivos que llegan sin formulario (p. ej. el padrón que manda Power Automate). Lanza si el archivo no se puede leer. */
+export function parsearExcelBuffer(buffer: ArrayBuffer, maxFilas = 500): HojaParseada[] {
+  return parsearExcelConSheetJS(buffer, maxFilas);
 }
 
 // Server Actions ocultan el mensaje real de cualquier error que se lance (throw)
@@ -97,14 +102,15 @@ function parsearExcelConSheetJS(buffer: ArrayBuffer): HojaParseada[] {
 // real le llegue al usuario en el formulario.
 export type ResultadoParseo = { ok: true; hojas: HojaParseada[] } | { ok: false; error: string };
 
-export async function parsearWorkbook(formData: FormData, campoArchivo = "archivo"): Promise<ResultadoParseo> {
+/** `maxFilas`: el padrón de personal necesita el archivo completo — truncarlo haría ver como bajas a quienes queden fuera del corte. */
+export async function parsearWorkbook(formData: FormData, campoArchivo = "archivo", maxFilas = 500): Promise<ResultadoParseo> {
   const archivo = formData.get(campoArchivo);
   if (!(archivo instanceof File)) return { ok: false, error: "Sube un archivo .xlsx, .xls o .csv válido." };
 
   try {
     const hojas = esCsv(archivo)
       ? [parsearCsv(await archivo.text(), archivo.name.replace(/\.csv$/i, "") || "CSV")]
-      : parsearExcelConSheetJS(await archivo.arrayBuffer());
+      : parsearExcelConSheetJS(await archivo.arrayBuffer(), maxFilas);
 
     if (hojas.length === 0) return { ok: false, error: "No se encontraron hojas con datos en el archivo." };
     return { ok: true, hojas };

@@ -582,3 +582,53 @@ export async function enviarInvitacion({
     return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
   }
 }
+
+const escaparHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/** Aviso de la sincronización automática del padrón (ver src/lib/sincronizar-padron.ts). Solo nombres y conteos — sin CURP ni otros datos personales. */
+export async function enviarResumenSincronizacionPadron({
+  destinatarios,
+  resumen,
+}: {
+  destinatarios: string[];
+  resumen: {
+    aplicada: boolean;
+    motivoFreno: string | null;
+    validas: number;
+    altasPadron: number;
+    bajasPadron: number;
+    invalidas: unknown[];
+    revocados: { nombre: string }[];
+    reactivados: { nombre: string }[];
+    enObservacion: unknown[];
+  };
+}): Promise<ResultadoEnvioCorreo> {
+  if (!process.env.RESEND_API_KEY) return { enviado: false, error: "RESEND_API_KEY no configurado." };
+
+  const lista = (titulo: string, personas: { nombre: string }[]) =>
+    personas.length
+      ? `<p style="margin:16px 0 4px; font-weight:600;">${titulo} (${personas.length})</p><ul style="margin:0; padding-left:20px;">${personas.map((p) => `<li>${escaparHtml(p.nombre)}</li>`).join("")}</ul>`
+      : "";
+  const asunto = !resumen.aplicada
+    ? "Sincronización del padrón FRENADA — Orión"
+    : resumen.revocados.length
+      ? `Padrón sincronizado: ${resumen.revocados.length} acceso(s) revocado(s) — Orión`
+      : "Padrón sincronizado — Orión";
+  const html = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#0b1a30; max-width:560px;">
+  <h2 style="margin:0 0 12px;">${!resumen.aplicada ? "La sincronización del padrón se frenó" : "Sincronización del padrón de personal"}</h2>
+  ${resumen.motivoFreno ? `<p style="background:#fef2f2; color:#991b1b; padding:10px 12px; border-radius:8px;">${escaparHtml(resumen.motivoFreno)}</p>` : ""}
+  ${!resumen.aplicada ? "<p>No se modificó el padrón ni ningún acceso.</p>" : ""}
+  <p>Registros válidos: <strong>${resumen.validas}</strong> · Altas al padrón: <strong>${resumen.altasPadron}</strong> · Bajas del padrón: <strong>${resumen.bajasPadron}</strong> · Filas con datos inválidos: <strong>${resumen.invalidas.length}</strong> · En observación: <strong>${resumen.enObservacion.length}</strong></p>
+  ${lista("Accesos revocados", resumen.revocados)}
+  ${lista("Accesos reactivados", resumen.reactivados)}
+  <p style="margin-top:20px;"><a href="${SITE_URL}/usuarios/padron">Ver el detalle en Orión</a></p>
+</div>`;
+
+  try {
+    await enviarConReintento({ from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT, to: destinatarios, subject: asunto, html });
+    return { enviado: true };
+  } catch (e) {
+    return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
+  }
+}
