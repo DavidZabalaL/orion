@@ -125,6 +125,18 @@ export default async function FichaUnidadPage({
         })),
       };
 
+  // Rendimiento real según la plataforma (km recorridos ÷ litros de las cargas
+  // con rendimiento válido, mismo criterio que /combustible) — distinto del
+  // rendimiento de la ficha técnica, que es un dato capturado del fabricante.
+  const rendimientoReal = await prisma.combustible.aggregate({
+    where: { numeroEconomico, rendimientoCalculado: { not: null }, kmRecorridos: { not: null } },
+    _sum: { kmRecorridos: true, litros: true },
+    _count: true,
+  });
+  const litrosReales = Number(rendimientoReal._sum.litros ?? 0);
+  const rendimientoPlataforma =
+    rendimientoReal._sum.kmRecorridos && litrosReales > 0 ? { kmL: Math.round((rendimientoReal._sum.kmRecorridos / litrosReales) * 100) / 100, cargas: rendimientoReal._count } : null;
+
   const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
   const historicoSerializado = JSON.parse(JSON.stringify(historicoIndisponibilidad));
@@ -143,6 +155,7 @@ export default async function FichaUnidadPage({
       historicoIndisponibilidad={historicoSerializado}
       puedeVerComparativoCombustible={puedeVerComparativoCombustible}
       comparativoCombustible={comparativoCombustibleSerializado}
+      rendimientoPlataforma={rendimientoPlataforma}
     />
   );
 }

@@ -16,9 +16,18 @@ export const RENDIMIENTO_MAX_KM_L = 30;
  * ~22% de las cargas; 15% deja solo excesos claros (≈11 L en un tanque de 76 L).
  */
 const TOLERANCIA_SOBRELLENADO = 1.15;
-/** El rendimiento de referencia sale de las últimas N cargas válidas, ponderado por litros. */
+/**
+ * El rendimiento de referencia es el percentil 25 de las últimas N cargas con
+ * km conocido — incluidas las de 0 km o rendimiento < 1 (ralentí, pluma de
+ * grúa): sacarlas inflaba la referencia 30–50% y el consumo estimado salía
+ * bajo. El percentil 25 supone consumo alto a propósito: la alerta solo debe
+ * saltar cuando ni con ese consumo cabe lo cargado.
+ */
 const VENTANA_CARGAS_REFERENCIA = 10;
 const MIN_CARGAS_REFERENCIA = 3;
+const PERCENTIL_REFERENCIA = 0.25;
+/** Km capturados menores a esto entre cargas de días distintos son casi siempre un odómetro mal tecleado (+1), no un dato real. */
+const MIN_KM_CAPTURA_CONFIABLE = 20;
 /** Una lectura GPS más vieja que esto respecto a la carga ya no dice cuánto marcaba el odómetro en ese momento. */
 const MAX_ANTIGUEDAD_LECTURA_GPS_MS = 48 * 60 * 60 * 1000;
 const MAX_KM_ENTRE_CARGAS = 5000;
@@ -26,6 +35,16 @@ const MAX_KM_ENTRE_CARGAS = 5000;
 export function rendimientoEnRango(r: number | null | undefined): r is number {
   return r != null && Number.isFinite(r) && r >= RENDIMIENTO_MIN_KM_L && r <= RENDIMIENTO_MAX_KM_L;
 }
+
+function percentil(valores: number[], p: number): number {
+  const orden = [...valores].sort((a, b) => a - b);
+  const pos = (orden.length - 1) * p;
+  const base = Math.floor(pos);
+  const resto = pos - base;
+  return orden[base + 1] !== undefined ? orden[base] + resto * (orden[base + 1] - orden[base]) : orden[base];
+}
+
+const mismoDia = (a: Date, b: Date) => a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
 
 export type CargaParaEstimar = { id: string; fecha: Date; litros: number; kmActual: number | null };
 export type LecturaGps = { t: number; km: number };
@@ -64,8 +83,13 @@ function kmGpsAl(lecturas: LecturaGps[], t: number): number | null {
  * - Km recorridos: diferencia del odómetro GPS validado entre esta carga y la
  *   anterior; si no hay GPS confiable, diferencia del km capturado.
  * - Rendimiento: km recorridos ÷ litros, solo si cae en el rango razonable.
- * - Consumo entre cargas: km recorridos ÷ rendimiento real de la unidad (sus
- *   últimas cargas válidas); si aún no hay suficientes, el de la ficha.
+ * - Consumo entre cargas: km recorridos ÷ rendimiento de referencia de la
+ *   unidad (percentil 25 de sus últimas cargas); si aún no hay suficientes, el de la ficha.
+ * - Nivel antes de la carga: lo que dejó la carga ANTERIOR (como si se hubiera
+ *   hecho con tanque vacío) menos lo consumido. No se arrastra el nivel
+ *   estimado de cargas más viejas: cada error se acumulaba y el tanque
+ *   "estimado" quedaba pegado al tope, alertando carga tras carga. Así el
+ *   nivel es una cota inferior: si aun así no cabe lo cargado, el exceso es real.
  * - Sin km o sin rendimiento de referencia no se puede saber cuánto quedaba: se
  *   asume tanque vacío, así solo alerta una carga que por sí sola excede la capacidad.
  */
@@ -76,7 +100,7 @@ export function estimarCadenaCargas(
   rendimientoFicha: number | null
 ): EstimadoCarga[] {
   const resultado: EstimadoCarga[] = [];
-  const validas: { km: number; litros: number }[] = [];
+  const conKm: number[] = [];
 
   for (let i = 0; i < cargas.length; i++) {
     const carga = cargas[i];
@@ -98,7 +122,8 @@ export function estimarCadenaCargas(
     }
     if (kmRecorridos === null && previa?.kmActual != null && carga.kmActual != null) {
       const diferencia = carga.kmActual - previa.kmActual;
-      if (diferencia >= 0 && diferencia <= MAX_KM_ENTRE_CARGAS) {
+      const sospechoso = diferencia < MIN_KM_CAPTURA_CONFIABLE && !mismoDia(carga.fecha, previa.fecha);
+      if (diferencia >= 0 && diferencia <= MAX_KM_ENTRE_CARGAS && !sospechoso) {
         kmRecorridos = diferencia;
         fuenteKmRecorridos = "CAPTURA";
       }
@@ -107,11 +132,10 @@ export function estimarCadenaCargas(
     const rendimientoCrudo = kmRecorridos !== null && carga.litros > 0 ? kmRecorridos / carga.litros : null;
     const rendimientoCalculado = rendimientoEnRango(rendimientoCrudo) ? redondear2(rendimientoCrudo) : null;
 
-    const ventana = validas.slice(-VENTANA_CARGAS_REFERENCIA);
-    const litrosVentana = ventana.reduce((acc, v) => acc + v.litros, 0);
+    const ventana = conKm.slice(-VENTANA_CARGAS_REFERENCIA);
     const rendimientoReferencia =
-      ventana.length >= MIN_CARGAS_REFERENCIA && litrosVentana > 0
-        ? ventana.reduce((acc, v) => acc + v.km, 0) / litrosVentana
+      ventana.length >= MIN_CARGAS_REFERENCIA
+        ? percentil(ventana, PERCENTIL_REFERENCIA)
         : rendimientoEnRango(rendimientoFicha)
           ? rendimientoFicha
           : null;
@@ -119,16 +143,18 @@ export function estimarCadenaCargas(
     let nivelEstimadoDespues: number | null = null;
     let alertaSobrellenado = false;
     if (capacidadTanqueLitros) {
+      // Con referencia 0 (la unidad gastó sin moverse) no se puede descontar
+      // consumo con km: se asume que pudo vaciar el tanque.
       const nivelAntes =
-        estimadoPrevio?.nivelEstimadoDespues != null && kmRecorridos !== null && rendimientoReferencia
-          ? Math.max(0, Math.min(estimadoPrevio.nivelEstimadoDespues, capacidadTanqueLitros) - kmRecorridos / rendimientoReferencia)
+        previa && kmRecorridos !== null && rendimientoReferencia && rendimientoReferencia > 0
+          ? Math.max(0, Math.min(previa.litros, capacidadTanqueLitros) - kmRecorridos / rendimientoReferencia)
           : 0;
       const nivel = redondear2(nivelAntes + carga.litros);
       nivelEstimadoDespues = nivel < 9999.99 ? nivel : null;
       alertaSobrellenado = nivel > capacidadTanqueLitros * TOLERANCIA_SOBRELLENADO;
     }
 
-    if (rendimientoCalculado !== null && kmRecorridos !== null) validas.push({ km: kmRecorridos, litros: carga.litros });
+    if (rendimientoCrudo !== null && rendimientoCrudo <= RENDIMIENTO_MAX_KM_L) conKm.push(rendimientoCrudo);
     resultado.push({ kmGps, kmRecorridos, fuenteKmRecorridos, rendimientoCalculado, nivelEstimadoDespues, alertaSobrellenado });
   }
   return resultado;

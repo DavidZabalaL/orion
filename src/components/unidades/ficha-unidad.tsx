@@ -337,6 +337,7 @@ export function FichaUnidad({
   historicoIndisponibilidad = [],
   puedeVerComparativoCombustible = false,
   comparativoCombustible = [],
+  rendimientoPlataforma = null,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -349,6 +350,8 @@ export function FichaUnidad({
   historicoIndisponibilidad?: HistoricoIndisponibilidad[];
   puedeVerComparativoCombustible?: boolean;
   comparativoCombustible?: FilaComparativoCombustibleRow[];
+  /** Rendimiento real calculado por la plataforma con las cargas de combustible — distinto del de ficha técnica (`unidad.rendimientoPromedio`). */
+  rendimientoPlataforma?: { kmL: number; cargas: number } | null;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -477,7 +480,12 @@ export function FichaUnidad({
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi icon={Gauge} label="Rendimiento" value={`${unidad.rendimientoPromedio ?? "—"} km/L`} sub={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km oficiales`} />
+        <Kpi
+          icon={Gauge}
+          label="Rendimiento real (plataforma)"
+          value={rendimientoPlataforma ? `${rendimientoPlataforma.kmL.toLocaleString("es-MX")} km/L` : "Sin datos"}
+          sub={`Ficha técnica: ${unidad.rendimientoPromedio ?? "—"} km/L`}
+        />
         <Kpi icon={Wrench} label="Próximo mantenimiento" value={proximoMantenimiento ? fmtFecha(proximoMantenimiento.fecha) : "Sin programar"} sub={proximoMantenimiento?.descripcion ?? "—"} />
         <Kpi
           icon={ShieldCheck}
@@ -528,7 +536,7 @@ export function FichaUnidad({
         </div>
 
         <div className="pt-5">
-          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} />}
+          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} insumos={insumos} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "llantas" && <TabLlantas historial={unidad.historialLlantas ?? []} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
@@ -537,7 +545,7 @@ export function FichaUnidad({
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
           {tab === "documentos" && <DocumentosUnidad numeroEconomico={unidad.numeroEconomico} documentos={unidad.documentos ?? []} />}
-          {tab === "gps" && <TabGps numeroEconomico={unidad.numeroEconomico} posiciones={unidad.posicionesGps ?? []} rendimientoPromedio={unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null} />}
+          {tab === "gps" && <TabGps numeroEconomico={unidad.numeroEconomico} posiciones={unidad.posicionesGps ?? []} rendimientoPromedio={rendimientoPlataforma?.kmL ?? (unidad.rendimientoPromedio ? Number(unidad.rendimientoPromedio) : null)} />}
           {tab === "checklist" && <TabChecklist checklists={unidad.checklists ?? []} />}
           {tab === "operador" && <TabOperador resguardante={unidad.resguardante} />}
           {tab === "accidentes" && <TabAccidentes accidentes={unidad.accidentes ?? []} numeroEconomico={unidad.numeroEconomico} bloqueada={!unidad.proyectoId} />}
@@ -594,7 +602,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function TabGeneral({ unidad, puedeEditarCapacidad, disponible }: { unidad: Unidad; puedeEditarCapacidad: boolean; disponible: boolean }) {
+function TabGeneral({ unidad, puedeEditarCapacidad, disponible, rendimientoPlataforma }: { unidad: Unidad; puedeEditarCapacidad: boolean; disponible: boolean; rendimientoPlataforma: { kmL: number; cargas: number } | null }) {
   const estatusVisible = estatusVisibleUnidad(unidad.estatus, disponible);
   const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
   return (
@@ -611,7 +619,11 @@ function TabGeneral({ unidad, puedeEditarCapacidad, disponible }: { unidad: Unid
           <Field label="Año" value={unidad.anio} />
           <Field label="Tipo de vehículo" value={TIPO_VEHICULO_LABEL[unidad.tipoVehiculo]} />
           <Field label="Tipo de combustible" value={unidad.tipoCombustible} />
-          <Field label="Rendimiento promedio" value={`${unidad.rendimientoPromedio ?? "—"} km/L`} />
+          <Field label="Rendimiento (ficha técnica)" value={`${unidad.rendimientoPromedio ?? "—"} km/L`} />
+          <Field
+            label="Rendimiento real (plataforma)"
+            value={rendimientoPlataforma ? `${rendimientoPlataforma.kmL.toLocaleString("es-MX")} km/L · ${rendimientoPlataforma.cargas} cargas` : "Sin cargas con km válidos"}
+          />
           <Field label="Km oficial" value={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km`} />
           <Field
             label="Capacidad máxima de tanque"

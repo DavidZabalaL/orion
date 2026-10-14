@@ -118,7 +118,7 @@ export default async function AltaUnidadPage() {
             </select>
           </div>
           <div>
-            <CampoAyuda style={labelStyle} texto="Kilómetros por litro esperados; se usa para calcular anomalías de consumo.">Rendimiento promedio km/L</CampoAyuda>
+            <CampoAyuda style={labelStyle} texto="Dato del fabricante (ficha técnica). El rendimiento real lo calcula la plataforma con las cargas de combustible y se muestra aparte en la ficha.">Rendimiento de ficha técnica km/L</CampoAyuda>
             <input name="rendimientoPromedio" type="number" step="0.1" style={fieldStyle} />
           </div>
           <div>
