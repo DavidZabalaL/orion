@@ -1,10 +1,20 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { logActivity } from "@/lib/activity";
+import { secretosIguales } from "@/lib/secreto";
+import { intentosExcedidos, ipDeEncabezados, registrarIntento } from "@/lib/limite-intentos";
+
+/** El login de preview nunca se registra en el deployment de producción de Vercel. */
+export const PREVIEW_LOGIN_HABILITADO = process.env.PREVIEW_LOGIN_ENABLED === "true" && process.env.VERCEL_ENV !== "production";
+
+/** Se lanza desde authorize() cuando se excede el límite de intentos — la página de login la distingue por `code`. */
+class DemasiadosIntentos extends CredentialsSignin {
+  code = "demasiados_intentos";
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -15,25 +25,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
       authorization: { params: { prompt: "select_account" } },
     }),
-    Credentials({
-      credentials: { username: {}, password: {} },
-      async authorize(credentials) {
-        const username = (credentials.username as string | undefined)?.trim();
-        const pass = credentials.password as string | undefined;
-        if (!username || !pass) return null;
-        const validUser = process.env.PREVIEW_LOGIN_USER;
-        const validPass = process.env.PREVIEW_LOGIN_PASS;
-        // Sin las variables de entorno configuradas, siempre falla
-        if (!validUser || !validPass) return null;
-        if (username !== validUser || pass !== validPass) return null;
-        const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
-        const usuario = correo
-          ? await prisma.usuario.findFirst({ where: { correo, estatus: { not: "DESACTIVADO" } } })
-          : await prisma.usuario.findFirst({ where: { estatus: "ACTIVO" } });
-        if (!usuario) return null;
-        return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
-      },
-    }),
+    // Login de preview (usuario/contraseña compartidos) — solo existe fuera de
+    // producción: en el deployment de producción de Vercel ni siquiera se registra.
+    ...(PREVIEW_LOGIN_HABILITADO
+      ? [
+          Credentials({
+            credentials: { username: {}, password: {} },
+            async authorize(credentials) {
+              const username = (credentials.username as string | undefined)?.trim();
+              const pass = credentials.password as string | undefined;
+              if (!username || !pass) return null;
+              const validUser = process.env.PREVIEW_LOGIN_USER;
+              const validPass = process.env.PREVIEW_LOGIN_PASS;
+              const correo = process.env.PREVIEW_LOGIN_EMAIL?.toLowerCase();
+              // Sin las variables de entorno configuradas (incluido el correo
+              // del usuario a suplantar — ya no hay "primer usuario activo"), siempre falla.
+              if (!validUser || !validPass || !correo) return null;
+              const usuarioOk = secretosIguales(username, validUser);
+              const passOk = secretosIguales(pass, validPass);
+              if (!usuarioOk || !passOk) return null;
+              const usuario = await prisma.usuario.findFirst({ where: { correo, estatus: { not: "DESACTIVADO" } } });
+              if (!usuario) return null;
+              return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
+            },
+          }),
+        ]
+      : []),
     // Ingreso para Operadores sin correo institucional: correo (personal) +
     // contraseña propia, definida al aceptar la invitación en
     // /invitacion/[token] (ver src/app/invitacion/actions.ts). Independiente
@@ -42,16 +59,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       id: "operador-credenciales",
       name: "Operador",
       credentials: { correo: {}, password: {} },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const correo = (credentials.correo as string | undefined)?.trim().toLowerCase();
         const password = credentials.password as string | undefined;
         if (!correo || !password) return null;
 
-        const usuario = await prisma.usuario.findUnique({ where: { correo } });
-        if (!usuario || usuario.estatus !== "ACTIVO") return null;
-        if (usuario.metodoAcceso !== "CORREO_PASSWORD" || !usuario.passwordHash) return null;
+        // Límite de fuerza bruta por cuenta y por IP (ver src/lib/limite-intentos.ts).
+        const ip = ipDeEncabezados(request.headers);
+        if (await intentosExcedidos("login", correo, ip)) throw new DemasiadosIntentos();
 
-        const valido = await compare(password, usuario.passwordHash);
+        const usuario = await prisma.usuario.findUnique({ where: { correo } });
+        const valido =
+          !!usuario &&
+          usuario.estatus === "ACTIVO" &&
+          usuario.metodoAcceso === "CORREO_PASSWORD" &&
+          !!usuario.passwordHash &&
+          (await compare(password, usuario.passwordHash));
+
+        await registrarIntento("login", correo, ip, valido);
         if (!valido) return null;
 
         return { id: usuario.id, email: usuario.correo, name: usuario.nombre };
@@ -61,7 +86,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     ...authConfig.callbacks,
-    async signIn({ user }) {
+    async signIn({ user, account, profile }) {
       if (!user.email) return false;
 
       // Blindado: si la base de datos falla de forma pasajera aquí (ej. hiccup
@@ -74,8 +99,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const usuario = await prisma.usuario.findUnique({ where: { correo: user.email.toLowerCase() } });
         if (!usuario || usuario.estatus === "DESACTIVADO") return "/iniciar-sesion?error=SinAcceso";
 
-        if (usuario.estatus === "INVITADO") {
-          await prisma.usuario.update({ where: { id: usuario.id }, data: { estatus: "ACTIVO" } });
+        // El correo de Entra puede cambiar (o reasignarse a otra persona); el
+        // `oid` no. Se fija en el primer login con Microsoft y desde entonces
+        // solo esa misma cuenta de Entra puede entrar como este usuario.
+        const datos: { estatus?: "ACTIVO"; entraOid?: string } = {};
+        if (account?.provider === "microsoft-entra-id") {
+          const oid = typeof profile?.oid === "string" ? profile.oid : null;
+          if (!oid) return "/iniciar-sesion?error=AccessDenied";
+          if (usuario.entraOid && usuario.entraOid !== oid) {
+            console.error("signIn: oid de Entra distinto al vinculado", { usuarioId: usuario.id });
+            return "/iniciar-sesion?error=SinAcceso";
+          }
+          if (!usuario.entraOid) datos.entraOid = oid;
+        }
+        if (usuario.estatus === "INVITADO") datos.estatus = "ACTIVO";
+        if (Object.keys(datos).length > 0) {
+          await prisma.usuario.update({ where: { id: usuario.id }, data: datos });
         }
         return true;
       } catch (error) {

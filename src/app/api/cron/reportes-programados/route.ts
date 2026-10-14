@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ejecutarReporteProgramado } from "@/lib/bi/motor-reportes";
 import { inicioDeHoyMx, inicioDeMesMx } from "@/lib/timezone";
+import { bearerAutorizado } from "@/lib/secreto";
 
 /** Último día del mes en curso (hora México), dado el marco ya desplazado a MX. */
 function esUltimoDiaDelMesMx(marcoMx: Date): boolean {
@@ -28,12 +29,9 @@ export const maxDuration = 60;
 const OFFSET_MX_HORAS = 6;
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const secreto = process.env.CRON_SECRET;
-  if (secreto) {
-    const encabezado = request.headers.get("authorization");
-    if (encabezado !== `Bearer ${secreto}`) {
-      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-    }
+  // Falla cerrado: sin CRON_SECRET configurado se rechaza todo.
+  if (!bearerAutorizado(request, "CRON_SECRET")) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const marcoMx = new Date(Date.now() - OFFSET_MX_HORAS * 3_600_000);

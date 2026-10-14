@@ -3,6 +3,8 @@ import { Resend } from "resend";
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const EMAIL_FROM_DEFAULT = "Orión <orion@grupokabat.com>";
 
+const escaparHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
 // Envío vía Resend, no SMTP: Office 365 empezó a rechazar en la entrega final
 // (no en la autenticación) los correos mandados por SMTP AUTH básico desde un
 // remitente @grupokabat.com hacia otro buzón del mismo tenant — una política
@@ -68,9 +70,9 @@ function plantillaInvitacion({ nombre, rol, loginUrl }: { nombre: string; rol: s
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; margin-top:16px; box-shadow:0 8px 32px rgba(15,40,120,0.08);">
             <tr>
               <td style="padding:32px;">
-                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${nombre}` : ""} 👋</h1>
+                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${escaparHtml(nombre)}` : ""} 👋</h1>
                 <p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#334155;">
-                  Se te dio de alta en <strong>Orión</strong>, la plataforma de administración de flota vehicular de Grupo Kabat, con el rol de <strong>${rol}</strong>.
+                  Se te dio de alta en <strong>Orión</strong>, la plataforma de administración de flota vehicular de Grupo Kabat, con el rol de <strong>${escaparHtml(rol)}</strong>.
                 </p>
                 <p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#334155;">
                   Para entrar, da clic en el botón de abajo e inicia sesión con tu cuenta de Microsoft corporativa — no necesitas crear una contraseña nueva.
@@ -126,7 +128,7 @@ function plantillaInvitacionOperador({ nombre, aceptarUrl }: { nombre: string; a
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; margin-top:16px; box-shadow:0 8px 32px rgba(15,40,120,0.08);">
             <tr>
               <td style="padding:32px;">
-                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${nombre}` : ""} 👋</h1>
+                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${escaparHtml(nombre)}` : ""} 👋</h1>
                 <p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#334155;">
                   Se te dio de alta en <strong>Orión</strong>, la plataforma de administración de flota vehicular de Grupo Kabat, con acceso de <strong>Operador</strong>.
                 </p>
@@ -189,7 +191,7 @@ export async function enviarReporteBI({
       from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: destinatarios,
       subject: `Reporte programado — ${nombreReporte}`,
-      html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el reporte <strong>${nombreReporte}</strong>, generado automáticamente por Orión.</p>`,
+      html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el reporte <strong>${escaparHtml(nombreReporte)}</strong>, generado automáticamente por Orión.</p>`,
       attachments: [{ filename: nombreArchivo, content: buffer, contentType: mime }],
     });
     return { enviado: true };
@@ -296,11 +298,11 @@ export async function enviarNotificacionTicketRescate({
         <div style="font-family:sans-serif;font-size:14px;color:#334155;">
           <p>Se creó un nuevo ticket de rescate:</p>
           <ul>
-            <li><strong>Folio:</strong> ${folio}</li>
-            <li><strong>Unidad:</strong> ${numeroEconomico}</li>
-            <li><strong>Motivo:</strong> ${motivo}</li>
+            <li><strong>Folio:</strong> ${escaparHtml(String(folio))}</li>
+            <li><strong>Unidad:</strong> ${escaparHtml(String(numeroEconomico))}</li>
+            <li><strong>Motivo:</strong> ${escaparHtml(String(motivo))}</li>
             <li><strong>Prioridad:</strong> ${prioridadLabel}</li>
-            ${ubicacion ? `<li><strong>Ubicación:</strong> ${ubicacion}</li>` : ""}
+            ${ubicacion ? `<li><strong>Ubicación:</strong> ${escaparHtml(String(ubicacion))}</li>` : ""}
           </ul>
           <p><a href="${urlTicket}">Ver en Orión</a></p>
         </div>
@@ -348,10 +350,10 @@ export async function enviarNotificacionReporteFalla({
         <div style="font-family:sans-serif;font-size:14px;color:#334155;">
           <p>Se reportó una falla de vehículo:</p>
           <ul>
-            <li><strong>Unidad:</strong> ${numeroEconomico}</li>
-            <li><strong>Tipo de falla:</strong> ${tipoFalla}</li>
-            <li><strong>Departamento:</strong> ${departamento}</li>
-            ${descripcion ? `<li><strong>Descripción:</strong> ${descripcion}</li>` : ""}
+            <li><strong>Unidad:</strong> ${escaparHtml(String(numeroEconomico))}</li>
+            <li><strong>Tipo de falla:</strong> ${escaparHtml(String(tipoFalla))}</li>
+            <li><strong>Departamento:</strong> ${escaparHtml(String(departamento))}</li>
+            ${descripcion ? `<li><strong>Descripción:</strong> ${escaparHtml(String(descripcion))}</li>` : ""}
           </ul>
           <p><a href="${urlUnidad}">Ver la unidad en Orión</a></p>
         </div>
@@ -383,9 +385,9 @@ function plantillaRecuperacionContrasena({ nombre, aceptarUrl }: { nombre: strin
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; margin-top:16px; box-shadow:0 8px 32px rgba(15,40,120,0.08);">
             <tr>
               <td style="padding:32px;">
-                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${nombre}` : ""}</h1>
+                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${escaparHtml(nombre)}` : ""}</h1>
                 <p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#334155;">
-                  Solicitaste restablecer tu contraseña de <strong>Orión</strong>. Da clic en el botón de abajo para crear una nueva. El enlace es de un solo uso y expira en 7 días.
+                  Solicitaste restablecer tu contraseña de <strong>Orión</strong>. Da clic en el botón de abajo para crear una nueva. El enlace es de un solo uso y expira en 1 hora.
                 </p>
                 <p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#334155;">
                   Si tú no lo solicitaste, puedes ignorar este correo — tu contraseña actual sigue funcionando.
@@ -497,7 +499,7 @@ function plantillaBienvenidaOperador({ nombre, loginUrl }: { nombre: string; log
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; margin-top:16px; box-shadow:0 8px 32px rgba(15,40,120,0.08);">
             <tr>
               <td style="padding:32px;">
-                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${nombre}` : ""} 👋</h1>
+                <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f1b2d;">Hola${nombre ? `, ${escaparHtml(nombre)}` : ""} 👋</h1>
                 <p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#334155;">
                   Tu cuenta de <strong>Orión</strong> ya está activa. Si tú creaste esta cuenta, ya puedes iniciar sesión con el correo y la contraseña que registraste.
                 </p>
@@ -582,8 +584,6 @@ export async function enviarInvitacion({
     return { enviado: false, error: e instanceof Error ? e.message : "Error desconocido al enviar el correo." };
   }
 }
-
-const escaparHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** Aviso de la sincronización automática del padrón (ver src/lib/sincronizar-padron.ts). Solo nombres y conteos — sin CURP ni otros datos personales. */
 export async function enviarResumenSincronizacionPadron({

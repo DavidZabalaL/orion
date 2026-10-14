@@ -320,8 +320,17 @@ model Usuario {
   metodoAcceso       MetodoAcceso      @default(MICROSOFT)
   /** Solo aplica con metodoAcceso = CORREO_PASSWORD (hash bcrypt). */
   passwordHash       String?
-  /** Token de un solo uso para /invitacion/[token]; se limpia al aceptar. */
+  /**
+   * Hash SHA-256 (hex) del token de un solo uso para /invitacion/[token] y
+   * /recuperar-contrasena; el token en claro solo viaja en el correo. Se limpia al usarse.
+   */
   invitacionToken    String?           @unique
+  /**
+   * Object ID (claim `oid`) de la cuenta de Microsoft Entra, inmutable. Se
+   * fija en el primer inicio de sesión con Microsoft; después, una cuenta de
+   * Entra con el mismo correo pero distinto oid no puede entrar como este usuario.
+   */
+  entraOid           String?           @unique
   invitacionExpiraEn DateTime?
   proyectos          UsuarioProyecto[]
   operadorId         String?           @unique
@@ -1593,6 +1602,24 @@ model IntentoRegistroOperador {
   createdAt DateTime @default(now())
 
   @@index([curp, createdAt])
+  @@index([ip, createdAt])
+}
+
+/// Intentos en rutas públicas de acceso (login con contraseña, solicitud de
+/// recuperación) para limitar fuerza bruta y abuso por cuenta y por IP —
+/// ver src/lib/limite-intentos.ts.
+model IntentoAcceso {
+  id        String   @id @default(cuid())
+  /// "login" | "recuperacion"
+  tipo      String
+  /// Correo normalizado al que apunta el intento.
+  clave     String
+  ip        String?
+  exitoso   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([tipo, clave, createdAt])
+  @@index([tipo, ip, createdAt])
 }
 
 // Bitácora de cada sincronización automática del padrón (Power Automate →

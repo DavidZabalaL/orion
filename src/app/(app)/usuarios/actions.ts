@@ -5,10 +5,40 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { enviarInvitacion, enviarInvitacionOperador } from "@/lib/email";
-import { exigirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
+import { exigirPermisoModulo, tienePermisoModulo, esRolGlobal, PERMISOS_ESPECIALES } from "@/lib/permisos";
+import { MODULOS } from "@/lib/modulos";
 import { logActivity } from "@/lib/activity";
+import { hashToken } from "@/lib/secreto";
 
 const VIGENCIA_INVITACION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+
+const IDS_MODULOS = new Set(MODULOS.map((m) => m.id));
+const IDS_PERMISOS_ESPECIALES = new Set(PERMISOS_ESPECIALES.map((p) => p.id));
+
+/**
+ * Editar permisos de roles equivale a poder otorgarse cualquier acceso, así
+ * que se reserva al rol global (Administrador / equipo de Desarrollo) — no
+ * basta con "editar" del módulo K. Además, nadie edita su propio rol.
+ */
+async function exigirEdicionDeRol(rolId: string): Promise<void> {
+  await exigirPermisoModulo("K", "editar");
+  if (!(await esRolGlobal())) throw new Error("Solo un Administrador puede modificar roles y permisos.");
+  const session = await auth();
+  const rol = await prisma.rol.findUnique({ where: { id: rolId }, select: { nombre: true } });
+  if (!rol) throw new Error("Rol no encontrado.");
+  if (session?.user?.rol && rol.nombre === session.user.rol) {
+    throw new Error("No puedes modificar los permisos de tu propio rol.");
+  }
+}
+
+/** Asignar un rol con acceso global ("*") solo lo puede hacer alguien que ya lo tiene. */
+async function exigirAsignacionDeRol(rolId: string): Promise<void> {
+  const rol = await prisma.rol.findUnique({ where: { id: rolId }, select: { permisos: true } });
+  if (!rol) throw new Error("Rol no encontrado.");
+  if ("*" in (rol.permisos as Record<string, unknown>) && !(await esRolGlobal())) {
+    throw new Error("Solo un Administrador puede asignar un rol con acceso total.");
+  }
+}
 
 export type ResultadoInvitarUsuario = {
   id: string;
@@ -33,8 +63,10 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
   if (!nombre || !correo || !rolId) {
     throw new Error("Nombre, correo y rol son obligatorios.");
   }
+  await exigirAsignacionDeRol(rolId);
 
   const metodoAcceso = sinCorreoInstitucional ? "CORREO_PASSWORD" : "MICROSOFT";
+  // En BD solo se guarda el hash; el token en claro va únicamente en el enlace.
   const invitacionToken = sinCorreoInstitucional ? randomBytes(32).toString("hex") : null;
   const invitacionExpiraEn = sinCorreoInstitucional ? new Date(Date.now() + VIGENCIA_INVITACION_MS) : null;
 
@@ -47,7 +79,7 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
         operadorId,
         estatus: "INVITADO",
         metodoAcceso,
-        invitacionToken,
+        invitacionToken: invitacionToken ? hashToken(invitacionToken) : null,
         invitacionExpiraEn,
         proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
       },
@@ -98,18 +130,18 @@ export async function reenviarInvitacion(formData: FormData): Promise<ResultadoR
 
   const usuario = await prisma.usuario.findUniqueOrThrow({
     where: { id },
-    select: { nombre: true, correo: true, metodoAcceso: true, invitacionToken: true, invitacionExpiraEn: true, estatus: true },
+    select: { nombre: true, correo: true, metodoAcceso: true, estatus: true },
   });
 
-  let token = usuario.invitacionToken;
-  const VIGENCIA_MS = 7 * 24 * 60 * 60 * 1000;
+  let token: string | null = null;
 
   if (usuario.metodoAcceso === "CORREO_PASSWORD") {
-    // Regenerar token siempre para que el enlace anterior quede inválido
+    // Regenerar token siempre para que el enlace anterior quede inválido (en BD
+    // solo vive el hash, así que el token anterior no se puede reenviar).
     token = randomBytes(32).toString("hex");
     await prisma.usuario.update({
       where: { id },
-      data: { invitacionToken: token, invitacionExpiraEn: new Date(Date.now() + VIGENCIA_MS) },
+      data: { invitacionToken: hashToken(token), invitacionExpiraEn: new Date(Date.now() + VIGENCIA_INVITACION_MS) },
     });
   }
 
@@ -171,7 +203,14 @@ export async function actualizarUsuario(formData: FormData) {
     throw new Error("Nombre y rol son obligatorios.");
   }
 
-  const actual = await prisma.usuario.findUnique({ where: { id }, select: { operadorId: true } });
+  const actual = await prisma.usuario.findUnique({ where: { id }, select: { operadorId: true, rolId: true } });
+  if (actual?.rolId !== rolId) {
+    await exigirAsignacionDeRol(rolId);
+    const session = await auth();
+    if (session?.user?.id === id && !(await esRolGlobal())) {
+      throw new Error("No puedes cambiar tu propio rol.");
+    }
+  }
 
   await prisma.$transaction([
     prisma.usuarioProyecto.deleteMany({ where: { usuarioId: id } }),
@@ -235,6 +274,7 @@ export async function eliminarUsuario(formData: FormData): Promise<ResultadoElim
 
 export async function crearRol(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   await exigirPermisoModulo("K", "editar");
+  if (!(await esRolGlobal())) return { ok: false, error: "Solo un Administrador puede crear roles." };
 
   const nombre = String(formData.get("nombre") ?? "").trim();
   if (!nombre) return { ok: false, error: "Ponle un nombre al rol." };
@@ -254,10 +294,11 @@ export async function crearRol(formData: FormData): Promise<{ ok: true } | { ok:
 }
 
 export async function actualizarPermisosRol(formData: FormData) {
-  await exigirPermisoModulo("K", "editar");
-
   const rolId = String(formData.get("rolId") ?? "");
-  const modulos = String(formData.get("modulos") ?? "").split(",");
+  await exigirEdicionDeRol(rolId);
+
+  // Solo ids de módulo reales: nunca "*" (acceso global) ni claves arbitrarias.
+  const modulos = String(formData.get("modulos") ?? "").split(",").filter((m) => IDS_MODULOS.has(m));
 
   const rolActual = await prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { permisos: true } });
   const permisos: Record<string, { ver?: boolean; editar?: boolean; aprobar?: boolean }> = {
@@ -282,10 +323,11 @@ export async function actualizarPermisosRol(formData: FormData) {
 }
 
 export async function actualizarPermisoEspecial(formData: FormData) {
-  await exigirPermisoModulo("K", "editar");
-
   const rolId = String(formData.get("rolId") ?? "");
+  await exigirEdicionDeRol(rolId);
+
   const permisoId = String(formData.get("permisoId") ?? "");
+  if (!IDS_PERMISOS_ESPECIALES.has(permisoId)) throw new Error("Permiso especial inválido.");
   const activo = formData.get("activo") === "1";
 
   const rolActual = await prisma.rol.findUniqueOrThrow({ where: { id: rolId }, select: { permisos: true } });
@@ -315,7 +357,7 @@ export async function actualizarModulosProyecto(formData: FormData) {
   await exigirPermisoModulo("K", "editar");
 
   const proyectoId = String(formData.get("proyectoId") ?? "");
-  const modulosActivos = formData.getAll("modulosActivos").map(String);
+  const modulosActivos = formData.getAll("modulosActivos").map(String).filter((m) => IDS_MODULOS.has(m));
   await prisma.proyecto.update({ where: { id: proyectoId }, data: { modulosActivos } });
 
   const session = await auth();

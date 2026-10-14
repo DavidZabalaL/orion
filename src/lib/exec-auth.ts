@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { secretosIguales } from "@/lib/secreto";
 
 /**
  * Auth de servicio-a-servicio para /api/exec/resumen, que consume el
@@ -11,5 +12,5 @@ export function requireExecKey(req: NextRequest): void {
   if (!expected) throw new Error("Unauthorized");
   const header = req.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (token !== expected) throw new Error("Unauthorized");
+  if (!secretosIguales(token, expected)) throw new Error("Unauthorized");
 }

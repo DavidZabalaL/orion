@@ -3,6 +3,7 @@
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
+import { hashToken } from "@/lib/secreto";
 
 export type ResultadoAceptarInvitacion = { ok: boolean; error?: string };
 
@@ -19,7 +20,7 @@ export async function aceptarInvitacionOperador(formData: FormData): Promise<Res
 
   // No usa exigirPermisoModulo: es una ruta pública (sin sesión) — la única
   // "autorización" es poseer el token de un solo uso enviado por correo.
-  const usuario = await prisma.usuario.findUnique({ where: { invitacionToken: token } });
+  const usuario = await prisma.usuario.findUnique({ where: { invitacionToken: hashToken(token) } });
 
   if (!usuario || usuario.metodoAcceso !== "CORREO_PASSWORD" || usuario.estatus === "DESACTIVADO") {
     return { ok: false, error: "Enlace inválido o ya utilizado." };
@@ -37,6 +38,9 @@ export async function aceptarInvitacionOperador(formData: FormData): Promise<Res
       estatus: "ACTIVO",
       invitacionToken: null,
       invitacionExpiraEn: null,
+      // Cambiar la contraseña cierra cualquier sesión abierta con la anterior
+      // (ver el callback `session` en src/auth.ts).
+      sesionInvalidadaEn: new Date(),
     },
   });
 

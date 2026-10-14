@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { hashToken } from "@/lib/secreto";
 import { OrionIcon } from "@/components/brand/orion-icon";
 import { AceptarInvitacionForm } from "@/components/usuarios/aceptar-invitacion-form";
 
@@ -6,7 +7,7 @@ export default async function InvitacionPage({ params }: { params: Promise<{ tok
   const { token } = await params;
 
   const usuario = await prisma.usuario.findUnique({
-    where: { invitacionToken: token },
+    where: { invitacionToken: hashToken(token) },
     select: { nombre: true, metodoAcceso: true, estatus: true, invitacionExpiraEn: true },
   });
 

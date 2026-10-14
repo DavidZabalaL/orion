@@ -8,17 +8,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenerEstatusVehiculos, mphAKmh, millasAKm } from "@/lib/intellihub";
 import { registrarPosicionesGPSBatch, type RegistroPosicionInput } from "@/lib/gps-registro";
+import { bearerAutorizado } from "@/lib/secreto";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const secreto = process.env.CRON_SECRET;
-  if (secreto) {
-    const encabezado = request.headers.get("authorization");
-    if (encabezado !== `Bearer ${secreto}`) {
-      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-    }
+  // Falla cerrado: sin CRON_SECRET configurado se rechaza todo.
+  if (!bearerAutorizado(request, "CRON_SECRET")) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const unidades = await prisma.unidad.findMany({

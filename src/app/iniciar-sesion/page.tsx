@@ -1,17 +1,18 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { TriangleAlert, Car, Wrench, BarChart3, Building2, UserRound } from "lucide-react";
-import { signIn } from "@/auth";
+import { signIn, PREVIEW_LOGIN_HABILITADO } from "@/auth";
 import { OrionIcon } from "@/components/brand/orion-icon";
 import logoKabat from "../../../public/Logo-Grupo-Kabat_bl.png";
 
-const PREVIEW_LOGIN = process.env.PREVIEW_LOGIN_ENABLED === "true";
+const PREVIEW_LOGIN = PREVIEW_LOGIN_HABILITADO;
 
 const ERROR_LABEL: Record<string, string> = {
   SinAcceso: "Tu cuenta de Microsoft no tiene acceso a Orión. Pide a un administrador que te invite desde Administración.",
   AccessDenied: "Acceso denegado. Verifica que estés usando tu cuenta de Grupo Kabat.",
   CredencialesInvalidas: "Usuario o contraseña incorrectos.",
   CredencialesOperadorInvalidas: "Correo o contraseña incorrectos.",
+  DemasiadosIntentos: "Demasiados intentos fallidos. Espera 15 minutos e intenta de nuevo, o usa \"Recuperar contraseña\".",
   ErrorTemporal: "Tuvimos un problema temporal para completar tu inicio de sesión. Intenta de nuevo en unos segundos.",
 };
 
@@ -140,6 +141,7 @@ export default async function IniciarSesionPage({
                   await signIn("operador-credenciales", { correo: fd.get("correo"), password: fd.get("password"), redirectTo: "/unidades" });
                 } catch (error) {
                   if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+                  if ((error as { code?: string }).code === "demasiados_intentos") redirect("/iniciar-sesion?error=DemasiadosIntentos");
                   redirect("/iniciar-sesion?error=CredencialesOperadorInvalidas");
                 }
               }}

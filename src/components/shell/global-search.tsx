@@ -125,7 +125,7 @@ export function GlobalSearch() {
                       <UserRound size={15} color="var(--sidebar-text)" className="shrink-0" />
                       <div className="min-w-0">
                         <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>{o.nombre}</div>
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{o.curp}</div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{o.proyecto ?? "Sin proyecto"}</div>
                       </div>
                     </button>
                   ))}

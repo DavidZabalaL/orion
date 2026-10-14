@@ -1,10 +1,13 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { enviarRecuperacionContrasena } from "@/lib/email";
+import { hashToken } from "@/lib/secreto";
+import { intentosExcedidos, ipDeEncabezados, registrarIntento } from "@/lib/limite-intentos";
 
-const VIGENCIA_RECUPERACION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+const VIGENCIA_RECUPERACION_MS = 60 * 60 * 1000; // 1 hora
 
 export type ResultadoSolicitarRecuperacion = { ok: true };
 
@@ -13,24 +16,27 @@ export type ResultadoSolicitarRecuperacion = { ok: true };
  * el correo — no se debe revelar si una cuenta existe en el sistema
  * (evita enumeración de correos). Solo aplica a cuentas con
  * metodoAcceso=CORREO_PASSWORD (operadores sin correo institucional); las
- * de Microsoft no tienen contraseña que restablecer aquí.
+ * de Microsoft no tienen contraseña que restablecer aquí. Limitada por cuenta
+ * y por IP para que no se pueda usar para inundar buzones.
  */
 export async function solicitarRecuperacionContrasena(formData: FormData): Promise<ResultadoSolicitarRecuperacion> {
   const correo = String(formData.get("correo") ?? "").trim().toLowerCase();
+  if (!correo) return { ok: true };
 
-  if (correo) {
-    const usuario = await prisma.usuario.findUnique({ where: { correo } });
-    if (usuario && usuario.metodoAcceso === "CORREO_PASSWORD" && usuario.estatus === "ACTIVO") {
-      const invitacionToken = randomBytes(32).toString("hex");
-      const invitacionExpiraEn = new Date(Date.now() + VIGENCIA_RECUPERACION_MS);
+  const ip = ipDeEncabezados(await headers());
+  if (await intentosExcedidos("recuperacion", correo, ip)) return { ok: true };
+  await registrarIntento("recuperacion", correo, ip, true);
 
-      await prisma.usuario.update({
-        where: { id: usuario.id },
-        data: { invitacionToken, invitacionExpiraEn },
-      });
+  const usuario = await prisma.usuario.findUnique({ where: { correo } });
+  if (usuario && usuario.metodoAcceso === "CORREO_PASSWORD" && usuario.estatus === "ACTIVO") {
+    // En BD solo se guarda el hash; el token en claro va únicamente en el correo.
+    const token = randomBytes(32).toString("hex");
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { invitacionToken: hashToken(token), invitacionExpiraEn: new Date(Date.now() + VIGENCIA_RECUPERACION_MS) },
+    });
 
-      await enviarRecuperacionContrasena({ correo, nombre: usuario.nombre, token: invitacionToken });
-    }
+    await enviarRecuperacionContrasena({ correo, nombre: usuario.nombre, token });
   }
 
   return { ok: true };

@@ -21,8 +21,8 @@ import { generarExcelBuffer } from "@/lib/exportar-excel";
 import { enviarChecklistsExcel } from "@/lib/email";
 import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
 import type { TipoChecklist, TipoVehiculo } from "@/generated/prisma/enums";
+import { TIPOS_IMAGEN, nombreArchivoSeguro, validarTipoArchivo } from "@/lib/validar-archivo";
 
-const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const TAMANO_MAX = 20 * 1024 * 1024;
 
 export async function subirFotoChecklist(
@@ -33,11 +33,13 @@ export async function subirFotoChecklist(
     const file = formData.get("file") as File | null;
     if (!file || file.size === 0) return { ok: false, error: "No se seleccionó ningún archivo." };
     if (file.size > TAMANO_MAX) return { ok: false, error: "La foto excede el límite de 20 MB." };
-    if (!TIPOS_IMAGEN.includes(file.type) && !file.type.startsWith("image/")) {
+    // Se valida el contenido real del archivo, no el tipo que declara el navegador.
+    const tipo = await validarTipoArchivo(file, TIPOS_IMAGEN);
+    if (!tipo) {
       return { ok: false, error: "Solo se permiten imágenes (JPG, PNG, WEBP, HEIC)." };
     }
-    const nombre = `checklist/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
-    const blob = await put(nombre, file, { access: "private", addRandomSuffix: false });
+    const nombre = `checklist/${crypto.randomUUID()}-${nombreArchivoSeguro(file.name, tipo)}`;
+    const blob = await put(nombre, file, { access: "private", addRandomSuffix: false, contentType: tipo });
     return { ok: true, url: blob.url };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo subir la foto." };

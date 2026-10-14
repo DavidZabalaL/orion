@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { enviarBienvenidaOperador } from "@/lib/email";
+import { ipDeEncabezados } from "@/lib/limite-intentos";
 
 const MIN_PASSWORD = 8;
 const VENTANA_INTENTOS_MS = 15 * 60 * 1000; // 15 minutos
@@ -14,20 +15,26 @@ function normalizar(v: unknown): string {
   return String(v ?? "").trim().toUpperCase().replace(/\s+/g, " ");
 }
 
+const MAX_INTENTOS_POR_IP = 10;
+const MENSAJE_DEMASIADOS_INTENTOS = "Demasiados intentos. Espera unos minutos e intenta de nuevo, o contacta a Recursos Humanos.";
+
 async function ip(): Promise<string | null> {
   try {
-    const h = await headers();
-    return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    return ipDeEncabezados(await headers());
   } catch {
     return null;
   }
 }
 
-async function demasiadosIntentos(curp: string): Promise<boolean> {
-  const intentos = await prisma.intentoRegistroOperador.count({
-    where: { curp, exitoso: false, createdAt: { gte: new Date(Date.now() - VENTANA_INTENTOS_MS) } },
-  });
-  return intentos >= MAX_INTENTOS;
+// Se limita por CURP (adivinar el nombre de una persona) y por IP (probar
+// muchos CURP distintos desde el mismo origen).
+async function demasiadosIntentos(curp: string, registroIp: string | null): Promise<boolean> {
+  const desde = new Date(Date.now() - VENTANA_INTENTOS_MS);
+  const [porCurp, porIp] = await Promise.all([
+    prisma.intentoRegistroOperador.count({ where: { curp, exitoso: false, createdAt: { gte: desde } } }),
+    registroIp ? prisma.intentoRegistroOperador.count({ where: { ip: registroIp, exitoso: false, createdAt: { gte: desde } } }) : Promise.resolve(0),
+  ]);
+  return porCurp >= MAX_INTENTOS || porIp >= MAX_INTENTOS_POR_IP;
 }
 
 // No usa exigirPermisoModulo: es una ruta pública (sin sesión) — la
@@ -48,11 +55,11 @@ export async function validarIdentidadOperador(formData: FormData): Promise<Resu
     return { ok: false, error: "Captura tu CURP y tu nombre completo." };
   }
 
-  if (await demasiadosIntentos(curp)) {
-    return { ok: false, error: "Demasiados intentos con este CURP. Espera unos minutos e intenta de nuevo, o contacta a Recursos Humanos." };
+  const registroIp = await ip();
+  if (await demasiadosIntentos(curp, registroIp)) {
+    return { ok: false, error: MENSAJE_DEMASIADOS_INTENTOS };
   }
 
-  const registroIp = await ip();
   const personal = await prisma.personalActivo.findUnique({ where: { curp } });
   const coincide = !!personal && personal.nombreCompleto === nombreCompleto;
 
@@ -96,11 +103,13 @@ export async function registrarOperador(formData: FormData): Promise<ResultadoRe
 
   // Se revalida todo de nuevo aquí — nunca se confía en que el paso anterior
   // (validarIdentidadOperador) realmente haya corrido tal como lo vio el cliente.
-  if (await demasiadosIntentos(curp)) {
-    return { ok: false, error: "Demasiados intentos con este CURP. Espera unos minutos e intenta de nuevo, o contacta a Recursos Humanos." };
+  const registroIp = await ip();
+  if (await demasiadosIntentos(curp, registroIp)) {
+    return { ok: false, error: MENSAJE_DEMASIADOS_INTENTOS };
   }
   const personal = await prisma.personalActivo.findUnique({ where: { curp } });
   if (!personal || personal.nombreCompleto !== nombreCompleto) {
+    await prisma.intentoRegistroOperador.create({ data: { curp, exitoso: false, ip: registroIp } });
     return { ok: false, error: "No encontramos esa combinación de CURP y nombre en el padrón de personal activo. Verifica los datos o contacta a Recursos Humanos." };
   }
 
@@ -163,6 +172,8 @@ export async function registrarOperador(formData: FormData): Promise<ResultadoRe
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "No se pudo crear tu cuenta. Intenta de nuevo." };
+    // No se refleja el error de BD al cliente (filtra detalles internos del esquema).
+    console.error("registrarOperador: fallo al crear la cuenta", e);
+    return { ok: false, error: "No se pudo crear tu cuenta. Intenta de nuevo o contacta a tu administrador." };
   }
 }
