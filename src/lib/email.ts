@@ -17,7 +17,7 @@ type MensajeCorreo = {
   to: string | string[];
   subject: string;
   html: string;
-  attachments?: { filename: string; content: Buffer; contentType?: string }[];
+  attachments?: { filename: string; content: Buffer; contentType?: string; contentId?: string }[];
 };
 
 function obtenerResend(): Resend | null {
@@ -38,6 +38,8 @@ async function enviarConReintento(mensaje: MensajeCorreo, intentos = 3) {
       attachments: mensaje.attachments?.map((a) => ({
         filename: a.filename,
         content: a.content,
+        // Con contentId el adjunto va inline: se referencia en el HTML como <img src="cid:...">.
+        ...(a.contentId ? { contentId: a.contentId } : {}),
       })),
     });
     if (!error) return;
@@ -242,9 +244,12 @@ export async function enviarChecklistsExcel({
 export async function enviarReporteEstatusFlotaHtml({
   destinatarios,
   html,
+  imagenesInline = [],
 }: {
   destinatarios: string[];
   html: string;
+  /** Gráficas de la vista de dashboard incluida — referenciadas en el HTML como cid:<contentId>. */
+  imagenesInline?: { filename: string; content: Buffer; contentId: string }[];
 }): Promise<ResultadoEnvioCorreo> {
   if (!process.env.RESEND_API_KEY) {
     return { enviado: false, error: "RESEND_API_KEY no configurado." };
@@ -257,6 +262,7 @@ export async function enviarReporteEstatusFlotaHtml({
       to: destinatarios,
       subject: "Reporte programado — Estatus de flota",
       html,
+      attachments: imagenesInline.length > 0 ? imagenesInline : undefined,
     });
     return { enviado: true };
   } catch (e) {

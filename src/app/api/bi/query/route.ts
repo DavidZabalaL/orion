@@ -27,6 +27,8 @@ import {
   ejecutarSimple,
   validarColumnasTabla,
   ejecutarTablaFilas,
+  ejecutarAvance,
+  ejecutarCruzado,
 } from "@/lib/bi/motor-consultas";
 
 type TipoAnalisis = "simple" | "variacion" | "cohorte" | "funnel" | "tabla_filas";
@@ -58,8 +60,6 @@ type BiQueryBody = {
 
 const LIMITE_DISPERSION = 500;
 const BINS_HISTOGRAMA = 8;
-const MAX_DIMENSIONES_CRUZADO = 200;
-const MAX_SERIES_CRUZADO = 30;
 const MAX_ETAPAS_FUNNEL = 8;
 const VENTANA_COHORTE_MESES = 12;
 
@@ -456,32 +456,7 @@ async function consultarAvance(
   llaveAlcance: string,
   filtrosLlave: string
 ): Promise<NextResponse> {
-  const resultado = await cachearConsultaBI(dataset.id, ["avance", campoX.id, campoY.id, campoMeta.id, filtrosLlave, llaveAlcance], async () => {
-    const dimensionExpr = campoExpr(campoX);
-    const valorExpr = Prisma.sql`SUM(${Prisma.raw(campoY.expr)})`;
-    const metaExpr = Prisma.sql`SUM(${Prisma.raw(campoMeta.expr)})`;
-    const where = construirWhere(dataset, filtros, [alcance]);
-
-    const query = Prisma.sql`
-      SELECT ${dimensionExpr} AS dimension, ${valorExpr} AS valor, ${metaExpr} AS meta
-      FROM ${Prisma.raw(dataset.from)}
-      ${where}
-      GROUP BY ${dimensionExpr}
-      ORDER BY ${dimensionExpr} ASC
-    `;
-    const filas = await prisma.$queryRaw<{ dimension: string | null; valor: number | string | null; meta: number | string | null }[]>(query);
-    const datos = filas.filter((f) => f.dimension !== null).map((f) => ({ dimension: String(f.dimension), valor: Number(f.valor ?? 0), meta: Number(f.meta ?? 0) }));
-
-    return {
-      dataset: dataset.id,
-      ejeX: { id: campoX.id, label: campoX.label },
-      ejeY: { label: campoY.label, sufijo: campoY.sufijo ?? "" },
-      ejeMeta: { label: campoMeta.label, sufijo: campoMeta.sufijo ?? "" },
-      datos,
-    };
-  });
-
-  return NextResponse.json(resultado);
+  return NextResponse.json(await ejecutarAvance(dataset, campoX, campoY, campoMeta, filtros, alcance, llaveAlcance, filtrosLlave));
 }
 
 /** Pares (x, y) sin agrupar — para el gráfico de dispersión. */
@@ -641,57 +616,5 @@ async function consultarCruzado(
   llaveAlcance: string,
   filtrosLlave: string
 ): Promise<NextResponse> {
-  const resultado = await cachearConsultaBI(
-    dataset.id,
-    ["cruzado", campoX.id, campoY.id, agregacion, campoSplit.id, orden ?? "", filtrosLlave, llaveAlcance],
-    async () => {
-      const dimensionExpr = campoExpr(campoX);
-      const splitExpr = campoExpr(campoSplit);
-      const metrica = metricaExpr(agregacion, campoY);
-      const where = construirWhere(dataset, filtros, [alcance]);
-
-      const query = Prisma.sql`
-        SELECT ${dimensionExpr} AS dimension, ${splitExpr} AS grupo, ${metrica} AS metrica
-        FROM ${Prisma.raw(dataset.from)}
-        ${where}
-        GROUP BY ${dimensionExpr}, ${splitExpr}
-      `;
-      const filas = await prisma.$queryRaw<{ dimension: string | null; grupo: string | null; metrica: number | string | null }[]>(query);
-      const validas = filas.filter((f) => f.dimension !== null && f.grupo !== null) as { dimension: string; grupo: string; metrica: number | string | null }[];
-
-      const totalPorGrupo = new Map<string, number>();
-      for (const f of validas) totalPorGrupo.set(f.grupo, (totalPorGrupo.get(f.grupo) ?? 0) + Number(f.metrica ?? 0));
-      const seriesOrdenadas = Array.from(totalPorGrupo.entries()).sort((a, b) => b[1] - a[1]).map(([g]) => g);
-      const seriesTruncadas = seriesOrdenadas.length > MAX_SERIES_CRUZADO;
-      const series = seriesOrdenadas.slice(0, MAX_SERIES_CRUZADO);
-      const seriesSet = new Set(series);
-
-      const metricaPorDimension = new Map<string, number>();
-      for (const f of validas) if (seriesSet.has(f.grupo)) metricaPorDimension.set(f.dimension, (metricaPorDimension.get(f.dimension) ?? 0) + Number(f.metrica ?? 0));
-      const dimensionesUnicas = Array.from(new Set(validas.map((f) => f.dimension)));
-      const dimensionesOrdenadas =
-        orden === "valor_desc"
-          ? [...dimensionesUnicas].sort((a, b) => (metricaPorDimension.get(b) ?? 0) - (metricaPorDimension.get(a) ?? 0))
-          : orden === "valor_asc"
-          ? [...dimensionesUnicas].sort((a, b) => (metricaPorDimension.get(a) ?? 0) - (metricaPorDimension.get(b) ?? 0))
-          : [...dimensionesUnicas].sort();
-      const dimensionesTruncadas = dimensionesOrdenadas.length > MAX_DIMENSIONES_CRUZADO;
-      const dimensiones = dimensionesOrdenadas.slice(0, MAX_DIMENSIONES_CRUZADO);
-
-      const valorPorCelda = new Map(validas.map((f) => [`${f.dimension}::${f.grupo}`, Number(f.metrica ?? 0)]));
-      const filasCruzadas = dimensiones.map((dimension) => ({
-        dimension,
-        valores: Object.fromEntries(series.map((s) => [s, valorPorCelda.get(`${dimension}::${s}`) ?? 0])),
-      }));
-
-      return {
-        dataset: dataset.id,
-        ejeX: { id: campoX.id, label: campoX.label },
-        ejeY: { label: ejeYLabelSimple(agregacion, campoY), sufijo: ejeYSufijo(agregacion, campoY) },
-        cruzado: { series, filas: filasCruzadas, truncado: seriesTruncadas || dimensionesTruncadas },
-      };
-    }
-  );
-
-  return NextResponse.json(resultado);
+  return NextResponse.json(await ejecutarCruzado(dataset, campoX, campoY, agregacion, campoSplit, orden, filtros, alcance, llaveAlcance, filtrosLlave));
 }

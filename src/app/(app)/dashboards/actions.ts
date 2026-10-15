@@ -8,7 +8,7 @@ import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
-import { calcularVistaDashboardReporte, type VistaDashboardReporte } from "@/lib/reportes/vista-dashboard-reporte";
+import { calcularVistaDashboardReporte, adjuntosGraficas, type VistaDashboardReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { sanearOrdenSecciones, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
@@ -385,7 +385,7 @@ export async function enviarEstatusFlotaAhora(input: {
   try {
     const [datos, vistaDashboard] = await Promise.all([calcularReporteConAlcance(input), calcularVistaDashboardReporte(input.vistaDashboardId, await alcanceGeneralPermitido())]);
     const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones), input.incluirGeneral ?? true, vistaDashboard);
-    const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html });
+    const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html, imagenesInline: adjuntosGraficas(vistaDashboard) });
     if (!envio.enviado) return { ok: false, error: envio.error ?? "No se pudo enviar el correo." };
     return { ok: true };
   } catch (e) {

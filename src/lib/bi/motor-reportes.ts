@@ -13,7 +13,7 @@ import { enviarReporteBI, enviarReporteEstatusFlotaHtml } from "@/lib/email";
 import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
 import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
-import { calcularVistaDashboardReporte } from "@/lib/reportes/vista-dashboard-reporte";
+import { calcularVistaDashboardReporte, adjuntosGraficas } from "@/lib/reportes/vista-dashboard-reporte";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 import { inicioDeHoyMx } from "@/lib/timezone";
@@ -72,7 +72,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         : null;
       const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true, vistaDashboard);
       totalRegistros = datos.general.totalUnidades;
-      envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html });
+      envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html, imagenesInline: adjuntosGraficas(vistaDashboard) });
     } else if (reporte.tipo === TIPO_BI_TABLA) {
       // Reporte genérico "selector libre de BI" (Panel de Reportes): el
       // alcance de proyecto es el del DUEÑO del reporte (no hay sesión en el

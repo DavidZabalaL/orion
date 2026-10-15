@@ -36,18 +36,25 @@ export function BadgeMotivo({ label, motivo, color, bg }: { label: string; motiv
         createPortal(
           <div
             role="tooltip"
-            className="pointer-events-none fixed z-[60] rounded-md px-3 py-2"
+            // Posición y capa en estilo propio (no en clases): la burbuja vive
+            // en <body> vía portal y debe quedar encima de tablas con scroll,
+            // modales y encabezados sin depender del CSS de la página.
             style={{
+              position: "fixed",
+              zIndex: 1000,
+              pointerEvents: "none",
               left: pos.x,
               top: pos.y,
               transform: "translateX(-50%)",
               maxWidth: 280,
-              background: "var(--sidebar-text-active)",
-              color: "var(--panel-bg)",
-              fontFamily: "var(--font-ui)",
-              fontSize: "var(--text-xs)",
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: "var(--sidebar-text-active, #0f1b2d)",
+              color: "var(--panel-bg, #ffffff)",
+              fontFamily: "var(--font-ui, system-ui, sans-serif)",
+              fontSize: "var(--text-xs, 12px)",
               lineHeight: 1.4,
-              boxShadow: "var(--shadow-md, var(--shadow-sm))",
+              boxShadow: "0 4px 14px rgba(15, 27, 45, 0.25)",
             }}
           >
             {motivo}

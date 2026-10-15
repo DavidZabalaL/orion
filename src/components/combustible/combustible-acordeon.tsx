@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BadgeMotivo } from "@/components/ui/badge-motivo";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { fmtMoney, fmtFecha } from "@/lib/formato";
 import { CombustibleRow } from "@/components/combustible/combustible-row";
@@ -38,6 +39,13 @@ export type GrupoCombustible = {
   discrepanciasGps: number;
   transacciones: CombustibleTransaccion[];
 };
+
+/** Texto breve del hover del encabezado: cuántas cargas y de qué fechas; el detalle de cada una está en su fila. */
+function resumenAlertas(g: GrupoCombustible, filtro: (t: CombustibleTransaccion) => boolean, que: string): string {
+  const fechas = g.transacciones.filter(filtro).map((t) => fmtFecha(t.fecha));
+  const lista = fechas.length > 4 ? `${fechas.slice(0, 4).join(", ")} y ${fechas.length - 4} más` : fechas.join(", ");
+  return `${fechas.length} carga${fechas.length === 1 ? "" : "s"} ${que}: ${lista}. Abre la unidad para ver la razón de cada una.`;
+}
 
 export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: GrupoCombustible[]; isAdmin?: boolean }) {
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
@@ -87,10 +95,20 @@ export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: Grupo
                     {fmtMoney(g.totalCosto)}
                   </span>
                   {g.discrepanciasGps > 0 && (
-                    <Badge label={`${g.discrepanciasGps} km ≠ GPS`} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
+                    <BadgeMotivo
+                      label={`${g.discrepanciasGps} km ≠ GPS`}
+                      motivo={resumenAlertas(g, (t) => !!t.discrepanciaGps, "con km capturado que no coincide con el GPS")}
+                      color="var(--color-status-revision)"
+                      bg="var(--status-revision-bg)"
+                    />
                   )}
                   {g.alertasPendientes > 0 ? (
-                    <Badge label={`${g.alertasPendientes} sobrellenado`} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+                    <BadgeMotivo
+                      label={`${g.alertasPendientes} sobrellenado`}
+                      motivo={resumenAlertas(g, (t) => t.alertaSobrellenado, "que exceden la capacidad estimada del tanque")}
+                      color="var(--color-status-escena)"
+                      bg="var(--status-escena-bg)"
+                    />
                   ) : (
                     <Badge label={g.rendimientoPromedio ? `${g.rendimientoPromedio.toFixed(1)} km/L` : "Sin rendimiento"} color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
                   )}

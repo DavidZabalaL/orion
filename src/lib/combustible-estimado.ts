@@ -282,6 +282,76 @@ export function explicarCargasUnidad(cargas: CargaParaExplicar[], capacidadTanqu
   return resultado;
 }
 
+type CargaGuardada = {
+  id: string;
+  numeroEconomico: string | null;
+  fecha: Date;
+  createdAt: Date;
+  litros: Prisma.Decimal | number;
+  kmActual: number | null;
+  kmRecorridos: number | null;
+  fuenteKmRecorridos: FuenteKmRecorridos | null;
+  nivelEstimadoDespues: Prisma.Decimal | number | null;
+  alertaSobrellenado: boolean;
+  kmGps: number | null;
+};
+
+/**
+ * explicarCargasUnidad para cargas ya guardadas de una o varias unidades:
+ * trae la capacidad de cada unidad y, para las cargas sin hora, el odómetro
+ * GPS más alto de ese día (la validación compara contra el rango del día; las
+ * cargas con hora ya tienen el odómetro exacto). Dos consultas en total, no
+ * una por carga. Usado por /combustible y por la ficha de la unidad.
+ */
+export async function explicarCargasConGps(cargas: CargaGuardada[]): Promise<Map<string, ExplicacionCarga>> {
+  const conUnidad = cargas.filter((c) => c.numeroEconomico != null);
+  const explicaciones = new Map<string, ExplicacionCarga>();
+  if (conUnidad.length === 0) return explicaciones;
+
+  const capacidades = new Map(
+    (
+      await prisma.unidad.findMany({
+        where: { numeroEconomico: { in: Array.from(new Set(conUnidad.map((c) => c.numeroEconomico as string))) } },
+        select: { numeroEconomico: true, capacidadTanqueLitros: true },
+      })
+    ).map((u) => [u.numeroEconomico, u.capacidadTanqueLitros != null ? Number(u.capacidadTanqueLitros) : null])
+  );
+
+  const sinHoraConGps = conUnidad.filter((c) => c.kmGps != null && !tieneHoraMx(c.fecha));
+  const finDiaGps = new Map<string, number>();
+  if (sinHoraConGps.length > 0) {
+    const filas = await prisma.$queryRaw<{ id: string; km: number | null }[]>`
+      SELECT v.id, max(g."kmValidado")::int AS km
+      FROM (VALUES ${Prisma.join(sinHoraConGps.map((c) => Prisma.sql`(${c.id}, ${c.numeroEconomico}, ${c.fecha}::timestamp)`))}) AS v(id, n, t)
+      JOIN "PosicionGPS" g ON g."numeroEconomico" = v.n AND g."timestamp" >= v.t AND g."timestamp" < v.t + interval '1 day' AND NOT g."esAnomalo"
+      GROUP BY v.id`;
+    for (const f of filas) if (f.km != null) finDiaGps.set(f.id, f.km);
+  }
+
+  const porUnidad = new Map<string, CargaGuardada[]>();
+  for (const c of conUnidad) porUnidad.set(c.numeroEconomico as string, [...(porUnidad.get(c.numeroEconomico as string) ?? []), c]);
+  for (const [n, lista] of porUnidad) {
+    const porId = explicarCargasUnidad(
+      lista.map((c) => ({
+        id: c.id,
+        fecha: c.fecha,
+        createdAt: c.createdAt,
+        litros: Number(c.litros),
+        kmActual: c.kmActual,
+        kmRecorridos: c.kmRecorridos,
+        fuenteKmRecorridos: c.fuenteKmRecorridos,
+        nivelEstimadoDespues: c.nivelEstimadoDespues != null ? Number(c.nivelEstimadoDespues) : null,
+        alertaSobrellenado: c.alertaSobrellenado,
+        kmGps: c.kmGps,
+        kmGpsFinDia: finDiaGps.get(c.id) ?? null,
+      })),
+      capacidades.get(n) ?? null
+    );
+    for (const [id, e] of porId) explicaciones.set(id, e);
+  }
+  return explicaciones;
+}
+
 const mismoNumero = (a: unknown, b: number | null) => (a == null ? b == null : b != null && Math.abs(Number(a) - b) < 0.005);
 
 /**

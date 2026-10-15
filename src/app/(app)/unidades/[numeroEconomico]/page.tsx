@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { explicarCargasConGps } from "@/lib/combustible-estimado";
 import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad, puedeVerPolizaSeguro, tienePermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
@@ -137,6 +138,14 @@ export default async function FichaUnidadPage({
   const rendimientoPlataforma =
     rendimientoReal._sum.kmRecorridos && litrosReales > 0 ? { kmL: Math.round((rendimientoReal._sum.kmRecorridos / litrosReales) * 100) / 100, cargas: rendimientoReal._count } : null;
 
+  // Razón de cada alerta de combustible para el hover de la pestaña
+  // Combustible (mismas 20 cargas que muestra + la anterior a la más vieja,
+  // que hace falta para explicar esa).
+  const cargasParaExplicar = await prisma.combustible.findMany({ where: { numeroEconomico }, orderBy: { fecha: "desc" }, take: 21 });
+  const motivosCombustible = Object.fromEntries(
+    [...(await explicarCargasConGps(cargasParaExplicar))].map(([id, e]) => [id, { motivoSobrellenado: e.motivoSobrellenado, discrepanciaGps: e.discrepanciaGps }])
+  );
+
   const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
   const historicoSerializado = JSON.parse(JSON.stringify(historicoIndisponibilidad));
@@ -156,6 +165,7 @@ export default async function FichaUnidadPage({
       puedeVerComparativoCombustible={puedeVerComparativoCombustible}
       comparativoCombustible={comparativoCombustibleSerializado}
       rendimientoPlataforma={rendimientoPlataforma}
+      motivosCombustible={motivosCombustible}
     />
   );
 }

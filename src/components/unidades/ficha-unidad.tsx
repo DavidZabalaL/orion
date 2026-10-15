@@ -38,6 +38,7 @@ import { FormAccidente } from "@/components/accidentes/form-accidente";
 import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
 import { blobProxy } from "@/lib/blob";
 import { Modal } from "@/components/ui/modal";
+import { BadgeMotivo } from "@/components/ui/badge-motivo";
 import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
@@ -338,6 +339,7 @@ export function FichaUnidad({
   puedeVerComparativoCombustible = false,
   comparativoCombustible = [],
   rendimientoPlataforma = null,
+  motivosCombustible = {},
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -352,6 +354,8 @@ export function FichaUnidad({
   comparativoCombustible?: FilaComparativoCombustibleRow[];
   /** Rendimiento real calculado por la plataforma con las cargas de combustible — distinto del de ficha técnica (`unidad.rendimientoPromedio`). */
   rendimientoPlataforma?: { kmL: number; cargas: number } | null;
+  /** Razón breve de cada alerta de combustible, por id de carga — para el hover de la pestaña Combustible. */
+  motivosCombustible?: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null }>;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -540,7 +544,7 @@ export function FichaUnidad({
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} insumos={insumos} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "llantas" && <TabLlantas historial={unidad.historialLlantas ?? []} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
-          {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} />}
+          {tab === "combustible" && <TabCombustible registros={unidad.combustible ?? []} numeroEconomico={unidad.numeroEconomico} motivos={motivosCombustible} />}
           {tab === "combustible-comparativo" && puedeVerComparativoCombustible && <ComparativoCombustibleLista filas={comparativoCombustible} mostrarUnidad={false} />}
           {tab === "tag" && <TabTag registros={unidad.tags ?? []} numeroEconomico={unidad.numeroEconomico} />}
           {tab === "seguro" && <TabSeguro seguros={unidad.seguros ?? []} numeroEconomico={unidad.numeroEconomico} puedeVerPoliza={puedeVerPolizaSeguro} />}
@@ -915,7 +919,15 @@ function TabLlantas({ historial, dobleRodadoTrasero }: { historial: Unidad[]; do
   );
 }
 
-function TabCombustible({ registros, numeroEconomico }: { registros: Unidad[]; numeroEconomico: string }) {
+function TabCombustible({
+  registros,
+  numeroEconomico,
+  motivos,
+}: {
+  registros: Unidad[];
+  numeroEconomico: string;
+  motivos: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null }>;
+}) {
   const [busqueda, setBusqueda] = useState("");
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
@@ -947,7 +959,14 @@ function TabCombustible({ registros, numeroEconomico }: { registros: Unidad[]; n
           <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
           <td className="px-4 py-3" style={td}>{r.rendimientoCalculado ? `${r.rendimientoCalculado} km/L` : "—"}</td>
           <td className="px-4 py-3">
-            {r.alertaSobrellenado && <Badge label="Excede capacidad" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />}
+            <div className="flex items-center gap-2">
+              {r.alertaSobrellenado && (
+                <BadgeMotivo label="Excede capacidad" motivo={motivos[r.id]?.motivoSobrellenado ?? null} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+              )}
+              {motivos[r.id]?.discrepanciaGps && (
+                <BadgeMotivo label="Km ≠ GPS" motivo={motivos[r.id].discrepanciaGps} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
+              )}
+            </div>
           </td>
         </tr>
       ))}

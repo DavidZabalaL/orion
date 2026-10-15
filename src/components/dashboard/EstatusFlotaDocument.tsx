@@ -633,6 +633,18 @@ function PaginaEstatus({
   );
 }
 
+/** Ancho útil (pt) de una gráfica en la página A4 horizontal: 842 − 2×24 de margen − 2×8 de la tarjeta. React-pdf necesita el alto explícito de la imagen; sale de su proporción real. */
+const ANCHO_GRAFICA_PDF = 778;
+/** Alto máximo (pt) para que la gráfica + su título quepan en una página (595 − márgenes, encabezado y pie): un bloque wrap={false} más alto que la página descuadra el resto del documento. */
+const ALTO_MAX_GRAFICA_PDF = 470;
+
+function tamanoGraficaPdf(ancho: number, alto: number): { width: number; height: number; alignSelf: "center" } {
+  const altoAncho = (ANCHO_GRAFICA_PDF * alto) / ancho;
+  return altoAncho <= ALTO_MAX_GRAFICA_PDF
+    ? { width: ANCHO_GRAFICA_PDF, height: altoAncho, alignSelf: "center" }
+    : { width: (ALTO_MAX_GRAFICA_PDF * ancho) / alto, height: ALTO_MAX_GRAFICA_PDF, alignSelf: "center" };
+}
+
 /** Tabla de un widget de la vista de dashboard incluida en el reporte. */
 function TablaWidgetVista({ widget }: { widget: Extract<WidgetReporte, { tipo: "tabla" }> }) {
   return (
@@ -641,7 +653,7 @@ function TablaWidgetVista({ widget }: { widget: Extract<WidgetReporte, { tipo: "
       <View style={styles.tablaContenedor}>
         <View style={styles.tablaHeaderFila} fixed>
           {widget.columnas.map((c, i) => (
-            <Text key={i} style={{ ...styles.tablaCeldaHeader, flex: 1, textAlign: c.numerica ? "right" : "left" }}>{c.label.toUpperCase()}</Text>
+            <Text key={i} style={{ ...styles.tablaCeldaHeader, flex: 1, paddingHorizontal: 4, textAlign: c.numerica ? "right" : "left" }}>{c.label.toUpperCase()}</Text>
           ))}
         </View>
         {widget.filas.length === 0 ? (
@@ -652,7 +664,16 @@ function TablaWidgetVista({ widget }: { widget: Extract<WidgetReporte, { tipo: "
           widget.filas.map((fila, i) => (
             <View key={i} style={styles.tablaFila} wrap={false}>
               {fila.map((v, j) => (
-                <Text key={j} style={{ ...styles.tablaCeldaTexto, flex: 1, textAlign: widget.columnas[j]?.numerica ? "right" : "left" }}>
+                <Text
+                  key={j}
+                  style={{
+                    ...styles.tablaCeldaTexto,
+                    flex: 1,
+                    paddingHorizontal: 4,
+                    textAlign: widget.columnas[j]?.numerica ? "right" : "left",
+                    ...(widget.colores[i]?.[j] ? { color: widget.colores[i][j] as string, fontWeight: "bold" } : {}),
+                  }}
+                >
                   {formatearCeldaBI(v, widget.columnas[j]?.numerica ? "numero" : "texto", widget.columnas[j]?.sufijo)}
                 </Text>
               ))}
@@ -686,7 +707,7 @@ function PaginaVistaDashboard({ vista }: { vista: VistaDashboardReporte }) {
         <View key={`kpi-${i}`} style={styles.fila} wrap={false}>
           {grupo.map((k, j) => (
             <Tarjeta key={j} titulo={k.titulo}>
-              <Text style={styles.kpiValor}>{formatearValorBI(k.valor, k.sufijo)}</Text>
+              <Text style={k.color ? { ...styles.kpiValor, color: k.color } : styles.kpiValor}>{formatearValorBI(k.valor, k.sufijo)}</Text>
               <Text style={styles.kpiCaption}>{k.detalle}</Text>
             </Tarjeta>
           ))}
@@ -699,6 +720,16 @@ function PaginaVistaDashboard({ vista }: { vista: VistaDashboardReporte }) {
       {resto.map((w, i) =>
         w.tipo === "tabla" ? (
           <TablaWidgetVista key={i} widget={w} />
+        ) : w.tipo === "grafica" ? (
+          <View key={i} style={{ marginBottom: 14 }} wrap={false}>
+            <Text style={styles.seccionTitulo}>{w.titulo.toUpperCase()}</Text>
+            {/* Sin `flex: 1` de styles.tarjeta: en una columna colapsa la tarjeta a alto 0 y la imagen no se ve. */}
+            <View style={{ backgroundColor: "#ffffff", borderRadius: 8, borderWidth: 1, borderColor: BORDER, padding: 8 }}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, no <img> de HTML; no acepta `alt`. */}
+              <Image src={`data:image/png;base64,${w.png}`} style={tamanoGraficaPdf(w.ancho, w.alto)} />
+            </View>
+            {w.nota && <Text style={{ ...styles.kpiCaption, marginTop: 4 }}>{w.nota}</Text>}
+          </View>
         ) : w.tipo === "nota" ? (
           <View key={i} style={{ marginBottom: 14 }} wrap={false}>
             <Text style={styles.seccionTitulo}>{w.titulo.toUpperCase()}</Text>

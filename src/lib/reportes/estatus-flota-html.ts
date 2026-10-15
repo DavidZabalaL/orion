@@ -388,11 +388,12 @@ function tablaWidgetVista(w: Extract<WidgetReporte, { tipo: "tabla" }>): string 
       ? `<tr><td colspan="${w.columnas.length}" style="padding:6px 12px; color:${SLATE}; font-style:italic;">Sin registros.</td></tr>`
       : w.filas
           .map(
-            (fila) => `
+            (fila, i) => `
           <tr>${fila
             .map((v, j) => {
               const col = w.columnas[j];
-              return `<td${col?.numerica ? ' align="right"' : ""} style="padding:5px 12px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(formatearCeldaBI(v, col?.numerica ? "numero" : "texto", col?.sufijo))}</td>`;
+              const colorRegla = w.colores[i]?.[j];
+              return `<td${col?.numerica ? ' align="right"' : ""} style="padding:5px 12px; color:${colorRegla ?? NAVY};${colorRegla ? " font-weight:bold;" : ""} border-bottom:1px solid ${BORDER};">${esc(formatearCeldaBI(v, col?.numerica ? "numero" : "texto", col?.sufijo))}</td>`;
             })
             .join("")}</tr>`
           )
@@ -416,13 +417,15 @@ function tablaWidgetVista(w: Extract<WidgetReporte, { tipo: "tabla" }>): string 
 function bloqueVistaDashboard(vista: VistaDashboardReporte): string {
   const kpis = vista.widgets.filter((w): w is Extract<WidgetReporte, { tipo: "kpi" }> => w.tipo === "kpi");
   const filasKpi = Array.from({ length: Math.ceil(kpis.length / 3) })
-    .map((_, i) => filaTarjetas(kpis.slice(i * 3, i * 3 + 3).map((k) => tarjeta(k.titulo, kpi(esc(formatearValorBI(k.valor, k.sufijo)), k.detalle)))))
+    .map((_, i) => filaTarjetas(kpis.slice(i * 3, i * 3 + 3).map((k) => tarjeta(k.titulo, kpi(esc(formatearValorBI(k.valor, k.sufijo)), k.detalle, k.color)))))
     .join("");
   const resto = vista.widgets
     .map((w) =>
       w.tipo === "tabla"
         ? tablaWidgetVista(w)
-        : w.tipo === "nota"
+        : w.tipo === "grafica"
+          ? `<div style="margin-bottom:16px;">${seccionTitulo(w.titulo.toUpperCase())}<div style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; padding:8px;"><img src="cid:${w.cid}" width="640" alt="${esc(w.titulo)}" style="display:block; width:100%; max-width:640px; height:auto;" /></div>${w.nota ? `<div style="font-size:10px; color:${SLATE}; margin-top:4px;">${esc(w.nota)}</div>` : ""}</div>`
+          : w.tipo === "nota"
           ? `<div style="margin-bottom:16px;">${seccionTitulo(w.titulo.toUpperCase())}<div style="font-size:11px; color:${SLATE}; font-style:italic;">${esc(w.texto)}</div></div>`
           : ""
     )

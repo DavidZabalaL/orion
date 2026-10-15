@@ -5,16 +5,13 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { TipoGrafica, TipoAgregacion } from "@/lib/bi/metadata";
 import { resolverEstado } from "@/lib/bi/estados-mexico";
 import { colorParaValor, type ReglaColorColumna } from "@/lib/bi/reglas-color";
+import { SERIES_LIGHT, SERIES_DARK, nivelAvance } from "@/lib/bi/paleta";
 
 export type BiDato = { dimension: string; valor: number; /** Solo con tipoGrafica "avance". */ meta?: number };
 export type BiCaja = { dimension: string; min: number; q1: number; mediana: number; q3: number; max: number };
 export type BiPar = { dimension: string; izquierda: number; derecha: number };
 export type BiCruzado = { series: string[]; filas: { dimension: string; valores: Record<string, number> }[]; truncado: boolean };
 
-// Paleta categórica validada (contraste + separación CVD) — orden fijo,
-// nunca se reasigna por rango. Ver skill dataviz/references/palette.md.
-const SERIES_LIGHT = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
-const SERIES_DARK = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
 // Par divergente (frío/cálido) para "por encima" / "por debajo" de una referencia.
 const DIVERGENTE_LIGHT = { alto: "#2a78d6", bajo: "#e34948" };
 const DIVERGENTE_DARK = { alto: "#3987e5", bajo: "#e66767" };
@@ -255,15 +252,10 @@ function BiContador({ datos, ejeYLabel, ejeYSufijo, agregacion, width, height, r
  * - "positivo" (ej. disponibilidad, cumplimiento: alcanzar la meta es bueno):
  *   verde cerca/en el 100%, ámbar a medio camino, rojo si va muy bajo.
  */
+const COLOR_NIVEL_AVANCE = { bien: "var(--color-status-cerrado)", atencion: "var(--color-status-revision)", mal: "var(--color-status-escena)" } as const;
+
 function colorAvance(pct: number, colorimetria: "positivo" | "negativo"): string {
-  if (colorimetria === "positivo") {
-    if (pct >= 90) return "var(--color-status-cerrado)";
-    if (pct >= 70) return "var(--color-status-revision)";
-    return "var(--color-status-escena)";
-  }
-  if (pct > 100) return "var(--color-status-escena)";
-  if (pct >= 85) return "var(--color-status-revision)";
-  return "var(--color-status-cerrado)";
+  return COLOR_NIVEL_AVANCE[nivelAvance(pct, colorimetria)];
 }
 
 /** Una fila "valor vs. meta": nombre, valor formateado, barra de progreso y "Meta: X (Y%)". */

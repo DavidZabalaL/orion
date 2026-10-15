@@ -216,8 +216,8 @@ export function EstatusFlotaModal({
   const todosSeleccionados = proyectosDisponibles.length > 0 && seleccionados.length === proyectosDisponibles.length;
 
   async function descargar() {
-    if (!incluirGeneral && seleccionados.length === 0) {
-      setMensaje({ tipo: "error", texto: "Selecciona al menos un proyecto o incluye el resumen general." });
+    if (!incluirGeneral && seleccionados.length === 0 && !vistaDashboardId) {
+      setMensaje({ tipo: "error", texto: "Elige un dashboard, al menos un proyecto o incluye el resumen general." });
       return;
     }
     setDescargando(true);
@@ -255,8 +255,8 @@ export function EstatusFlotaModal({
   }
 
   async function enviarAhora() {
-    if (!incluirGeneral && seleccionados.length === 0) {
-      setMensaje({ tipo: "error", texto: "Selecciona al menos un proyecto o incluye el resumen general." });
+    if (!incluirGeneral && seleccionados.length === 0 && !vistaDashboardId) {
+      setMensaje({ tipo: "error", texto: "Elige un dashboard, al menos un proyecto o incluye el resumen general." });
       return;
     }
     const listaDestinatarios = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
@@ -282,17 +282,17 @@ export function EstatusFlotaModal({
   async function guardarProgramacion(idx: number) {
     const item = programaciones[idx];
     if (!item) return;
-    setGuardandoIdx(idx);
     setMensajePorIdx((prev) => { const c = { ...prev }; delete c[idx]; return c; });
     const listaDestinatarios = item.destinatariosTexto.split(",").map((d) => d.trim()).filter(Boolean);
     if (listaDestinatarios.length === 0) {
       setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Indica al menos un destinatario." } }));
       return;
     }
-    if (!item.incluirGeneral && item.proyectoIds.length === 0) {
-      setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Selecciona al menos un proyecto o incluye el resumen general." } }));
+    if (!item.incluirGeneral && item.proyectoIds.length === 0 && !vistaDashboardId) {
+      setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Elige un dashboard, al menos un proyecto o incluye el resumen general." } }));
       return;
     }
+    setGuardandoIdx(idx);
     const res = await guardarProgramacionEstatusFlota({
       id: item.id,
       nombre: item.nombre,
@@ -334,7 +334,23 @@ export function EstatusFlotaModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl shadow-xl" style={{ background: "var(--panel-bg)" }}>
+      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl shadow-xl" style={{ background: "var(--panel-bg)" }} aria-busy={descargando || enviando}>
+        {(descargando || enviando) && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl px-8 text-center"
+            style={{ background: "color-mix(in srgb, var(--panel-bg) 88%, transparent)", backdropFilter: "blur(2px)" }}
+          >
+            <Loader2 className="w-9 h-9 animate-spin" style={{ color: "var(--color-primary)" }} />
+            <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+              {descargando ? "Generando el PDF…" : "Enviando el correo…"}
+            </p>
+            <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+              Calculando datos{vistaDashboardId ? " y dibujando las gráficas del dashboard" : ""}. Puede tardar unos segundos; no cierres esta ventana.
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--field-border)" }}>
           <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
             Generar reporte
@@ -589,6 +605,19 @@ export function EstatusFlotaModal({
             Enviar por correo ahora
           </button>
 
+          {mensaje && (
+            <p
+              role="status"
+              style={{
+                fontFamily: "var(--font-ui)",
+                fontSize: "var(--text-sm)",
+                color: mensaje.tipo === "ok" ? "var(--color-status-cerrado)" : "var(--color-error)",
+              }}
+            >
+              {mensaje.texto}
+            </p>
+          )}
+
           {puedeEditar && (
             <div className="flex flex-col gap-3">
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
@@ -725,17 +754,6 @@ export function EstatusFlotaModal({
             </div>
           )}
 
-          {mensaje && (
-            <p
-              style={{
-                fontFamily: "var(--font-ui)",
-                fontSize: "var(--text-sm)",
-                color: mensaje.tipo === "ok" ? "var(--color-status-cerrado)" : "var(--color-error)",
-              }}
-            >
-              {mensaje.texto}
-            </p>
-          )}
         </div>
       </div>
     </div>
