@@ -29,7 +29,7 @@ const CRITERIO_LABEL: Record<Criterio, string> = {
 export default async function ComparativoUnidadesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ base?: string; criterio?: string; periodo?: string; unidades?: string }>;
+  searchParams: Promise<{ base?: string; criterio?: string; periodo?: string; unidades?: string; proyecto?: string }>;
 }) {
   await requerirPermisoModulo("A");
   const params = await searchParams;
@@ -54,8 +54,22 @@ export default async function ComparativoUnidadesPage({
         ? { marca: { equals: base.marca, mode: "insensitive" as const } }
         : { tipoVehiculo: base.tipoVehiculo };
 
+  // Proyectos que el rol puede ver, para el filtro. Un proyecto fuera de su alcance se ignora.
+  const proyectos = await prisma.proyecto.findMany({
+    where: { estatus: "ACTIVO", ...(permitidos !== null ? { id: { in: permitidos } } : {}) },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
+  const proyectoId = params.proyecto && proyectos.some((p) => p.id === params.proyecto) ? params.proyecto : null;
+
   const unidades = await prisma.unidad.findMany({
-    where: { estatus: { not: "BAJA" }, ...alcance, ...filtroGrupo },
+    where: {
+      estatus: { not: "BAJA" },
+      ...alcance,
+      ...filtroGrupo,
+      // Filtro de proyecto: la unidad de origen siempre se incluye como referencia.
+      ...(proyectoId ? { OR: [{ proyectoId }, { numeroEconomico: base.numeroEconomico }] } : {}),
+    },
     select: { numeroEconomico: true, marca: true, unidadModelo: true, rendimientoPromedio: true, proyecto: { select: { nombre: true } } },
     orderBy: { numeroEconomico: "asc" },
   });
@@ -94,7 +108,7 @@ export default async function ComparativoUnidadesPage({
     criterio === "seleccion"
       ? (
           await prisma.unidad.findMany({
-            where: { estatus: { not: "BAJA" }, ...alcance },
+            where: { estatus: { not: "BAJA" }, ...alcance, ...(proyectoId ? { proyectoId } : {}) },
             select: { numeroEconomico: true, marca: true, unidadModelo: true, proyecto: { select: { nombre: true } } },
             orderBy: { numeroEconomico: "asc" },
           })
@@ -106,7 +120,8 @@ export default async function ComparativoUnidadesPage({
   const enlace = (cambios: { criterio?: Criterio; periodo?: string }) => {
     const c = cambios.criterio ?? criterio;
     const lista = c === "seleccion" && seleccion.length > 0 ? `&unidades=${seleccion.map(encodeURIComponent).join(",")}` : "";
-    return `/unidades/comparativo?base=${encodeURIComponent(base.numeroEconomico)}&criterio=${c}&periodo=${cambios.periodo ?? periodo}${lista}`;
+    const filtroProyecto = proyectoId ? `&proyecto=${encodeURIComponent(proyectoId)}` : "";
+    return `/unidades/comparativo?base=${encodeURIComponent(base.numeroEconomico)}&criterio=${c}&periodo=${cambios.periodo ?? periodo}${lista}${filtroProyecto}`;
   };
   const chip = (activo: boolean): React.CSSProperties => ({
     background: activo ? "var(--color-primary)" : "var(--panel-bg)",
@@ -150,8 +165,40 @@ export default async function ComparativoUnidadesPage({
         </Link>
       </div>
 
+      {proyectos.length > 1 && (
+        <form method="get" className="flex flex-wrap items-center gap-2">
+          <input type="hidden" name="base" value={base.numeroEconomico} />
+          <input type="hidden" name="criterio" value={criterio} />
+          <input type="hidden" name="periodo" value={periodo} />
+          {criterio === "seleccion" && seleccion.length > 0 && <input type="hidden" name="unidades" value={seleccion.join(",")} />}
+          <label htmlFor="filtro-proyecto" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", textTransform: "uppercase", fontWeight: 600 }}>
+            Proyecto
+          </label>
+          <select
+            id="filtro-proyecto"
+            name="proyecto"
+            defaultValue={proyectoId ?? ""}
+            className="rounded-md px-3"
+            style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)", color: "var(--field-text)", height: "var(--h-md)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}
+          >
+            <option value="">Todos los proyectos</option>
+            {proyectos.map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+          <button type="submit" className="rounded-md px-4 h-9" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}>
+            Filtrar
+          </button>
+          {proyectoId && (
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              {base.numeroEconomico} se incluye siempre como referencia.
+            </span>
+          )}
+        </form>
+      )}
+
       {criterio === "seleccion" && (
-        <SelectorUnidadesComparativo base={base.numeroEconomico} unidades={elegibles} seleccionInicial={seleccion} periodo={periodo} />
+        <SelectorUnidadesComparativo base={base.numeroEconomico} unidades={elegibles} seleccionInicial={seleccion} periodo={periodo} proyectoId={proyectoId} />
       )}
 
       <ComparativoTabla filas={JSON.parse(JSON.stringify(filas))} base={base.numeroEconomico} titulo={criterio === "seleccion" ? "Unidades elegidas" : `${CRITERIO_LABEL[criterio]}: ${grupo}`} />

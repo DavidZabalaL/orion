@@ -17,11 +17,14 @@ export function SelectorUnidadesComparativo({
   unidades,
   seleccionInicial,
   periodo,
+  proyectoId,
 }: {
   base: string;
   unidades: UnidadSeleccionable[];
   seleccionInicial: string[];
   periodo: string;
+  /** Filtro de proyecto vigente — se conserva al comparar. */
+  proyectoId?: string | null;
 }) {
   const router = useRouter();
   const [seleccion, setSeleccion] = useState<string[]>(seleccionInicial.filter((n) => n !== base));
@@ -38,7 +41,8 @@ export function SelectorUnidadesComparativo({
 
   function comparar() {
     const lista = [base, ...seleccion].map(encodeURIComponent).join(",");
-    router.push(`/unidades/comparativo?base=${encodeURIComponent(base)}&criterio=seleccion&periodo=${periodo}&unidades=${lista}`);
+    const filtroProyecto = proyectoId ? `&proyecto=${encodeURIComponent(proyectoId)}` : "";
+    router.push(`/unidades/comparativo?base=${encodeURIComponent(base)}&criterio=seleccion&periodo=${periodo}&unidades=${lista}${filtroProyecto}`);
   }
 
   return (
