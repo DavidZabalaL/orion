@@ -58,3 +58,12 @@ export function finDelDiaMx(valor: string | null | undefined): Date | null {
   if (!inicio) return null;
   return new Date(inicio.getTime() + 24 * HORA_MS - 1);
 }
+
+/**
+ * true si el instante trae hora real. Las cargas de combustible importadas sin
+ * hora quedan a medianoche de México; con hora, el odómetro GPS es el del
+ * momento exacto de la carga y no un estimado del día.
+ */
+export function tieneHoraMx(fecha: Date | string): boolean {
+  return (new Date(fecha).getTime() - OFFSET_MX_HORAS * HORA_MS) % (24 * HORA_MS) !== 0;
+}

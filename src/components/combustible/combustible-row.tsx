@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, TriangleAlert } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { fmtMoney, fmtFecha } from "@/lib/formato";
+import { BadgeMotivo } from "@/components/ui/badge-motivo";
+import { fmtMoney, fmtFecha, fmtFechaHora } from "@/lib/formato";
+import { tieneHoraMx } from "@/lib/timezone";
 import { eliminarCombustible } from "@/app/(app)/combustible/actions";
 
 type Combustible = {
@@ -18,6 +19,11 @@ type Combustible = {
   alertaSobrellenado: boolean;
   kmRecorridos: number | null;
   fuenteKmRecorridos: "GPS" | "CAPTURA" | null;
+  kmGps?: number | null;
+  kmCapturaRecorridos?: number | null;
+  motivoSobrellenado?: string | null;
+  discrepanciaGps?: string | null;
+  gpsAplica?: boolean;
 };
 
 const td: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: "var(--field-text)" };
@@ -44,25 +50,44 @@ export function CombustibleRow({ registro: r, isAdmin = false }: { registro: Com
   return (
     <>
       <tr style={{ borderBottom: confirmando ? "none" : "1px solid var(--field-border)" }}>
-        <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
+        <td className="px-4 py-3 whitespace-nowrap" style={td}>{tieneHoraMx(r.fecha) ? fmtFechaHora(r.fecha) : fmtFecha(r.fecha)}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{Number(r.litros).toFixed(1)} L</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(r.costo)}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual != null ? r.kmActual.toLocaleString("es-MX") : "—"}</td>
+        <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }} title={tieneHoraMx(r.fecha) ? "Odómetro del GPS a la hora de la carga" : "Odómetro del GPS al inicio del día (la carga no trae hora)"}>
+          {r.gpsAplica === false ? (
+            <span title="Antes de octubre de 2026 no se usaba el GPS: calculado con el km capturado" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              Sin GPS
+            </span>
+          ) : r.kmGps != null ? (
+            r.kmGps.toLocaleString("es-MX")
+          ) : (
+            "—"
+          )}
+        </td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>
           {r.kmRecorridos != null ? (
-            <span title={r.fuenteKmRecorridos === "GPS" ? "Odómetro GPS entre esta carga y la anterior" : "Km capturado entre esta carga y la anterior"}>
+            <span title={r.fuenteKmRecorridos === "GPS" ? "Odómetro GPS entre esta carga y la anterior" : "Km capturado entre esta carga y la anterior (sin GPS para comparar)"}>
               {r.kmRecorridos.toLocaleString("es-MX")}{" "}
               <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{r.fuenteKmRecorridos === "GPS" ? "GPS" : "Captura"}</span>
             </span>
           ) : (
             "—"
           )}
+          {r.fuenteKmRecorridos === "GPS" && r.kmCapturaRecorridos != null && r.kmCapturaRecorridos !== r.kmRecorridos && (
+            <div style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+              capturado: {r.kmCapturaRecorridos.toLocaleString("es-MX")}
+            </div>
+          )}
         </td>
         <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
         <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.rendimientoCalculado ? `${Number(r.rendimientoCalculado).toFixed(1)} km/L` : "—"}</td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            {r.alertaSobrellenado && <Badge label="Excede capacidad" color="var(--color-status-escena)" bg="var(--status-escena-bg)" />}
+            {r.alertaSobrellenado && (
+              <BadgeMotivo label="Excede capacidad" motivo={r.motivoSobrellenado ?? null} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
+            )}
+            {r.discrepanciaGps && <BadgeMotivo label="Km ≠ GPS" motivo={r.discrepanciaGps} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />}
             {isAdmin && !confirmando && (
               <button
                 onClick={() => setConfirmando(true)}
@@ -77,7 +102,7 @@ export function CombustibleRow({ registro: r, isAdmin = false }: { registro: Com
       </tr>
       {confirmando && (
         <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-          <td colSpan={8}className="px-4 py-4" style={{ background: "var(--status-escena-bg)" }}>
+          <td colSpan={9} className="px-4 py-4" style={{ background: "var(--status-escena-bg)" }}>
             <form action={handleEliminar} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={r.id} />
               <div className="flex items-start gap-2">

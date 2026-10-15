@@ -238,6 +238,9 @@ export function ImportadorCombustible({ proyectos }: { proyectos: { id: string; 
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             <ResumenCard label="Importadas" value={resultado.creadas.length} color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />
+            {resultado.actualizadas.length > 0 && (
+              <ResumenCard label="Ya existían: se agregó la hora" value={resultado.actualizadas.length} color="var(--color-status-asignado)" bg="var(--status-asignado-bg)" />
+            )}
             <ResumenCard label="Omitidas / duplicadas" value={resultado.omitidas.length} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
             <ResumenCard label="Advertencias" value={resultado.advertencias.length} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
           </div>

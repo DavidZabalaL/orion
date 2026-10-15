@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import type { FuenteKmRecorridos } from "@/generated/prisma/enums";
+import { tieneHoraMx } from "@/lib/timezone";
 
 /**
  * Rango físicamente razonable; fuera de él casi siempre es un km mal capturado.
@@ -30,6 +31,16 @@ const PERCENTIL_REFERENCIA = 0.25;
 const MIN_KM_CAPTURA_CONFIABLE = 20;
 /** Una lectura GPS más vieja que esto respecto a la carga ya no dice cuánto marcaba el odómetro en ese momento. */
 const MAX_ANTIGUEDAD_LECTURA_GPS_MS = 48 * 60 * 60 * 1000;
+/**
+ * El odómetro GPS solo se usa en cargas desde esta fecha (00:00 de México).
+ * Hay lecturas desde mediados de septiembre, pero por decisión de negocio el
+ * cálculo con GPS arranca el 1 de octubre de 2026 y no se aplica en retroactivo:
+ * las cargas anteriores se calculan solo con el km capturado. Para la primera
+ * carga de octubre sí se lee el odómetro GPS de su carga anterior (aunque sea
+ * de septiembre) como punto de partida — si no, ninguna unidad empezaría
+ * octubre con km de GPS.
+ */
+export const INICIO_KM_GPS = new Date("2026-10-01T06:00:00Z");
 const MAX_KM_ENTRE_CARGAS = 5000;
 
 export function rendimientoEnRango(r: number | null | undefined): r is number {
@@ -44,7 +55,13 @@ function percentil(valores: number[], p: number): number {
   return orden[base + 1] !== undefined ? orden[base] + resto * (orden[base + 1] - orden[base]) : orden[base];
 }
 
-const mismoDia = (a: Date, b: Date) => a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
+const OFFSET_MX_MS = 6 * 60 * 60 * 1000;
+const DIA_MS = 24 * 60 * 60 * 1000;
+/** Día calendario en México (las fechas se guardan como instante UTC). */
+const diaMx = (f: Date) => Math.floor((f.getTime() - OFFSET_MX_MS) / DIA_MS);
+const mismoDia = (a: Date, b: Date) => diaMx(a) === diaMx(b);
+
+export { tieneHoraMx };
 
 export type CargaParaEstimar = { id: string; fecha: Date; litros: number; kmActual: number | null };
 export type LecturaGps = { t: number; km: number };
@@ -107,13 +124,15 @@ export function estimarCadenaCargas(
     const previa = i > 0 ? cargas[i - 1] : null;
     const estimadoPrevio = i > 0 ? resultado[i - 1] : null;
 
-    const kmGps = kmGpsAl(lecturas, carga.fecha.getTime());
+    const aplicaGps = carga.fecha >= INICIO_KM_GPS;
+    const siguienteAplica = i + 1 < cargas.length && cargas[i + 1].fecha >= INICIO_KM_GPS;
+    const kmGps = aplicaGps || siguienteAplica ? kmGpsAl(lecturas, carga.fecha.getTime()) : null;
     let kmRecorridos: number | null = null;
     let fuenteKmRecorridos: FuenteKmRecorridos | null = null;
 
     // Misma marca de tiempo (dos cargas del mismo día importadas sin hora) =
     // el GPS no distingue cuánto se movió entre ellas: se recurre al km capturado.
-    if (previa && estimadoPrevio?.kmGps != null && kmGps != null && carga.fecha.getTime() > previa.fecha.getTime()) {
+    if (aplicaGps && previa && estimadoPrevio?.kmGps != null && kmGps != null && carga.fecha.getTime() > previa.fecha.getTime()) {
       const diferencia = kmGps - estimadoPrevio.kmGps;
       if (diferencia >= 0 && diferencia <= MAX_KM_ENTRE_CARGAS) {
         kmRecorridos = diferencia;
@@ -160,6 +179,109 @@ export function estimarCadenaCargas(
   return resultado;
 }
 
+/**
+ * Validación contra el GPS. La carga se registra por día (sin hora), así que
+ * el GPS no da un número exacto sino un rango: lo mínimo que pudo recorrer
+ * (de que terminó el día de la carga anterior a que empezó el de esta) y lo
+ * máximo (del inicio de aquel día al final de este). Se avisa si el km
+ * capturado cae fuera de ese rango por más de esta holgura.
+ */
+const DISCREPANCIA_GPS_PCT = 0.15;
+const DISCREPANCIA_GPS_MIN_KM = 50;
+
+export type CargaParaExplicar = {
+  id: string;
+  fecha: Date;
+  createdAt: Date;
+  litros: number;
+  kmActual: number | null;
+  kmRecorridos: number | null;
+  fuenteKmRecorridos: FuenteKmRecorridos | null;
+  nivelEstimadoDespues: number | null;
+  alertaSobrellenado: boolean;
+  /** Odómetro GPS al inicio del día de la carga (Combustible.kmGps). */
+  kmGps: number | null;
+  /** Odómetro GPS más alto registrado durante el día de la carga; null si ese día no reportó. Solo se usa en cargas sin hora (ver tieneHoraMx). */
+  kmGpsFinDia: number | null;
+};
+
+export type ExplicacionCarga = {
+  /** Km recorridos según el odómetro capturado (aunque se haya usado el GPS). */
+  kmCapturaRecorridos: number | null;
+  /** Razón breve de la alerta de sobrellenado (para el hover); null si no hay alerta. */
+  motivoSobrellenado: string | null;
+  /** Razón breve de la discrepancia km capturado vs. GPS; null si coinciden o no hay con qué comparar. */
+  discrepanciaGps: string | null;
+};
+
+const fmtL = (n: number) => `${n.toLocaleString("es-MX", { maximumFractionDigits: 1 })} L`;
+const fmtKm = (n: number) => `${n.toLocaleString("es-MX")} km`;
+
+/**
+ * Textos para la vista de combustible a partir de lo ya guardado por
+ * recalcularCombustibleUnidad — no recalcula la regla, solo la explica.
+ * `cargas` son las de UNA unidad, en cualquier orden.
+ */
+export function explicarCargasUnidad(cargas: CargaParaExplicar[], capacidadTanqueLitros: number | null): Map<string, ExplicacionCarga> {
+  const orden = [...cargas].sort(
+    (a, b) =>
+      a.fecha.getTime() - b.fecha.getTime() ||
+      (a.kmActual ?? Number.MAX_SAFE_INTEGER) - (b.kmActual ?? Number.MAX_SAFE_INTEGER) ||
+      a.createdAt.getTime() - b.createdAt.getTime()
+  );
+  const resultado = new Map<string, ExplicacionCarga>();
+  orden.forEach((c, i) => {
+    const previa = i > 0 ? orden[i - 1] : null;
+    const kmCapturaRecorridos = previa?.kmActual != null && c.kmActual != null && c.kmActual >= previa.kmActual ? c.kmActual - previa.kmActual : null;
+
+    let discrepanciaGps: string | null = null;
+    // Con hora, el odómetro GPS es el del momento de la carga (rango de un
+    // solo punto); sin hora, se acota con el inicio y el final de ese día.
+    // Sin lecturas en el día de una carga sin hora no se valida: kmGps puede
+    // ser una lectura vieja compartida por las dos cargas ("0 km" falso).
+    const finDe = (x: CargaParaExplicar) => (tieneHoraMx(x.fecha) ? x.kmGps : x.kmGpsFinDia);
+    const finPrevia = previa ? finDe(previa) : null;
+    const finActual = finDe(c);
+    if (
+      c.fuenteKmRecorridos === "GPS" &&
+      c.kmRecorridos != null &&
+      kmCapturaRecorridos != null &&
+      previa?.kmGps != null &&
+      finPrevia != null &&
+      c.kmGps != null &&
+      finActual != null
+    ) {
+      const minimo = Math.max(0, c.kmGps - finPrevia);
+      const maximo = finActual - previa.kmGps;
+      const holgura = Math.max(DISCREPANCIA_GPS_MIN_KM, maximo * DISCREPANCIA_GPS_PCT);
+      if (kmCapturaRecorridos < minimo - holgura || kmCapturaRecorridos > maximo + holgura) {
+        const rango = minimo === maximo ? fmtKm(maximo) : `entre ${minimo.toLocaleString("es-MX")} y ${fmtKm(maximo)}`;
+        discrepanciaGps = `Capturado: ${fmtKm(kmCapturaRecorridos)} desde la carga anterior; GPS: ${rango}.`;
+      }
+    }
+
+    let motivoSobrellenado: string | null = null;
+    if (c.alertaSobrellenado && capacidadTanqueLitros) {
+      const limite = capacidadTanqueLitros * TOLERANCIA_SOBRELLENADO;
+      const nivel = c.nivelEstimadoDespues ?? c.litros;
+      const restante = Math.max(0, nivel - c.litros);
+      motivoSobrellenado =
+        restante < 0.5 || !previa
+          ? `${fmtL(c.litros)} en una sola carga; tanque de ${fmtL(capacidadTanqueLitros)} (máx. ${fmtL(limite)} con +15%).`
+          : `~${fmtL(restante)} restantes (carga anterior de ${fmtL(previa.litros)}, ${c.kmRecorridos != null ? fmtKm(c.kmRecorridos) : "km desconocidos"} después) + ${fmtL(c.litros)} = ${fmtL(nivel)}; tanque de ${fmtL(capacidadTanqueLitros)} (máx. ${fmtL(limite)}).`;
+      if (c.fuenteKmRecorridos !== "GPS") {
+        motivoSobrellenado +=
+          c.fecha < INICIO_KM_GPS
+            ? " Aún no se tenían datos de GPS: calculado con el km capturado."
+            : " Sin lectura de GPS para esta carga: calculado con el km capturado.";
+      }
+    }
+
+    resultado.set(c.id, { kmCapturaRecorridos, motivoSobrellenado, discrepanciaGps });
+  });
+  return resultado;
+}
+
 const mismoNumero = (a: unknown, b: number | null) => (a == null ? b == null : b != null && Math.abs(Number(a) - b) < 0.005);
 
 /**
@@ -194,7 +316,7 @@ export async function recalcularCombustibleUnidad(
   const primera = filas[0].fecha.getTime();
   const ultima = filas[filas.length - 1].fecha.getTime();
   const posiciones = await prisma.posicionGPS.findMany({
-    where: { numeroEconomico, esAnomalo: false, kmValidado: { not: null }, timestamp: { gte: new Date(primera - MAX_ANTIGUEDAD_LECTURA_GPS_MS), lte: new Date(ultima) } },
+    where: { numeroEconomico, esAnomalo: false, kmValidado: { not: null }, timestamp: { gte: new Date(Math.max(primera, INICIO_KM_GPS.getTime() - 60 * DIA_MS) - MAX_ANTIGUEDAD_LECTURA_GPS_MS), lte: new Date(ultima) } },
     select: { timestamp: true, kmValidado: true },
     orderBy: { timestamp: "asc" },
   });

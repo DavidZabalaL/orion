@@ -1,6 +1,7 @@
 export const CAMPOS_COMBUSTIBLE = [
   { key: "numeroEconomico", label: "N° económico", requerido: true },
   { key: "fecha", label: "Fecha", requerido: true },
+  { key: "hora", label: "Hora (si viene en columna aparte)", requerido: false },
   { key: "litros", label: "Litros", requerido: true },
   { key: "costo", label: "Costo", requerido: true },
   { key: "kmActual", label: "Kilometraje", requerido: true },

@@ -19,6 +19,12 @@ export type CombustibleTransaccion = {
   alertaSobrellenado: boolean;
   kmRecorridos: number | null;
   fuenteKmRecorridos: "GPS" | "CAPTURA" | null;
+  kmGps: number | null;
+  kmCapturaRecorridos: number | null;
+  motivoSobrellenado: string | null;
+  discrepanciaGps: string | null;
+  /** false antes del 1-oct-2026: esas cargas se calculan solo con km capturado (ver INICIO_KM_GPS). */
+  gpsAplica: boolean;
 };
 
 export type GrupoCombustible = {
@@ -28,6 +34,8 @@ export type GrupoCombustible = {
   rendimientoPromedio: number | null;
   ultimaFecha: string;
   alertasPendientes: number;
+  /** Cargas cuyo km recorrido capturado no coincide con el del GPS. */
+  discrepanciasGps: number;
   transacciones: CombustibleTransaccion[];
 };
 
@@ -78,6 +86,9 @@ export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: Grupo
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
                     {fmtMoney(g.totalCosto)}
                   </span>
+                  {g.discrepanciasGps > 0 && (
+                    <Badge label={`${g.discrepanciasGps} km ≠ GPS`} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />
+                  )}
                   {g.alertasPendientes > 0 ? (
                     <Badge label={`${g.alertasPendientes} sobrellenado`} color="var(--color-status-escena)" bg="var(--status-escena-bg)" />
                   ) : (
@@ -91,7 +102,7 @@ export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: Grupo
                   <table className="w-full min-w-[820px] border-collapse">
                     <thead>
                       <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                        {["Fecha", "Litros", "Costo", "Km", "Km recorridos", "Estación", "Rendimiento", ""].map((h) => (
+                        {["Fecha", "Litros", "Costo", "Km capturado", "Km GPS", "Km recorridos", "Estación", "Rendimiento", "Alertas"].map((h) => (
                           <th key={h} className="text-left px-4 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                         ))}
                       </tr>

@@ -71,6 +71,26 @@ export function parsearFechaFlexible(valor: string): Date | null {
 }
 
 const HORA = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/;
+// Hora pegada después de la fecha en la misma celda ("7/4/26 9:28",
+// "2026-10-12 14:35:10", "12/10/2026 2:35 p. m."), con o sin a. m./p. m.
+const HORA_EN_CELDA = /[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?\s*([ap])?\.?\s*(?:m\.?)?/i;
+
+/**
+ * Fecha y hora de una celda: la fecha con parsearFechaFlexible y, si la celda
+ * trae hora después de la fecha, esa hora (en hora de México). Sin hora →
+ * medianoche, igual que parsearFechaFlexible.
+ */
+export function parsearFechaHoraFlexible(valor: string): Date | null {
+  const fecha = parsearFechaFlexible(valor);
+  if (!fecha) return null;
+  const m = valor.trim().match(HORA_EN_CELDA);
+  if (!m) return fecha;
+  let horas = Number(m[1]);
+  const meridiano = m[4]?.toLowerCase();
+  if (meridiano === "p" && horas < 12) horas += 12;
+  if (meridiano === "a" && horas === 12) horas = 0;
+  return agregarHora(fecha, `${horas}:${m[2]}${m[3] ? `:${m[3]}` : ""}`);
+}
 
 /** Agrega una hora "HH:MM" o "HH:MM:SS" a una fecha ya resuelta a medianoche en
  * México (ver parsearFechaFlexible) — para distinguir cruces reales distintos

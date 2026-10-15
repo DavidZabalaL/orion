@@ -3,13 +3,13 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parsearWorkbook, type FilaMapeada, type ResultadoImportacion } from "@/lib/excel-parse";
-import { parsearFechaFlexible } from "@/lib/import-tag";
+import { parsearFechaFlexible, parsearFechaHoraFlexible, agregarHora } from "@/lib/import-tag";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
-import { recalcularCombustibleUnidad } from "@/lib/combustible-estimado";
+import { recalcularCombustibleUnidad, tieneHoraMx } from "@/lib/combustible-estimado";
 
 export type { HojaParseada } from "@/lib/excel-parse";
 
@@ -41,7 +41,11 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
 
   for (const { fila, numFila } of filasConIndice) {
     const numeroEconomicoBruto = String(fila.numeroEconomico ?? "").trim().toUpperCase();
-    const fecha = parsearFechaFlexible(fila.fecha ?? "");
+    // La hora de la carga (en la misma celda, como la manda Efectivale, o en
+    // una columna aparte) es la que permite leer el odómetro GPS del momento
+    // exacto — ver kmGpsAl en combustible-estimado.ts.
+    const fechaLeida = parsearFechaHoraFlexible(fila.fecha ?? "");
+    const fecha = fechaLeida && fila.hora && !tieneHoraMx(fechaLeida) ? agregarHora(fechaLeida, fila.hora) : fechaLeida;
     const litros = parseFloat(String(fila.litros ?? "").replace(/[^0-9.-]/g, ""));
     const costo = parseFloat(String(fila.costo ?? "").replace(/[^0-9.-]/g, ""));
     const kmActualBruto = parseInt(String(fila.kmActual ?? "").replace(/[^0-9-]/g, ""), 10);
@@ -89,24 +93,36 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
       resultado.advertencias.push({ fila: numFila, mensaje: `${numeroEconomico}: sin kilometraje en el archivo; el rendimiento y el nivel de tanque se tomarán del GPS si hay lecturas.` });
     }
 
-    // `fecha` no lleva hora (el importador no captura hora ni tarjeta, solo el
-    // día) y dos cargas reales distintas de la misma unidad el mismo día
-    // pueden coincidir en litros/costo (ej. una dotación fija diaria cargada
-    // con tarjetas distintas). Por eso se exige también que coincida el
-    // kilometraje: una re-importación accidental de la misma fila siempre
-    // trae el mismo km; dos cargas reales distintas casi nunca, porque la
-    // unidad se mueve entre una carga y otra. Para filas sin unidad no hay
-    // encadenamiento de kilometraje con qué comparar, así que no se deduplican.
+    // Duplicado = misma unidad, mismo DÍA, litros, costo y kilometraje (dos
+    // cargas reales distintas el mismo día pueden coincidir en litros/costo,
+    // pero casi nunca en km). Se compara por día y no por instante para que
+    // re-subir un archivo ya importado sin hora (cargas viejas guardadas a
+    // medianoche) no las duplique: si la existente no tenía hora y el archivo
+    // sí la trae, se le agrega. Para filas sin unidad no hay encadenamiento de
+    // kilometraje con qué comparar, así que no se deduplican.
     if (numeroEconomico) {
+      const inicioDia = parsearFechaFlexible(fila.fecha ?? "")!; // medianoche MX del día de la carga
       // Prisma no compara correctamente columnas Decimal cuando el filtro se
       // pasa como number nativo de JS (bug reproducido con litros/costo vía
       // findFirst): hay que envolverlos en Prisma.Decimal para que el
       // adaptador los serialice igual que el valor guardado en la columna.
       const duplicada = await prisma.combustible.findFirst({
-        where: { numeroEconomico, fecha, litros: new Prisma.Decimal(litros), costo: new Prisma.Decimal(costo), kmActual },
+        where: {
+          numeroEconomico,
+          fecha: { gte: inicioDia, lt: new Date(inicioDia.getTime() + 24 * 60 * 60 * 1000) },
+          litros: new Prisma.Decimal(litros),
+          costo: new Prisma.Decimal(costo),
+          kmActual,
+        },
       });
       if (duplicada) {
-        resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma unidad, fecha, litros, costo y kilometraje ya existente)." });
+        if (duplicada.fecha.getTime() === inicioDia.getTime() && fecha.getTime() !== inicioDia.getTime()) {
+          await prisma.combustible.update({ where: { id: duplicada.id }, data: { fecha } });
+          creadasPorUnidad.push({ id: duplicada.id, numFila, numeroEconomico });
+          resultado.actualizadas.push(`${numeroEconomico} · ${fecha.toISOString().slice(0, 10)} (se agregó la hora)`);
+        } else {
+          resultado.omitidas.push({ fila: numFila, motivo: "Transacción duplicada (misma unidad, fecha, litros, costo y kilometraje ya existente)." });
+        }
         continue;
       }
     }
@@ -142,7 +158,7 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
     }
   }
 
-  if (resultado.creadas.length > 0) invalidarCacheBI(["combustible", "presupuesto_partida"]);
+  if (resultado.creadas.length > 0 || resultado.actualizadas.length > 0) invalidarCacheBI(["combustible", "presupuesto_partida"]);
 
   const session = await auth();
   if (session?.user?.id) {
@@ -151,7 +167,7 @@ export async function importarCombustible(filas: FilaMapeada[], proyectoFallback
       modulo: "combustible",
       accion: "import",
       entidad: "Combustible",
-      detalle: { creadas: resultado.creadas.length, omitidas: resultado.omitidas.length },
+      detalle: { creadas: resultado.creadas.length, actualizadas: resultado.actualizadas.length, omitidas: resultado.omitidas.length },
     });
   }
 
