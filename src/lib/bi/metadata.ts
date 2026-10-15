@@ -254,6 +254,17 @@ export const BI_DATASETS: DatasetMeta[] = [
         agregacionesPermitidas: ["promedio"],
       },
       {
+        // Brecha del rendimiento real contra el de ficha técnica: negativo =
+        // la unidad rinde menos de lo que dice su ficha. NULL si falta alguno
+        // de los dos (sin cargas válidas o sin rendimiento de ficha capturado).
+        id: "brechaRendimiento",
+        label: "Diferencia rendimiento real vs ficha (%)",
+        tipo: "numero",
+        expr: `(SELECT CASE WHEN SUM(cb."litros") > 0 AND u."rendimientoPromedio" > 0 THEN ROUND(((SUM(cb."kmRecorridos")::numeric / SUM(cb."litros")) - u."rendimientoPromedio") / u."rendimientoPromedio" * 100, 1) END FROM "Combustible" cb WHERE cb."numeroEconomico" = u."numeroEconomico" AND cb."rendimientoCalculado" IS NOT NULL AND cb."kmRecorridos" IS NOT NULL)`,
+        sufijo: "%",
+        agregacionesPermitidas: ["promedio"],
+      },
+      {
         id: "capacidadTanqueLitros",
         label: "Capacidad de tanque (litros)",
         tipo: "numero",
@@ -1011,6 +1022,8 @@ export type CombinacionGuardable = {
   ejeMeta?: string;
   /** Orden de las categorías — solo aplica a barras/puntos/divergente. */
   orden?: TipoOrden;
+  /** Solo con orden por valor: mostrar únicamente las primeras N categorías (ej. "top 5 peores"). Ausente = todas. Se aplica al mostrar, no cambia la consulta. */
+  limite?: number;
   /** Solo con tipoGrafica "barras" simple (sin ejeSplit): orientación de las barras. Por defecto "vertical". Puramente visual — el servidor no lo usa, la consulta es idéntica en ambos casos. */
   orientacion?: "vertical" | "horizontal";
   /** Solo con tipoGrafica "avance": si un % alto es bueno (verde, ej. disponibilidad/SLA) o malo (rojo, ej. ejecución presupuestal). Por defecto "negativo". Puramente visual. */
@@ -1062,6 +1075,17 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Gasto de peajes por mes", dataset: "peajes", ejeX: "mes", ejeY: "monto", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Presupuesto autorizado por categoría", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "montoPresupuestado", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Unidades por año modelo", dataset: "unidades", ejeX: "anio", ejeY: "anio", agregacion: "conteo", tipoGrafica: "barras" },
+  {
+    label: "Top 5 peores rendimientos vs ficha técnica",
+    dataset: "unidades",
+    ejeX: "numeroEconomico",
+    ejeY: "brechaRendimiento",
+    agregacion: "promedio",
+    tipoGrafica: "barras",
+    orden: "valor_asc",
+    limite: 5,
+    orientacion: "horizontal",
+  },
   { label: "Rendimiento real por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoReal", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "Rendimiento de ficha técnica por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoPromedio", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "Unidades por propietario", dataset: "unidades", ejeX: "propietario", ejeY: "propietario", agregacion: "conteo", tipoGrafica: "pie" },
@@ -1102,6 +1126,8 @@ export const WIDGETS_BI_DEFAULT: WidgetDashboardBI[] = BI_COMBINACIONES_SUGERIDA
     ejeX: c.ejeX,
     ejeY: c.ejeY,
     ejeMeta: c.ejeMeta,
+    orden: c.orden,
+    limite: c.limite,
     orientacion: c.orientacion,
     colorimetria: c.colorimetria,
     vistaPreferida: c.vistaPreferida,

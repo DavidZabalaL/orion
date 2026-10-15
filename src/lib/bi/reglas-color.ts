@@ -4,7 +4,16 @@
 // "Personalizada" es una comparación simple (ej. ">=100") parseada con un
 // whitelist de operadores fijo — nunca se evalúa como código (sin eval()).
 
-export type OperadorReglaColor = "mayor" | "menor" | "igual" | "entre" | "personalizada" | "sobre_promedio" | "bajo_promedio";
+export type OperadorReglaColor =
+  | "mayor"
+  | "menor"
+  | "igual"
+  | "entre"
+  | "personalizada"
+  | "sobre_promedio"
+  | "bajo_promedio"
+  | "mayor_que_columna"
+  | "menor_que_columna";
 
 export type ReglaColorColumna = {
   id: string;
@@ -15,8 +24,13 @@ export type ReglaColorColumna = {
   valorMin?: number;
   valorMax?: number;
   expresion?: string;
+  /** Solo con "mayor_que_columna"/"menor_que_columna": otra columna de la MISMA fila contra la que se compara (ej. rendimiento real vs. rendimiento de ficha técnica). */
+  columnaComparada?: string;
   color: string;
 };
+
+/** Valores numéricos de una fila por nombre de columna — para las reglas que comparan contra otra columna. */
+export type FilaValores = Record<string, number | null | undefined>;
 
 export const OPERADOR_REGLA_COLOR_LABEL: Record<OperadorReglaColor, string> = {
   mayor: "Mayor que",
@@ -26,7 +40,12 @@ export const OPERADOR_REGLA_COLOR_LABEL: Record<OperadorReglaColor, string> = {
   personalizada: "Personalizada",
   sobre_promedio: "Por arriba del promedio",
   bajo_promedio: "Por debajo del promedio",
+  mayor_que_columna: "Mayor que otra columna",
+  menor_que_columna: "Menor que otra columna",
 };
+
+/** Operadores que comparan contra otra columna de la fila (necesitan `columnaComparada` y una tabla con varias columnas). */
+export const OPERADORES_CONTRA_COLUMNA: OperadorReglaColor[] = ["mayor_que_columna", "menor_que_columna"];
 
 export const COLORES_REGLA_PRESET: { valor: string; label: string }[] = [
   { valor: "#dc2626", label: "Rojo" },
@@ -63,8 +82,15 @@ function evaluarExpresion(valor: number, expresion: string): boolean {
  * alguien captura. Sin `promedio` (undefined), esas dos reglas nunca aplican
  * — no hay nada inventado contra qué comparar.
  */
-export function cumpleRegla(valor: number, regla: ReglaColorColumna, promedio?: number): boolean {
+export function cumpleRegla(valor: number, regla: ReglaColorColumna, promedio?: number, fila?: FilaValores): boolean {
   switch (regla.operador) {
+    case "mayor_que_columna":
+    case "menor_que_columna": {
+      // Sin la otra columna en la fila (o sin dato) la regla no aplica: no hay contra qué comparar.
+      const otro = regla.columnaComparada ? fila?.[regla.columnaComparada] : undefined;
+      if (typeof otro !== "number" || !Number.isFinite(otro)) return false;
+      return regla.operador === "mayor_que_columna" ? valor > otro : valor < otro;
+    }
     case "mayor":
       return regla.valor !== undefined && valor > regla.valor;
     case "menor":
@@ -83,11 +109,13 @@ export function cumpleRegla(valor: number, regla: ReglaColorColumna, promedio?: 
 }
 
 /** Primera regla que aplique a `valor` en esta columna (o a todas, si la regla no especifica columna) — null si ninguna aplica. */
-export function colorParaValor(valor: number, columna: string, reglas: ReglaColorColumna[] | undefined, promedio?: number): string | null {
+export function colorParaValor(valor: number, columna: string, reglas: ReglaColorColumna[] | undefined, promedio?: number, fila?: FilaValores): string | null {
   if (!reglas) return null;
   for (const regla of reglas) {
     if (regla.columna && regla.columna !== columna) continue;
-    if (cumpleRegla(valor, regla, promedio)) return regla.color;
+    // Una columna nunca se compara contra sí misma (regla sin columna fija + "contra columna").
+    if (regla.columnaComparada && regla.columnaComparada === columna) continue;
+    if (cumpleRegla(valor, regla, promedio, fila)) return regla.color;
   }
   return null;
 }

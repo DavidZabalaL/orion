@@ -58,7 +58,7 @@ function validarFiltros(filtros: unknown, ds: DatasetMeta): FiltroGuardable[] | 
   return limpios;
 }
 
-const OPERADORES_REGLA_COLOR_VALIDOS: OperadorReglaColor[] = ["mayor", "menor", "igual", "entre", "personalizada", "sobre_promedio", "bajo_promedio"];
+const OPERADORES_REGLA_COLOR_VALIDOS: OperadorReglaColor[] = ["mayor", "menor", "igual", "entre", "personalizada", "sobre_promedio", "bajo_promedio", "mayor_que_columna", "menor_que_columna"];
 const MAX_REGLAS_COLOR = 20;
 
 function validarReglasColor(reglas: unknown): ReglaColorColumna[] | undefined | null {
@@ -67,13 +67,14 @@ function validarReglasColor(reglas: unknown): ReglaColorColumna[] | undefined | 
   const limpias: ReglaColorColumna[] = [];
   for (const r of reglas) {
     if (!r || typeof r !== "object") return null;
-    const { id, columna, operador, valor, valorMin, valorMax, expresion, color } = r as Record<string, unknown>;
+    const { id, columna, operador, valor, valorMin, valorMax, expresion, color, columnaComparada } = r as Record<string, unknown>;
     if (typeof id !== "string" || typeof columna !== "string" || typeof color !== "string") return null;
     if (!OPERADORES_REGLA_COLOR_VALIDOS.includes(operador as OperadorReglaColor)) return null;
     if (valor !== undefined && typeof valor !== "number") return null;
     if (valorMin !== undefined && typeof valorMin !== "number") return null;
     if (valorMax !== undefined && typeof valorMax !== "number") return null;
     if (expresion !== undefined && typeof expresion !== "string") return null;
+    if (columnaComparada !== undefined && typeof columnaComparada !== "string") return null;
     limpias.push({
       id,
       columna: columna.slice(0, 200),
@@ -82,6 +83,7 @@ function validarReglasColor(reglas: unknown): ReglaColorColumna[] | undefined | 
       valorMin,
       valorMax,
       expresion: typeof expresion === "string" ? expresion.slice(0, 100) : undefined,
+      columnaComparada: typeof columnaComparada === "string" && columnaComparada ? columnaComparada.slice(0, 200) : undefined,
       color: color.slice(0, 20),
     });
   }
@@ -106,7 +108,7 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   const limpios: WidgetDashboardBI[] = [];
   for (const w of widgets) {
     if (!w || typeof w !== "object") return null;
-    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro, tipoWidget, columnas, reglasColor } = w as Record<string, unknown>;
+    const { id, label, dataset, ejeX, ejeY, agregacion, tipoGrafica, layout, ejeSplit, ejeMeta, orden, limite, orientacion, colorimetria, vistaPreferida, filtros, proyectoIds, emiteFiltro, escuchaFiltro, tipoWidget, columnas, reglasColor } = w as Record<string, unknown>;
     if (typeof id !== "string" || typeof label !== "string") return null;
     if (typeof dataset !== "string") return null;
 
@@ -231,6 +233,9 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
       ejeSplit: ejeSplitLimpio,
       ejeMeta: ejeMetaLimpio,
       orden: ordenLimpio,
+      // Top N: solo con orden por valor; entero entre 1 y 100.
+      limite:
+        ordenLimpio && ordenLimpio !== "dimension" && typeof limite === "number" && Number.isInteger(limite) && limite >= 1 && limite <= 100 ? limite : undefined,
       orientacion: orientacionLimpia,
       colorimetria: colorimetriaLimpia,
       vistaPreferida: vistaPreferidaLimpia,

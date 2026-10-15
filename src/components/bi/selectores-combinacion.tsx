@@ -90,6 +90,8 @@ export type CombinacionBI = {
   /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
   ejeMeta?: string;
   orden?: TipoOrden;
+  /** Solo con orden por valor: mostrar solo las primeras N categorías (top N). */
+  limite?: number;
   /** Solo con tipoGrafica "barras" simple (sin ejeSplit): barras horizontales en vez de verticales. */
   orientacion?: "vertical" | "horizontal";
   /** Solo con tipoGrafica "avance": si un % alto es bueno (verde) o malo (rojo). */
@@ -264,13 +266,38 @@ export function SelectoresCombinacion({
         {(combinacion.tipoGrafica === "barras" || combinacion.tipoGrafica === "puntos" || combinacion.tipoGrafica === "divergente") && (
           <div>
             <label style={labelStyle}>Orden</label>
-            <select value={combinacion.orden ?? "dimension"} onChange={(e) => onChange({ ...combinacion, orden: e.target.value as TipoOrden })} style={fieldStyle}>
+            <select
+              value={combinacion.orden ?? "dimension"}
+              onChange={(e) => {
+                const orden = e.target.value as TipoOrden;
+                onChange({ ...combinacion, orden, limite: orden === "dimension" ? undefined : combinacion.limite });
+              }}
+              style={fieldStyle}
+            >
               {(["dimension", "valor_desc", "valor_asc"] as const).map((o) => (
                 <option key={o} value={o}>{ORDEN_LABEL[o]}</option>
               ))}
             </select>
           </div>
         )}
+        {(combinacion.tipoGrafica === "barras" || combinacion.tipoGrafica === "puntos" || combinacion.tipoGrafica === "divergente") &&
+          !combinacion.ejeSplit &&
+          (combinacion.orden === "valor_desc" || combinacion.orden === "valor_asc") && (
+            <div>
+              <label style={labelStyle}>Mostrar</label>
+              <select
+                value={combinacion.limite ?? ""}
+                onChange={(e) => onChange({ ...combinacion, limite: e.target.value ? Number(e.target.value) : undefined })}
+                style={fieldStyle}
+                title={combinacion.orden === "valor_asc" ? "Las de menor valor (ej. los peores rendimientos)" : "Las de mayor valor"}
+              >
+                <option value="">Todas</option>
+                {[3, 5, 10, 15, 20].map((n) => (
+                  <option key={n} value={n}>{combinacion.orden === "valor_asc" ? `Los ${n} más bajos` : `Los ${n} más altos`}</option>
+                ))}
+              </select>
+            </div>
+          )}
         {combinacion.tipoGrafica === "barras" && combinacion.ejeSplit === undefined && (
           <div>
             <label style={labelStyle}>Orientación</label>

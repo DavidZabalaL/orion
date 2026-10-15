@@ -90,6 +90,7 @@ export function BiAgregarWidget({
       ejeSplit: combinacion.ejeSplit,
       ejeMeta: combinacion.ejeMeta,
       orden: combinacion.orden,
+      limite: combinacion.orden && combinacion.orden !== "dimension" && !combinacion.ejeSplit ? combinacion.limite : undefined,
       orientacion: combinacion.orientacion,
       colorimetria: combinacion.colorimetria,
       vistaPreferida: combinacion.vistaPreferida,

@@ -130,12 +130,17 @@ export function BiCardTablaFilas({
         ) : (
           <>
             <Table headers={columnasResueltas.map((c) => c.label)} minWidth={columnasResueltas.length * 140}>
-              {filas.map((fila, i) => (
+              {filas.map((fila, i) => {
+                // Valores numéricos de la fila por nombre de columna — para las reglas "mayor/menor que otra columna".
+                const valoresFila = Object.fromEntries(
+                  columnasResueltas.map((c) => [c.label, c.tipo === "numero" && fila[c.id] !== null && fila[c.id] !== "" ? Number(fila[c.id]) : null])
+                );
+                return (
                 <tr key={i} style={{ borderBottom: "1px solid var(--field-border)" }}>
                   {columnasResueltas.map((c) => {
                     const valor = fila[c.id];
                     const numero = c.tipo === "numero" && valor !== null && valor !== "" ? Number(valor) : null;
-                    const color = numero !== null && Number.isFinite(numero) ? colorParaValor(numero, c.label, reglasColor, promedioPorColumna[c.id]) : null;
+                    const color = numero !== null && Number.isFinite(numero) ? colorParaValor(numero, c.label, reglasColor, promedioPorColumna[c.id], valoresFila) : null;
                     return (
                       <td
                         key={c.id}
@@ -147,7 +152,8 @@ export function BiCardTablaFilas({
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </Table>
             {truncado && (
               <p className="mt-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>

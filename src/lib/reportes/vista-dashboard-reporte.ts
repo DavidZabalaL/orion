@@ -64,12 +64,14 @@ function coloresTabla(columnas: ColumnaWidgetReporte[], filas: (string | number 
   if (!reglas || reglas.length === 0) return filas.map((f) => f.map(() => null));
   const numero = (v: string | number | null) => (v === null || v === "" ? null : Number(v));
   const promedios = columnas.map((c, j) => (c.numerica ? promedioDe(filas.map((f) => numero(f[j])).filter((v): v is number => v !== null && Number.isFinite(v))) : undefined));
-  return filas.map((f) =>
-    f.map((v, j) => {
+  return filas.map((f) => {
+    // Valores de la fila por nombre de columna — para las reglas "mayor/menor que otra columna".
+    const valoresFila = Object.fromEntries(columnas.map((c, j) => [c.label, c.numerica ? numero(f[j]) : null]));
+    return f.map((v, j) => {
       const n = numero(v);
-      return columnas[j].numerica && n !== null && Number.isFinite(n) ? colorParaValor(n, columnas[j].label, reglas, promedios[j]) : null;
-    })
-  );
+      return columnas[j].numerica && n !== null && Number.isFinite(n) ? colorParaValor(n, columnas[j].label, reglas, promedios[j], valoresFila) : null;
+    });
+  });
 }
 
 function tabla(titulo: string, columnas: ColumnaWidgetReporte[], todas: (string | number | null)[][], reglas: ReglaColorColumna[] | undefined): WidgetReporte {
@@ -168,7 +170,8 @@ async function calcularWidget(w: WidgetDashboardBI, permitidos: string[] | null,
     return { tipo: "kpi", titulo, valor, sufijo, detalle: ejeYLabel, color: colorParaValor(valor, ejeYLabel, w.reglasColor) };
   }
 
-  const datos = r.datos.map((d) => ({ label: etiqueta(campoX, d.dimension), valor: d.valor }));
+  const conLimite = w.limite && (w.orden === "valor_desc" || w.orden === "valor_asc") ? r.datos.slice(0, w.limite) : r.datos;
+  const datos = conLimite.map((d) => ({ label: etiqueta(campoX, d.dimension), valor: d.valor }));
   if (w.vistaPreferida === "tabla") {
     return tabla(titulo, [{ label: campoX.label, numerica: false, sufijo: "" }, { label: ejeYLabel, numerica: true, sufijo }], datos.map((d) => [d.label, d.valor]), w.reglasColor);
   }

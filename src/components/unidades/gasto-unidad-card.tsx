@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { BarChart3, Wallet } from "lucide-react";
+import { Eye } from "lucide-react";
 import { fmtMoney } from "@/lib/formato";
+import { Modal } from "@/components/ui/modal";
 import type { GastoUnidad } from "@/lib/gasto-unidad";
 
 const COLOR_GRUPO: Record<string, string> = {
@@ -17,21 +17,44 @@ const COLOR_GRUPO: Record<string, string> = {
 };
 
 /**
- * Gasto total de la unidad con desglose por partida (combustible, casetas,
- * mantenimiento, trámites, siniestros, seguros…) — año en curso o histórico.
- * Ver src/lib/gasto-unidad.ts para las fuentes de cada partida.
+ * Gasto total de la unidad como un campo discreto de la ficha (total del año
+ * en curso) con un botón que abre el desglose por partida en una ventana
+ * flotante. Ver src/lib/gasto-unidad.ts para las fuentes de cada partida.
  */
-export function GastoUnidadCard({ numeroEconomico, anio, historico }: { numeroEconomico: string; anio: GastoUnidad; historico: GastoUnidad }) {
+export function GastoUnidadCampo({ numeroEconomico, anio, historico }: { numeroEconomico: string; anio: GastoUnidad; historico: GastoUnidad }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <>
+      <span className="flex flex-wrap items-center gap-2">
+        <span style={{ fontFamily: "var(--font-mono)" }}>{fmtMoney(anio.total)}</span>
+        <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>año en curso</span>
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className="flex items-center gap-1 rounded-md px-2 h-6"
+          style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}
+        >
+          <Eye size={12} /> Ver desglose
+        </button>
+      </span>
+      {abierto && (
+        <Modal title={`Gasto total — ${numeroEconomico}`} onClose={() => setAbierto(false)} maxWidth={620}>
+          <GastoUnidadDesglose anio={anio} historico={historico} />
+        </Modal>
+      )}
+    </>
+  );
+}
+
+/** Desglose por partida (año en curso o histórico) — contenido de la ventana flotante. */
+function GastoUnidadDesglose({ anio, historico }: { anio: GastoUnidad; historico: GastoUnidad }) {
   const [periodo, setPeriodo] = useState<"anio" | "historico">("anio");
   const g = periodo === "anio" ? anio : historico;
   const max = Math.max(...g.partidas.map((p) => p.monto), 1);
 
   return (
-    <div className="rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
+    <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          <Wallet size={16} /> Gasto total de la unidad
-        </h3>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-md p-0.5" style={{ background: "var(--chip)" }}>
             {(["anio", "historico"] as const).map((p) => (
@@ -52,13 +75,6 @@ export function GastoUnidadCard({ numeroEconomico, anio, historico }: { numeroEc
               </button>
             ))}
           </div>
-          <Link
-            href={`/unidades/comparativo?base=${encodeURIComponent(numeroEconomico)}`}
-            className="flex items-center gap-1.5 rounded-md px-3 h-8"
-            style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600 }}
-          >
-            <BarChart3 size={14} /> Comparar con unidades similares
-          </Link>
         </div>
       </div>
 

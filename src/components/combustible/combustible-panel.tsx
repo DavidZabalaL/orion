@@ -1,7 +1,7 @@
 "use client";
 
+import { RendimientoPorUnidadPanel, type RendimientoUnidad } from "@/components/combustible/rendimiento-por-unidad";
 import { useState } from "react";
-import Link from "next/link";
 import { Fuel, Gauge, DollarSign, Inbox } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/table";
@@ -19,11 +19,7 @@ type Pendiente = {
   proyectoReportante: { nombre: string } | null;
 };
 
-type RendimientoPorUnidad = {
-  numeroEconomico: string;
-  /** km/L ponderado por litros, solo con cargas válidas; null = sin datos suficientes. */
-  rendimiento: number | null;
-};
+type RendimientoPorUnidad = RendimientoUnidad;
 
 export function CombustiblePanel({
   unidades,
@@ -105,22 +101,7 @@ export function CombustiblePanel({
             <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
               Rendimiento por unidad
             </h3>
-            <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-              {rendimientoPorUnidad.length === 0 ? (
-                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>Sin datos aún.</p>
-              ) : (
-                rendimientoPorUnidad.map((r) => (
-                  <div key={r.numeroEconomico} className="flex items-center justify-between">
-                    <Link href={`/unidades/${r.numeroEconomico}`} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-                      {r.numeroEconomico}
-                    </Link>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-                      {r.rendimiento !== null ? `${r.rendimiento.toFixed(1)} km/L` : "—"}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
+            <RendimientoPorUnidadPanel unidades={rendimientoPorUnidad} />
           </div>
         </div>
       )}

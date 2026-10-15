@@ -26,6 +26,7 @@ export function BiCard({
   ejeSplit,
   ejeMeta,
   orden,
+  limite,
   orientacion,
   colorimetria,
   vistaPreferida,
@@ -50,6 +51,8 @@ export function BiCard({
   /** Solo con tipoGrafica "avance": el campo "meta" contra el que se compara ejeY. */
   ejeMeta?: string;
   orden?: TipoOrden;
+  /** Top N: con orden por valor, solo las primeras N categorías. */
+  limite?: number;
   /** Solo con tipoGrafica "barras" simple: barras horizontales en vez de verticales. */
   orientacion?: "vertical" | "horizontal";
   /** Solo con tipoGrafica "avance": si un % alto es bueno (verde) o malo (rojo). */
@@ -105,7 +108,12 @@ export function BiCard({
     () => ({ dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, ejeMeta, orden, filtros: filtrosEfectivos, proyectoIds }),
     [dataset, ejeX, ejeY, agregacion, tipoGrafica, ejeSplit, ejeMeta, orden, filtrosEfectivos, proyectoIds]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, truncado, cargando, error } = useBiQuery(params);
+  const { datos: datosConsulta, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, truncado, cargando, error } = useBiQuery(params);
+  // Top N (ej. "los 5 peores"): la consulta ya viene ordenada por valor; se recorta al mostrar.
+  const datos = useMemo(
+    () => (limite && (orden === "valor_desc" || orden === "valor_asc") ? datosConsulta.slice(0, limite) : datosConsulta),
+    [datosConsulta, limite, orden]
+  );
   const ejeXLabel = obtenerCampo(obtenerDataset(dataset)!, ejeX)?.label ?? ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();

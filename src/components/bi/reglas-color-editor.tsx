@@ -3,6 +3,7 @@
 import { Plus, X } from "lucide-react";
 import {
   OPERADOR_REGLA_COLOR_LABEL,
+  OPERADORES_CONTRA_COLUMNA,
   COLORES_REGLA_PRESET,
   type OperadorReglaColor,
   type ReglaColorColumna,
@@ -114,10 +115,37 @@ export function ReglasColorEditor({
               className="rounded-md px-2"
               style={{ ...fieldStyle, height: 30, width: 130, fontSize: "var(--text-xs)" }}
             >
-              {(Object.entries(OPERADOR_REGLA_COLOR_LABEL) as [OperadorReglaColor, string][]).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
+              {(Object.entries(OPERADOR_REGLA_COLOR_LABEL) as [OperadorReglaColor, string][])
+                // "Contra otra columna" solo tiene sentido en tablas con columnas (no en un KPI suelto).
+                .filter(([v]) => mostrarColumna || !OPERADORES_CONTRA_COLUMNA.includes(v))
+                .map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
             </select>
+
+            {OPERADORES_CONTRA_COLUMNA.includes(r.operador) &&
+              (columnasDisponibles && columnasDisponibles.length > 0 ? (
+                <select
+                  value={r.columnaComparada ?? ""}
+                  onChange={(e) => actualizar(r.id, { columnaComparada: e.target.value || undefined })}
+                  className="rounded-md px-2"
+                  style={{ ...fieldStyle, height: 30, maxWidth: 190, fontSize: "var(--text-xs)" }}
+                  title="Columna de la misma fila contra la que se compara"
+                >
+                  <option value="">Elige la otra columna…</option>
+                  {columnasDisponibles.filter((c) => c !== r.columna).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={r.columnaComparada ?? ""}
+                  onChange={(e) => actualizar(r.id, { columnaComparada: e.target.value || undefined })}
+                  placeholder="Otra columna"
+                  className="rounded-md px-2"
+                  style={{ ...fieldStyle, height: 30, width: 150, fontSize: "var(--text-xs)" }}
+                />
+              ))}
 
             {(r.operador === "mayor" || r.operador === "menor" || r.operador === "igual") && (
               <input

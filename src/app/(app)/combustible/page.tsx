@@ -61,7 +61,20 @@ export default async function CombustiblePage({ searchParams }: { searchParams: 
   ]);
   const ponderado = (km: number | null | undefined, litros: unknown) => (km && Number(litros) > 0 ? km / Number(litros) : null);
   const rendimientoValidoMapa = new Map(rendimientoValidoPorUnidad.map((r) => [r.numeroEconomico, ponderado(r._sum.kmRecorridos, r._sum.litros)]));
-  const rendimientoPorUnidad = unidadesConCarga.map((u) => ({ numeroEconomico: u.numeroEconomico as string, rendimiento: rendimientoValidoMapa.get(u.numeroEconomico) ?? null }));
+  // Rendimiento teórico (ficha técnica) de cada unidad con cargas, para compararlo contra el real.
+  const teoricoPorUnidad = new Map(
+    (
+      await prisma.unidad.findMany({
+        where: { numeroEconomico: { in: unidadesConCarga.map((u) => u.numeroEconomico as string) } },
+        select: { numeroEconomico: true, rendimientoPromedio: true },
+      })
+    ).map((u) => [u.numeroEconomico, u.rendimientoPromedio != null ? Number(u.rendimientoPromedio) : null])
+  );
+  const rendimientoPorUnidad = unidadesConCarga.map((u) => ({
+    numeroEconomico: u.numeroEconomico as string,
+    rendimiento: rendimientoValidoMapa.get(u.numeroEconomico) ?? null,
+    teorico: teoricoPorUnidad.get(u.numeroEconomico as string) ?? null,
+  }));
   const rendimientoPromedioFlota = ponderado(rendimientoValidoFlota._sum.kmRecorridos, rendimientoValidoFlota._sum.litros);
 
   // Explicación de cada carga (km capturado vs. GPS y razón del sobrellenado)

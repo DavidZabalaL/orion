@@ -8,15 +8,17 @@ import { gastoPorUnidad, rendimientoReal } from "@/lib/gasto-unidad";
 import { inicioDeAnioMx } from "@/lib/timezone";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { ComparativoTabla, type FilaComparativo } from "@/components/unidades/comparativo-tabla";
+import { SelectorUnidadesComparativo } from "@/components/unidades/selector-unidades-comparativo";
 
 export const dynamic = "force-dynamic";
 
-type Criterio = "modelo" | "marca" | "tipo";
+type Criterio = "modelo" | "marca" | "tipo" | "seleccion";
 
 const CRITERIO_LABEL: Record<Criterio, string> = {
   modelo: "Mismo modelo",
   marca: "Misma marca",
   tipo: "Mismo tipo de unidad",
+  seleccion: "Elegir unidades",
 };
 
 /**
@@ -24,10 +26,16 @@ const CRITERIO_LABEL: Record<Criterio, string> = {
  * modelo / marca / tipo (ej. todas las F-150) — se abre desde la ficha de la
  * unidad. Respeta el alcance de proyectos del rol (módulo A).
  */
-export default async function ComparativoUnidadesPage({ searchParams }: { searchParams: Promise<{ base?: string; criterio?: string; periodo?: string }> }) {
+export default async function ComparativoUnidadesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ base?: string; criterio?: string; periodo?: string; unidades?: string }>;
+}) {
   await requerirPermisoModulo("A");
   const params = await searchParams;
-  const criterio: Criterio = params.criterio === "marca" || params.criterio === "tipo" ? params.criterio : "modelo";
+  const criterio: Criterio = params.criterio === "marca" || params.criterio === "tipo" || params.criterio === "seleccion" ? params.criterio : "modelo";
+  // Con "Elegir unidades": la lista de la URL (siempre incluye la base); se filtra contra el alcance del rol más abajo.
+  const seleccion = criterio === "seleccion" ? Array.from(new Set([params.base ?? "", ...(params.unidades ?? "").split(",")].map((n) => n.trim()).filter(Boolean))).slice(0, 31) : [];
   const periodo = params.periodo === "historico" ? "historico" : "anio";
   const permitidos = await proyectosPermitidosParaModulo("A");
   const alcance = permitidos !== null ? { proyectoId: { in: permitidos } } : {};
@@ -38,7 +46,9 @@ export default async function ComparativoUnidadesPage({ searchParams }: { search
   if (!base) notFound();
 
   const filtroGrupo =
-    criterio === "modelo"
+    criterio === "seleccion"
+      ? { numeroEconomico: { in: seleccion } }
+      : criterio === "modelo"
       ? { marca: { equals: base.marca, mode: "insensitive" as const }, unidadModelo: { equals: base.unidadModelo, mode: "insensitive" as const } }
       : criterio === "marca"
         ? { marca: { equals: base.marca, mode: "insensitive" as const } }
@@ -79,10 +89,25 @@ export default async function ComparativoUnidadesPage({ searchParams }: { search
     };
   });
 
+  // Lista de unidades elegibles para el selector "Elegir unidades".
+  const elegibles =
+    criterio === "seleccion"
+      ? (
+          await prisma.unidad.findMany({
+            where: { estatus: { not: "BAJA" }, ...alcance },
+            select: { numeroEconomico: true, marca: true, unidadModelo: true, proyecto: { select: { nombre: true } } },
+            orderBy: { numeroEconomico: "asc" },
+          })
+        ).map((u) => ({ numeroEconomico: u.numeroEconomico, modelo: `${u.marca} ${u.unidadModelo}`, proyecto: u.proyecto?.nombre ?? null }))
+      : [];
+
   const grupo =
-    criterio === "modelo" ? `${base.marca} ${base.unidadModelo}` : criterio === "marca" ? base.marca : TIPO_VEHICULO_LABEL[base.tipoVehiculo] ?? base.tipoVehiculo;
-  const enlace = (cambios: { criterio?: Criterio; periodo?: string }) =>
-    `/unidades/comparativo?base=${encodeURIComponent(base.numeroEconomico)}&criterio=${cambios.criterio ?? criterio}&periodo=${cambios.periodo ?? periodo}`;
+    criterio === "seleccion" ? "unidades elegidas" : criterio === "modelo" ? `${base.marca} ${base.unidadModelo}` : criterio === "marca" ? base.marca : TIPO_VEHICULO_LABEL[base.tipoVehiculo] ?? base.tipoVehiculo;
+  const enlace = (cambios: { criterio?: Criterio; periodo?: string }) => {
+    const c = cambios.criterio ?? criterio;
+    const lista = c === "seleccion" && seleccion.length > 0 ? `&unidades=${seleccion.map(encodeURIComponent).join(",")}` : "";
+    return `/unidades/comparativo?base=${encodeURIComponent(base.numeroEconomico)}&criterio=${c}&periodo=${cambios.periodo ?? periodo}${lista}`;
+  };
   const chip = (activo: boolean): React.CSSProperties => ({
     background: activo ? "var(--color-primary)" : "var(--panel-bg)",
     color: activo ? "#fff" : "var(--sidebar-text-active)",
@@ -99,7 +124,13 @@ export default async function ComparativoUnidadesPage({ searchParams }: { search
         </Link>
         <h1 style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>Comparativo de unidades</h1>
         <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          {base.numeroEconomico} contra las unidades activas de {criterio === "tipo" ? "tipo" : criterio === "marca" ? "marca" : "modelo"} <strong>{grupo}</strong> — gasto por partida, combustible y rendimiento.
+          {criterio === "seleccion" ? (
+            <>{base.numeroEconomico} contra las unidades que elijas por número económico — gasto por partida, combustible y rendimiento.</>
+          ) : (
+            <>
+              {base.numeroEconomico} contra las unidades activas de {criterio === "tipo" ? "tipo" : criterio === "marca" ? "marca" : "modelo"} <strong>{grupo}</strong> — gasto por partida, combustible y rendimiento.
+            </>
+          )}
         </p>
       </div>
 
@@ -119,7 +150,11 @@ export default async function ComparativoUnidadesPage({ searchParams }: { search
         </Link>
       </div>
 
-      <ComparativoTabla filas={JSON.parse(JSON.stringify(filas))} base={base.numeroEconomico} titulo={`${CRITERIO_LABEL[criterio]}: ${grupo}`} />
+      {criterio === "seleccion" && (
+        <SelectorUnidadesComparativo base={base.numeroEconomico} unidades={elegibles} seleccionInicial={seleccion} periodo={periodo} />
+      )}
+
+      <ComparativoTabla filas={JSON.parse(JSON.stringify(filas))} base={base.numeroEconomico} titulo={criterio === "seleccion" ? "Unidades elegidas" : `${CRITERIO_LABEL[criterio]}: ${grupo}`} />
 
       <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
         Km recorridos y rendimiento real salen de las cargas de combustible con rendimiento válido (cálculo de la plataforma). Mantenimiento incluye preventivo, correctivo, llantas, refacciones y consumibles; trámites incluye tenencia, verificación y emplacamiento; siniestros cuenta arrastre y reparación.

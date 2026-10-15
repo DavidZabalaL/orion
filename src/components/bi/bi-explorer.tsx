@@ -50,7 +50,7 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
   const soportaTabla = combinacion.tipoGrafica !== "caja" && combinacion.tipoGrafica !== "piramide";
 
   function aplicarSugerencia(s: (typeof BI_COMBINACIONES_SUGERIDAS)[number]) {
-    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, orientacion: s.orientacion, colorimetria: s.colorimetria, vistaPreferida: s.vistaPreferida, filtros: s.filtros });
+    setCombinacion({ datasetId: s.dataset, ejeX: s.ejeX, ejeY: s.ejeY, agregacion: s.agregacion, tipoGrafica: s.tipoGrafica, ejeSplit: s.ejeSplit, ejeMeta: s.ejeMeta, orden: s.orden, limite: s.limite, orientacion: s.orientacion, colorimetria: s.colorimetria, vistaPreferida: s.vistaPreferida, filtros: s.filtros });
   }
 
   // Aplicar una métrica guardada solo pre-llena dataset/ejeY/agregación/filtros
@@ -86,7 +86,13 @@ export function BiExplorer({ proyectosDisponibles, metricasDisponibles = [] }: {
     }),
     [combinacion]
   );
-  const { datos, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, truncado, cargando, error } = useBiQuery(params);
+  const { datos: datosConsulta, cajas, pares, splitLabels, cruzado, ejeYLabel, ejeYSufijo, ejeMetaLabel, ejeMetaSufijo, truncado, cargando, error } = useBiQuery(params);
+  // Top N (ej. "los 5 peores"): la consulta ya viene ordenada por valor; se recorta al mostrar.
+  const { limite, orden } = combinacion;
+  const datos = useMemo(
+    () => (limite && (orden === "valor_desc" || orden === "valor_asc") ? datosConsulta.slice(0, limite) : datosConsulta),
+    [datosConsulta, limite, orden]
+  );
   const ejeXLabel = dataset.campos.find((c) => c.id === combinacion.ejeX)?.label ?? combinacion.ejeX;
   const graficaRef = useRef<HTMLDivElement>(null);
   const idExportable = useId();

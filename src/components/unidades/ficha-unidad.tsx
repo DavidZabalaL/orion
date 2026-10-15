@@ -21,6 +21,7 @@ import {
   History,
   AlertOctagon,
   Plus,
+  BarChart3,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,7 +40,7 @@ import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
 import { blobProxy } from "@/lib/blob";
 import { Modal } from "@/components/ui/modal";
 import { BadgeMotivo } from "@/components/ui/badge-motivo";
-import { GastoUnidadCard } from "@/components/unidades/gasto-unidad-card";
+import { GastoUnidadCampo } from "@/components/unidades/gasto-unidad-card";
 import type { GastoUnidad } from "@/lib/gasto-unidad";
 import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
@@ -463,6 +464,13 @@ export function FichaUnidad({
               variante="completo"
             />
             <ReasignarProyectoButton numeroEconomico={unidad.numeroEconomico} proyectoActualId={unidad.proyectoId ?? null} proyectos={proyectos} />
+            <Link
+              href={`/unidades/comparativo?base=${encodeURIComponent(unidad.numeroEconomico)}`}
+              className="flex items-center gap-2 rounded-md px-3 h-9"
+              style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", border: "1px solid var(--field-border)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+            >
+              <BarChart3 size={15} /> Comparar unidades
+            </Link>
             {unidad.proyectoId && (
               <>
                 <Link
@@ -628,7 +636,6 @@ function TabGeneral({
   const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
   return (
     <div className="flex flex-col gap-6">
-    {gastoUnidad && <GastoUnidadCard numeroEconomico={unidad.numeroEconomico} anio={gastoUnidad.anio} historico={gastoUnidad.historico} />}
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl p-5" style={panelStyle}>
         <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
@@ -647,6 +654,9 @@ function TabGeneral({
             value={rendimientoPlataforma ? `${rendimientoPlataforma.kmL.toLocaleString("es-MX")} km/L · ${rendimientoPlataforma.cargas} cargas` : "Sin cargas con km válidos"}
           />
           <Field label="Km oficial" value={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km`} />
+          {gastoUnidad && (
+            <Field label="Gasto total" value={<GastoUnidadCampo numeroEconomico={unidad.numeroEconomico} anio={gastoUnidad.anio} historico={gastoUnidad.historico} />} />
+          )}
           <Field
             label="Capacidad máxima de tanque"
             value={

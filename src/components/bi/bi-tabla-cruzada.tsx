@@ -53,7 +53,7 @@ export function BiTablaCruzada({
               <td className="py-2 pr-3">{f.dimension}</td>
               {cruzado.series.map((s) => {
                 const valor = f.valores[s] ?? 0;
-                const color = colorParaValor(valor, s, reglasColor, promedioPorSerie[s]);
+                const color = colorParaValor(valor, s, reglasColor, promedioPorSerie[s], f.valores);
                 return (
                   <td key={s} className="py-2 pr-3 text-right" style={{ fontVariantNumeric: "tabular-nums", ...(color ? { color, fontWeight: 600 } : {}) }}>
                     {formatearValorBI(valor, ejeYSufijo)}

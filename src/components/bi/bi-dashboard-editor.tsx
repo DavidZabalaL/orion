@@ -342,6 +342,7 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                       filtros={w.filtros}
                       proyectoIds={w.proyectoIds}
                       orden={w.orden}
+                      limite={w.limite}
                       orientacion={w.orientacion}
                       colorimetria={w.colorimetria}
                       reglasColor={w.reglasColor}
@@ -403,6 +404,7 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                           ejeSplit: widgetEditando.ejeSplit,
                           ejeMeta: widgetEditando.ejeMeta,
                           orden: widgetEditando.orden,
+                          limite: widgetEditando.limite,
                           orientacion: widgetEditando.orientacion,
                           colorimetria: widgetEditando.colorimetria,
                           reglasColor: widgetEditando.reglasColor,
