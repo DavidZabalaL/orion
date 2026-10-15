@@ -140,7 +140,12 @@ export function BiAgregarWidget({
             onChangeDataset={(datasetId) => setCombinacion({ ...combinacion, datasetId, filtros: [] })}
             onChangeColumnas={setColumnasTabla}
           />
-          <ReglasColorEditor reglas={combinacion.reglasColor ?? []} onChange={(reglasColor) => setCombinacion({ ...combinacion, reglasColor })} titulo="Reglas de color (por columna)" />
+          <ReglasColorEditor
+            reglas={combinacion.reglasColor ?? []}
+            onChange={(reglasColor) => setCombinacion({ ...combinacion, reglasColor })}
+            titulo="Reglas de color (por columna)"
+            columnasDisponibles={columnasTabla.map((id) => dataset.campos.find((c) => c.id === id)).filter((c) => c?.tipo === "numero").map((c) => c!.label)}
+          />
           <AlcanceProyecto combinacion={combinacion} onChange={setCombinacion} proyectosDisponibles={proyectosDisponibles} />
           <FiltrosCombinacion combinacion={combinacion} onChange={setCombinacion} dataset={dataset} proyectosDisponibles={proyectosDisponibles} />
         </>

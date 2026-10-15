@@ -39,6 +39,8 @@ import { registrarConsumo } from "@/app/(app)/inventario-insumos/actions";
 import { blobProxy } from "@/lib/blob";
 import { Modal } from "@/components/ui/modal";
 import { BadgeMotivo } from "@/components/ui/badge-motivo";
+import { GastoUnidadCard } from "@/components/unidades/gasto-unidad-card";
+import type { GastoUnidad } from "@/lib/gasto-unidad";
 import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
@@ -340,6 +342,7 @@ export function FichaUnidad({
   comparativoCombustible = [],
   rendimientoPlataforma = null,
   motivosCombustible = {},
+  gastoUnidad,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -355,7 +358,9 @@ export function FichaUnidad({
   /** Rendimiento real calculado por la plataforma con las cargas de combustible — distinto del de ficha técnica (`unidad.rendimientoPromedio`). */
   rendimientoPlataforma?: { kmL: number; cargas: number } | null;
   /** Razón breve de cada alerta de combustible, por id de carga — para el hover de la pestaña Combustible. */
-  motivosCombustible?: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null }>;
+  motivosCombustible?: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null; gpsAplica: boolean }>;
+  /** Gasto total de la unidad (año en curso e histórico) — ver src/lib/gasto-unidad.ts. */
+  gastoUnidad?: { anio: GastoUnidad; historico: GastoUnidad };
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -540,7 +545,7 @@ export function FichaUnidad({
         </div>
 
         <div className="pt-5">
-          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} />}
+          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} gastoUnidad={gastoUnidad} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} insumos={insumos} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "llantas" && <TabLlantas historial={unidad.historialLlantas ?? []} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
@@ -606,11 +611,24 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function TabGeneral({ unidad, puedeEditarCapacidad, disponible, rendimientoPlataforma }: { unidad: Unidad; puedeEditarCapacidad: boolean; disponible: boolean; rendimientoPlataforma: { kmL: number; cargas: number } | null }) {
+function TabGeneral({
+  unidad,
+  puedeEditarCapacidad,
+  disponible,
+  rendimientoPlataforma,
+  gastoUnidad,
+}: {
+  unidad: Unidad;
+  puedeEditarCapacidad: boolean;
+  disponible: boolean;
+  rendimientoPlataforma: { kmL: number; cargas: number } | null;
+  gastoUnidad?: { anio: GastoUnidad; historico: GastoUnidad };
+}) {
   const estatusVisible = estatusVisibleUnidad(unidad.estatus, disponible);
   const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
   return (
     <div className="flex flex-col gap-6">
+    {gastoUnidad && <GastoUnidadCard numeroEconomico={unidad.numeroEconomico} anio={gastoUnidad.anio} historico={gastoUnidad.historico} />}
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl p-5" style={panelStyle}>
         <h3 className="mb-4" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
@@ -926,7 +944,7 @@ function TabCombustible({
 }: {
   registros: Unidad[];
   numeroEconomico: string;
-  motivos: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null }>;
+  motivos: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null; gpsAplica: boolean }>;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const filtrados = useMemo(() => {
@@ -949,15 +967,38 @@ function TabCombustible({
         <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar estación o fecha…" />
         <BotonAgregarCombustible numeroEconomico={numeroEconomico} />
       </div>
-      <Table headers={["Fecha", "Litros", "Costo", "Km", "Estación", "Rendimiento", ""]}>
+      <Table headers={["Fecha", "Litros", "Costo", "Km capturado", "Km GPS", "Km recorridos", "Estación", "Rendimiento real", ""]}>
       {filtrados.map((r) => (
         <tr key={r.id} style={{ borderBottom: "1px solid var(--field-border)" }}>
           <td className="px-4 py-3" style={td}>{fmtFecha(r.fecha)}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.litros} L</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{fmtMoney(r.costo)}</td>
           <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.kmActual != null ? r.kmActual.toLocaleString("es-MX") : "—"}</td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>
+            {motivos[r.id]?.gpsAplica === false ? (
+              <span title="Antes de octubre de 2026 no se usaba el GPS: calculado con el km capturado" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                Sin GPS
+              </span>
+            ) : r.kmGps != null ? (
+              r.kmGps.toLocaleString("es-MX")
+            ) : (
+              "—"
+            )}
+          </td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }}>
+            {r.kmRecorridos != null ? (
+              <span title={r.fuenteKmRecorridos === "GPS" ? "Odómetro GPS entre esta carga y la anterior" : "Km capturado entre esta carga y la anterior"}>
+                {r.kmRecorridos.toLocaleString("es-MX")}{" "}
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>{r.fuenteKmRecorridos === "GPS" ? "GPS" : "Captura"}</span>
+              </span>
+            ) : (
+              "—"
+            )}
+          </td>
           <td className="px-4 py-3" style={td}>{r.estacion ?? "—"}</td>
-          <td className="px-4 py-3" style={td}>{r.rendimientoCalculado ? `${r.rendimientoCalculado} km/L` : "—"}</td>
+          <td className="px-4 py-3" style={{ ...td, fontFamily: "var(--font-mono)" }} title="Km recorridos ÷ litros de esta carga (cálculo de la plataforma)">
+            {r.rendimientoCalculado ? `${Number(r.rendimientoCalculado).toLocaleString("es-MX", { maximumFractionDigits: 2 })} km/L` : "—"}
+          </td>
           <td className="px-4 py-3">
             <div className="flex items-center gap-2">
               {r.alertaSobrellenado && (

@@ -21,6 +21,12 @@ export function inicioDeMesMx(): Date {
   return new Date(ahoraEnMarcoMx.getTime() + OFFSET_MX_HORAS * HORA_MS);
 }
 
+/** Medianoche del 1 de enero del año actual en hora de México, expresada como instante UTC. */
+export function inicioDeAnioMx(): Date {
+  const ahoraEnMarcoMx = new Date(Date.now() - OFFSET_MX_HORAS * HORA_MS);
+  return new Date(Date.UTC(ahoraEnMarcoMx.getUTCFullYear(), 0, 1) + OFFSET_MX_HORAS * HORA_MS);
+}
+
 /** "YYYY-MM" del mes actual en hora de México, o de un mes desplazado (ej. -1 = mes anterior). */
 export function claveMesMx(offsetMeses = 0): string {
   const marco = new Date(inicioDeMesMx().getTime() - OFFSET_MX_HORAS * HORA_MS);

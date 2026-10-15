@@ -42,12 +42,20 @@ export function ReglasColorEditor({
   onChange,
   titulo = "Reglas de color",
   mostrarColumna = true,
+  columnasDisponibles,
 }: {
   reglas: ReglaColorColumna[];
   onChange: (reglas: ReglaColorColumna[]) => void;
   titulo?: string;
   /** false cuando el consumidor no tiene noción de "columnas" (ej. un solo campo/KPI) — oculta el campo de columna y las reglas aplican siempre al único valor. */
   mostrarColumna?: boolean;
+  /**
+   * Nombres exactos de las columnas numéricas de la tabla: con ellos la
+   * columna se elige de una lista en vez de escribirse (una regla solo aplica
+   * si el nombre coincide letra por letra). Sin ellos (ej. tabla cruzada, cuyas
+   * columnas dependen de los datos) se escribe a mano.
+   */
+  columnasDisponibles?: string[];
 }) {
   function agregar() {
     onChange([...reglas, { id: crypto.randomUUID(), columna: "", operador: "mayor", valor: 0, color: COLORES_REGLA_PRESET[0].valor }]);
@@ -75,14 +83,30 @@ export function ReglasColorEditor({
       {reglas.map((r) => (
         <div key={r.id} className="flex flex-col gap-1.5 rounded-md p-2" style={{ background: "var(--field-bg)" }}>
           <div className="flex flex-wrap items-center gap-1.5">
-            {mostrarColumna && (
-              <input
+            {mostrarColumna && columnasDisponibles && columnasDisponibles.length > 0 ? (
+              <select
                 value={r.columna}
                 onChange={(e) => actualizar(r.id, { columna: e.target.value })}
-                placeholder="Columna (vacío = todas)"
                 className="rounded-md px-2"
-                style={{ ...fieldStyle, height: 30, width: 150, fontSize: "var(--text-xs)" }}
-              />
+                style={{ ...fieldStyle, height: 30, maxWidth: 190, fontSize: "var(--text-xs)" }}
+                title="Columna a la que aplica la regla"
+              >
+                <option value="">Todas las columnas</option>
+                {columnasDisponibles.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                {r.columna && !columnasDisponibles.includes(r.columna) && <option value={r.columna}>{r.columna} (ya no está en la tabla)</option>}
+              </select>
+            ) : (
+              mostrarColumna && (
+                <input
+                  value={r.columna}
+                  onChange={(e) => actualizar(r.id, { columna: e.target.value })}
+                  placeholder="Columna (vacío = todas)"
+                  className="rounded-md px-2"
+                  style={{ ...fieldStyle, height: 30, width: 150, fontSize: "var(--text-xs)" }}
+                />
+              )
             )}
             <select
               value={r.operador}

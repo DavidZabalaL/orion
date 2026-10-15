@@ -234,12 +234,23 @@ export const BI_DATASETS: DatasetMeta[] = [
       },
       {
         id: "rendimientoPromedio",
-        label: "Rendimiento promedio",
+        label: "Rendimiento ficha técnica",
         tipo: "numero",
         expr: `u."rendimientoPromedio"`,
         sufijo: " km/L",
         // Ya es un promedio por unidad — sumarlo entre unidades no
         // representa nada real, solo promediarlo (promedio de promedios).
+        agregacionesPermitidas: ["promedio"],
+      },
+      {
+        // Rendimiento real de la unidad según la plataforma: km recorridos ÷
+        // litros de sus cargas con rendimiento válido (mismo cálculo que la
+        // ficha de la unidad y /combustible). NULL sin cargas válidas.
+        id: "rendimientoReal",
+        label: "Rendimiento real",
+        tipo: "numero",
+        expr: `(SELECT CASE WHEN SUM(cr."litros") > 0 THEN ROUND(SUM(cr."kmRecorridos")::numeric / SUM(cr."litros"), 2) END FROM "Combustible" cr WHERE cr."numeroEconomico" = u."numeroEconomico" AND cr."rendimientoCalculado" IS NOT NULL AND cr."kmRecorridos" IS NOT NULL)`,
+        sufijo: " km/L",
         agregacionesPermitidas: ["promedio"],
       },
       {
@@ -415,13 +426,29 @@ export const BI_DATASETS: DatasetMeta[] = [
       { id: "costo", label: "Costo", tipo: "numero", expr: `c."costo"`, sufijo: " MXN" },
       {
         id: "rendimientoCalculado",
-        label: "Rendimiento",
+        label: "Rendimiento real (por carga)",
         tipo: "numero",
         expr: `c."rendimientoCalculado"`,
         sufijo: " km/L",
         // Ya es un cálculo por carga (km/L) — sumarlo entre cargas no
         // representa nada, solo promediarlo.
         agregacionesPermitidas: ["promedio"],
+      },
+      {
+        id: "rendimientoFicha",
+        label: "Rendimiento ficha técnica",
+        tipo: "numero",
+        expr: `u3."rendimientoPromedio"`,
+        sufijo: " km/L",
+        agregacionesPermitidas: ["promedio"],
+      },
+      { id: "kmRecorridos", label: "Km recorridos (entre cargas)", tipo: "numero", expr: `c."kmRecorridos"`, sufijo: " km" },
+      {
+        id: "fuenteKm",
+        label: "Fuente de km",
+        tipo: "texto",
+        expr: `CASE c."fuenteKmRecorridos" WHEN 'GPS' THEN 'GPS' WHEN 'CAPTURA' THEN 'Captura' ELSE 'Sin km' END`,
+        opciones: [{ valor: "GPS", label: "GPS" }, { valor: "Captura", label: "Captura" }, { valor: "Sin km", label: "Sin km" }],
       },
     ],
   },
@@ -1035,14 +1062,15 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Gasto de peajes por mes", dataset: "peajes", ejeX: "mes", ejeY: "monto", agregacion: "suma", tipoGrafica: "lineas" },
   { label: "Presupuesto autorizado por categoría", dataset: "presupuesto_partida", ejeX: "categoria", ejeY: "montoPresupuestado", agregacion: "suma", tipoGrafica: "barras" },
   { label: "Unidades por año modelo", dataset: "unidades", ejeX: "anio", ejeY: "anio", agregacion: "conteo", tipoGrafica: "barras" },
-  { label: "Rendimiento promedio por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoPromedio", agregacion: "promedio", tipoGrafica: "barras" },
+  { label: "Rendimiento real por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoReal", agregacion: "promedio", tipoGrafica: "barras" },
+  { label: "Rendimiento de ficha técnica por marca", dataset: "unidades", ejeX: "marca", ejeY: "rendimientoPromedio", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "Unidades por propietario", dataset: "unidades", ejeX: "propietario", ejeY: "propietario", agregacion: "conteo", tipoGrafica: "pie" },
   { label: "Proyectos por estado de la república", dataset: "proyectos", ejeX: "estadoRepublica", ejeY: "estadoRepublica", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Total de unidades", dataset: "unidades", ejeX: "estatus", ejeY: "estatus", agregacion: "conteo", tipoGrafica: "contador" },
   { label: "Gasto total de mantenimiento", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "suma", tipoGrafica: "contador" },
   { label: "Costo de mantenimiento por proveedor", dataset: "mantenimiento", ejeX: "proveedor", ejeY: "costo", agregacion: "suma", tipoGrafica: "puntos", orden: "valor_desc" },
   { label: "Km oficial vs. promedio, por marca", dataset: "unidades", ejeX: "marca", ejeY: "kmOficial", agregacion: "promedio", tipoGrafica: "divergente" },
-  { label: "Distribución de rendimiento promedio", dataset: "unidades", ejeX: "rendimientoPromedio", ejeY: "rendimientoPromedio", agregacion: "conteo", tipoGrafica: "histograma" },
+  { label: "Distribución de rendimiento (ficha técnica)", dataset: "unidades", ejeX: "rendimientoPromedio", ejeY: "rendimientoPromedio", agregacion: "conteo", tipoGrafica: "histograma" },
   { label: "Km oficial vs. rendimiento", dataset: "unidades", ejeX: "kmOficial", ejeY: "rendimientoPromedio", agregacion: "conteo", tipoGrafica: "dispersion" },
   { label: "Cargas de combustible por día", dataset: "combustible", ejeX: "dia", ejeY: "litros", agregacion: "suma", tipoGrafica: "calendario" },
   { label: "Distribución de costo por categoría", dataset: "mantenimiento", ejeX: "categoria", ejeY: "costo", agregacion: "conteo", tipoGrafica: "caja" },

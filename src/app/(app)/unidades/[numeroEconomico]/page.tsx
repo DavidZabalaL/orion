@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { explicarCargasConGps } from "@/lib/combustible-estimado";
+import { explicarCargasConGps, INICIO_KM_GPS } from "@/lib/combustible-estimado";
+import { gastoPorUnidad } from "@/lib/gasto-unidad";
+import { inicioDeAnioMx } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, requerirPermisoModulo, puedeVerSlaDisponibilidad, puedeVerPolizaSeguro, tienePermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
@@ -143,8 +145,18 @@ export default async function FichaUnidadPage({
   // que hace falta para explicar esa).
   const cargasParaExplicar = await prisma.combustible.findMany({ where: { numeroEconomico }, orderBy: { fecha: "desc" }, take: 21 });
   const motivosCombustible = Object.fromEntries(
-    [...(await explicarCargasConGps(cargasParaExplicar))].map(([id, e]) => [id, { motivoSobrellenado: e.motivoSobrellenado, discrepanciaGps: e.discrepanciaGps }])
+    [...(await explicarCargasConGps(cargasParaExplicar))].map(([id, e]) => [
+      id,
+      {
+        motivoSobrellenado: e.motivoSobrellenado,
+        discrepanciaGps: e.discrepanciaGps,
+        gpsAplica: (cargasParaExplicar.find((c) => c.id === id)?.fecha ?? new Date(0)) >= INICIO_KM_GPS,
+      },
+    ])
   );
+
+  // Gasto total de la unidad (año en curso e histórico) con desglose por partida.
+  const [gastoAnio, gastoHistorico] = await Promise.all([gastoPorUnidad([numeroEconomico], inicioDeAnioMx()), gastoPorUnidad([numeroEconomico], null)]);
 
   const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
@@ -166,6 +178,7 @@ export default async function FichaUnidadPage({
       comparativoCombustible={comparativoCombustibleSerializado}
       rendimientoPlataforma={rendimientoPlataforma}
       motivosCombustible={motivosCombustible}
+      gastoUnidad={{ anio: gastoAnio.get(numeroEconomico)!, historico: gastoHistorico.get(numeroEconomico)! }}
     />
   );
 }

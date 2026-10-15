@@ -244,7 +244,11 @@ export async function ejecutarSimple(
       `;
 
       const filas = await prisma.$queryRaw<{ dimension: string | null; metrica: number | string | null }[]>(query);
-      let datos = filas.filter((f) => f.dimension !== null).map((f) => ({ dimension: String(f.dimension), valor: Number(f.metrica ?? 0) }));
+      // Un promedio NULL es "sin datos" (ej. rendimiento real de una marca sin
+      // cargas válidas), no 0: mostrarlo como 0 sugeriría un valor real.
+      let datos = filas
+        .filter((f) => f.dimension !== null && !(agregacion === "promedio" && f.metrica === null))
+        .map((f) => ({ dimension: String(f.dimension), valor: Number(f.metrica ?? 0) }));
       if (rellenarAplicable) datos = rellenarHuecosPeriodo(datos, campoX.tipo as "fecha_mes" | "fecha_dia");
 
       return {

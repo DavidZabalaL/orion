@@ -123,6 +123,16 @@ export function SelectoresCombinacion({
   compacto?: boolean;
 }) {
   const dataset = obtenerDataset(combinacion.datasetId)!;
+  // Nombre de la columna de valor de la vista de tabla (el mismo que arma
+  // ejeYLabelSimple en el servidor) — con segundo grupo (tabla cruzada) las
+  // columnas son los valores de ese grupo y no se conocen hasta consultar.
+  const campoYSel = dataset.campos.find((c) => c.id === combinacion.ejeY);
+  const columnaValorSimple =
+    !combinacion.ejeSplit && campoYSel
+      ? combinacion.agregacion === "conteo"
+        ? "N° de registros"
+        : `${campoYSel.label} (${AGREGACION_LABEL[combinacion.agregacion]})`
+      : null;
   const requisitos = REQUISITOS_TIPO_GRAFICA[combinacion.tipoGrafica];
   const campoY = obtenerCampo(dataset, combinacion.ejeY);
   const agregacionesValidas = campoY ? agregacionesDisponibles(campoY) : ["conteo"];
@@ -342,6 +352,7 @@ export function SelectoresCombinacion({
           reglas={combinacion.reglasColor ?? []}
           onChange={(reglasColor) => onChange({ ...combinacion, reglasColor })}
           titulo="Reglas de color (vista de tabla)"
+          columnasDisponibles={columnaValorSimple ? [columnaValorSimple] : undefined}
         />
       )}
 

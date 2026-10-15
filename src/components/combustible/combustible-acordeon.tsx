@@ -120,7 +120,7 @@ export function CombustibleAcordeon({ grupos, isAdmin = false }: { grupos: Grupo
                   <table className="w-full min-w-[820px] border-collapse">
                     <thead>
                       <tr style={{ borderBottom: "1px solid var(--field-border)" }}>
-                        {["Fecha", "Litros", "Costo", "Km capturado", "Km GPS", "Km recorridos", "Estación", "Rendimiento", "Alertas"].map((h) => (
+                        {["Fecha", "Litros", "Costo", "Km capturado", "Km GPS", "Km recorridos", "Estación", "Rendimiento real", "Alertas"].map((h) => (
                           <th key={h} className="text-left px-4 py-2 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em" }}>{h}</th>
                         ))}
                       </tr>

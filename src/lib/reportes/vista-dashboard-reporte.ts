@@ -134,7 +134,9 @@ async function calcularWidget(w: WidgetDashboardBI, permitidos: string[] | null,
   const campoSplit = w.ejeSplit && (w.tipoGrafica === "barras" || w.tipoGrafica === "piramide") ? obtenerCampo(dataset, w.ejeSplit) : undefined;
   if (campoSplit) {
     const r = await ejecutarCruzado(dataset, campoX, campoY, w.agregacion, campoSplit, w.orden, w.filtros, condicion, llave, filtrosLlave);
-    const series = r.cruzado.series.map((s) => ({ valor: s, label: etiqueta(campoSplit, s) }));
+    // Columnas con el valor tal cual (como la tabla cruzada del dashboard): las
+    // reglas de color se escriben contra ese nombre, no contra la etiqueta.
+    const series = r.cruzado.series.map((s) => ({ valor: s, label: s }));
     if (w.vistaPreferida === "tabla") {
       return tabla(
         titulo,

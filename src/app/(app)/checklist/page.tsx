@@ -10,6 +10,7 @@ import { ChecklistReporteFallaLista } from "@/components/checklist/checklist-rep
 import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
 import { TomadasSinChecklistLista } from "@/components/checklist/tomadas-sin-checklist-lista";
 import { ExportarChecklistModal } from "@/components/checklist/exportar-checklist-modal";
+import { GrupoSecciones, SeccionColapsable } from "@/components/ui/secciones-colapsables";
 import { requerirPermisoModulo, puedeUsarGaleriaChecklist } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
@@ -297,97 +298,27 @@ export default async function ChecklistPage({
         </button>
       </form>
 
-      <div className="flex flex-col gap-6">
-        <div>
-          <h3
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-lg)",
-              fontWeight: 600,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Indicadores (último checklist semanal de cada unidad)
-          </h3>
+      {/* Cada grupo se puede contraer (y "Contraer todo") para no hacer tan largo el scroll. */}
+      <GrupoSecciones grupo="checklist">
+        <SeccionColapsable id="indicadores" titulo="Indicadores (último checklist semanal de cada unidad)">
           <IndicadoresChecklist unidades={JSON.parse(JSON.stringify(indicadoresChecklist))} />
-        </div>
-
-        <div>
-          <h3
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-lg)",
-              fontWeight: 600,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Tomadas sin checklist ({tomadasSinChecklist.length})
-          </h3>
+        </SeccionColapsable>
+        <SeccionColapsable id="tomadas" titulo={`Tomadas sin checklist (${tomadasSinChecklist.length})`}>
           <TomadasSinChecklistLista unidades={tomadasSinChecklist} />
-        </div>
-
-        <div>
-          <h3
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-lg)",
-              fontWeight: 600,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Checklists diarios de hoy ({checklistsDiarios.length})
-          </h3>
+        </SeccionColapsable>
+        <SeccionColapsable id="diarios" titulo={`Checklists diarios de hoy (${checklistsDiarios.length})`}>
           <ChecklistLista checklists={JSON.parse(JSON.stringify(checklistsDiarios))} />
-        </div>
-
-        <div>
-          <h3
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-lg)",
-              fontWeight: 600,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Checklists semanales de hoy ({checklistsSemanales.length})
-          </h3>
+        </SeccionColapsable>
+        <SeccionColapsable id="semanales" titulo={`Checklists semanales de hoy (${checklistsSemanales.length})`}>
           <ChecklistSemanalLista checklists={JSON.parse(JSON.stringify(checklistsSemanales))} />
-        </div>
-
-        <div>
-          <h3
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-lg)",
-              fontWeight: 600,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Checklists de carga de combustible de hoy ({checklistsCombustible.length})
-          </h3>
+        </SeccionColapsable>
+        <SeccionColapsable id="combustible" titulo={`Checklists de carga de combustible de hoy (${checklistsCombustible.length})`}>
           <ChecklistCargaCombustibleLista checklists={JSON.parse(JSON.stringify(checklistsCombustible))} precioPromedioLitro={precioPromedioLitroCombustible} />
-        </div>
-
-        <div>
-          <h3
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font)",
-              fontSize: "var(--text-lg)",
-              fontWeight: 600,
-              color: "var(--sidebar-text-active)",
-            }}
-          >
-            Reportes de falla de hoy ({checklistsReporteFalla.length})
-          </h3>
+        </SeccionColapsable>
+        <SeccionColapsable id="fallas" titulo={`Reportes de falla de hoy (${checklistsReporteFalla.length})`}>
           <ChecklistReporteFallaLista checklists={JSON.parse(JSON.stringify(checklistsReporteFalla))} />
-        </div>
-      </div>
+        </SeccionColapsable>
+      </GrupoSecciones>
     </div>
   );
 }
