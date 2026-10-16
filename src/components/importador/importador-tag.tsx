@@ -30,7 +30,9 @@ export function ImportadorTag({ proyectos }: { proyectos: { id: string; nombre: 
 
   const [hojas, setHojas] = useState<HojaParseada[]>([]);
   const [hojaIdx, setHojaIdx] = useState(0);
-  const [proveedorTag, setProveedorTag] = useState("IAVE");
+  // Sin valor por defecto: con "IAVE" preseleccionado se importaron como IAVE
+  // estados de cuenta de PASE durante meses sin que nadie lo notara.
+  const [proveedorTag, setProveedorTag] = useState("");
   const [proyectoFallbackId, setProyectoFallbackId] = useState("");
   const [mapeo, setMapeo] = useState<Record<CampoTagKey, number | null>>(
     Object.fromEntries(CAMPOS_TAG.map((c) => [c.key, null])) as Record<CampoTagKey, number | null>
@@ -54,6 +56,8 @@ export function ImportadorTag({ proyectos }: { proyectos: { id: string; nombre: 
   }, [hoja, mapeo]);
 
   const camposFaltantes = CAMPOS_TAG.filter((c) => c.requerido && mapeo[c.key] === null);
+  // Las tarjetas IDMX de PASE empiezan con "IMDM".
+  const tarjetasPase = filasMapeadas.filter((f) => f.tarjetaIdmx?.trim().toUpperCase().startsWith("IMDM")).length;
 
   function handleSubir(formData: FormData) {
     setError(null);
@@ -125,6 +129,7 @@ export function ImportadorTag({ proyectos }: { proyectos: { id: string; nombre: 
             <div>
               <label className="block mb-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Proveedor *</label>
               <select value={proveedorTag} onChange={(e) => setProveedorTag(e.target.value)} style={fieldStyle}>
+                <option value="" disabled>— Selecciona —</option>
                 <option value="IAVE">IAVE</option>
                 <option value="PASE">PASE</option>
                 <option value="TELEVIA">Televía</option>
@@ -191,9 +196,21 @@ export function ImportadorTag({ proyectos }: { proyectos: { id: string; nombre: 
             </div>
           </div>
 
+          {!proveedorTag && (
+            <div className="flex items-center gap-2 rounded-md px-4 py-3" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+              <TriangleAlert size={15} /> Selecciona el proveedor del estado de cuenta (IAVE, PASE o Televía).
+            </div>
+          )}
+
+          {proveedorTag && proveedorTag !== "PASE" && tarjetasPase > 0 && (
+            <div className="flex items-center gap-2 rounded-md px-4 py-3" style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
+              <TriangleAlert size={15} /> {tarjetasPase} de {filasMapeadas.length} filas traen tarjetas «IMDM…», que son de PASE. Revisa que el proveedor seleccionado ({proveedorTag}) sea el correcto.
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
-              disabled={camposFaltantes.length > 0}
+              disabled={camposFaltantes.length > 0 || !proveedorTag}
               onClick={() => setPaso("confirmar")}
               className="rounded-md px-5 h-10 font-semibold disabled:opacity-40"
               style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
