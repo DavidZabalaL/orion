@@ -39,7 +39,8 @@ const MOTIVO_LABEL: Record<string, string> = {
   OTRO: "no disponible",
 };
 
-type Fase = "generales" | "vehiculo" | "carga" | "exito";
+// Orden de fases según el documento: Vehículo → Carga de combustible → Datos generales
+type Fase = "vehiculo" | "carga" | "generales" | "exito";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -64,9 +65,6 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 4,
 };
 
-// Borrador en localStorage — ver src/lib/borrador-checklist.ts. Solo se
-// guardan datos y URLs ya subidas, nunca archivos (un File no sobrevive una
-// recarga de página de todas formas).
 const CLAVE_BORRADOR = "carga_combustible";
 type BorradorCargaCombustible = {
   fase: Fase;
@@ -88,11 +86,11 @@ type BorradorCargaCombustible = {
   urlsFotosCarga: Record<string, string>;
 };
 
-const FASES: Fase[] = ["generales", "vehiculo", "carga", "exito"];
+const FASES: Fase[] = ["vehiculo", "carga", "generales", "exito"];
 const FASES_LABEL: Record<Fase, string> = {
-  generales: "Datos generales",
   vehiculo: "Vehículo",
   carga: "Carga de combustible",
+  generales: "Datos generales",
   exito: "Éxito",
 };
 
@@ -106,7 +104,7 @@ const TIPOS_VEHICULO = [
 
 function BarraProgreso({ fase }: { fase: Fase }) {
   const idx = FASES.indexOf(fase);
-  const total = FASES.length - 1; // excluir "exito"
+  const total = FASES.length - 1;
   if (fase === "exito") return null;
   return (
     <div className="flex flex-col gap-1.5">
@@ -118,7 +116,7 @@ function BarraProgreso({ fase }: { fase: Fase }) {
       <div className="w-full h-1.5 rounded-full" style={{ background: "var(--field-border)" }}>
         <div
           className="h-1.5 rounded-full"
-          style={{ width: `${((idx) / (total - 1)) * 100}%`, background: "var(--color-primary)", transition: "width 0.3s" }}
+          style={{ width: `${(idx / (total - 1)) * 100}%`, background: "var(--color-primary)", transition: "width 0.3s" }}
         />
       </div>
     </div>
@@ -133,70 +131,52 @@ export function WizardCargaCombustible({
   onCancelar,
 }: {
   unidades: UnidadWizard[];
-  /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp); el resto de roles solo puede usar la cámara. */
   permitirGaleriaFotos?: boolean;
-  /** Control Vehicular y Gerente Administrativo pueden indicar que actúan como apoyo al operador. */
   permitirApoyoOperador?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 }) {
   const [borradorInicial] = useState(() => leerBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR));
 
-  const [fase, setFase] = useState<Fase>(borradorInicial?.fase ?? "generales");
+  const [fase, setFase] = useState<Fase>(borradorInicial?.fase ?? "vehiculo");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // Fase generales
+  // Fase vehiculo
   const [fecha, setFecha] = useState(borradorInicial?.fecha ?? new Date().toISOString().slice(0, 10));
+  const [tipoVehiculo, setTipoVehiculo] = useState(borradorInicial?.tipoVehiculo ?? "CAMIONETA");
+  const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
+
+  // Fase carga
+  const [tipoCombustible, setTipoCombustible] = useState<string>(borradorInicial?.tipoCombustible ?? TIPOS_COMBUSTIBLE_CARGA[0]);
+  const [porcentajeDespues, setPorcentajeDespues] = useState(borradorInicial?.porcentajeDespues ?? "");
+  const [porcentajeAntes, setPorcentajeAntes] = useState(borradorInicial?.porcentajeAntes ?? "");
+  const [litrosCargados, setLitrosCargados] = useState(borradorInicial?.litrosCargados ?? "");
+  const [cantidadPagada, setCantidadPagada] = useState(borradorInicial?.cantidadPagada ?? "");
+  const [procesandoFotoCarga, setProcesandoFotoCarga] = useState(false);
+  const [subidasPendientesCarga, setSubidasPendientesCarga] = useState(0);
+  const [urlsFotosCarga, setUrlsFotosCarga] = useState<Record<string, string>>(borradorInicial?.urlsFotosCarga ?? {});
+
+  // Fase generales
   const [zona, setZona] = useState<EstadoCarga>(borradorInicial?.zona ?? ESTADOS_CARGA[0]);
   const [municipio, setMunicipio] = useState(borradorInicial?.municipio ?? MUNICIPIOS_POR_ESTADO[ESTADOS_CARGA[0]][0] ?? "");
   const [area, setArea] = useState<AreaCarga>(borradorInicial?.area ?? AREAS_CARGA[0]);
   const [responsable, setResponsable] = useState(borradorInicial?.responsable ?? "");
   const [esApoyoOperador, setEsApoyoOperador] = useState(false);
   const [tipoLicencia, setTipoLicencia] = useState<string>(borradorInicial?.tipoLicencia ?? TIPOS_LICENCIA_CARGA[0]);
-  // Foto de licencia — rastreada en estado porque está fuera del <form> final.
-  // Se comprime y se marca "lista" de inmediato; la subida real corre en
-  // segundo plano (ver alSeleccionarFotoLicencia) — si para cuando se envía
-  // el formulario completo todavía no ha terminado, enviar() la reintenta.
   const [fotoLicenciaArchivo, setFotoLicenciaArchivo] = useState<File | null>(null);
   const [urlLicencia, setUrlLicencia] = useState<string | null>(borradorInicial?.urlLicencia ?? null);
   const [procesandoLicencia, setProcesandoLicencia] = useState(false);
+  const [observaciones, setObservaciones] = useState(borradorInicial?.observaciones ?? "");
   const archivoVigenteLicenciaRef = useRef<File | null>(null);
   const tieneLicencia = !!fotoLicenciaArchivo || !!urlLicencia;
 
-  // Fase vehiculo
-  const [tipoVehiculo, setTipoVehiculo] = useState(borradorInicial?.tipoVehiculo ?? "CAMIONETA");
-  const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
-
-  // Fase carga
-  const [tipoCombustible, setTipoCombustible] = useState<string>(borradorInicial?.tipoCombustible ?? TIPOS_COMBUSTIBLE_CARGA[0]);
-  const [porcentajeAntes, setPorcentajeAntes] = useState(borradorInicial?.porcentajeAntes ?? "");
-  const [porcentajeDespues, setPorcentajeDespues] = useState(borradorInicial?.porcentajeDespues ?? "");
-  const [litrosCargados, setLitrosCargados] = useState(borradorInicial?.litrosCargados ?? "");
-  const [cantidadPagada, setCantidadPagada] = useState(borradorInicial?.cantidadPagada ?? "");
-  const [observaciones, setObservaciones] = useState(borradorInicial?.observaciones ?? "");
-  const [procesandoFotoCarga, setProcesandoFotoCarga] = useState(false);
-  // Cuántas de las fotos de esta fase siguen subiéndose en segundo plano —
-  // no bloquea tomar más fotos, solo el botón final de enviar (ver más abajo),
-  // para no mandar el formulario con un campo de foto todavía vacío.
-  const [subidasPendientesCarga, setSubidasPendientesCarga] = useState(0);
-  const [urlsFotosCarga, setUrlsFotosCarga] = useState<Record<string, string>>(borradorInicial?.urlsFotosCarga ?? {});
-
-  function actualizarUrlFotoCarga(campo: string, url: string | null) {
-    setUrlsFotosCarga((prev) => {
-      const c = { ...prev };
-      if (url) c[campo] = url; else delete c[campo];
-      return c;
-    });
-  }
-
-  // Ver la nota equivalente en WizardDiario — recupera el progreso si Android
-  // recarga la pestaña en segundo plano por falta de memoria.
   useEffect(() => {
     if (fase === "exito") return;
     guardarBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR, {
       fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia,
-      tipoVehiculo, numeroEconomico, tipoCombustible, porcentajeAntes, porcentajeDespues, litrosCargados, cantidadPagada, observaciones, urlsFotosCarga,
+      tipoVehiculo, numeroEconomico, tipoCombustible, porcentajeAntes, porcentajeDespues,
+      litrosCargados, cantidadPagada, observaciones, urlsFotosCarga,
     });
   }, [fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia, tipoVehiculo, numeroEconomico, tipoCombustible, porcentajeAntes, porcentajeDespues, litrosCargados, cantidadPagada, observaciones, urlsFotosCarga]);
 
@@ -224,6 +204,14 @@ export function WizardCargaCombustible({
     setNumeroEconomico("");
   }
 
+  function actualizarUrlFotoCarga(campo: string, url: string | null) {
+    setUrlsFotosCarga((prev) => {
+      const c = { ...prev };
+      if (url) c[campo] = url; else delete c[campo];
+      return c;
+    });
+  }
+
   async function alSeleccionarFotoLicencia(file: File | undefined) {
     if (!file) {
       archivoVigenteLicenciaRef.current = null;
@@ -239,34 +227,26 @@ export function WizardCargaCombustible({
     setUrlLicencia(null);
     setProcesandoLicencia(false);
     subida.then((r) => {
-      if (archivoVigenteLicenciaRef.current !== archivo) return; // se retomó la foto mientras subía
+      if (archivoVigenteLicenciaRef.current !== archivo) return;
       if (r.ok) {
         setFotoLicenciaArchivo(null);
         setUrlLicencia(r.url);
       }
-      // si falla, se queda en fotoLicenciaArchivo — enviar() la reintenta al final.
     });
   }
 
-  function validarGenerales() {
-    if (!fecha) return "La fecha es obligatoria.";
-    if (!municipio) return "El municipio es obligatorio.";
-    if (!responsable.trim()) return "El nombre del responsable es obligatorio.";
-    if (!tieneLicencia) return "La foto de licencia es obligatoria.";
-    return null;
-  }
-
   function validarVehiculo() {
+    if (!fecha) return "La fecha es obligatoria.";
     if (!numeroEconomico) return "Selecciona un número económico.";
     if (unidadSeleccionada && !unidadSeleccionada.disponibilidad) return "Esta unidad no está disponible. Reactívala primero en el módulo de Flota.";
     return null;
   }
 
-  function continuarDesdeGenerales() {
-    const err = validarGenerales();
-    if (err) { setError(err); return; }
-    setError(null);
-    setFase("vehiculo");
+  function validarGenerales() {
+    if (!municipio) return "El municipio es obligatorio.";
+    if (!responsable.trim()) return "El nombre del responsable es obligatorio.";
+    if (!tieneLicencia) return "La foto de licencia es obligatoria.";
+    return null;
   }
 
   function continuarDesdeVehiculo() {
@@ -276,14 +256,16 @@ export function WizardCargaCombustible({
     setFase("carga");
   }
 
+  function continuarDesdeCarga() {
+    setError(null);
+    setFase("generales");
+  }
+
   function enviar(formData: FormData) {
+    const err = validarGenerales();
+    if (err) { setError(err); return; }
     setError(null);
     startTransition(async () => {
-      // Red de seguridad: si la foto de licencia se comprimió pero su subida
-      // en segundo plano no alcanzó a terminar, se reintenta aquí antes de
-      // guardar — el resto de las fotos de esta fase (CampoFotoSemanal) ya
-      // vienen resueltas en `formData` porque el botón de enviar espera a
-      // que no queden subidas pendientes (ver subidasPendientesCarga).
       let urlLicenciaFinal = urlLicencia;
       if (!urlLicenciaFinal && fotoLicenciaArchivo) {
         const fd = new FormData();
@@ -352,7 +334,7 @@ export function WizardCargaCombustible({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={fase === "generales" ? () => { borrarBorrador(CLAVE_BORRADOR); onCancelar(); } : () => setFase(FASES[FASES.indexOf(fase) - 1])}
+          onClick={fase === "vehiculo" ? () => { borrarBorrador(CLAVE_BORRADOR); onCancelar(); } : () => setFase(FASES[FASES.indexOf(fase) - 1])}
           className="rounded-full p-1.5"
           style={{ background: "var(--chip)", color: "var(--sidebar-text-active)" }}
         >
@@ -363,11 +345,11 @@ export function WizardCargaCombustible({
         </div>
       </div>
 
-      {/* ── Fase: Generales ─────────────────────────────────── */}
-      {fase === "generales" && (
+      {/* ── Fase: Vehículo ──────────────────────────────────── */}
+      {fase === "vehiculo" && (
         <div className="flex flex-col gap-5 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
           <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-            Datos generales
+            Vehículo
           </h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -382,173 +364,6 @@ export function WizardCargaCombustible({
               />
             </div>
 
-            <div>
-              <label style={labelStyle}>Estado *</label>
-              <select value={zona} onChange={(e) => alCambiarZona(e.target.value as EstadoCarga)} style={fieldStyle}>
-                {ESTADOS_CARGA.map((z) => (
-                  <option key={z} value={z}>{z}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyle}>Municipio *</label>
-              <select value={municipio} onChange={(e) => setMunicipio(e.target.value)} style={fieldStyle}>
-                {municipiosDisponibles.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-                {municipiosDisponibles.length === 0 && (
-                  <option value="">Selecciona un estado primero</option>
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyle}>Área *</label>
-              <select value={area} onChange={(e) => setArea(e.target.value as AreaCarga)} style={fieldStyle}>
-                {AREAS_CARGA.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label style={labelStyle}>Responsable *</label>
-              {personalDisponible.length > 0 ? (
-                <select value={responsable} onChange={(e) => setResponsable(e.target.value)} style={fieldStyle}>
-                  <option value="">Selecciona…</option>
-                  {personalDisponible.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={responsable}
-                  onChange={(e) => setResponsable(e.target.value)}
-                  placeholder="Nombre del responsable"
-                  style={fieldStyle}
-                />
-              )}
-              {permitirApoyoOperador && (
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setEsApoyoOperador((v) => !v)}
-                    className="flex items-center gap-2 rounded-md px-3 py-1.5"
-                    style={{
-                      fontFamily: "var(--font-ui)",
-                      fontSize: "var(--text-sm)",
-                      background: esApoyoOperador ? "rgba(22,163,74,0.12)" : "var(--chip)",
-                      color: esApoyoOperador ? "#15803d" : "var(--sidebar-text)",
-                      border: `1px solid ${esApoyoOperador ? "rgba(22,163,74,0.3)" : "transparent"}`,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: "50%",
-                        background: esApoyoOperador ? "#16a34a" : "var(--field-border)",
-                        display: "inline-block",
-                        flexShrink: 0,
-                      }}
-                    />
-                    Apoyo a operador
-                  </button>
-                  {esApoyoOperador && (
-                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                      Estás capturando en nombre del operador
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label style={labelStyle}>Tipo de licencia *</label>
-              <select value={tipoLicencia} onChange={(e) => setTipoLicencia(e.target.value)} style={fieldStyle}>
-                {TIPOS_LICENCIA_CARGA.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Foto de licencia — usa estado en lugar de input hidden dentro de form.
-              Dos opciones explícitas (cámara / galería) en vez de un solo picker nativo. */}
-          <div>
-            <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-              {tieneLicencia ? "Foto de licencia adjuntada *" : "Foto de licencia *"}
-            </label>
-            <div className="flex gap-2 mt-1">
-              <label
-                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
-                style={{
-                  background: tieneLicencia ? "var(--status-cerrado-bg)" : "var(--field-bg)",
-                  color: tieneLicencia ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
-                  fontFamily: "var(--font-ui)",
-                  fontSize: "var(--text-sm)",
-                  opacity: procesandoLicencia ? 0.6 : 1,
-                  cursor: procesandoLicencia ? "not-allowed" : "pointer",
-                }}
-              >
-                {procesandoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <Camera size={15} className="shrink-0" />}
-                <span className="truncate">{procesandoLicencia ? "Procesando…" : "Tomar foto"}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  disabled={procesandoLicencia}
-                  onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
-                />
-              </label>
-              <label
-                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
-                style={{
-                  background: tieneLicencia ? "var(--status-cerrado-bg)" : "var(--field-bg)",
-                  color: tieneLicencia ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
-                  fontFamily: "var(--font-ui)",
-                  fontSize: "var(--text-sm)",
-                  opacity: procesandoLicencia ? 0.6 : 1,
-                  cursor: procesandoLicencia ? "not-allowed" : "pointer",
-                }}
-              >
-                {procesandoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <ImageIcon size={15} className="shrink-0" />}
-                <span className="truncate">{procesandoLicencia ? "Procesando…" : "Elegir de galería"}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={procesandoLicencia}
-                  onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
-                />
-              </label>
-            </div>
-          </div>
-
-          {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
-
-          <button
-            type="button"
-            onClick={continuarDesdeGenerales}
-            className="rounded-md px-6 h-10 font-semibold"
-            style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
-          >
-            Continuar →
-          </button>
-        </div>
-      )}
-
-      {/* ── Fase: Vehículo ──────────────────────────────────── */}
-      {fase === "vehiculo" && (
-        <div className="flex flex-col gap-5 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
-          <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-            Vehículo
-          </h2>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label style={labelStyle}>Tipo de vehículo *</label>
               <select value={tipoVehiculo} onChange={(e) => alCambiarTipoVehiculo(e.target.value)} style={fieldStyle}>
@@ -623,11 +438,7 @@ export function WizardCargaCombustible({
 
       {/* ── Fase: Carga de Combustible ─────────────────────── */}
       {fase === "carga" && (
-        <form
-          className="flex flex-col gap-5 rounded-xl p-5"
-          style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
-          action={(formData) => enviar(formData)}
-        >
+        <div className="flex flex-col gap-5 rounded-xl p-5" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}>
           <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
             Carga de combustible
           </h2>
@@ -656,69 +467,287 @@ export function WizardCargaCombustible({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label style={labelStyle}>% de combustible antes de la carga *</label>
-              <input
-                type="number" min={0} max={100} required
-                value={porcentajeAntes}
-                onChange={(e) => setPorcentajeAntes(e.target.value)}
-                placeholder="Ej. 20"
-                className="w-full rounded-md px-3 py-2"
-                style={fieldStyle}
-              />
-            </div>
-            <div>
               <label style={labelStyle}>% de combustible después de la carga *</label>
               <input
-                type="number" min={0} max={100} required
+                type="number" min={0} max={100}
                 value={porcentajeDespues}
                 onChange={(e) => setPorcentajeDespues(e.target.value)}
                 placeholder="Ej. 95"
-                className="w-full rounded-md px-3 py-2"
                 style={fieldStyle}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <CampoFotoSemanal name="carg_foto_odometro_antes" label="Odómetro antes de cargar" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_antes} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_antes", url)} />
+              <CampoFotoSemanal
+                name="carg_foto_odometro_antes"
+                label="Odómetro antes de cargar"
+                requerido
+                permitirGaleria={permitirGaleriaFotos}
+                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_antes}
+                bloqueado={procesandoFotoCarga}
+                onSubiendoChange={setProcesandoFotoCarga}
+                onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
+                onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_antes", url)}
+              />
             </div>
-            <div>
-              <CampoFotoSemanal name="carg_foto_odometro_despues" label="Odómetro después de cargar" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_despues} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_despues", url)} />
-            </div>
-            <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_1" label="Evidencia de bomba" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_1} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_evidencia_bomba_1", url)} />
-            </div>
-            <div>
-              <CampoFotoSemanal name="carg_foto_evidencia_bomba_2" label="Evidencia de bomba 2 (opcional)" requerido={false} permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_2} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_evidencia_bomba_2", url)} />
-            </div>
-            <div>
-              <CampoFotoSemanal name="carg_foto_ticket" label="Foto del ticket" requerido permitirGaleria={permitirGaleriaFotos} initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_ticket} bloqueado={procesandoFotoCarga} onSubiendoChange={setProcesandoFotoCarga} onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))} onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_ticket", url)} />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <CampoFotoSemanal
+                name="carg_foto_evidencia_bomba_1"
+                label="Evidencia de bomba"
+                requerido
+                permitirGaleria={permitirGaleriaFotos}
+                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_1}
+                bloqueado={procesandoFotoCarga}
+                onSubiendoChange={setProcesandoFotoCarga}
+                onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
+                onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_evidencia_bomba_1", url)}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>% de combustible antes de la carga *</label>
+              <input
+                type="number" min={0} max={100}
+                value={porcentajeAntes}
+                onChange={(e) => setPorcentajeAntes(e.target.value)}
+                placeholder="Ej. 20"
+                style={fieldStyle}
+              />
+            </div>
+
+            <div>
+              <CampoFotoSemanal
+                name="carg_foto_odometro_despues"
+                label="Odómetro después de cargar"
+                requerido
+                permitirGaleria={permitirGaleriaFotos}
+                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_despues}
+                bloqueado={procesandoFotoCarga}
+                onSubiendoChange={setProcesandoFotoCarga}
+                onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
+                onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_odometro_despues", url)}
+              />
+            </div>
+
+            <div>
+              <CampoFotoSemanal
+                name="carg_foto_evidencia_bomba_2"
+                label="Evidencia de bomba 2 (opcional)"
+                requerido={false}
+                permitirGaleria={permitirGaleriaFotos}
+                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_2}
+                bloqueado={procesandoFotoCarga}
+                onSubiendoChange={setProcesandoFotoCarga}
+                onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
+                onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_evidencia_bomba_2", url)}
+              />
+            </div>
+
+            <div>
+              <CampoFotoSemanal
+                name="carg_foto_ticket"
+                label="Foto del ticket"
+                requerido
+                permitirGaleria={permitirGaleriaFotos}
+                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_ticket}
+                bloqueado={procesandoFotoCarga}
+                onSubiendoChange={setProcesandoFotoCarga}
+                onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
+                onUrlChange={(url) => actualizarUrlFotoCarga("carg_foto_ticket", url)}
+              />
+            </div>
+
             <div>
               <label style={labelStyle}>Litros cargados *</label>
               <input
-                type="number" min={0} step="0.01" required
+                type="number" min={0} step="0.01"
                 value={litrosCargados}
                 onChange={(e) => setLitrosCargados(e.target.value)}
                 placeholder="Ej. 45.5"
-                className="w-full rounded-md px-3 py-2"
                 style={fieldStyle}
               />
             </div>
+
             <div>
               <label style={labelStyle}>Cantidad pagada *</label>
               <input
-                type="number" min={0} step="0.01" required
+                type="number" min={0} step="0.01"
                 value={cantidadPagada}
                 onChange={(e) => setCantidadPagada(e.target.value)}
                 placeholder="Ej. 1200.00"
-                className="w-full rounded-md px-3 py-2"
                 style={fieldStyle}
               />
+            </div>
+          </div>
+
+          {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
+
+          <button
+            type="button"
+            onClick={continuarDesdeCarga}
+            className="rounded-md px-6 h-10 font-semibold"
+            style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
+          >
+            Continuar →
+          </button>
+        </div>
+      )}
+
+      {/* ── Fase: Datos generales ────────────────────────────── */}
+      {fase === "generales" && (
+        <form
+          className="flex flex-col gap-5 rounded-xl p-5"
+          style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-sm)" }}
+          action={(formData) => enviar(formData)}
+        >
+          <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+            Datos generales
+          </h2>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label style={labelStyle}>Estado *</label>
+              <select value={zona} onChange={(e) => alCambiarZona(e.target.value as EstadoCarga)} style={fieldStyle}>
+                {ESTADOS_CARGA.map((z) => (
+                  <option key={z} value={z}>{z}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Municipio *</label>
+              <select value={municipio} onChange={(e) => setMunicipio(e.target.value)} style={fieldStyle}>
+                {municipiosDisponibles.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+                {municipiosDisponibles.length === 0 && (
+                  <option value="">Selecciona un estado primero</option>
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Área *</label>
+              <select value={area} onChange={(e) => setArea(e.target.value as AreaCarga)} style={fieldStyle}>
+                {AREAS_CARGA.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Responsable *</label>
+              {personalDisponible.length > 0 ? (
+                <select value={responsable} onChange={(e) => setResponsable(e.target.value)} style={fieldStyle}>
+                  <option value="">Selecciona…</option>
+                  {personalDisponible.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={responsable}
+                  onChange={(e) => setResponsable(e.target.value)}
+                  placeholder="Nombre del responsable"
+                  style={fieldStyle}
+                />
+              )}
+              {permitirApoyoOperador && (
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEsApoyoOperador((v) => !v)}
+                    className="flex items-center gap-2 rounded-md px-3 py-1.5"
+                    style={{
+                      fontFamily: "var(--font-ui)",
+                      fontSize: "var(--text-sm)",
+                      background: esApoyoOperador ? "rgba(22,163,74,0.12)" : "var(--chip)",
+                      color: esApoyoOperador ? "#15803d" : "var(--sidebar-text)",
+                      border: `1px solid ${esApoyoOperador ? "rgba(22,163,74,0.3)" : "transparent"}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        background: esApoyoOperador ? "#16a34a" : "var(--field-border)",
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                    Apoyo a operador
+                  </button>
+                  {esApoyoOperador && (
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                      Estás capturando en nombre del operador
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label style={labelStyle}>Tipo de licencia *</label>
+              <select value={tipoLicencia} onChange={(e) => setTipoLicencia(e.target.value)} style={fieldStyle}>
+                {TIPOS_LICENCIA_CARGA.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Foto de licencia */}
+          <div>
+            <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+              {tieneLicencia ? "Foto de licencia adjuntada *" : "Foto de licencia *"}
+            </label>
+            <div className="flex gap-2 mt-1">
+              <label
+                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
+                style={{
+                  background: tieneLicencia ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+                  color: tieneLicencia ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: "var(--text-sm)",
+                  opacity: procesandoLicencia ? 0.6 : 1,
+                  cursor: procesandoLicencia ? "not-allowed" : "pointer",
+                }}
+              >
+                {procesandoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <Camera size={15} className="shrink-0" />}
+                <span className="truncate">{procesandoLicencia ? "Procesando…" : "Tomar foto"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  disabled={procesandoLicencia}
+                  onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
+                />
+              </label>
+              <label
+                className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5"
+                style={{
+                  background: tieneLicencia ? "var(--status-cerrado-bg)" : "var(--field-bg)",
+                  color: tieneLicencia ? "var(--color-status-cerrado)" : "var(--sidebar-text)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: "var(--text-sm)",
+                  opacity: procesandoLicencia ? 0.6 : 1,
+                  cursor: procesandoLicencia ? "not-allowed" : "pointer",
+                }}
+              >
+                {procesandoLicencia ? <Loader2 size={15} className="animate-spin shrink-0" /> : <ImageIcon size={15} className="shrink-0" />}
+                <span className="truncate">{procesandoLicencia ? "Procesando…" : "Elegir de galería"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={procesandoLicencia}
+                  onChange={(e) => alSeleccionarFotoLicencia(e.target.files?.[0])}
+                />
+              </label>
             </div>
           </div>
 
