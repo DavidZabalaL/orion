@@ -16,13 +16,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Solo administradores globales." }, { status: 403 });
 
   const proyectoId = req.nextUrl.searchParams.get("proyectoId") ?? undefined;
+  const nombre = req.nextUrl.searchParams.get("nombre") ?? undefined;
+
+  // Si se pasa nombre en lugar de proyectoId, resolverlo primero
+  let resolvedProyectoId = proyectoId;
+  if (!resolvedProyectoId && nombre) {
+    const proyecto = await prisma.proyecto.findFirst({
+      where: { nombre: { contains: nombre, mode: "insensitive" } },
+      select: { id: true, nombre: true },
+    });
+    if (!proyecto)
+      return NextResponse.json({ error: `Proyecto "${nombre}" no encontrado.` }, { status: 404 });
+    resolvedProyectoId = proyecto.id;
+  }
 
   // Filtro por proyecto (via unidad o proyectoReportante)
-  const filtro = proyectoId
+  const filtro = resolvedProyectoId
     ? {
         OR: [
-          { unidad: { proyectoId } },
-          { proyectoReportanteId: proyectoId },
+          { unidad: { proyectoId: resolvedProyectoId } },
+          { proyectoReportanteId: resolvedProyectoId },
         ],
       }
     : {};
