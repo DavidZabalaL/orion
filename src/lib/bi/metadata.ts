@@ -620,6 +620,14 @@ export const BI_DATASETS: DatasetMeta[] = [
         expr: `(
           CASE pp."categoria"
             WHEN 'GASOLINA' THEN (
+              -- INVARIANTE DE ATRIBUCIÓN — NO modificar sin leer esto:
+              -- Un registro Combustible pertenece a un proyecto si:
+              --   (a) tiene proyectoReportanteId = ese proyecto (atribución explícita)
+              --   (b) NO tiene proyectoReportanteId Y la unidad aparece en el histórico para ese proyecto
+              --   (c) NO tiene proyectoReportanteId Y la unidad está actualmente asignada a ese proyecto
+              -- Las condiciones (b) y (c) SIEMPRE necesitan "proyectoReportanteId IS NULL".
+              -- Sin ese filtro, un registro con proyectoReportanteId="A" y unidad.proyectoId="B"
+              -- se contaría dos veces → doble conteo. Ver también: src/lib/presupuesto.ts.
               SELECT COALESCE(SUM(c."costo"), 0) FROM "Combustible" c
               LEFT JOIN "Unidad" uc ON uc."numeroEconomico" = c."numeroEconomico"
               WHERE (

@@ -244,9 +244,14 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
     { proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } } as const,
   ];
 
-  // Combustible usa el mismo filtro que el módulo Combustible (asignación
-  // actual por unidad.proyectoId + reporte directo) en lugar del histórico,
-  // para que el monto de GASOLINA aquí coincida con lo que muestra ese módulo.
+  // INVARIANTE DE ATRIBUCIÓN — NO modificar sin leer esto:
+  // Un registro Combustible pertenece a un proyecto si:
+  //   (a) tiene proyectoReportanteId = ese proyecto   ← atribución explícita, máxima prioridad
+  //   (b) NO tiene proyectoReportanteId Y la unidad está asignada a ese proyecto ← fallback
+  // La condición (b) SIEMPRE necesita `proyectoReportanteId: null`.
+  // Sin ese filtro, un registro con proyectoReportanteId="A" y unidad.proyectoId="B"
+  // se contaría dos veces: una para A y otra para B → doble conteo en dashboard y presupuesto.
+  // Ver también: src/lib/bi/metadata.ts (misma lógica en SQL crudo).
   const filtroCombustible = {
     OR: [
       { proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } },
