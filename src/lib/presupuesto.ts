@@ -244,6 +244,16 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
     { proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } } as const,
   ];
 
+  // Combustible usa el mismo filtro que el módulo Combustible (asignación
+  // actual por unidad.proyectoId + reporte directo) en lugar del histórico,
+  // para que el monto de GASOLINA aquí coincida con lo que muestra ese módulo.
+  const filtroCombustible = {
+    OR: [
+      { proyectoReportanteId: proyectoId, fecha: { gte: inicio, lt: fin } },
+      { proyectoReportanteId: null, unidad: { proyectoId }, fecha: { gte: inicio, lt: fin } },
+    ],
+  };
+
   const [gastosPorUnidad, viaticos, combustible, tags] = await Promise.all([
     // VIATICOS_OPERACION se excluye aquí: se cuenta aparte (siguiente
     // consulta), exclusivamente por proyectoReportanteId — nunca por
@@ -257,7 +267,7 @@ export async function obtenerResumenPresupuestoPorPartida(proyectoId: string, an
       select: { fecha: true, costo: true },
     }),
     prisma.combustible.findMany({
-      where: { OR: orConProyectoReportante },
+      where: filtroCombustible,
       select: { fecha: true, costo: true, numeroEconomico: true },
     }),
     prisma.tag.findMany({

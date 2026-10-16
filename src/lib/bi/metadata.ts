@@ -621,13 +621,15 @@ export const BI_DATASETS: DatasetMeta[] = [
           CASE pp."categoria"
             WHEN 'GASOLINA' THEN (
               SELECT COALESCE(SUM(c."costo"), 0) FROM "Combustible" c
+              LEFT JOIN "Unidad" uc ON uc."numeroEconomico" = c."numeroEconomico"
               WHERE (
                 c."proyectoReportanteId" = pp."proyectoId"
-                OR EXISTS (
+                OR (c."proyectoReportanteId" IS NULL AND EXISTS (
                   SELECT 1 FROM "UnidadHistoricoProyecto" h
                   WHERE h."numeroEconomico" = c."numeroEconomico" AND h."proyectoId" = pp."proyectoId"
                     AND h."fechaInicio" <= c."fecha" AND (h."fechaFin" IS NULL OR h."fechaFin" > c."fecha")
-                )
+                ))
+                OR (c."proyectoReportanteId" IS NULL AND uc."proyectoId" = pp."proyectoId")
               )
               AND EXTRACT(YEAR FROM c."fecha") = pp."anio" AND EXTRACT(MONTH FROM c."fecha") = pp."mes"
             )
