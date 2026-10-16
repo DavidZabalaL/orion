@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, useMemo } from "react";
-import { ChevronLeft, CheckCircle2, Loader2, Camera, Image as ImageIcon } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Loader2, Camera, Image as ImageIcon, TriangleAlert } from "lucide-react";
 import { crearChecklistCargaCombustible, subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { FirmaPad } from "@/components/checklist/firma-pad";
@@ -25,6 +25,18 @@ type UnidadWizard = {
   tipoVehiculo: string;
   proyectoId: string | null;
   proyectoNombre: string | null;
+  disponibilidad: boolean;
+  motivoIndisponibilidad: string | null;
+};
+
+const MOTIVO_LABEL: Record<string, string> = {
+  MANTENIMIENTO: "en mantenimiento / taller",
+  SINIESTRO: "por siniestro",
+  SIN_OPERADOR: "sin operador asignado",
+  TRAMITE_DOCUMENTACION: "en trámite de documentación",
+  SIN_COMBUSTIBLE: "sin combustible",
+  FALLA_MECANICA: "por falla mecánica",
+  OTRO: "no disponible",
 };
 
 type Fase = "generales" | "vehiculo" | "carga" | "exito";
@@ -116,12 +128,15 @@ function BarraProgreso({ fase }: { fase: Fase }) {
 export function WizardCargaCombustible({
   unidades,
   permitirGaleriaFotos = false,
+  permitirApoyoOperador = false,
   onTerminar,
   onCancelar,
 }: {
   unidades: UnidadWizard[];
   /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp); el resto de roles solo puede usar la cámara. */
   permitirGaleriaFotos?: boolean;
+  /** Control Vehicular y Gerente Administrativo pueden indicar que actúan como apoyo al operador. */
+  permitirApoyoOperador?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 }) {
@@ -137,6 +152,7 @@ export function WizardCargaCombustible({
   const [municipio, setMunicipio] = useState(borradorInicial?.municipio ?? MUNICIPIOS_POR_ESTADO[ESTADOS_CARGA[0]][0] ?? "");
   const [area, setArea] = useState<AreaCarga>(borradorInicial?.area ?? AREAS_CARGA[0]);
   const [responsable, setResponsable] = useState(borradorInicial?.responsable ?? "");
+  const [esApoyoOperador, setEsApoyoOperador] = useState(false);
   const [tipoLicencia, setTipoLicencia] = useState<string>(borradorInicial?.tipoLicencia ?? TIPOS_LICENCIA_CARGA[0]);
   // Foto de licencia — rastreada en estado porque está fuera del <form> final.
   // Se comprime y se marca "lista" de inmediato; la subida real corre en
@@ -242,6 +258,7 @@ export function WizardCargaCombustible({
 
   function validarVehiculo() {
     if (!numeroEconomico) return "Selecciona un número económico.";
+    if (unidadSeleccionada && !unidadSeleccionada.disponibilidad) return "Esta unidad no está disponible. Reactívala primero en el módulo de Flota.";
     return null;
   }
 
@@ -285,6 +302,7 @@ export function WizardCargaCombustible({
       formData.set("gen_municipio", municipio);
       formData.set("gen_area", area);
       formData.set("gen_responsable", responsable);
+      formData.set("gen_es_apoyo_operador", esApoyoOperador ? "Y" : "N");
       formData.set("gen_tipo_licencia", tipoLicencia);
       formData.set("gen_foto_licencia", urlLicenciaFinal ?? "");
       formData.set("veh_tipo_vehiculo", tipoVehiculo);
@@ -411,6 +429,39 @@ export function WizardCargaCombustible({
                   placeholder="Nombre del responsable"
                   style={fieldStyle}
                 />
+              )}
+              {permitirApoyoOperador && (
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEsApoyoOperador((v) => !v)}
+                    className="flex items-center gap-2 rounded-md px-3 py-1.5"
+                    style={{
+                      fontFamily: "var(--font-ui)",
+                      fontSize: "var(--text-sm)",
+                      background: esApoyoOperador ? "rgba(22,163,74,0.12)" : "var(--chip)",
+                      color: esApoyoOperador ? "#15803d" : "var(--sidebar-text)",
+                      border: `1px solid ${esApoyoOperador ? "rgba(22,163,74,0.3)" : "transparent"}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        background: esApoyoOperador ? "#16a34a" : "var(--field-border)",
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                    Apoyo a operador
+                  </button>
+                  {esApoyoOperador && (
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                      Estás capturando en nombre del operador
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 
@@ -539,12 +590,30 @@ export function WizardCargaCombustible({
             )}
           </div>
 
+          {unidadSeleccionada && !unidadSeleccionada.disponibilidad && (
+            <div
+              className="flex items-start gap-3 rounded-xl px-4 py-3"
+              style={{ background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}
+            >
+              <TriangleAlert size={16} color="#dc2626" className="shrink-0 mt-0.5" />
+              <div>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "#dc2626" }}>
+                  Unidad no disponible
+                </p>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#dc2626", marginTop: 2 }}>
+                  Esta unidad está {MOTIVO_LABEL[unidadSeleccionada.motivoIndisponibilidad ?? ""] ?? "no disponible"} y no puede recibir un checklist. Reactívala primero en el módulo de Flota.
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>{error}</p>}
 
           <button
             type="button"
             onClick={continuarDesdeVehiculo}
-            className="rounded-md px-6 h-10 font-semibold"
+            disabled={!!(unidadSeleccionada && !unidadSeleccionada.disponibilidad)}
+            className="rounded-md px-6 h-10 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}
           >
             Continuar →

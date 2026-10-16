@@ -20,6 +20,18 @@ type UnidadWizard = {
   tipoVehiculo: string;
   proyectoId: string | null;
   proyectoNombre: string | null;
+  disponibilidad: boolean;
+  motivoIndisponibilidad: string | null;
+};
+
+const MOTIVO_LABEL: Record<string, string> = {
+  MANTENIMIENTO: "en mantenimiento / taller",
+  SINIESTRO: "por siniestro",
+  SIN_OPERADOR: "sin operador asignado",
+  TRAMITE_DOCUMENTACION: "en trámite de documentación",
+  SIN_COMBUSTIBLE: "sin combustible",
+  FALLA_MECANICA: "por falla mecánica",
+  OTRO: "no disponible",
 };
 
 type Props = {
@@ -29,6 +41,8 @@ type Props = {
   fechaHoraActual: string;
   /** Gerencial/Control Vehicular pueden elegir fotos ya tomadas (ej. recibidas por WhatsApp) para cualquier evidencia; el resto de roles solo puede usar la cámara, salvo la licencia (siempre permite galería). */
   permitirGaleriaFotos?: boolean;
+  /** Control Vehicular y Gerente Administrativo pueden indicar que actúan como apoyo al operador. */
+  permitirApoyoOperador?: boolean;
   onTerminar: () => void;
   onCancelar: () => void;
 };
@@ -348,7 +362,7 @@ type BorradorSemanal = {
   firmaBase64: string;
 };
 
-export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, onTerminar, onCancelar }: Props) {
+export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos = false, permitirApoyoOperador = false, onTerminar, onCancelar }: Props) {
   const [borradorInicial] = useState(() => leerBorrador<BorradorSemanal>(CLAVE_BORRADOR));
 
   const [fase, setFase] = useState<"identificacion" | "guia" | "exito">(borradorInicial?.fase ?? "identificacion");
@@ -706,6 +720,23 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
             </div>
           )}
 
+          {unidadSel && !unidadSel.disponibilidad && (
+            <div
+              className="flex items-start gap-3 rounded-xl px-4 py-3"
+              style={{ background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}
+            >
+              <TriangleAlert size={16} color="#dc2626" className="shrink-0 mt-0.5" />
+              <div>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "#dc2626" }}>
+                  Unidad no disponible
+                </p>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "#dc2626", marginTop: 2 }}>
+                  Esta unidad está {MOTIVO_LABEL[unidadSel.motivoIndisponibilidad ?? ""] ?? "no disponible"} y no puede recibir un checklist. Reactívala primero en el módulo de Flota.
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>
               {error}
@@ -719,17 +750,19 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
                 setError("Selecciona un número económico.");
                 return;
               }
+              if (unidadSel && !unidadSel.disponibilidad) return;
               setError(null);
               setIdx(0);
               setFase("guia");
             }}
             className="w-full rounded-xl h-12 font-semibold transition-colors"
             style={{
-              background: numeroEconomico ? "var(--color-primary)" : "var(--chip)",
-              color: numeroEconomico ? "#fff" : "var(--sidebar-text)",
+              background: (numeroEconomico && (unidadSel?.disponibilidad ?? true)) ? "var(--color-primary)" : "var(--chip)",
+              color: (numeroEconomico && (unidadSel?.disponibilidad ?? true)) ? "#fff" : "var(--sidebar-text)",
               fontFamily: "var(--font-ui)",
               fontSize: "var(--text-base)",
-              cursor: numeroEconomico ? "pointer" : "default",
+              cursor: (numeroEconomico && (unidadSel?.disponibilidad ?? true)) ? "pointer" : "default",
+              opacity: (unidadSel && !unidadSel.disponibilidad) ? 0.5 : 1,
             }}
           >
             Iniciar inspección →
@@ -1182,6 +1215,34 @@ export function WizardSemanal({ unidades, proyectos, esAdmin, fechaHoraActual, p
             >
               {item.label}
             </h2>
+            {permitirApoyoOperador && (
+              <div className="flex flex-col gap-2">
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+                  ¿Estás capturando como apoyo al operador?
+                </p>
+                <div className="flex gap-2">
+                  {["No, soy el responsable directo", "Sí, apoyo a operador"].map((op) => (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => setRespuestas((prev) => ({ ...prev, sig_es_apoyo_operador: op }))}
+                      className="rounded-xl flex-1 font-semibold transition-all"
+                      style={{
+                        fontFamily: "var(--font-ui)",
+                        fontSize: "var(--text-sm)",
+                        height: 44,
+                        cursor: "pointer",
+                        background: respuestas.sig_es_apoyo_operador === op ? "var(--color-primary)" : "var(--field-bg)",
+                        color: respuestas.sig_es_apoyo_operador === op ? "#fff" : "var(--field-text)",
+                        border: `1px solid ${respuestas.sig_es_apoyo_operador === op ? "transparent" : "var(--field-border)"}`,
+                      }}
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <FirmaPad name="sig_responsable" label="Firma del responsable" required onFirma={setFirmaBase64} />
             {error && (
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-status-escena)" }}>

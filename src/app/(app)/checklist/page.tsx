@@ -11,7 +11,7 @@ import { ChecklistEntrada } from "@/components/checklist/checklist-entrada";
 import { TomadasSinChecklistLista } from "@/components/checklist/tomadas-sin-checklist-lista";
 import { ExportarChecklistModal } from "@/components/checklist/exportar-checklist-modal";
 import { GrupoSecciones, SeccionColapsable } from "@/components/ui/secciones-colapsables";
-import { requerirPermisoModulo, puedeUsarGaleriaChecklist } from "@/lib/permisos";
+import { requerirPermisoModulo, puedeUsarGaleriaChecklist, puedeIndicarApoyoOperador } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx as inicioDeHoy } from "@/lib/timezone";
 import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
@@ -62,6 +62,8 @@ export default async function ChecklistPage({
         unidadModelo: true,
         tipoVehiculo: true,
         proyectoId: true,
+        disponibilidad: true,
+        motivoIndisponibilidad: true,
         proyecto: { select: { nombre: true } },
       },
       orderBy: { numeroEconomico: "asc" },
@@ -147,13 +149,14 @@ export default async function ChecklistPage({
   // (ver WizardDiario), porque quien hace el checklist es quien tomó la unidad,
   // no un dato administrativo aparte. Solo esa misma persona puede completar
   // su checklist (se revalida server-side en crearChecklist).
-  const [sesionesAbiertas, identidadPropia, permitirGaleriaFotos] = await Promise.all([
+  const [sesionesAbiertas, identidadPropia, permitirGaleriaFotos, permitirApoyoOperador] = await Promise.all([
     prisma.bitacoraUsoUnidad.findMany({
       where: { numeroEconomico: { in: unidades.map((u) => u.numeroEconomico) }, fin: null },
       include: { operador: { select: { nombre: true } }, usuario: { select: { nombre: true } } },
     }),
     resolverIdentidadTurno(),
     puedeUsarGaleriaChecklist(),
+    puedeIndicarApoyoOperador(),
   ]);
   const responsablePorUnidad = new Map(
     sesionesAbiertas.map((s) => [
@@ -189,6 +192,8 @@ export default async function ChecklistPage({
       tipoVehiculo: u.tipoVehiculo,
       proyectoId: u.proyectoId,
       proyectoNombre: u.proyecto?.nombre ?? null,
+      disponibilidad: u.disponibilidad,
+      motivoIndisponibilidad: u.motivoIndisponibilidad ?? null,
       responsableActivo: responsable?.nombre ?? null,
       esResponsableActual: responsable?.esUnoMismo ?? false,
     };
@@ -247,6 +252,7 @@ export default async function ChecklistPage({
         esAdmin={esAdmin}
         fechaHoraActual={fechaHoraActual}
         permitirGaleriaFotos={permitirGaleriaFotos}
+        permitirApoyoOperador={permitirApoyoOperador}
       />
 
       {sinCapturaMovieron.length > 0 && (

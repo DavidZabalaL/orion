@@ -138,6 +138,20 @@ export async function puedeVerSlaDisponibilidad(): Promise<boolean> {
   return tienePermisoEspecial("verSlaDisponibilidad");
 }
 
+/**
+ * Control Vehicular y Gerente administrativo pueden indicar en el campo
+ * "Responsable" del checklist que actúan como apoyo al operador (ej. cuando
+ * capturan el checklist en nombre de alguien más), en vez de aparecer como
+ * responsable directo.
+ */
+const ROLES_APOYO_OPERADOR_CHECKLIST = ["Control Vehicular", "Gerente administrativo"];
+
+export async function puedeIndicarApoyoOperador(): Promise<boolean> {
+  if (await esRolGlobal()) return true;
+  const session = await auth();
+  return !!session?.user?.rol && ROLES_APOYO_OPERADOR_CHECKLIST.includes(session.user.rol);
+}
+
 // ── Permisos por módulo (ver / editar / aprobar) ──
 // Mismo campo Rol.permisos que ya administra /usuarios/roles (actualizarPermisosRol),
 // aplicado por fin a cada página y Server Action de la plataforma.

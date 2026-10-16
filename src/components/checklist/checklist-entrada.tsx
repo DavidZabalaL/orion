@@ -16,6 +16,8 @@ type UnidadWizard = {
   tipoVehiculo: string;
   proyectoId: string | null;
   proyectoNombre: string | null;
+  disponibilidad: boolean;
+  motivoIndisponibilidad: string | null;
   responsableActivo: string | null;
   esResponsableActual: boolean;
 };
@@ -26,9 +28,10 @@ type Props = {
   esAdmin: boolean;
   fechaHoraActual: string;
   permitirGaleriaFotos: boolean;
+  permitirApoyoOperador: boolean;
 };
 
-export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos }: Props) {
+export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos, permitirApoyoOperador }: Props) {
   const router = useRouter();
   const [activo, setActivo] = useState<null | "diario" | "semanal" | "carga_combustible" | "reporte_falla">(null);
 
@@ -59,6 +62,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         esAdmin={esAdmin}
         fechaHoraActual={fechaHoraActual}
         permitirGaleriaFotos={permitirGaleriaFotos}
+        permitirApoyoOperador={permitirApoyoOperador}
         onTerminar={alTerminar}
         onCancelar={() => setActivo(null)}
       />
@@ -70,6 +74,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
       <WizardCargaCombustible
         unidades={unidades}
         permitirGaleriaFotos={permitirGaleriaFotos}
+        permitirApoyoOperador={permitirApoyoOperador}
         onTerminar={alTerminar}
         onCancelar={() => setActivo(null)}
       />
