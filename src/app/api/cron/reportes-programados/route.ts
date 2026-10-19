@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ejecutarReporteProgramado } from "@/lib/bi/motor-reportes";
-import { inicioDeHoyMx, inicioDeMesMx } from "@/lib/timezone";
+import { inicioDeHoyMx } from "@/lib/timezone";
 import { bearerAutorizado } from "@/lib/secreto";
 
 /** Último día del mes en curso (hora México), dado el marco ya desplazado a MX. */
@@ -47,22 +47,22 @@ export async function GET(request: Request): Promise<NextResponse> {
     const horaConfigurada = Number(reporte.hora.split(":")[0]);
     if (!Number.isFinite(horaConfigurada) || horaConfigurada !== horaMx) continue;
 
-    let periodoInicio: Date;
-    if (reporte.frecuencia === "DIARIO") {
-      periodoInicio = inicioDeHoyMx();
-    } else if (reporte.frecuencia === "SEMANAL") {
+    if (reporte.frecuencia === "SEMANAL") {
       if (diaSemanaMx !== reporte.diaSemana) continue;
-      periodoInicio = inicioDeHoyMx();
-    } else {
+    } else if (reporte.frecuencia !== "DIARIO") {
       const diaConfigurado = reporte.diaMes;
       // El mes puede ser más corto que el día configurado (ej. diaMes=31 en
       // febrero): en ese caso corre el último día del mes en vez de nunca.
       const esDiaConfigurado = diaDelMesMx === diaConfigurado || (diaConfigurado >= diaDelMesMx && esUltimoDiaDelMesMx(marcoMx));
       if (!esDiaConfigurado) continue;
-      periodoInicio = inicioDeMesMx();
     }
 
-    if (reporte.ultimaEjecucionEn && reporte.ultimaEjecucionEn >= periodoInicio) continue;
+    // Solo cuenta como "ya enviado" lo que salió a partir de la hora
+    // programada de hoy: una prueba con "Ejecutar ahora" antes de esa hora
+    // (ej. al crear el reporte a las 15:58 para las 17:00) ya no se come el
+    // envío automático a todos los destinatarios.
+    const horaProgramadaHoy = new Date(inicioDeHoyMx().getTime() + horaConfigurada * 3_600_000);
+    if (reporte.ultimaEjecucionEn && reporte.ultimaEjecucionEn >= horaProgramadaHoy) continue;
 
     const resultado = await ejecutarReporteProgramado(reporte.id);
     resultados.push({ id: reporte.id, nombre: reporte.nombre, ejecutado: true, estatus: resultado.estatus, error: resultado.error });

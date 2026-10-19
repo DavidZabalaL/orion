@@ -461,7 +461,9 @@ export function generarEstatusFlotaHtml(
   ].join("");
 
   const rangoGeneral = `${fmtFechaHtml(datos.desde).toUpperCase()} — ${fmtFechaHtml(datos.hasta).toUpperCase()}`;
-  const fechaGeneracion = new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  // Hora de México explícita: el servidor corre en UTC y, sin timeZone, un
+  // envío después de las 18:00 MX salía fechado al día siguiente.
+  const fechaGeneracion = new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/Mexico_City" });
 
   return `
 <!DOCTYPE html>
