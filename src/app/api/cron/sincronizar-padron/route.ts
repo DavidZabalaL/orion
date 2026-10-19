@@ -19,19 +19,27 @@ function autorizado(request: Request): boolean {
 
 /**
  * Lo llama un flujo de Power Automate con el archivo de RH (BASE CONTROL
- * VEHICULAR.xlsx). Acepta el archivo binario tal cual o el objeto
- * { "$content": "<base64>" } en que Power Automate serializa el contenido de archivo.
+ * VEHICULAR.xlsx). Formatos aceptados: texto plano con el archivo en base64
+ * (el que usa el flujo), JSON { "$content": "<base64>" }, o el binario tal cual.
+ * Power Automate manda un cuerpo de tipo archivo en streaming (chunked) y ese
+ * cuerpo llega vacío a la función; como texto lo manda completo.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   if (!autorizado(request)) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
+  const aBuffer = (base64: string) => {
+    const bytes = Buffer.from(base64.trim().replace(/^"|"$/g, ""), "base64");
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  };
+  const tipo = request.headers.get("content-type") ?? "";
   let buffer: ArrayBuffer;
   try {
-    if ((request.headers.get("content-type") ?? "").includes("application/json")) {
+    if (tipo.includes("text/plain")) {
+      buffer = aBuffer(await request.text());
+    } else if (tipo.includes("application/json")) {
       const cuerpo = (await request.json()) as { $content?: string };
       if (!cuerpo.$content) return NextResponse.json({ error: "El cuerpo JSON debe traer $content en base64." }, { status: 400 });
-      const bytes = Buffer.from(cuerpo.$content, "base64");
-      buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+      buffer = aBuffer(cuerpo.$content);
     } else {
       buffer = await request.arrayBuffer();
     }
