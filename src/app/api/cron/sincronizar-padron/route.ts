@@ -8,6 +8,23 @@ export const maxDuration = 60;
 
 const TAMANO_MAXIMO = 10 * 1024 * 1024;
 
+// En este despliegue un cuerpo enviado con Transfer-Encoding: chunked llega con
+// las marcas de cada fragmento ("1d64\r\n…\r\n0\r\n\r\n") dentro del texto.
+function sinMarcasChunked(texto: string): string {
+  if (!/^[0-9a-fA-F]+\r\n/.test(texto)) return texto;
+  let resultado = "";
+  let i = 0;
+  while (i < texto.length) {
+    const finLinea = texto.indexOf("\r\n", i);
+    if (finLinea < 0) break;
+    const tamano = parseInt(texto.slice(i, finLinea), 16);
+    if (!Number.isFinite(tamano) || tamano === 0) break;
+    resultado += texto.slice(finLinea + 2, finLinea + 2 + tamano);
+    i = finLinea + 2 + tamano + 2;
+  }
+  return resultado;
+}
+
 function autorizado(request: Request): boolean {
   // Sin secreto configurado se rechaza todo: este endpoint puede revocar accesos.
   const secreto = process.env.PADRON_SYNC_SECRET;
@@ -27,8 +44,8 @@ function autorizado(request: Request): boolean {
 export async function POST(request: Request): Promise<NextResponse> {
   if (!autorizado(request)) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
-  const aBuffer = (base64: string) => {
-    const bytes = Buffer.from(base64.trim().replace(/^"|"$/g, ""), "base64");
+  const aBuffer = (texto: string) => {
+    const bytes = Buffer.from(sinMarcasChunked(texto).trim().replace(/^"|"$/g, ""), "base64");
     return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   };
   const tipo = request.headers.get("content-type") ?? "";
