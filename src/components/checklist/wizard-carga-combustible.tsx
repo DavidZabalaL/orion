@@ -467,12 +467,12 @@ export function WizardCargaCombustible({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label style={labelStyle}>% de combustible después de la carga *</label>
+              <label style={labelStyle}>% de combustible antes de la carga *</label>
               <input
                 type="number" min={0} max={100}
-                value={porcentajeDespues}
-                onChange={(e) => setPorcentajeDespues(e.target.value)}
-                placeholder="Ej. 95"
+                value={porcentajeAntes}
+                onChange={(e) => setPorcentajeAntes(e.target.value)}
+                placeholder="Ej. 20"
                 style={fieldStyle}
               />
             </div>
@@ -506,12 +506,12 @@ export function WizardCargaCombustible({
             </div>
 
             <div>
-              <label style={labelStyle}>% de combustible antes de la carga *</label>
+              <label style={labelStyle}>% de combustible después de la carga *</label>
               <input
                 type="number" min={0} max={100}
-                value={porcentajeAntes}
-                onChange={(e) => setPorcentajeAntes(e.target.value)}
-                placeholder="Ej. 20"
+                value={porcentajeDespues}
+                onChange={(e) => setPorcentajeDespues(e.target.value)}
+                placeholder="Ej. 95"
                 style={fieldStyle}
               />
             </div>
