@@ -296,6 +296,11 @@ export function WizardCargaCombustible({
       formData.set("carg_litros_cargados", litrosCargados);
       formData.set("carg_cantidad_pagada", cantidadPagada);
       formData.set("carg_observaciones", observaciones);
+      formData.set("carg_foto_odometro_antes", urlsFotosCarga.carg_foto_odometro_antes ?? "");
+      formData.set("carg_foto_odometro_despues", urlsFotosCarga.carg_foto_odometro_despues ?? "");
+      formData.set("carg_foto_evidencia_bomba_1", urlsFotosCarga.carg_foto_evidencia_bomba_1 ?? "");
+      formData.set("carg_foto_evidencia_bomba_2", urlsFotosCarga.carg_foto_evidencia_bomba_2 ?? "");
+      formData.set("carg_foto_ticket", urlsFotosCarga.carg_foto_ticket ?? "");
 
       const res = await crearChecklistCargaCombustible(formData);
       if (!res.ok) { setError(res.error); return; }
