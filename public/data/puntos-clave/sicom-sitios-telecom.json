@@ -1,0 +1,133 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.947867,
+          18.145536
+        ]
+      },
+      "properties": {
+        "nombre": "Acatlan de osorio",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.345256,
+          19.077672
+        ]
+      },
+      "properties": {
+        "nombre": "Zapotecas",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.666748,
+          19.529859
+        ]
+      },
+      "properties": {
+        "nombre": "Libres",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.40265,
+          19.828983
+        ]
+      },
+      "properties": {
+        "nombre": "Teziutlan",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.446603,
+          18.479515
+        ]
+      },
+      "properties": {
+        "nombre": "Tehuacan",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.417783,
+          18.516352
+        ]
+      },
+      "properties": {
+        "nombre": "Izucar de matamoros",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.076091,
+          20.171573
+        ]
+      },
+      "properties": {
+        "nombre": "Huauchinango",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.930168,
+          19.918326
+        ]
+      },
+      "properties": {
+        "nombre": "Zacatlan",
+        "descripcion": "",
+        "categoria": "Sitio de Telecomunicaciones",
+        "region": "Puebla"
+      }
+    }
+  ]
+}

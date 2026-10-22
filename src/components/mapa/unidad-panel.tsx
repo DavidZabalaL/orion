@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { X, Fuel, Route, Radio, History } from "lucide-react";
+import { X, Fuel, Route, Radio, History, Building2 } from "lucide-react";
 import { GaugeCircular } from "@/components/mapa/gauge-circular";
 import { MovimientoChart } from "@/components/mapa/movimiento-chart";
 import { fmtFechaHora } from "@/lib/formato";
 
 const DIAS_HISTORIAL_AMPLIADO = 7;
+
+export type InstalacionCercana = {
+  nombre: string;
+  categoria: string;
+  region: string;
+  distanciaKm: number;
+};
 
 export type DetalleUnidad = {
   numeroEconomico: string;
@@ -29,11 +36,13 @@ const valorStyle: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize
 
 export function UnidadPanel({
   detalle,
+  instalacionCercana,
   cargando,
   onCerrar,
   onAmpliarHistorial,
 }: {
   detalle: DetalleUnidad | null;
+  instalacionCercana?: InstalacionCercana | null;
   cargando: boolean;
   onCerrar: () => void;
   onAmpliarHistorial: () => void;
@@ -77,6 +86,34 @@ export function UnidadPanel({
           {detalle.ultima?.esAnomalo && (
             <div style={{ ...filaStyle, color: "var(--color-status-escena)", fontWeight: 600 }}>
               ⚠ {detalle.ultima.motivoAnomalia ?? "Lectura anómala"}
+            </div>
+          )}
+
+          {instalacionCercana && (
+            <div
+              className="flex items-start gap-2.5 rounded-lg p-2.5 text-xs"
+              style={{
+                background: "var(--chip)",
+                border: "1px solid var(--border-color, #e2e8f0)",
+              }}
+            >
+              <Building2 size={16} className="text-blue-600 shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                <span style={{ color: "var(--sidebar-text)", fontSize: 11, fontWeight: 500 }}>
+                  Instalación más cercana:
+                </span>
+                <span style={{ fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+                  {instalacionCercana.nombre}
+                </span>
+                <span style={{ color: "var(--sidebar-text)", fontSize: 11 }}>
+                  {instalacionCercana.categoria} ({instalacionCercana.region}) · a{" "}
+                  <strong style={{ color: "var(--color-primary, #2563eb)" }}>
+                    {instalacionCercana.distanciaKm < 1
+                      ? `${Math.round(instalacionCercana.distanciaKm * 1000)} m`
+                      : `${instalacionCercana.distanciaKm.toFixed(1)} km`}
+                  </strong>
+                </span>
+              </div>
             </div>
           )}
 

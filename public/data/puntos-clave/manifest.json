@@ -1,0 +1,95 @@
+{
+  "actualizado": "2026-10-22",
+  "totalCapas": 8,
+  "totalPuntosGlobal": 3597,
+  "capas": [
+    {
+      "id": "morelos-pmc",
+      "nombre": "Morelos — Puntos de Monitoreo (1,000 pts)",
+      "archivo": "morelos-puntos-monitoreo.json",
+      "region": "Morelos",
+      "categoria": "Punto de Monitoreo",
+      "icono": "Video",
+      "color": "#ea580c",
+      "totalPuntos": 996,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "sicom-sitios",
+      "nombre": "SICOM — Sitios Telecom",
+      "archivo": "sicom-sitios-telecom.json",
+      "region": "Puebla",
+      "categoria": "Sitio de Telecomunicaciones",
+      "icono": "Radio",
+      "color": "#0284c7",
+      "totalPuntos": 8,
+      "activoPorDefecto": true
+    },
+    {
+      "id": "michoacan-subcentros",
+      "nombre": "Michoacán — Subcentros C4",
+      "archivo": "michoacan-subcentros.json",
+      "region": "Michoacán",
+      "categoria": "Subcentro C4",
+      "icono": "Building2",
+      "color": "#1d4ed8",
+      "totalPuntos": 11,
+      "activoPorDefecto": true
+    },
+    {
+      "id": "michoacan-arcos",
+      "nombre": "Michoacán — Arcos Carreteros",
+      "archivo": "michoacan-arcos.json",
+      "region": "Michoacán",
+      "categoria": "Arco Carretero (LPR)",
+      "icono": "ScanLine",
+      "color": "#7c3aed",
+      "totalPuntos": 56,
+      "activoPorDefecto": true
+    },
+    {
+      "id": "michoacan-red-estatal",
+      "nombre": "Michoacán — Red Estatal de Telecom",
+      "archivo": "michoacan-red-estatal.json",
+      "region": "Michoacán",
+      "categoria": "Torre Red Estatal",
+      "icono": "TowerControl",
+      "color": "#0d9488",
+      "totalPuntos": 24,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "michoacan-red-municipal",
+      "nombre": "Michoacán — Red Municipal de Telecom",
+      "archivo": "michoacan-red-municipal.json",
+      "region": "Michoacán",
+      "categoria": "Torre Red Municipal",
+      "icono": "Radio",
+      "color": "#059669",
+      "totalPuntos": 63,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "michoacan-pmis",
+      "nombre": "Michoacán — PMIs Postes (1,300 pts)",
+      "archivo": "michoacan-pmis.json",
+      "region": "Michoacán",
+      "categoria": "PMI (Poste con Cámara)",
+      "icono": "Video",
+      "color": "#d97706",
+      "totalPuntos": 1328,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "chiapas-ubicaciones",
+      "nombre": "Chiapas — Ubicaciones (1,100 pts)",
+      "archivo": "chiapas-ubicaciones.json",
+      "region": "Chiapas",
+      "categoria": "Instalación Chiapas",
+      "icono": "MapPin",
+      "color": "#2563eb",
+      "totalPuntos": 1111,
+      "activoPorDefecto": false
+    }
+  ]
+}

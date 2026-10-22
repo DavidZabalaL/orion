@@ -1,0 +1,957 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.372214,
+          19.089069
+        ]
+      },
+      "properties": {
+        "nombre": "LPR1",
+        "municipio": "APATZINGAN",
+        "descripcion": "APATZINGAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.324747,
+          19.057888
+        ]
+      },
+      "properties": {
+        "nombre": "LPR2",
+        "municipio": "APATZINGAN",
+        "descripcion": "APATZINGAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.371504,
+          19.111767
+        ]
+      },
+      "properties": {
+        "nombre": "LPR3",
+        "municipio": "APATZINGAN",
+        "descripcion": "APATZINGAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.104097,
+          18.993245
+        ]
+      },
+      "properties": {
+        "nombre": "LPR2",
+        "municipio": "NUEVA ITALIA",
+        "descripcion": "APATZINGAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.898852,
+          18.65764
+        ]
+      },
+      "properties": {
+        "nombre": "LPR3",
+        "municipio": "HUETAMO",
+        "descripcion": "HUETAMO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.891586,
+          18.604414
+        ]
+      },
+      "properties": {
+        "nombre": "LPR4",
+        "municipio": "HUETAMO",
+        "descripcion": "HUETAMO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.91352,
+          18.620518
+        ]
+      },
+      "properties": {
+        "nombre": "LPR5",
+        "municipio": "HUETAMO",
+        "descripcion": "HUETAMO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.696623,
+          19.985468
+        ]
+      },
+      "properties": {
+        "nombre": "LPR 8",
+        "municipio": "JIQUILPAN",
+        "descripcion": "JIQUILPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.74171,
+          20.085525
+        ]
+      },
+      "properties": {
+        "nombre": "LPR10",
+        "municipio": "SAHUAYO",
+        "descripcion": "JIQUILPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.703316,
+          20.087059
+        ]
+      },
+      "properties": {
+        "nombre": "LPR9",
+        "municipio": "SAHUAYO",
+        "descripcion": "JIQUILPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.016941,
+          20.339569
+        ]
+      },
+      "properties": {
+        "nombre": "LPR11",
+        "municipio": "LA PIEDAD",
+        "descripcion": "LA PIEDAD",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.015057,
+          20.315597
+        ]
+      },
+      "properties": {
+        "nombre": "LPR4",
+        "municipio": "LA PIEDAD",
+        "descripcion": "LA PIEDAD",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.072672,
+          20.36049
+        ]
+      },
+      "properties": {
+        "nombre": "LPR5",
+        "municipio": "LA PIEDAD",
+        "descripcion": "LA PIEDAD",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.032024,
+          20.322145
+        ]
+      },
+      "properties": {
+        "nombre": "LPR6",
+        "municipio": "LA PIEDAD",
+        "descripcion": "LA PIEDAD",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.290828,
+          18.37181
+        ]
+      },
+      "properties": {
+        "nombre": "LPR12",
+        "municipio": "ARTEAGA",
+        "descripcion": "LAZARO CARDENAS",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.196852,
+          17.973229
+        ]
+      },
+      "properties": {
+        "nombre": "LPR1",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "LAZARO CARDENAS",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.348171,
+          18.023327
+        ]
+      },
+      "properties": {
+        "nombre": "LPR13",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "LAZARO CARDENAS",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.246095,
+          18.00383
+        ]
+      },
+      "properties": {
+        "nombre": "LPR14",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "LAZARO CARDENAS",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.200722,
+          18.028665
+        ]
+      },
+      "properties": {
+        "nombre": "LPR15",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "LAZARO CARDENAS",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.026226,
+          19.837944
+        ]
+      },
+      "properties": {
+        "nombre": "LPR16",
+        "municipio": "ALVARO OBREGON",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.150916,
+          20.048524
+        ]
+      },
+      "properties": {
+        "nombre": "LPR17",
+        "municipio": "CUITZEO",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.249866,
+          19.645515
+        ]
+      },
+      "properties": {
+        "nombre": "LPR10",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.282941,
+          19.690584
+        ]
+      },
+      "properties": {
+        "nombre": "LPR11",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.330474,
+          19.560079
+        ]
+      },
+      "properties": {
+        "nombre": "LPR18",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.161494,
+          19.765345
+        ]
+      },
+      "properties": {
+        "nombre": "LPR7",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.137079,
+          19.729034
+        ]
+      },
+      "properties": {
+        "nombre": "LPR8",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.107922,
+          19.688447
+        ]
+      },
+      "properties": {
+        "nombre": "LPR9",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.219422,
+          19.72752
+        ]
+      },
+      "properties": {
+        "nombre": "ARCO NORTE",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.205008,
+          19.674213
+        ]
+      },
+      "properties": {
+        "nombre": "ARCO SUR",
+        "municipio": "MORELIA",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.827697,
+          19.819365
+        ]
+      },
+      "properties": {
+        "nombre": "LPR19",
+        "municipio": "ZINAPECUARO",
+        "descripcion": "MORELIA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.718867,
+          19.207031
+        ]
+      },
+      "properties": {
+        "nombre": "LPR20",
+        "municipio": "ARIO DE ROSALES",
+        "descripcion": "PATZCUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.572524,
+          19.536359
+        ]
+      },
+      "properties": {
+        "nombre": "LPR21",
+        "municipio": "PATZCUARO",
+        "descripcion": "PATZCUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.596794,
+          19.494899
+        ]
+      },
+      "properties": {
+        "nombre": "LPR22",
+        "municipio": "PATZCUARO",
+        "descripcion": "PATZCUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.646895,
+          19.52535
+        ]
+      },
+      "properties": {
+        "nombre": "LPR23",
+        "municipio": "PATZCUARO",
+        "descripcion": "PATZCUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.428241,
+          19.223117
+        ]
+      },
+      "properties": {
+        "nombre": "LPR24",
+        "municipio": "TACAMBARO",
+        "descripcion": "PATZCUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.468134,
+          19.230984
+        ]
+      },
+      "properties": {
+        "nombre": "LPR25",
+        "municipio": "TACAMBARO",
+        "descripcion": "PATZCUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.460454,
+          19.576035
+        ]
+      },
+      "properties": {
+        "nombre": "LPR31",
+        "municipio": "LOS REYES",
+        "descripcion": "URUAPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.486293,
+          19.620185
+        ]
+      },
+      "properties": {
+        "nombre": "LPR32",
+        "municipio": "LOS REYES",
+        "descripcion": "URUAPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.08081,
+          19.381507
+        ]
+      },
+      "properties": {
+        "nombre": "LPR27",
+        "municipio": "URUAPAN",
+        "descripcion": "URUAPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.007688,
+          19.445914
+        ]
+      },
+      "properties": {
+        "nombre": "LPR28",
+        "municipio": "URUAPAN",
+        "descripcion": "URUAPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.055642,
+          19.369195
+        ]
+      },
+      "properties": {
+        "nombre": "LPR29",
+        "municipio": "URUAPAN",
+        "descripcion": "URUAPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.072911,
+          19.44124
+        ]
+      },
+      "properties": {
+        "nombre": "LPR30",
+        "municipio": "URUAPAN",
+        "descripcion": "URUAPAN",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.327467,
+          19.934559
+        ]
+      },
+      "properties": {
+        "nombre": "LPR6",
+        "municipio": "JACONA",
+        "descripcion": "ZAMORA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.347006,
+          19.964961
+        ]
+      },
+      "properties": {
+        "nombre": "LPR7",
+        "municipio": "JACONA",
+        "descripcion": "ZAMORA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.247636,
+          19.947117
+        ]
+      },
+      "properties": {
+        "nombre": "LPR33",
+        "municipio": "ZAMORA",
+        "descripcion": "ZAMORA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.274185,
+          20.062538
+        ]
+      },
+      "properties": {
+        "nombre": "LPR34",
+        "municipio": "ZAMORA",
+        "descripcion": "ZAMORA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.333144,
+          20.055765
+        ]
+      },
+      "properties": {
+        "nombre": "LPR35",
+        "municipio": "ZAMORA",
+        "descripcion": "ZAMORA",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.472357,
+          19.925505
+        ]
+      },
+      "properties": {
+        "nombre": "LPR13",
+        "municipio": "MARAVATIO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.451136,
+          19.877521
+        ]
+      },
+      "properties": {
+        "nombre": "LPR14",
+        "municipio": "MARAVATIO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.268877,
+          19.761826
+        ]
+      },
+      "properties": {
+        "nombre": "LPR36",
+        "municipio": "MARAVATIO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.598831,
+          19.69879
+        ]
+      },
+      "properties": {
+        "nombre": "LPR12",
+        "municipio": "CIUDAD HIDALGO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.323484,
+          19.434116
+        ]
+      },
+      "properties": {
+        "nombre": "LPR15",
+        "municipio": "ZITACUARO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.341588,
+          19.408397
+        ]
+      },
+      "properties": {
+        "nombre": "LPR37",
+        "municipio": "ZITACUARO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.347612,
+          19.445538
+        ]
+      },
+      "properties": {
+        "nombre": "LPR38",
+        "municipio": "ZITACUARO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.372097,
+          19.43016
+        ]
+      },
+      "properties": {
+        "nombre": "LPR39",
+        "municipio": "ZITACUARO",
+        "descripcion": "ZITACUARO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.776652,
+          19.799803
+        ]
+      },
+      "properties": {
+        "nombre": "LPR26",
+        "municipio": "ZACAPU",
+        "descripcion": "ZACAPU",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Michoacán"
+      }
+    }
+  ]
+}
