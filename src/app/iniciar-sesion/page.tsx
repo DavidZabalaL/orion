@@ -127,18 +127,18 @@ export default async function IniciarSesionPage({
             <div className="flex items-center gap-2 mb-2">
               <UserRound size={15} color="#334155" />
               <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 700, color: "#334155" }}>
-                Correo personal
+                Correo y contraseña
               </span>
             </div>
             <p className="mb-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "#94a3b8" }}>
-              Para operadores sin correo @grupokabat.com — entra con el correo personal y la contraseña que creaste al registrarte.
+              Para operadores o acceso con credenciales locales — entra con tu correo y contraseña.
             </p>
             <form
               className="flex flex-col gap-3"
               action={async (fd) => {
                 "use server";
                 try {
-                  await signIn("operador-credenciales", { correo: fd.get("correo"), password: fd.get("password"), redirectTo: "/unidades" });
+                  await signIn("operador-credenciales", { correo: fd.get("correo"), password: fd.get("password"), redirectTo: callbackUrl });
                 } catch (error) {
                   if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
                   if ((error as { code?: string }).code === "demasiados_intentos") redirect("/iniciar-sesion?error=DemasiadosIntentos");
@@ -149,7 +149,7 @@ export default async function IniciarSesionPage({
               <input
                 name="correo"
                 type="email"
-                placeholder="Correo personal"
+                placeholder="Correo electrónico"
                 autoComplete="email"
                 required
                 style={{ border: "1px solid #d7dee8", borderRadius: 8, padding: "8px 12px", fontSize: "var(--text-sm)", color: "#0f1b2d", background: "#fff", width: "100%" }}
@@ -167,7 +167,7 @@ export default async function IniciarSesionPage({
                 className="h-10 rounded-md font-semibold"
                 style={{ background: "#fff", color: "#0f1b2d", border: "1px solid #d7dee8", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", cursor: "pointer" }}
               >
-                Entrar con correo personal
+                Entrar con correo y contraseña
               </button>
               <a
                 href="/recuperar-contrasena"
