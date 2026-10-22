@@ -1,0 +1,1076 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.359034,
+          19.102049
+        ]
+      },
+      "properties": {
+        "nombre": "DEPORTIVO",
+        "municipio": "APATZINGAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.355083,
+          19.087139
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO",
+        "municipio": "APATZINGAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.339732,
+          19.069606
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "APATZINGAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.321815,
+          19.067789
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO APATZINGÁN",
+        "municipio": "APATZINGAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.529869,
+          19.679749
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "CIUDAD HIDAGO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.580313,
+          19.695058
+        ]
+      },
+      "properties": {
+        "nombre": "PROCURADURIA",
+        "municipio": "CIUDAD HIDAGO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.555185,
+          19.689453
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO MUNICIPAL",
+        "municipio": "CIUDAD HIDAGO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.553579,
+          19.705999
+        ]
+      },
+      "properties": {
+        "nombre": "BOMBEROS",
+        "municipio": "CIUDAD HIDAGO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -103.17594,
+          18.772618
+        ]
+      },
+      "properties": {
+        "nombre": "CUARTEL (SUBCENTRO)",
+        "municipio": "COALCOMAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -103.159628,
+          18.776844
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO",
+        "municipio": "COALCOMAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.899838,
+          18.626411
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO MUNICIPAL",
+        "municipio": "HUETAMO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.897628,
+          18.632282
+        ]
+      },
+      "properties": {
+        "nombre": "AUDITORIO",
+        "municipio": "HUETAMO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.902887,
+          18.64203
+        ]
+      },
+      "properties": {
+        "nombre": "C5",
+        "municipio": "HUETAMO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.697419,
+          20.015794
+        ]
+      },
+      "properties": {
+        "nombre": "CERRO PELON",
+        "municipio": "JIQUILPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.714408,
+          20.049328
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "JIQUILPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.731552,
+          20.052982
+        ]
+      },
+      "properties": {
+        "nombre": "TANQUE DE AGUA",
+        "municipio": "JIQUILPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.70895,
+          20.008858
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO",
+        "municipio": "JIQUILPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.018161,
+          20.34197
+        ]
+      },
+      "properties": {
+        "nombre": "BOMBEROS",
+        "municipio": "LA PIEDAD",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.022728,
+          20.341472
+        ]
+      },
+      "properties": {
+        "nombre": "TECNOLÓGICO",
+        "municipio": "LA PIEDAD",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.034996,
+          20.354325
+        ]
+      },
+      "properties": {
+        "nombre": "C4",
+        "municipio": "LA PIEDAD",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.199851,
+          17.957178
+        ]
+      },
+      "properties": {
+        "nombre": "UNIDAD DEPORTIVA",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.213731,
+          17.962009
+        ]
+      },
+      "properties": {
+        "nombre": "PARQUE JESUS ROMERO",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.211044,
+          18.01957
+        ]
+      },
+      "properties": {
+        "nombre": "GUACAMAYAS",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.33866,
+          18.038381
+        ]
+      },
+      "properties": {
+        "nombre": "CERRO DE LA CRUZ",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.349343,
+          17.981372
+        ]
+      },
+      "properties": {
+        "nombre": "PLAYA AZUL",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.474759,
+          19.588933
+        ]
+      },
+      "properties": {
+        "nombre": "PRESIDENCIA",
+        "municipio": "LOS REYES",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.448358,
+          19.891083
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO",
+        "municipio": "MARAVATIO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.441639,
+          19.891722
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO",
+        "municipio": "MARAVATIO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.457634,
+          19.910061
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "MARAVATIO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.192578,
+          19.7052
+        ]
+      },
+      "properties": {
+        "nombre": "SECTOR SALUD",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.237752,
+          19.696426
+        ]
+      },
+      "properties": {
+        "nombre": "MANANTIALES",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.209589,
+          19.720652
+        ]
+      },
+      "properties": {
+        "nombre": "MODULO DE POLICIA",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.186189,
+          19.698962
+        ]
+      },
+      "properties": {
+        "nombre": "PADRE LLOREDA",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.181835,
+          19.722893
+        ]
+      },
+      "properties": {
+        "nombre": "JUNTA DE CAMINOS",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.228444,
+          19.719881
+        ]
+      },
+      "properties": {
+        "nombre": "BOMBEROS",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.197542,
+          19.722741
+        ]
+      },
+      "properties": {
+        "nombre": "POLIFORUM",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.174281,
+          19.676572
+        ]
+      },
+      "properties": {
+        "nombre": "ASTA BANDERA",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.212252,
+          19.69572
+        ]
+      },
+      "properties": {
+        "nombre": "PROTECCION CIVIL",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.161905,
+          19.675995
+        ]
+      },
+      "properties": {
+        "nombre": "ALTOZANO",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.086296,
+          19.028685
+        ]
+      },
+      "properties": {
+        "nombre": "CASA DE CULTURA",
+        "municipio": "MUGICA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.603282,
+          19.497467
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO",
+        "municipio": "PATZCUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.612178,
+          19.539785
+        ]
+      },
+      "properties": {
+        "nombre": "TORRES FEDERALES",
+        "municipio": "PATZCUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.615362,
+          19.515963
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "PATZCUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.457238,
+          19.235513
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO",
+        "municipio": "TACAMBARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.032053,
+          19.425121
+        ]
+      },
+      "properties": {
+        "nombre": "DEPORTIVA",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.047423,
+          19.422209
+        ]
+      },
+      "properties": {
+        "nombre": "DIF",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.07225,
+          19.430238
+        ]
+      },
+      "properties": {
+        "nombre": "CLORACION",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.06596,
+          19.408676
+        ]
+      },
+      "properties": {
+        "nombre": "CAPASU",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.02938,
+          19.4035
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO URUAPAN 2",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.02938,
+          19.4035
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO URUAPAN",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.06157,
+          19.372621
+        ]
+      },
+      "properties": {
+        "nombre": "AULA VIRTUAL",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.792829,
+          19.81858
+        ]
+      },
+      "properties": {
+        "nombre": "SSP",
+        "municipio": "ZACAPU",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.27023,
+          19.974489
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "ZAMORA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.275329,
+          20.076239
+        ]
+      },
+      "properties": {
+        "nombre": "TECNOLOGICO",
+        "municipio": "ZAMORA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.354458,
+          20.027025
+        ]
+      },
+      "properties": {
+        "nombre": "CADECO",
+        "municipio": "ZAMORA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.28611,
+          19.983114
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO ACTUAL",
+        "municipio": "ZAMORA",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.827516,
+          19.860225
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO",
+        "municipio": "ZINAPECUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.328083,
+          19.44002
+        ]
+      },
+      "properties": {
+        "nombre": "PRIMERO DE MAYO",
+        "municipio": "ZITACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.312436,
+          19.451585
+        ]
+      },
+      "properties": {
+        "nombre": "SUBCENTRO ZITACUARO",
+        "municipio": "ZITACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.330834,
+          19.420106
+        ]
+      },
+      "properties": {
+        "nombre": "FISCALIA",
+        "municipio": "ZITACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.352752,
+          19.430525
+        ]
+      },
+      "properties": {
+        "nombre": "CERRITO INEPENDENCIA",
+        "municipio": "ZITACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.344222,
+          19.455284
+        ]
+      },
+      "properties": {
+        "nombre": "SEGURIDAD PUBLICA",
+        "municipio": "ZITACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.352409,
+          19.431637
+        ]
+      },
+      "properties": {
+        "nombre": "JAULA DE LEONES",
+        "municipio": "ZITACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Municipal",
+        "region": "Michoacán"
+      }
+    }
+  ]
+}

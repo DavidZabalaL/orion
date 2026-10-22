@@ -1,0 +1,192 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.300702,
+          19.669338
+        ]
+      },
+      "properties": {
+        "nombre": "MORELIA",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.323057,
+          19.067977
+        ]
+      },
+      "properties": {
+        "nombre": "APATZINGAN",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.035342,
+          20.353928
+        ]
+      },
+      "properties": {
+        "nombre": "LA PIEDAD",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.221078,
+          17.977053
+        ]
+      },
+      "properties": {
+        "nombre": "LAZARO CARDENAS",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.709026,
+          20.008894
+        ]
+      },
+      "properties": {
+        "nombre": "JIQUILPAN",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.028706,
+          19.402685
+        ]
+      },
+      "properties": {
+        "nombre": "URUAPAN",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.28619,
+          19.983094
+        ]
+      },
+      "properties": {
+        "nombre": "ZAMORA",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.311693,
+          19.451746
+        ]
+      },
+      "properties": {
+        "nombre": "ZITACUARO",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -103.175067,
+          18.772922
+        ]
+      },
+      "properties": {
+        "nombre": "COALCOMAN",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.903459,
+          18.642867
+        ]
+      },
+      "properties": {
+        "nombre": "HUETAMO",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.603283,
+          19.497419
+        ]
+      },
+      "properties": {
+        "nombre": "PATZCUARO",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Subcentro C4",
+        "region": "Michoacán"
+      }
+    }
+  ]
+}

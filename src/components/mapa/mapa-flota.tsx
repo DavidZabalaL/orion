@@ -8,6 +8,7 @@ import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { PosicionesLista, type PosicionRow } from "@/components/mapa/posiciones-lista";
 import { UnidadPanel, type DetalleUnidad } from "@/components/mapa/unidad-panel";
 import type { PuntoMapa, PuntoRuta } from "@/components/mapa/flota-map";
+import { encontrarPuntoClaveMasCercano, type PuntoClaveFeature } from "@/lib/geo/puntos-clave";
 
 // Leaflet toca `window` al importarse — debe cargar solo en cliente.
 const FlotaMap = dynamic(() => import("@/components/mapa/flota-map").then((m) => m.FlotaMap), {
@@ -34,6 +35,19 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
   const [seleccionada, setSeleccionada] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<DetalleUnidad | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [puntosClave, setPuntosClave] = useState<PuntoClaveFeature[]>([]);
+
+  const instalacionCercana = useMemo(() => {
+    if (!detalle?.ultima || !puntosClave.length) return null;
+    const res = encontrarPuntoClaveMasCercano(detalle.ultima.lat, detalle.ultima.lng, puntosClave);
+    if (!res) return null;
+    return {
+      nombre: res.punto.properties.nombre,
+      categoria: res.punto.properties.categoria,
+      region: res.punto.properties.region,
+      distanciaKm: res.distanciaKm,
+    };
+  }, [detalle, puntosClave]);
 
   const cargarDetalle = useCallback(async (numeroEconomico: string, dias = 1) => {
     setSeleccionada(numeroEconomico);
@@ -197,10 +211,17 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
       <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar número económico…" />
 
       <div className="relative">
-        <FlotaMap puntos={puntosMapa} ruta={ruta} seleccionado={seleccionada ?? undefined} onSeleccionar={cargarDetalle} />
+        <FlotaMap
+          puntos={puntosMapa}
+          ruta={ruta}
+          seleccionado={seleccionada ?? undefined}
+          onSeleccionar={cargarDetalle}
+          onPuntosClaveCargados={setPuntosClave}
+        />
         {seleccionada && (
           <UnidadPanel
             detalle={detalle}
+            instalacionCercana={instalacionCercana}
             cargando={cargandoDetalle}
             onCerrar={() => {
               setSeleccionada(null);

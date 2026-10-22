@@ -1,0 +1,413 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.345502,
+          18.346404
+        ]
+      },
+      "properties": {
+        "nombre": "ARTEAGA (Parritas)",
+        "municipio": "ARTEAGA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.512406,
+          19.438938
+        ]
+      },
+      "properties": {
+        "nombre": "C. BURRO",
+        "municipio": "PATZCUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.30098,
+          19.668868
+        ]
+      },
+      "properties": {
+        "nombre": "C5 Morelia",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.6003,
+          19.530983
+        ]
+      },
+      "properties": {
+        "nombre": "CERRO BLANCO",
+        "municipio": "PATZCUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.914258,
+          18.513955
+        ]
+      },
+      "properties": {
+        "nombre": "Cerro Turitzio",
+        "municipio": "HUETAMO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -103.291229,
+          18.625417
+        ]
+      },
+      "properties": {
+        "nombre": "CERRO VERDE",
+        "municipio": "COALCOMAN",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -103.629377,
+          18.612152
+        ]
+      },
+      "properties": {
+        "nombre": "COAHUAYANA (Ratas)",
+        "municipio": "AQUILA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.039761,
+          19.590225
+        ]
+      },
+      "properties": {
+        "nombre": "El Aguila",
+        "municipio": "PARACHO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.461646,
+          19.937539
+        ]
+      },
+      "properties": {
+        "nombre": "EL CEREZO",
+        "municipio": "TANGAMANDAPIO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.909081,
+          19.860424
+        ]
+      },
+      "properties": {
+        "nombre": "EL TULE",
+        "municipio": "PUREPERO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.343304,
+          19.120865
+        ]
+      },
+      "properties": {
+        "nombre": "HUNGUARO",
+        "municipio": "APATZINGAN",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.648025,
+          19.191125
+        ]
+      },
+      "properties": {
+        "nombre": "LA BARRA",
+        "municipio": "ARIO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.061214,
+          19.431761
+        ]
+      },
+      "properties": {
+        "nombre": "LA CHARANDA",
+        "municipio": "URUAPAN",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.114566,
+          20.304086
+        ]
+      },
+      "properties": {
+        "nombre": "LA PIEDAD",
+        "municipio": "LA PIEDAD",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.273322,
+          19.717858
+        ]
+      },
+      "properties": {
+        "nombre": "LAS FLORES",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.221247,
+          17.976802
+        ]
+      },
+      "properties": {
+        "nombre": "LAZARO CARDENAS",
+        "municipio": "LAZARO CARDENAS",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -103.3882,
+          18.293452
+        ]
+      },
+      "properties": {
+        "nombre": "MARUATA (POMARO)",
+        "municipio": "AQUILA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.079208,
+          19.020147
+        ]
+      },
+      "properties": {
+        "nombre": "NUEVA ITALIA (la cruz)",
+        "municipio": "NUEVA ITALIA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.956068,
+          18.79538
+        ]
+      },
+      "properties": {
+        "nombre": "PASO MALO",
+        "municipio": "COALCOMAN",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.596228,
+          19.805522
+        ]
+      },
+      "properties": {
+        "nombre": "SAN ANDRES (CERRO DE EN MEDIO)",
+        "municipio": "MARAVATIO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.040613,
+          18.907887
+        ]
+      },
+      "properties": {
+        "nombre": "SAN BUENAVENTURA",
+        "municipio": "CARACUARO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.311513,
+          19.417776
+        ]
+      },
+      "properties": {
+        "nombre": "TANCITARO",
+        "municipio": "TANCITARO",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.232004,
+          19.680089
+        ]
+      },
+      "properties": {
+        "nombre": "SSP",
+        "municipio": "MORELIA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.802417,
+          18.697833
+        ]
+      },
+      "properties": {
+        "nombre": "SILAHUA",
+        "municipio": "LA HUACANA",
+        "descripcion": "",
+        "categoria": "Torre Red Estatal",
+        "region": "Michoacán"
+      }
+    }
+  ]
+}

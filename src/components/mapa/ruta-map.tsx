@@ -4,11 +4,14 @@
 // /mapa/historial. Aislado de flota-map.tsx (que dibuja MUCHAS unidades a la
 // vez) porque aquí la ruta se pinta con gradiente por tiempo, como en el
 // mockup de referencia: azul (más antiguo) → rojo (más reciente).
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { fmtFechaHora } from "@/lib/formato";
+import type { CapaInfo, ManifestCapas } from "@/lib/geo/puntos-clave";
+import { CapaPuntosClave } from "@/components/mapa/capa-puntos-clave";
+import { ControlCapasPuntos } from "@/components/mapa/control-capas-puntos";
 
 export type PuntoRutaHistorial = { lat: number; lng: number; timestamp: string };
 
@@ -45,6 +48,33 @@ function AjustarVista({ ruta }: { ruta: PuntoRutaHistorial[] }) {
 }
 
 export function RutaMap({ ruta }: { ruta: PuntoRutaHistorial[] }) {
+  const [manifestCapas, setManifestCapas] = useState<CapaInfo[]>([]);
+  const [capasActivas, setCapasActivas] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/data/puntos-clave/manifest.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ManifestCapas | null) => {
+        if (data && data.capas) {
+          setManifestCapas(data.capas);
+          // Por defecto activamos capas estratégicas ligeras
+          const porDefecto = data.capas.filter((c) => c.activoPorDefecto).map((c) => c.id);
+          setCapasActivas(porDefecto);
+        }
+      })
+      .catch((e) => console.error("Error al cargar capas en RutaMap:", e));
+  }, []);
+
+  function alternarCapa(id: string) {
+    setCapasActivas((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  }
+  function activarTodas() {
+    setCapasActivas(manifestCapas.map((c) => c.id));
+  }
+  function desactivarTodas() {
+    setCapasActivas([]);
+  }
+
   const segmentos = useMemo(() => {
     if (ruta.length < 2) return [];
     return ruta.slice(1).map((p, i) => ({
@@ -71,23 +101,40 @@ export function RutaMap({ ruta }: { ruta: PuntoRutaHistorial[] }) {
   const fin = ruta[ruta.length - 1];
 
   return (
-    <MapContainer center={[inicio.lat, inicio.lng]} zoom={12} style={{ height: "420px", width: "100%", borderRadius: "var(--radius-lg, 12px)" }} scrollWheelZoom>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <AjustarVista ruta={ruta} />
-      {segmentos.map((s, i) => (
-        <Polyline key={i} positions={s.posiciones} pathOptions={{ color: s.color, weight: 4, opacity: 0.85 }} />
-      ))}
-      <Marker position={[inicio.lat, inicio.lng]} icon={iconoPunto("rgb(59,130,246)", "circulo")}>
-        <Popup>Inicio · {fmtFechaHora(inicio.timestamp)}</Popup>
-      </Marker>
-      {ruta.length > 1 && (
-        <Marker position={[fin.lat, fin.lng]} icon={iconoPunto("rgb(239,68,68)", "cuadro")}>
-          <Popup>Fin · {fmtFechaHora(fin.timestamp)}</Popup>
-        </Marker>
+    <div className="relative w-full">
+      {manifestCapas.length > 0 && (
+        <ControlCapasPuntos
+          capas={manifestCapas}
+          capasActivas={capasActivas}
+          onToggleCapa={alternarCapa}
+          onActivarTodas={activarTodas}
+          onDesactivarTodas={desactivarTodas}
+        />
       )}
-    </MapContainer>
+      <MapContainer center={[inicio.lat, inicio.lng]} zoom={12} style={{ height: "420px", width: "100%", borderRadius: "var(--radius-lg, 12px)" }} scrollWheelZoom>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <AjustarVista ruta={ruta} />
+        {manifestCapas.length > 0 && (
+          <CapaPuntosClave
+            capasActivas={capasActivas}
+            manifestCapas={manifestCapas}
+          />
+        )}
+        {segmentos.map((s, i) => (
+          <Polyline key={i} positions={s.posiciones} pathOptions={{ color: s.color, weight: 4, opacity: 0.85 }} />
+        ))}
+        <Marker position={[inicio.lat, inicio.lng]} icon={iconoPunto("rgb(59,130,246)", "circulo")}>
+          <Popup>Inicio · {fmtFechaHora(inicio.timestamp)}</Popup>
+        </Marker>
+        {ruta.length > 1 && (
+          <Marker position={[fin.lat, fin.lng]} icon={iconoPunto("rgb(239,68,68)", "cuadro")}>
+            <Popup>Fin · {fmtFechaHora(fin.timestamp)}</Popup>
+          </Marker>
+        )}
+      </MapContainer>
+    </div>
   );
 }

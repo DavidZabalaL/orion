@@ -4,7 +4,7 @@
 // su propio archivo para poder cargarlo con next/dynamic({ ssr: false }) —
 // Leaflet toca `window`/`document` al importarse y truena en el render de
 // servidor de Next.
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -15,6 +15,9 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { fmtFechaHora } from "@/lib/formato";
+import type { CapaInfo, ManifestCapas, PuntoClaveFeature } from "@/lib/geo/puntos-clave";
+import { CapaPuntosClave } from "@/components/mapa/capa-puntos-clave";
+import { ControlCapasPuntos } from "@/components/mapa/control-capas-puntos";
 
 const ZOOM_UNIDAD_SELECCIONADA = 13;
 
@@ -116,12 +119,40 @@ export function FlotaMap({
   ruta = [],
   seleccionado,
   onSeleccionar,
+  onPuntosClaveCargados,
 }: {
   puntos: PuntoMapa[];
   ruta?: PuntoRuta[];
   seleccionado?: string;
   onSeleccionar?: (numeroEconomico: string) => void;
+  onPuntosClaveCargados?: (puntos: PuntoClaveFeature[]) => void;
 }) {
+  const [manifestCapas, setManifestCapas] = useState<CapaInfo[]>([]);
+  const [capasActivas, setCapasActivas] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/data/puntos-clave/manifest.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ManifestCapas | null) => {
+        if (data && data.capas) {
+          setManifestCapas(data.capas);
+          const porDefecto = data.capas.filter((c) => c.activoPorDefecto).map((c) => c.id);
+          setCapasActivas(porDefecto);
+        }
+      })
+      .catch((e) => console.error("Error al cargar manifest de capas:", e));
+  }, []);
+
+  function alternarCapa(id: string) {
+    setCapasActivas((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  }
+  function activarTodas() {
+    setCapasActivas(manifestCapas.map((c) => c.id));
+  }
+  function desactivarTodas() {
+    setCapasActivas([]);
+  }
+
   // Un ícono por combinación (tipo/color/anómalo/seleccionado) presente en
   // `puntos` — se arma completo de una sola pasada dentro del useMemo (nunca
   // se muta después de construido), en vez de un Map mutado perezosamente
@@ -148,16 +179,33 @@ export function FlotaMap({
       : CENTRO_MEXICO;
 
   return (
-    <MapContainer
-      center={centro}
-      zoom={puntos.length > 0 ? 6 : 5}
-      style={{ height: "520px", width: "100%", borderRadius: "var(--radius-lg, 12px)" }}
-      scrollWheelZoom
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <div className="relative w-full">
+      {manifestCapas.length > 0 && (
+        <ControlCapasPuntos
+          capas={manifestCapas}
+          capasActivas={capasActivas}
+          onToggleCapa={alternarCapa}
+          onActivarTodas={activarTodas}
+          onDesactivarTodas={desactivarTodas}
+        />
+      )}
+      <MapContainer
+        center={centro}
+        zoom={puntos.length > 0 ? 6 : 5}
+        style={{ height: "520px", width: "100%", borderRadius: "var(--radius-lg, 12px)" }}
+        scrollWheelZoom
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {manifestCapas.length > 0 && (
+          <CapaPuntosClave
+            capasActivas={capasActivas}
+            manifestCapas={manifestCapas}
+            onPuntosCargados={onPuntosClaveCargados}
+          />
+        )}
       {ruta.length > 0 && <AjustarVistaRuta ruta={ruta} />}
       {ruta.length > 1 && (
         <Polyline positions={ruta.map((p) => [p.lat, p.lng])} pathOptions={{ color: "var(--color-primary, #2563eb)", weight: 3, opacity: 0.8 }} />
@@ -200,5 +248,6 @@ export function FlotaMap({
         .orion-map-tooltip::before { display: none; }
       `}</style>
     </MapContainer>
+    </div>
   );
 }
