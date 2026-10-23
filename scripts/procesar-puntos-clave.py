@@ -178,6 +178,78 @@ def procesar_excel(xlsx_path, categoria, region, nombre_cols=None, muni_col=None
         })
     return features
 
+def parse_wkt_point(wkt_str):
+    if not wkt_str:
+        return None, None
+    m = re.search(r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)", wkt_str, re.IGNORECASE)
+    if m:
+        lon = parse_coord(m.group(1), is_lon=True)
+        lat = parse_coord(m.group(2), is_lon=False)
+        return lat, lon
+    return None, None
+
+def procesar_csv_wkt(csv_path, categoria, region, nombre_cols, muni_cols=None, desc_cols=None, enc="utf-8"):
+    import csv
+    features = []
+    if not os.path.exists(csv_path):
+        return features
+
+    encodings = [enc, "latin1", "cp1252", "utf-8"]
+    rows = []
+    for e in encodings:
+        try:
+            with open(csv_path, "r", encoding=e) as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+                break
+        except Exception:
+            continue
+
+    for idx, r in enumerate(rows, start=1):
+        wkt = r.get("WKT", "")
+        lat, lon = parse_wkt_point(wkt)
+        if not validar_mexico(lat, lon):
+            continue
+
+        nombre = None
+        for ncol in nombre_cols:
+            val = r.get(ncol)
+            if val and str(val).strip():
+                nombre = str(val).strip()
+                break
+        if not nombre:
+            nombre = f"{categoria} #{idx}"
+
+        municipio = ""
+        if muni_cols:
+            for mcol in muni_cols:
+                val = r.get(mcol)
+                if val and str(val).strip():
+                    municipio = str(val).strip()
+                    break
+
+        descripcion = ""
+        if desc_cols:
+            desc_parts = []
+            for dcol in desc_cols:
+                val = r.get(dcol)
+                if val and str(val).strip():
+                    desc_parts.append(f"{dcol}: {str(val).strip()}")
+            descripcion = " · ".join(desc_parts)
+
+        features.append({
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [lon, lat]},
+            "properties": {
+                "nombre": nombre,
+                "municipio": municipio,
+                "descripcion": descripcion,
+                "categoria": categoria,
+                "region": region,
+            }
+        })
+    return features
+
 def guardar_geojson(features, filename):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     filepath = os.path.join(OUTPUT_DIR, filename)
@@ -330,11 +402,97 @@ def main():
             "activoPorDefecto": False,
         })
 
+    # 9. Tamaulipas — Puertas de Acceso
+    tamps_dir = os.path.join(SOURCE_DIR, "Tamaulipas")
+    puertas_csv = os.path.join(tamps_dir, "C5 TAMPS- PUERTAS DE ACCESO.csv")
+    if os.path.exists(puertas_csv):
+        f = procesar_csv_wkt(puertas_csv, categoria="Puerta de Acceso Carret.", region="Tamaulipas", nombre_cols=["Nombre"], desc_cols=["Descripción"])
+        cnt = guardar_geojson(f, "tamaulipas-puertas-acceso.json")
+        capas.append({
+            "id": "tamaulipas-puertas",
+            "nombre": "Tamaulipas — Puertas de Acceso",
+            "archivo": "tamaulipas-puertas-acceso.json",
+            "region": "Tamaulipas",
+            "categoria": "Puerta de Acceso Carret.",
+            "icono": "Building2",
+            "color": "#1d4ed8", # Azul rey
+            "totalPuntos": cnt,
+            "activoPorDefecto": True,
+        })
+
+    # 10. Tamaulipas — Arcos Carreteros (LPR)
+    lpr_csv = os.path.join(tamps_dir, "C5 TAMPS- LPR's NUEVO.csv")
+    if os.path.exists(lpr_csv):
+        f = procesar_csv_wkt(lpr_csv, categoria="Arco Carretero (LPR)", region="Tamaulipas", nombre_cols=["ID"], muni_cols=["MUNICIPIO"], desc_cols=["ZONA"], enc="latin1")
+        cnt = guardar_geojson(f, "tamaulipas-arcos.json")
+        capas.append({
+            "id": "tamaulipas-arcos",
+            "nombre": "Tamaulipas — Arcos Carreteros (LPR)",
+            "archivo": "tamaulipas-arcos.json",
+            "region": "Tamaulipas",
+            "categoria": "Arco Carretero (LPR)",
+            "icono": "ScanLine",
+            "color": "#7c3aed", # Violeta
+            "totalPuntos": cnt,
+            "activoPorDefecto": True,
+        })
+
+    # 11. Tamaulipas — Red de Radio (Torres)
+    radio_csv = os.path.join(tamps_dir, "C5 TAMPS- RED RADIO (1).csv")
+    if os.path.exists(radio_csv):
+        f = procesar_csv_wkt(radio_csv, categoria="Torre Red Radio", region="Tamaulipas", nombre_cols=["NOMBRE"], muni_cols=["MUNICIPIO"], desc_cols=["ALTURA", "STATUS PROYECTO"])
+        cnt = guardar_geojson(f, "tamaulipas-red-radio.json")
+        capas.append({
+            "id": "tamaulipas-red-radio",
+            "nombre": "Tamaulipas — Red de Radio Telecom",
+            "archivo": "tamaulipas-red-radio.json",
+            "region": "Tamaulipas",
+            "categoria": "Torre Red Radio",
+            "icono": "Radio",
+            "color": "#0284c7", # Celeste
+            "totalPuntos": cnt,
+            "activoPorDefecto": False,
+        })
+
+    # 12. Tamaulipas — Tótems y Cámaras Urbanas
+    totem_csv = os.path.join(tamps_dir, "C5 TAMPS- ESCBAZ  PTZLA  TÓTEM.csv")
+    if os.path.exists(totem_csv):
+        f = procesar_csv_wkt(totem_csv, categoria="Tótem / Cámara Urbana", region="Tamaulipas", nombre_cols=["Nombre"], muni_cols=["MUNICIPIO"], desc_cols=["TIPO / STATUS", "DEPENDENCIA"])
+        cnt = guardar_geojson(f, "tamaulipas-totems.json")
+        capas.append({
+            "id": "tamaulipas-totems",
+            "nombre": "Tamaulipas — Tótems y Cámaras",
+            "archivo": "tamaulipas-totems.json",
+            "region": "Tamaulipas",
+            "categoria": "Tótem / Cámara Urbana",
+            "icono": "TowerControl",
+            "color": "#059669", # Esmeralda
+            "totalPuntos": cnt,
+            "activoPorDefecto": False,
+        })
+
+    # 13. Tamaulipas — PMIs Postes
+    pmis_tamps_csv = os.path.join(tamps_dir, "C5 TAMPS- PMI's.csv")
+    if os.path.exists(pmis_tamps_csv):
+        f = procesar_csv_wkt(pmis_tamps_csv, categoria="PMI (Poste con Cámara)", region="Tamaulipas", nombre_cols=["ID"], muni_cols=["MUNICIPIO"], desc_cols=["TIPO", "ZONA"])
+        cnt = guardar_geojson(f, "tamaulipas-pmis.json")
+        capas.append({
+            "id": "tamaulipas-pmis",
+            "nombre": "Tamaulipas — PMIs Postes (1,700 pts)",
+            "archivo": "tamaulipas-pmis.json",
+            "region": "Tamaulipas",
+            "categoria": "PMI (Poste con Cámara)",
+            "icono": "Video",
+            "color": "#d97706", # Ámbar
+            "totalPuntos": cnt,
+            "activoPorDefecto": False,
+        })
+
     # Guardar manifest index
     manifest_path = os.path.join(OUTPUT_DIR, "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump({
-            "actualizado": "2026-10-22",
+            "actualizado": "2026-10-23",
             "totalCapas": len(capas),
             "totalPuntosGlobal": sum(c["totalPuntos"] for c in capas),
             "capas": capas

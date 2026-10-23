@@ -1,0 +1,2164 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.373528,
+          24.064194
+        ]
+      },
+      "properties": {
+        "nombre": "UNIDAD DEPORTIVA ABASOLO",
+        "municipio": "ABASOLO",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.31495,
+          22.76077
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA VILLA MANUEL",
+        "municipio": "GONZALEZ",
+        "descripcion": "ALTURA: 50.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.443044,
+          22.825062
+        ]
+      },
+      "properties": {
+        "nombre": "PODER JUDICIAL GONZALEZ",
+        "municipio": "GONZALEZ",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.012508,
+          23.91143
+        ]
+      },
+      "properties": {
+        "nombre": "TUTELAR DE MENORES GUEMEZ",
+        "municipio": "GUEMEZ",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.436308,
+          24.261235
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA HIDALGO",
+        "municipio": "HIDALGO",
+        "descripcion": "ALTURA: 24.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.202337,
+          24.015863
+        ]
+      },
+      "properties": {
+        "nombre": "JUGUERA SANTA ENGRACIA",
+        "municipio": "HIDALGO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.641524,
+          24.078934
+        ]
+      },
+      "properties": {
+        "nombre": "EL CHAPOTE",
+        "municipio": "JIMENEZ",
+        "descripcion": "ALTURA: 40.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.451111,
+          24.283361
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA JIMENEZ",
+        "municipio": "JIMENEZ",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.387773,
+          24.392781
+        ]
+      },
+      "properties": {
+        "nombre": "TANQUE EL ENCINAL",
+        "municipio": "JIMENEZ",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.478412,
+          24.20467
+        ]
+      },
+      "properties": {
+        "nombre": "UAT JIMENEZ",
+        "municipio": "JIMENEZ",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.028804,
+          23.319922
+        ]
+      },
+      "properties": {
+        "nombre": "LLERA (COBAT 12)",
+        "municipio": "LLERA",
+        "descripcion": "STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.763089,
+          23.178773
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA ZARAGOZA",
+        "municipio": "LLERA",
+        "descripcion": "ALTURA: 150.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.898976,
+          24.044898
+        ]
+      },
+      "properties": {
+        "nombre": "PGJ VILLA PADILLA",
+        "municipio": "PADILLA",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.775198,
+          23.787715
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE SALUD LA PESCA",
+        "municipio": "SOTO LA MARINA",
+        "descripcion": "STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.197889,
+          23.800694
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA SOTO LA MARINA",
+        "municipio": "SOTO LA MARINA",
+        "descripcion": "ALTURA: 150.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.837028,
+          23.785167
+        ]
+      },
+      "properties": {
+        "nombre": "ZONA NAVAL LA PESCA",
+        "municipio": "SOTO LA MARINA",
+        "descripcion": "ALTURA: 150.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.15197,
+          23.715854
+        ]
+      },
+      "properties": {
+        "nombre": "BIBLIOTECA CENTRAL UAT",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.166048,
+          23.782444
+        ]
+      },
+      "properties": {
+        "nombre": "C2 SSP VICTORIA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.177396,
+          23.757
+        ]
+      },
+      "properties": {
+        "nombre": "C4 SUBCENTRO VICTORIA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.158372,
+          23.751664
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE CONTROL Y CONFIANZA (C3)",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.113175,
+          23.733779
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE SALUD LA MODERNA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.147867,
+          23.770543
+        ]
+      },
+      "properties": {
+        "nombre": "CONALEP 172- SUSTITUYE GUARDIA NACIONAL",
+        "municipio": "VICTORIA",
+        "descripcion": "STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.086687,
+          23.721848
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA AEROPUERTO",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 150.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.151294,
+          23.731164
+        ]
+      },
+      "properties": {
+        "nombre": "PALACIO DE GOBIERNO",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.114169,
+          23.763498
+        ]
+      },
+      "properties": {
+        "nombre": "PGJ VICTORIA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.115803,
+          24.043958
+        ]
+      },
+      "properties": {
+        "nombre": "PLAN DE AYALA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.53722,
+          24.602345
+        ]
+      },
+      "properties": {
+        "nombre": "PUERTA DE ACCESO VILLAGRAN - SAN LUIS",
+        "municipio": "VICTORIA",
+        "descripcion": "STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.171232,
+          23.713579
+        ]
+      },
+      "properties": {
+        "nombre": "TEC EDUCATIVA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.16551,
+          23.751766
+        ]
+      },
+      "properties": {
+        "nombre": "TIEMPO NUEVO",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.098509,
+          23.752452
+        ]
+      },
+      "properties": {
+        "nombre": "TORRE BICENTENARIO VICTORIA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 4.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.130383,
+          23.728523
+        ]
+      },
+      "properties": {
+        "nombre": "TORRE DE GOBIERNO (JLP)",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 12.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.503456,
+          24.371843
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA SALERO",
+        "municipio": "VILLAGRAN",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.488186,
+          24.473084
+        ]
+      },
+      "properties": {
+        "nombre": "PRESIDENCIA VILLAGRAN",
+        "municipio": "VILLAGRAN",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.821652,
+          26.301929
+        ]
+      },
+      "properties": {
+        "nombre": "COMPLEJO DE SEGURIDAD G.E. CAMARGO",
+        "municipio": "CAMARGO",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.590943,
+          26.213207
+        ]
+      },
+      "properties": {
+        "nombre": "DIF DIAZ ORDAZ",
+        "municipio": "DIAZ ORDAZ",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.29416,
+          24.49972
+        ]
+      },
+      "properties": {
+        "nombre": "SAN FELIPE",
+        "municipio": "CRUILLAS",
+        "descripcion": "ALTURA: 42.0 · STATUS PROYECTO: OPERATIVA A DESMANTELAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.58302,
+          25.87886
+        ]
+      },
+      "properties": {
+        "nombre": "C4 SUBCENTRO MATAMOROS",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.498497,
+          25.871279
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRAL DE AUTOBUSES LUCIO BLANCO",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.47138,
+          25.839212
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE SALUD URBANO COL. PARAISO",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 35.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.551051,
+          25.875868
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE SALUD ZARCO",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.530352,
+          25.861035
+        ]
+      },
+      "properties": {
+        "nombre": "DIF QUINTA REAL",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.807397,
+          25.899668
+        ]
+      },
+      "properties": {
+        "nombre": "EMPALME",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA A DESMANTELAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.488472,
+          25.843559
+        ]
+      },
+      "properties": {
+        "nombre": "ESCUELA SECUNDARIA TECNICA 77",
+        "municipio": "MATAMOROS",
+        "descripcion": "STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.571461,
+          25.716445
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA MEZQUITAL",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 24.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.479682,
+          25.856987
+        ]
+      },
+      "properties": {
+        "nombre": "FUNERARIA",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.526574,
+          25.797642
+        ]
+      },
+      "properties": {
+        "nombre": "JOHN DEERE",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.504396,
+          25.823943
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA MATAMOROS",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 90.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.454346,
+          25.847388
+        ]
+      },
+      "properties": {
+        "nombre": "MUSEO AGRARISMO",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.51765,
+          25.87718
+        ]
+      },
+      "properties": {
+        "nombre": "PODER JUDICIAL MATAMOROS",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.819833,
+          25.895497
+        ]
+      },
+      "properties": {
+        "nombre": "PRIMARIA RICARDO FLORES MAGON",
+        "municipio": "MATAMOROS",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.154864,
+          26.408197
+        ]
+      },
+      "properties": {
+        "nombre": "ZONA MILITAR MIER",
+        "municipio": "MIER",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.031694,
+          26.406917
+        ]
+      },
+      "properties": {
+        "nombre": "PENAL MIGUEL ALEMAN",
+        "municipio": "MIGUEL ALEMAN",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.497695,
+          27.446253
+        ]
+      },
+      "properties": {
+        "nombre": "C4 SUBCENTRO NUEVO LAREDO",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.557844,
+          27.453349
+        ]
+      },
+      "properties": {
+        "nombre": "COMPLEJO DE SEGURIDAD G.E. NUEVO LAREDO",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.59868,
+          27.30004
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA \"Nuevo Laredo Sur\"",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 35.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.58729,
+          27.56565
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA \"Puente III\"",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 25.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.543569,
+          27.594866
+        ]
+      },
+      "properties": {
+        "nombre": "FIDEICOMISO PUENTE INT. NUEVO LAREDO III",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.508049,
+          27.49815
+        ]
+      },
+      "properties": {
+        "nombre": "PUENTE INTERNACIONAL I \"LAS AMERICAS\"",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 22.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.600189,
+          27.297265
+        ]
+      },
+      "properties": {
+        "nombre": "PUERTA DE ACCESO NUEVO LEON - NLD",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.59867,
+          27.46323
+        ]
+      },
+      "properties": {
+        "nombre": "UNIVERSIDAD TECNOLOGICA DE NUEVO LAREDO",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 35.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.511462,
+          27.430141
+        ]
+      },
+      "properties": {
+        "nombre": "XVI REG. DE CAB. MOTORIZADA (BLVD COLOSIO)",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.538697,
+          27.493251
+        ]
+      },
+      "properties": {
+        "nombre": "XXIX REG. CAB. MOTORIZADA (VENADOS)",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.29467,
+          26.056485
+        ]
+      },
+      "properties": {
+        "nombre": "BOMBEROS REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.353068,
+          26.050402
+        ]
+      },
+      "properties": {
+        "nombre": "C4 SUBCENTRO REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335584,
+          26.048561
+        ]
+      },
+      "properties": {
+        "nombre": "C5 REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.239332,
+          26.008183
+        ]
+      },
+      "properties": {
+        "nombre": "CECUDI",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.237994,
+          25.556608
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA PERIQUITOS",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.324858,
+          26.083763
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE SALUD COL. CAMPESTRE",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.256359,
+          25.781565
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE SALUD IDEALES DE LA REVOLUCION",
+        "municipio": "REYNOSA",
+        "descripcion": "STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.337687,
+          26.007268
+        ]
+      },
+      "properties": {
+        "nombre": "COMPLEJO DE SEGURIDAD G.E. REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.306902,
+          26.080562
+        ]
+      },
+      "properties": {
+        "nombre": "DIF REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.304017,
+          26.049046
+        ]
+      },
+      "properties": {
+        "nombre": "COBAT 07- SUSTITUYE ESCUELA ANDRES QUINTANA ROO",
+        "municipio": "REYNOSA",
+        "descripcion": "STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.379639,
+          26.050111
+        ]
+      },
+      "properties": {
+        "nombre": "HOSPITAL MATERNO",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.289759,
+          26.078595
+        ]
+      },
+      "properties": {
+        "nombre": "POLICIA MINISTERIAL REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.278198,
+          26.092299
+        ]
+      },
+      "properties": {
+        "nombre": "PRESIDENCIA REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.584754,
+          25.970953
+        ]
+      },
+      "properties": {
+        "nombre": "PUERTA DE ACCESO NUEVO LEON - REY",
+        "municipio": "REYNOSA",
+        "descripcion": "STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.286741,
+          26.071433
+        ]
+      },
+      "properties": {
+        "nombre": "SECRETARIA DE SALUD REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.22604,
+          26.029082
+        ]
+      },
+      "properties": {
+        "nombre": "SECUNDARIA TECNICA 09- SUSTITUYE TELESECUNDARIA CARLOS TREVINO RODRIGUEZ",
+        "municipio": "REYNOSA",
+        "descripcion": "STATUS PROYECTO: X CONSTRUIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.28092,
+          26.081507
+        ]
+      },
+      "properties": {
+        "nombre": "TRANSITO REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 35.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.312089,
+          26.07419
+        ]
+      },
+      "properties": {
+        "nombre": "UAT AZTLAN (CANCHAS CELLAP)",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.276931,
+          26.029228
+        ]
+      },
+      "properties": {
+        "nombre": "UAT REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.260748,
+          26.051005
+        ]
+      },
+      "properties": {
+        "nombre": "UNIVERSIDAD TECNOLOGICA TAMAULIPAS NORTE",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 50.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.949139,
+          26.0555
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE ARTE Y CULTURA NUEVO PROGRESO",
+        "municipio": "RIO BRAVO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.12254,
+          25.993893
+        ]
+      },
+      "properties": {
+        "nombre": "CENTRO DE JUSTICIA RIO BRAVO",
+        "municipio": "RIO BRAVO",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.09022,
+          25.98089
+        ]
+      },
+      "properties": {
+        "nombre": "PRESIDENCIA RIO BRAVO",
+        "municipio": "RIO BRAVO",
+        "descripcion": "ALTURA: 35.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.144852,
+          24.842526
+        ]
+      },
+      "properties": {
+        "nombre": "COMPLEJO DE SSP SAN FERNANDO",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.106306,
+          24.828083
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA SAN FERNANDO",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "ALTURA: 150.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.983872,
+          25.394899
+        ]
+      },
+      "properties": {
+        "nombre": "PRIMARIA JOSEFA ORTIZ DE DOMINGUEZ",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.071815,
+          25.067586
+        ]
+      },
+      "properties": {
+        "nombre": "TORRE MATRA Y",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.316744,
+          24.517538
+        ]
+      },
+      "properties": {
+        "nombre": "ZONA MILITAR LA COMA",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.826472,
+          25.666139
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA VALLE HERMOSO",
+        "municipio": "VALLE HERMOSO",
+        "descripcion": "ALTURA: 84.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.07879,
+          22.92266
+        ]
+      },
+      "properties": {
+        "nombre": "PROTECCION CIVIL ALDAMA",
+        "municipio": "ALDAMA",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.943722,
+          22.390306
+        ]
+      },
+      "properties": {
+        "nombre": "AUDITORIO ALTAMIRA",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.001597,
+          22.476549
+        ]
+      },
+      "properties": {
+        "nombre": "BARANDILLA ALTAMIRA",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.858647,
+          22.308782
+        ]
+      },
+      "properties": {
+        "nombre": "C4 SUBCENTRO ALMATAM",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 73.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.90929,
+          22.40246
+        ]
+      },
+      "properties": {
+        "nombre": "COMPLEJO DE SEGURIDAD G.E. ALTAMIRA",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.907733,
+          22.368825
+        ]
+      },
+      "properties": {
+        "nombre": "ITACE ALTAMIRA",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.888039,
+          22.325131
+        ]
+      },
+      "properties": {
+        "nombre": "JUZGADOS ALTAMIRA",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 40.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.124758,
+          22.535092
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA LA PALMA",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ALTURA: 120.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.830664,
+          22.2771
+        ]
+      },
+      "properties": {
+        "nombre": "BOMBEROS MADERO",
+        "municipio": "MADERO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.844659,
+          22.29524
+        ]
+      },
+      "properties": {
+        "nombre": "CEDIF ADULTO MAYOR MADERO",
+        "municipio": "MADERO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.850765,
+          22.257252
+        ]
+      },
+      "properties": {
+        "nombre": "TEC NACIONAL MADERO",
+        "municipio": "MADERO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.013086,
+          22.703057
+        ]
+      },
+      "properties": {
+        "nombre": "C4 SUBCENTRO MANTE",
+        "municipio": "MANTE",
+        "descripcion": "ALTURA: 15.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.978572,
+          22.717987
+        ]
+      },
+      "properties": {
+        "nombre": "MATRA MANTE",
+        "municipio": "MANTE",
+        "descripcion": "ALTURA: 100.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.97164,
+          22.744024
+        ]
+      },
+      "properties": {
+        "nombre": "PRESIDENCIA MANTE",
+        "municipio": "MANTE",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.694217,
+          22.802394
+        ]
+      },
+      "properties": {
+        "nombre": "SEC. BERRIOZABAL",
+        "municipio": "MANTE",
+        "descripcion": "ALTURA: 70.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.85006,
+          22.24236
+        ]
+      },
+      "properties": {
+        "nombre": "CASA DE BOMBAS",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.87428,
+          22.23757
+        ]
+      },
+      "properties": {
+        "nombre": "COMAPA BELLA VISTA",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 30.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.873068,
+          22.310769
+        ]
+      },
+      "properties": {
+        "nombre": "COMAPA NORTE",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.85256,
+          22.21422
+        ]
+      },
+      "properties": {
+        "nombre": "FISCAL TAMPICO",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 57.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.85825,
+          22.21621
+        ]
+      },
+      "properties": {
+        "nombre": "PRESIDENCIA TAMPICO",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 32.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.885338,
+          22.283007
+        ]
+      },
+      "properties": {
+        "nombre": "PRIMARIA VENUSTIANO CARRANZA",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 35.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.865003,
+          22.227784
+        ]
+      },
+      "properties": {
+        "nombre": "TRANSITO TAMPICO",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.86122,
+          22.27343
+        ]
+      },
+      "properties": {
+        "nombre": "UAT TAMPICO",
+        "municipio": "TAMPICO",
+        "descripcion": "ALTURA: 85.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.836489,
+          22.860288
+        ]
+      },
+      "properties": {
+        "nombre": "PUERTA DE ACCESO SAN LUIS - TULA",
+        "municipio": "TULA",
+        "descripcion": "STATUS PROYECTO: X DEFINIR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.943825,
+          22.990365
+        ]
+      },
+      "properties": {
+        "nombre": "PROTECCION CIVIL XICOTENCATL",
+        "municipio": "XICOTENCATL",
+        "descripcion": "ALTURA: 60.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.492524,
+          24.485137
+        ]
+      },
+      "properties": {
+        "nombre": "RADIO TAMAULIPAS VILLAGRAN",
+        "municipio": "VILLAGRAN",
+        "descripcion": "ALTURA: 45.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.268998,
+          25.923708
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA SUR REYNOSA",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 24.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.013309,
+          22.803171
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA LIMON",
+        "municipio": "MANTE",
+        "descripcion": "ALTURA: 24.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.489756,
+          26.00863
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA PONIENTE",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 25.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.540658,
+          24.613473
+        ]
+      },
+      "properties": {
+        "nombre": "MAGUEYES",
+        "municipio": "VILLAGRAN",
+        "descripcion": "ALTURA: 25.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.997656,
+          23.722065
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA C1 VICTORIA",
+        "municipio": "VICTORIA",
+        "descripcion": "ALTURA: 24.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.069975,
+          25.067249
+        ]
+      },
+      "properties": {
+        "nombre": "HOTEL Y",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "ALTURA: 24.0 · STATUS PROYECTO: OPERATIVA",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.04822,
+          26.38895
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA MIGUEL ALEMAN",
+        "municipio": "MIGUEL ALEMAN",
+        "descripcion": "ALTURA: 90.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.42693,
+          26.169616
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA REYNOSA NORTE",
+        "municipio": "REYNOSA",
+        "descripcion": "ALTURA: 90.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.820414,
+          26.304805
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA CAMARGO",
+        "municipio": "CAMARGO",
+        "descripcion": "ALTURA: 90.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.66714,
+          26.230715
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACION SEGURA VALADECES",
+        "municipio": "DIAZ ORDAZ",
+        "descripcion": "ALTURA: 90.0 · STATUS PROYECTO: X ACTIVAR",
+        "categoria": "Torre Red Radio",
+        "region": "Tamaulipas"
+      }
+    }
+  ]
+}

@@ -1,0 +1,3099 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.821652,
+          26.301929
+        ]
+      },
+      "properties": {
+        "nombre": "CAM_014 - SSP Camargo",
+        "municipio": "CAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.353068,
+          26.050402
+        ]
+      },
+      "properties": {
+        "nombre": "REY_388 - C4 Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.070211,
+          25.067452
+        ]
+      },
+      "properties": {
+        "nombre": "SFR_028 - La \"Y\"",
+        "municipio": "SFR",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.978572,
+          22.717987
+        ]
+      },
+      "properties": {
+        "nombre": "MAN_055 - Matra Mante",
+        "municipio": "MAN",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.763089,
+          23.178773
+        ]
+      },
+      "properties": {
+        "nombre": "LLE_002 - Matra Zaragoza",
+        "municipio": "LLE",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.86122,
+          22.27343
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_144 - UAT Tampico",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.858647,
+          22.308782
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_143 - C4 Tampico",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.337687,
+          26.007268
+        ]
+      },
+      "properties": {
+        "nombre": "REY_401 - Complejo GE Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.543569,
+          27.594866
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_030 - Fideicomiso Aduana Puente III",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.58729,
+          27.56565
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_028 - E.S. TAM Puente III",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.598685,
+          27.30005
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_029 - E.S. Nuevo Laredo Sur",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.949139,
+          26.0555
+        ]
+      },
+      "properties": {
+        "nombre": "RBR_059 - Centro de Arte NPR",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.51765,
+          25.87718
+        ]
+      },
+      "properties": {
+        "nombre": "MAT_151 - Poder Judicial Matamoros",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.373528,
+          24.064194
+        ]
+      },
+      "properties": {
+        "nombre": "ABA_005 - Torre Abasolo",
+        "municipio": "ABA",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.478417,
+          24.204667
+        ]
+      },
+      "properties": {
+        "nombre": "JIM_013 - Torre UAT Jimenez",
+        "municipio": "JIM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.197889,
+          23.800694
+        ]
+      },
+      "properties": {
+        "nombre": "SLM_028 - Torre Matra Soto La Marina",
+        "municipio": "SLM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.115803,
+          24.043958
+        ]
+      },
+      "properties": {
+        "nombre": "GUE_012 - Torre Plan de Ayala",
+        "municipio": "GUE",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.43959,
+          22.82276
+        ]
+      },
+      "properties": {
+        "nombre": "GON_022 - Torre Gonzalez",
+        "municipio": "GON",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.001601,
+          22.476541
+        ]
+      },
+      "properties": {
+        "nombre": "ALT_078 - Torre Barandilla",
+        "municipio": "ALT",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.08669,
+          23.721842
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_198 - Torre Matra Aeropuerto",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.239332,
+          26.008183
+        ]
+      },
+      "properties": {
+        "nombre": "REY_397 - Torre CECUDI",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.497695,
+          27.446253
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_024 - C4 Nuevo Laredo",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.379414,
+          26.050457
+        ]
+      },
+      "properties": {
+        "nombre": "REY_400 - Hospital Materno Infantil de Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.43627,
+          24.26116
+        ]
+      },
+      "properties": {
+        "nombre": "HID_025 - E.S. Hidalgo",
+        "municipio": "HID",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.89928,
+          24.044959
+        ]
+      },
+      "properties": {
+        "nombre": "PAD_014 - PGJ Villa Padilla",
+        "municipio": "PAD",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.590402,
+          26.212695
+        ]
+      },
+      "properties": {
+        "nombre": "DOR_013 - DIF Diaz Ordaz",
+        "municipio": "DOR",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.26902,
+          25.923928
+        ]
+      },
+      "properties": {
+        "nombre": "REY_398 - E.S. Reynosa Sur",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.45434,
+          25.84738
+        ]
+      },
+      "properties": {
+        "nombre": "MAT_153 - Museo Agrarismo",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.97164,
+          22.74402
+        ]
+      },
+      "properties": {
+        "nombre": "MAN_058 - Presidencia Mante",
+        "municipio": "MAN",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.27819,
+          26.09229
+        ]
+      },
+      "properties": {
+        "nombre": "REY_407 - Presidencia Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.28975,
+          26.07859
+        ]
+      },
+      "properties": {
+        "nombre": "REY_410 - Policia Ministerial Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.29467,
+          26.05648
+        ]
+      },
+      "properties": {
+        "nombre": "REY_408 - Bomberos Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.3069,
+          26.08056
+        ]
+      },
+      "properties": {
+        "nombre": "REY_409 - DIF Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.09022,
+          25.98089
+        ]
+      },
+      "properties": {
+        "nombre": "RBR_070 - Presidencia Rio Bravo",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.03169,
+          26.40691
+        ]
+      },
+      "properties": {
+        "nombre": "MAL_020 - Penal Miguel Aleman",
+        "municipio": "MAL",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.47968,
+          25.85698
+        ]
+      },
+      "properties": {
+        "nombre": "MAT_161 - Funeraria Matamoros",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.52657,
+          25.79764
+        ]
+      },
+      "properties": {
+        "nombre": "MAT_162 - John Deere",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.82647,
+          25.66613
+        ]
+      },
+      "properties": {
+        "nombre": "VHO_021 - Matra Valle Hermoso",
+        "municipio": "VHO",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.85103,
+          22.2568
+        ]
+      },
+      "properties": {
+        "nombre": "MAD_077 - Tec Madero",
+        "municipio": "MAD",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.865,
+          22.22778
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_157 - Transito Tampico",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.885338,
+          22.283007
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_188 - Esc. Prim. Venustiano Carranza",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.286668,
+          26.071331
+        ]
+      },
+      "properties": {
+        "nombre": "RE_413 - Secretaria de Salud Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.237994,
+          25.556608
+        ]
+      },
+      "properties": {
+        "nombre": "REY_414 - S.R. Alfredo Bónfil",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.87421,
+          22.237548
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_189 - COMAPA Altavista",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - OPERATIVA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.32485,
+          26.08376
+        ]
+      },
+      "properties": {
+        "nombre": "Centro de Salud Col. Campestre",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.081953,
+          25.978577
+        ]
+      },
+      "properties": {
+        "nombre": "Clinica Hospital del ISSTE",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.415407,
+          25.9766
+        ]
+      },
+      "properties": {
+        "nombre": "5TA. Compañina de Guardia Nacional",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.32401,
+          27.28355
+        ]
+      },
+      "properties": {
+        "nombre": "FGJ Nuevo Laredo",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.110632,
+          25.982398
+        ]
+      },
+      "properties": {
+        "nombre": "Transito Rio Bravo",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.156583,
+          26.406473
+        ]
+      },
+      "properties": {
+        "nombre": "25° Regimiento de Caballeria Motorizado",
+        "municipio": "MIE",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.66737,
+          26.2307
+        ]
+      },
+      "properties": {
+        "nombre": "Estacion Segura Valadeces",
+        "municipio": "VAL",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.538968,
+          27.492085
+        ]
+      },
+      "properties": {
+        "nombre": "29° Regimiento de Caballeria Motorizado",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.15333,
+          25.821551
+        ]
+      },
+      "properties": {
+        "nombre": "ENA. COSTA AZUL (Lic. Osiel)",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SEMAR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.544948,
+          27.476752
+        ]
+      },
+      "properties": {
+        "nombre": "Edificio de Seguridad Ciudadana (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: MPIO. NUEVO LAREDO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.845051,
+          22.232658
+        ]
+      },
+      "properties": {
+        "nombre": "Sobre PMI TAM-047",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.449542,
+          27.188256
+        ]
+      },
+      "properties": {
+        "nombre": "Punto 27",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.471697,
+          26.987964
+        ]
+      },
+      "properties": {
+        "nombre": "E.S.",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.423875,
+          26.794517
+        ]
+      },
+      "properties": {
+        "nombre": "E.S.",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.372006,
+          26.690908
+        ]
+      },
+      "properties": {
+        "nombre": "E.S.",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.243019,
+          26.55705
+        ]
+      },
+      "properties": {
+        "nombre": "E.S.",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.162319,
+          26.428236
+        ]
+      },
+      "properties": {
+        "nombre": "E.S.",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.049033,
+          26.388981
+        ]
+      },
+      "properties": {
+        "nombre": "E.S.",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.667375,
+          26.2307
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. VALADECES (Dr. HDLCM)",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.159607,
+          26.003337
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Rio Bravo",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.740129,
+          26.005993
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Los Indios",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.89526,
+          22.226564
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Moralillo",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.540644,
+          24.613524
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Maynero",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.023505,
+          23.319079
+        ]
+      },
+      "properties": {
+        "nombre": "Nueva Torre Presidencia Llera",
+        "municipio": "LLE",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: MPIO. LLERA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.398512,
+          25.832933
+        ]
+      },
+      "properties": {
+        "nombre": "Telesecundaria Manuel GarcÃ­a (Longoreno)",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SET",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.489799,
+          26.008609
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Reynosa PTE",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.256359,
+          25.781565
+        ]
+      },
+      "properties": {
+        "nombre": "C.S. Ideales de la Revolucion",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SALUD",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.319461,
+          24.515724
+        ]
+      },
+      "properties": {
+        "nombre": "Nueva Torre La Coma",
+        "municipio": "SFR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.864023,
+          25.379658
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Gonzalez Villarreal",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.7729,
+          23.79341
+        ]
+      },
+      "properties": {
+        "nombre": "Torre de Contol Aeropuerto La Pesca",
+        "municipio": "SLM",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SEMAR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.736597,
+          23.774885
+        ]
+      },
+      "properties": {
+        "nombre": "Faro Playa La Pesca SEMAR",
+        "municipio": "SLM",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SEMAR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.076827,
+          26.390195
+        ]
+      },
+      "properties": {
+        "nombre": "Instalaciones G.E. MAL",
+        "municipio": "MAL",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.982408,
+          26.382999
+        ]
+      },
+      "properties": {
+        "nombre": "GUARDIA NACIONAL Entrada MAL (Lic. Osiel)",
+        "municipio": "MAL",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: GN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.513079,
+          27.493734
+        ]
+      },
+      "properties": {
+        "nombre": "Cuartel SEDENA (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.516571,
+          27.421885
+        ]
+      },
+      "properties": {
+        "nombre": "Tecmilenio campus Nuevo Laredo (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: PRIVADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.548921,
+          27.419875
+        ]
+      },
+      "properties": {
+        "nombre": "CEDES Nuevo Laredo (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.147028,
+          26.419656
+        ]
+      },
+      "properties": {
+        "nombre": "COBAT 11 MIER (Lic. Osiel)",
+        "municipio": "MIER",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SET",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.483393,
+          27.478293
+        ]
+      },
+      "properties": {
+        "nombre": "Zoologico de Nuevo Laredo (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: MPIO. NUEVO LAREDO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.14134,
+          26.000421
+        ]
+      },
+      "properties": {
+        "nombre": "GN COMPLEJO (Lic. Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: GN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.110085,
+          25.982425
+        ]
+      },
+      "properties": {
+        "nombre": "Delegacionn de Transito Local (Lic. Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: MPIO. RIO BRAVO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.05365,
+          25.997412
+        ]
+      },
+      "properties": {
+        "nombre": "UAT Campus Rio Bravo (Lic. Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: UAT",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.091263,
+          25.985844
+        ]
+      },
+      "properties": {
+        "nombre": "Oficina Fiscal Rio Bravo (Lic. Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: S. FINANZAS",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.419698,
+          26.039894
+        ]
+      },
+      "properties": {
+        "nombre": "Tecmilenio campus Reynosa (Lic. Osiel)",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: PRIVADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.029201,
+          26.395731
+        ]
+      },
+      "properties": {
+        "nombre": "FGR- MIGUEL ALEMAN (Lic. Osiel)",
+        "municipio": "MAL",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: FGR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.666708,
+          25.846952
+        ]
+      },
+      "properties": {
+        "nombre": "PENAL Matamoros",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.114169,
+          23.763498
+        ]
+      },
+      "properties": {
+        "nombre": "Torre PGJ Victoria",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: FGE",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.836931,
+          23.785167
+        ]
+      },
+      "properties": {
+        "nombre": "Tercera Zona Naval La Pesca",
+        "municipio": "SLM",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SEMAR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.598671,
+          27.463233
+        ]
+      },
+      "properties": {
+        "nombre": "Universidad Tecnologica de Nuevo Laredo (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: MPIO. NUEVO LAREDO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.260748,
+          26.051005
+        ]
+      },
+      "properties": {
+        "nombre": "Nueva Torre Universidad Tecnologica Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.557844,
+          27.453349
+        ]
+      },
+      "properties": {
+        "nombre": "Complejo GE Nuevo Laredo",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.819833,
+          25.895497
+        ]
+      },
+      "properties": {
+        "nombre": "Primaria Ricardo Flores Magon (Empalme)",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SET",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.604937,
+          27.461425
+        ]
+      },
+      "properties": {
+        "nombre": "COBAT Plantel 18 (Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SET",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.095602,
+          25.980936
+        ]
+      },
+      "properties": {
+        "nombre": "CFE (Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: CFE",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.057955,
+          25.97293
+        ]
+      },
+      "properties": {
+        "nombre": "Poder Judicial del Estado de Tamaulipas (Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: FGE",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.571495,
+          25.716488
+        ]
+      },
+      "properties": {
+        "nombre": "MAT_139 - E.S. Mezquital",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.071426,
+          25.06721
+        ]
+      },
+      "properties": {
+        "nombre": "SFR_034 - Nueva Torre Matra La Y",
+        "municipio": "SFR",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: PRIVADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.106306,
+          24.828083
+        ]
+      },
+      "properties": {
+        "nombre": "SFR_033 - Matra San Fernando",
+        "municipio": "SFR",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: GN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.122519,
+          25.993892
+        ]
+      },
+      "properties": {
+        "nombre": "RBR_058 - CIJ Rio Bravo Termica",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: SGG",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.276931,
+          26.029228
+        ]
+      },
+      "properties": {
+        "nombre": "REY_395 - Torre UAT Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: UAT",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.583002,
+          25.878859
+        ]
+      },
+      "properties": {
+        "nombre": "MAT_152 - Torre C4 Matamoros",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.353236,
+          26.050206
+        ]
+      },
+      "properties": {
+        "nombre": "REY_394 - Torre C4 Reynosa",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.200585,
+          26.561683
+        ]
+      },
+      "properties": {
+        "nombre": "Aduana Cd. Guerrero (Lic. Osiel)",
+        "municipio": "GUE",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SICT",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.538047,
+          27.271899
+        ]
+      },
+      "properties": {
+        "nombre": "Campamento Militar Entrada NLD",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.211963,
+          26.566689
+        ]
+      },
+      "properties": {
+        "nombre": "Nueva Torre Regimiento GN Nva. Cd. Guerrero",
+        "municipio": "GUE",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.4007,
+          26.157792
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Reynosa Norte (Dr. HDLCM)",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.511682,
+          27.45492
+        ]
+      },
+      "properties": {
+        "nombre": "Fiscalia General de La Republica (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: FGR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.443573,
+          26.026871
+        ]
+      },
+      "properties": {
+        "nombre": "Estacion de Guardia Nacional Reynosa (Lic. Osiel)",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.590355,
+          26.233885
+        ]
+      },
+      "properties": {
+        "nombre": "Presidencia Municipal Gustavo Diaz Ordaz (Lic. Osiel)",
+        "municipio": "DOR",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: MPIO. DOR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.079064,
+          26.391919
+        ]
+      },
+      "properties": {
+        "nombre": "Los Guerra Estacion de Radio 93.9 FM",
+        "municipio": "MAL",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: PRIVADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.538688,
+          27.407556
+        ]
+      },
+      "properties": {
+        "nombre": "Guardia Nacional Nuevo Laredo (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: GN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.157812,
+          26.011937
+        ]
+      },
+      "properties": {
+        "nombre": "GUARDIA NACIONAL RB (Lic. Osiel)",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: GN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.508209,
+          27.498201
+        ]
+      },
+      "properties": {
+        "nombre": "Migracion NLD",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: INM",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.237994,
+          25.556608
+        ]
+      },
+      "properties": {
+        "nombre": "Matra Periquitos Alfredo V. Bonfil",
+        "municipio": "REY",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: PRIVADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.156369,
+          26.40653
+        ]
+      },
+      "properties": {
+        "nombre": "25/o Regimiento De Caballeria Motorizado (Lic. Osiel)",
+        "municipio": "MIER",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.538358,
+          27.493177
+        ]
+      },
+      "properties": {
+        "nombre": "EX XVI Regimiento Militar",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.15324,
+          25.82143
+        ]
+      },
+      "properties": {
+        "nombre": "Cuartel de la Marina Matamoros",
+        "municipio": "MAT",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SEMAR",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.113175,
+          23.733779
+        ]
+      },
+      "properties": {
+        "nombre": "Nueva Torre C.S. La Moderna",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SALUD",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.98387,
+          25.39489
+        ]
+      },
+      "properties": {
+        "nombre": "Primaria Josefa Ortiz (GonzÃ¡lez Villareal)",
+        "municipio": "SFR",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SET",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.511462,
+          27.430141
+        ]
+      },
+      "properties": {
+        "nombre": "XVI Regimiento Militar Guarnicion Militar (Lic. Osiel)",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SEDENA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.082945,
+          26.3918
+        ]
+      },
+      "properties": {
+        "nombre": "GUARDIA NACIONAL Los Guerra (Lic. Osiel)",
+        "municipio": "MAL",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: GN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.013336,
+          22.083122
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. El limón",
+        "municipio": "LLE",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.731678,
+          22.993608
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Tula",
+        "municipio": "TUL",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.141397,
+          26.00045
+        ]
+      },
+      "properties": {
+        "nombre": "Base GN",
+        "municipio": "RBR",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.32113,
+          23.58644
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Caseta de cobro San Antonio",
+        "municipio": "JAU",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.386102,
+          23.408087
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. E1 Jaumave",
+        "municipio": "JAU",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.171179,
+          23.769654
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_209 - CENTRO DE INTEGRACION JUVENIL",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.414252,
+          23.394803
+        ]
+      },
+      "properties": {
+        "nombre": "JAU_002 - OXXO JAUMAVE 2 MAF",
+        "municipio": "JAU",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.375095,
+          23.405306
+        ]
+      },
+      "properties": {
+        "nombre": "JAU_001 - OXXO JAUMAVE PLAZA MAF",
+        "municipio": "JAU",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.33235,
+          22.8456
+        ]
+      },
+      "properties": {
+        "nombre": "OCA_001 - OXXO OCAMPO GANADERA TAM",
+        "municipio": "OCA",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.7182,
+          22.9918
+        ]
+      },
+      "properties": {
+        "nombre": "TUL_001 - OXXO TULA CLINICA IMSS MAF",
+        "municipio": "TUL",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.712269,
+          22.999426
+        ]
+      },
+      "properties": {
+        "nombre": "TUL_002 - OXXO TULA ARROYO LOCO MAF",
+        "municipio": "TUL",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.097611,
+          23.736948
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_213 - OXXO VIC TODOS POR TAMAULIPAS",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.128578,
+          23.712666
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_214 - OXXO VIC LOMAS DE GPE.",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.954921,
+          22.991055
+        ]
+      },
+      "properties": {
+        "nombre": "XIC_012 - Esc. Secundaria Pedro J. Mendez",
+        "municipio": "XIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.955034,
+          22.960596
+        ]
+      },
+      "properties": {
+        "nombre": "XIC_011 - Secundaria Tecnica 38 Licenciado Aaron Saenz Garza",
+        "municipio": "XIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.9375,
+          22.9972
+        ]
+      },
+      "properties": {
+        "nombre": "XIC_013 - CENTRO DE MEDICINA PREVENTIVA INTEGRAL CEMPI",
+        "municipio": "XIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.970585,
+          22.742177
+        ]
+      },
+      "properties": {
+        "nombre": "MAN_057 - Instituto Mantense de Estudios Profesionales",
+        "municipio": "MAN",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.160768,
+          23.725482
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_215 - CFE TAMATAN",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.132382,
+          23.749549
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_216 - Escuela Secundaria General No 7 \"Eleazar Cervantes Gamez\"",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.138916,
+          23.706894
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_217 - Escuela Telesecundaria Luis Puebla y Cuadra",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.147255,
+          23.718952
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_218 - Escuela Preparatoria Federalizada 2",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.1197,
+          23.738
+        ]
+      },
+      "properties": {
+        "nombre": "VIC_219 - ESCUELA SECUNDARIA GENERAL 3 RAFAEL BALANDRAN 5 DE FEBRERO",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.855689,
+          22.212874
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_149 - MAR DE DULCES",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.857784,
+          22.214845
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_148 - HOTEL INGLATERRA",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.855533,
+          22.215307
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_150 - El Globo shop",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.856129,
+          22.215996
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_153 - COMERCIO ZAPATERIA FRED",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.860111,
+          22.214403
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_155 - MODULO POLICIA ESTATAL",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.858471,
+          22.213653
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_151 - CASA KURI",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.858903,
+          22.216695
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_154 - UNIVERSIDAD DEL GOLFO",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.856069,
+          22.214109
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_152 - COMECIO LAS NOVEDADES",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.85909,
+          22.214382
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_146 - La Pequena Nueva Orleans",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.598679,
+          27.300059
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_029 - Estacion TAM \"Nuevo Laredo Sur\"",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.587214,
+          27.565632
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_028 - Estacion TAM \"Puente III\"",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.54369,
+          27.594813
+        ]
+      },
+      "properties": {
+        "nombre": "NLD_030 - FIDEICOMISO PUENTE INT.",
+        "municipio": "NLD",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.854513,
+          22.214842
+        ]
+      },
+      "properties": {
+        "nombre": "TAM_156 - Elektra",
+        "municipio": "TAM",
+        "descripcion": "TIPO / STATUS: TOTEM - INSTALADO",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.169528,
+          23.741472
+        ]
+      },
+      "properties": {
+        "nombre": "BERRIOZABAL",
+        "municipio": "VIC",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.126278,
+          22.517056
+        ]
+      },
+      "properties": {
+        "nombre": "ESTEROS",
+        "municipio": "ALT",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.952812,
+          22.738379
+        ]
+      },
+      "properties": {
+        "nombre": "MANTE",
+        "municipio": "MAN",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.400668,
+          26.157838
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. Reynosa Norte (Dr. HDLCM)",
+        "municipio": "REYNOSA",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.66743,
+          26.230567
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. VALADECES (Dr. HDLCM)",
+        "municipio": "",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.820269,
+          26.30523
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. CAMARGO (Dr. HDLCM)",
+        "municipio": "CAMARGO",
+        "descripcion": "TIPO / STATUS: PTZ LA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.820271,
+          26.305273
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. CAMARGO (Dr. HDLCM)",
+        "municipio": "CAMARGO",
+        "descripcion": "TIPO / STATUS: TERMICA - UBICACION PROPUESTA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.943911,
+          22.990407
+        ]
+      },
+      "properties": {
+        "nombre": "P.C. Xicotencatl",
+        "municipio": "XIC",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: MUN",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.013316,
+          22.803108
+        ]
+      },
+      "properties": {
+        "nombre": "E.S. El Limon",
+        "municipio": "MAN",
+        "descripcion": "TIPO / STATUS: TERMICA - OPERATIVA · DEPENDENCIA: SSP",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: TERMICA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: TERMICA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: TERMICA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: TERMICA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: TERMICA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335747,
+          26.048004
+        ]
+      },
+      "properties": {
+        "nombre": "ALMACEN SYM",
+        "municipio": "-",
+        "descripcion": "TIPO / STATUS: PTZ LA - DISPONIBLE · DEPENDENCIA: C5",
+        "categoria": "Tótem / Cámara Urbana",
+        "region": "Tamaulipas"
+      }
+    }
+  ]
+}
