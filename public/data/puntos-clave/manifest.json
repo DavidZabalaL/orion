@@ -1,7 +1,7 @@
 {
-  "actualizado": "2026-10-22",
-  "totalCapas": 8,
-  "totalPuntosGlobal": 3597,
+  "actualizado": "2026-10-23",
+  "totalCapas": 13,
+  "totalPuntosGlobal": 5738,
   "capas": [
     {
       "id": "morelos-pmc",
@@ -89,6 +89,61 @@
       "icono": "MapPin",
       "color": "#2563eb",
       "totalPuntos": 1111,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "tamaulipas-puertas",
+      "nombre": "Tamaulipas — Puertas de Acceso",
+      "archivo": "tamaulipas-puertas-acceso.json",
+      "region": "Tamaulipas",
+      "categoria": "Puerta de Acceso Carret.",
+      "icono": "Building2",
+      "color": "#1d4ed8",
+      "totalPuntos": 5,
+      "activoPorDefecto": true
+    },
+    {
+      "id": "tamaulipas-arcos",
+      "nombre": "Tamaulipas — Arcos Carreteros (LPR)",
+      "archivo": "tamaulipas-arcos.json",
+      "region": "Tamaulipas",
+      "categoria": "Arco Carretero (LPR)",
+      "icono": "ScanLine",
+      "color": "#7c3aed",
+      "totalPuntos": 87,
+      "activoPorDefecto": true
+    },
+    {
+      "id": "tamaulipas-red-radio",
+      "nombre": "Tamaulipas — Red de Radio Telecom",
+      "archivo": "tamaulipas-red-radio.json",
+      "region": "Tamaulipas",
+      "categoria": "Torre Red Radio",
+      "icono": "Radio",
+      "color": "#0284c7",
+      "totalPuntos": 127,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "tamaulipas-totems",
+      "nombre": "Tamaulipas — Tótems y Cámaras",
+      "archivo": "tamaulipas-totems.json",
+      "region": "Tamaulipas",
+      "categoria": "Tótem / Cámara Urbana",
+      "icono": "TowerControl",
+      "color": "#059669",
+      "totalPuntos": 182,
+      "activoPorDefecto": false
+    },
+    {
+      "id": "tamaulipas-pmis",
+      "nombre": "Tamaulipas — PMIs Postes (1,700 pts)",
+      "archivo": "tamaulipas-pmis.json",
+      "region": "Tamaulipas",
+      "categoria": "PMI (Poste con Cámara)",
+      "icono": "Video",
+      "color": "#d97706",
+      "totalPuntos": 1740,
       "activoPorDefecto": false
     }
   ]

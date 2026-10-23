@@ -1,0 +1,1484 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.32349,
+          26.07324
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_001_BLVD. MIGUEL HIDALGO_C. ORIENTE 2",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.40191,
+          26.04243
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_002_CARR. REYNOSA MONTERREY",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.198055,
+          26.012283
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_RBR_003_CARR. CD RIO BRAVO REYNOSA_C. VILLA REAL",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.26878,
+          25.924495
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_REY_004_EST_CARR. REYNOSA SAN FERNANDO_LIB. REYNOSA SUR II",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.32086,
+          26.103909
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_005_CARR. RIBERENA_C. HUIZACHITO",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.234654,
+          25.558652
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_REY_006 (E.S. PERIQUITOS)",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.335326,
+          26.047345
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_007 (C5i)",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.260248,
+          26.063666
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_008_LIB. OTE. PUENTE INTERNACIONAL_C. MANUEL CAVAZOS",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.577369,
+          25.919131
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_009_CARR. RIO BRAVO MATAMOROS",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.565106,
+          25.866889
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_MAT_010_C. SENDERO NACIONAL_ AV. LOS CARACOLES",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.512128,
+          25.828428
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_MAT_011_CARR. MATAMOROS VICTORIA_C. TLALOC",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.092811,
+          23.795078
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_012_CARR. CD VICTORIA MATAMOROS",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.131581,
+          23.796192
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_013_CARR. CD VICTORIA MONTERREY",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.178011,
+          23.798611
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_014_CARR. INTEREJIDAL_C. INDUSTRIA MEXICANA",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.181442,
+          23.702925
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_015_CARR. CD VICTORIA TULA_C. RIO STA CATARINA",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.104122,
+          23.666147
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_016_LIB. CD VICTORIA_CARR. LLERA",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.096611,
+          23.659878
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_017_CARR. CD VICTORIA LLERA DE CANALES",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.071011,
+          23.71865
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_018_CARR. CD VICTORIA SOTO LA MARINA",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.877032,
+          22.321481
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_TAM_019_CARR. TAMPICO MANTE_AV. VILLA HERMOSA",
+        "municipio": "TAMPICO",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.844789,
+          22.232577
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_TAM_020_CARR. POZA RICA TAMPICO",
+        "municipio": "TAMPICO",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.894493,
+          22.226847
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_TAM_021_CARR. VALLES TAMPICO_C. RICARDO ORTIZ HERNANDEZ",
+        "municipio": "TAMPICO",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.945806,
+          22.423405
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_ ALT_022_TEC_ CARR. FEDERAL_C. BENITO JUAREZ",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.73182,
+          22.992319
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_TUL_023_ES TULA_CARR. CD VICTORIA TULA",
+        "municipio": "TULA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.435931,
+          24.260742
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_HID_024_ES HIDALGO_CARR. HIDALGO VILLAGRAN",
+        "municipio": "HIDALGO",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.014972,
+          22.700108
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAN_025_CARR. CD MANTE ANTIGUO MORELOS",
+        "municipio": "MANTE",
+        "descripcion": "ZONA: SUR - MANTE",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.107713,
+          25.987186
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_RBR_026_AV. FRANCISCO I MADERO_C. TAMAULIPAS",
+        "municipio": "RIO BRAVO",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.097752,
+          25.979511
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_RBR_027_AV. CONSTITUCION_AV. MARIANO MATAMOROS",
+        "municipio": "RIO BRAVO",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.313889,
+          22.758722
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_GON_028_ES MANUEL_CARR. COSTERA DEL GOLFO",
+        "municipio": "GONZALEZ",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.340249,
+          24.476361
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_CRU_029_ES RAYONES_CARR. CD VICTORIA SAN FERNANDO",
+        "municipio": "CRUILLAS",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.499351,
+          24.480638
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VGN_030_CARR. VILLAGRAN LINARES",
+        "municipio": "VILLAGRAN",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.544566,
+          25.760817
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_MAT_031_ESTACION MEZQUITAL_CARR. SAN FERNANDO MATAMOROS_ C. DEL PUEBLO_LPR",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.139699,
+          24.86331
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_SFR_032_ES GONZALEZ VILLARREAL_CARR. SAN FERNANDO MATAMOROS_LPR",
+        "municipio": "SANFERNANDO",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.963595,
+          22.739873
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_MAN_033_AV LUIS ECHEVERRIA ALVAREZ_C. OBREGON",
+        "municipio": "MANTE",
+        "descripcion": "ZONA: SUR - MANTE",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.277774,
+          26.037357
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_034_CARR CD REYNOSA RIO BRAVO_CALZ VICTORIA",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.367737,
+          26.055963
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_035_CARR GRAL BRAVO REYNOSA_AV DE LOS ENCINOS",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.303169,
+          26.081266
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_036_BLVD MIGUEL HIDALGO_AV PRAXEDIS BALBOA",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.293071,
+          26.056383
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_037_BLVD MORELOS_AV AMERICO VILLARREAL GUERRA",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.82687,
+          25.6668
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VHO_038_CARR JOSE VASCONCELOS_C AQUILES SERDAN",
+        "municipio": "VALLE HERMOSO",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.070488,
+          25.057247
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_SFR_039_CARR SAN FERNANDO MATAMOROS",
+        "municipio": "SAN FERNANDO",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.265997,
+          26.08607
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_REY_040_CARR LUIS ECHEVERRIA_C RIO HONDO",
+        "municipio": "REYNOSA",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.9952,
+          22.75746
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAN_041_CARR CD MANTE TAMPICO_C GUADALUPE VICTORIA",
+        "municipio": "MANTE",
+        "descripcion": "ZONA: SUR - MANTE",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.95228,
+          22.72474
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAN_042_CARR LLERA DE CANALES MANTE_C 13 DE SEPTIEMBRE",
+        "municipio": "MANTE",
+        "descripcion": "ZONA: SUR - MANTE",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.77579,
+          25.66671
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VHO_043_CARR LUIS ECHEVERRIA_B 124",
+        "municipio": "VALLE HERMOSO",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.429786,
+          25.836492
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_044_AV GRAL LAURO VILLAR_C NORTE 6",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.079653,
+          26.388932
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAL_045_BLVD JOSE RAMIREZ BAZAN_C LEONA VICARIO",
+        "municipio": "MIGUEL ALEMAN",
+        "descripcion": "ZONA: NORTE - REY",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.901787,
+          24.04186
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_PAD_046_CARR CD VICTORIA SANTANDER JIMENEZ_C RIO SABINAS",
+        "municipio": "PADILLA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.219345,
+          23.734012
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_SLM_047_CARR CD VICTORIA SOTO LA MARINA",
+        "municipio": "SOTO LA MARINA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.75111,
+          23.11755
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_LLE_048_CARR GONZALEZ LLERA DE CANALES",
+        "municipio": "LLERA",
+        "descripcion": "ZONA: SUR - MANTE",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.9571,
+          23.71698
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_049_CARR CD VICTORIA SOTO LA MARINA_HANGAR CIUDAD VICTORIA",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.14248,
+          23.752494
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_050_BLVD ADOLFO LOPEZ MATEOS_AV TAMAULIPAS",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.158808,
+          23.7259
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_051_AV GENERAL LAZARO CARDENAS_CLZ GENERAL LUIS CABALLERO",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.15953,
+          23.73473
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_052_AV GENERAL LAZARO CARDENAS_C MARIANO MATAMOROS",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.162136,
+          23.773506
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_053_LIB NACIONES UNIDAS_AV GENERAL LAZARO CARDENAS",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.172691,
+          23.74562
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIC_054_LIB NACIONES UNIDAS_C SIERRA MADRE ORIENTAL",
+        "municipio": "VICTORIA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.195104,
+          23.786918
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_SLM_055_CARR COSTERA DEL GOLFO_C FEDERAL NUMERO 180",
+        "municipio": "SOTO LA MARINA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.495258,
+          24.202443
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_JIM_056_CARR A CD VICTORIA_ CARR GUADALUPE VICTORIA",
+        "municipio": "JIMENEZ",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.891768,
+          22.359135
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_ALT_057_AV DE LA INDUSTRIA_C TAMPICO",
+        "municipio": "ALTAMIRA",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.872959,
+          22.28231
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_TAM_058_ AV MIGUEL HIDALGO Y COSTILLA_ C EDUARDO",
+        "municipio": "TAMPICO",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.86017,
+          22.278828
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_TAM_059_BLVD LOPEZ MATEOS_ C UNIVERSIDAD DE MEXICO",
+        "municipio": "TAMPICO",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.84539,
+          22.275222
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAD_060_AV TAMAULIPAS_AV MONTERREY",
+        "municipio": "MADERO",
+        "descripcion": "ZONA: SUR - ALMATAM",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.498459,
+          25.895308
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_061_AV ALVARO OBREGON_AV DE LAS ROSAS",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.503952,
+          25.887533
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_062_C LAS AMERICAS_C GALEANA",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.477126,
+          25.8678
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_063_AV ACCION CIVICA_C 5 DE MAYO",
+        "municipio": "MATAMOROS",
+        "descripcion": "ZONA: NORTE - MAT",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.834751,
+          26.304244
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_CAM_064",
+        "municipio": "CAMARGO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.160089,
+          26.429404
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MIE_065",
+        "municipio": "MIER",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.562363,
+          25.886571
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_066",
+        "municipio": "MATAMOROS",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.521293,
+          25.84979
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_067",
+        "municipio": "MATAMOROS",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.79572,
+          25.847042
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VHO_068_CARR VALLE HERMOSO EL EMPALME",
+        "municipio": "VALLE HERMOSO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.53722,
+          24.602345
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_VIL_069_CARR CD VICTORIA MONTERREY",
+        "municipio": "VILLAGRAN",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.837435,
+          22.859613
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_TUL_070_CARR TULA CD VICTORIA",
+        "municipio": "TULA",
+        "descripcion": "ZONA: CENTRO",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.820423,
+          26.305411
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_CAM_071_LIB CAMARGO_CARR REYNOSA NUEVO LAREDO",
+        "municipio": "CAMARGO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.048222,
+          26.388944
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAL_072_LIB MIGUEL ALEMAN LOS GUERRA_C LOS LEONES",
+        "municipio": "MIGUEL ALEMAN",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.667292,
+          26.230882
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_DOR_073_CARR NUEVO LAREDO REYNOSA_C 5 DE MAYO",
+        "municipio": "DIAZ ORDAZ",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.207382,
+          26.007948
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_REY_074",
+        "municipio": "REYNOSA",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.274765,
+          25.988344
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_REY_075_CALZ VICTORIA_AVE ROBLE",
+        "municipio": "REYNOSA",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.080193,
+          25.982337
+        ]
+      },
+      "properties": {
+        "nombre": "ARCE_RBR_076_AV FRANCISCO I MADERO_ C PEDRO J MENDEZ",
+        "municipio": "RIO BRAVO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.360426,
+          26.014521
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_REY_077",
+        "municipio": "REYNOSA",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.132686,
+          25.997084
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_RBR_078",
+        "municipio": "RIO BRAVO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.133781,
+          25.99713
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_RBR_079",
+        "municipio": "RIO BRAVO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.807318,
+          26.359679
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_CAM_080_PUENTE INTERNACIONAL CAMARGO",
+        "municipio": "CAMARGO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.944714,
+          22.990568
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_XIC_081_CARR XICOTENCATL EL LIMON_C LICENCIADO BENITO JUAREZ",
+        "municipio": "XICOTENCATL",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.590494,
+          26.210785
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_DOR_082_AV HIDALGO SUR_CARR NUEVO LAREDO REYNOSA",
+        "municipio": "DIAZ ORDAZ",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.572492,
+          25.71395
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MAT_083_CARR MATAMOROS CD VICTORIA_CARR MATAMOROS PUERTO MATAMOROS",
+        "municipio": "MATAMOROS",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.153973,
+          26.449354
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_MIE_084_LIB MIER_CARR NUEVO LAREDO REYNOSA",
+        "municipio": "MIER",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.985305,
+          22.462856
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_ALT_085",
+        "municipio": "ALTAMIRA",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.583804,
+          25.971167
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_REY_086",
+        "municipio": "REYNOSA",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.598971,
+          27.300064
+        ]
+      },
+      "properties": {
+        "nombre": "ARCA_NLD_087",
+        "municipio": "NUEVO LAREDO",
+        "descripcion": "",
+        "categoria": "Arco Carretero (LPR)",
+        "region": "Tamaulipas"
+      }
+    }
+  ]
+}

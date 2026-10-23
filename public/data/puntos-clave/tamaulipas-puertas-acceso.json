@@ -1,0 +1,90 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.598971,
+          27.300064
+        ]
+      },
+      "properties": {
+        "nombre": "Puerta Carr. Monterrey - Nuevo Laredo",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Puerta de Acceso Carret.",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.83645,
+          22.860691
+        ]
+      },
+      "properties": {
+        "nombre": "Puerta Carr. Victoria - Tula",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Puerta de Acceso Carret.",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.985305,
+          22.462858
+        ]
+      },
+      "properties": {
+        "nombre": "Carr. Tuxpan - Tampico",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Puerta de Acceso Carret.",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.537142,
+          24.602353
+        ]
+      },
+      "properties": {
+        "nombre": "SSP - Aduana",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Puerta de Acceso Carret.",
+        "region": "Tamaulipas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.583932,
+          25.97125
+        ]
+      },
+      "properties": {
+        "nombre": "Puerta Carr. Monterrey - Reynosa (Opción A)",
+        "municipio": "",
+        "descripcion": "",
+        "categoria": "Puerta de Acceso Carret.",
+        "region": "Tamaulipas"
+      }
+    }
+  ]
+}
