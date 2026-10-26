@@ -452,10 +452,13 @@ export function generarEstatusFlotaHtml(
   indicadoresDashboard?: IndicadorDashboard[],
   ordenSecciones: SeccionReporteId[] = ORDEN_SECCIONES_DEFAULT,
   incluirGeneral = true,
-  vistaDashboard?: VistaDashboardReporte | null
+  vistaDashboard?: VistaDashboardReporte | VistaDashboardReporte[] | null
 ): string {
+  const vistas = Array.isArray(vistaDashboard) ? vistaDashboard : vistaDashboard ? [vistaDashboard] : [];
+  const bloquesVistas = vistas.map((v) => bloqueVistaDashboard(v)).join("");
+
   const bloques = [
-    vistaDashboard ? bloqueVistaDashboard(vistaDashboard) : "",
+    bloquesVistas,
     incluirGeneral ? bloqueEstatus(datos.general, indicadoresDashboard, ordenSecciones) : "",
     ...datos.porProyecto.map((p) => bloqueEstatus(p, undefined, ordenSecciones)),
   ].join("");

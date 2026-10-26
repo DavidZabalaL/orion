@@ -184,6 +184,49 @@ async function calcularWidget(w: WidgetDashboardBI, permitidos: string[] | null,
 }
 
 /**
+ * Calcula los widgets de múltiples vistas guardadas para el reporte.
+ * Preserva el orden en que se recibieron los IDs.
+ */
+export async function calcularVistasDashboardReporte(
+  vistaIds: (string | null | undefined)[] | null | undefined,
+  permitidos: string[] | null
+): Promise<VistaDashboardReporte[]> {
+  if (!vistaIds || vistaIds.length === 0) return [];
+  const validIds = Array.from(new Set(vistaIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)));
+  if (validIds.length === 0) return [];
+
+  const vistas = await prisma.vistaDashboardBI.findMany({
+    where: { id: { in: validIds } },
+    select: { id: true, nombre: true, widgets: true },
+  });
+  const vistasMap = new Map(vistas.map((v) => [v.id, v]));
+
+  const resultados: VistaDashboardReporte[] = [];
+  for (const [vIdx, id] of validIds.entries()) {
+    const vista = vistasMap.get(id);
+    if (!vista) continue;
+
+    const widgets = (Array.isArray(vista.widgets) ? (vista.widgets as unknown as WidgetDashboardBI[]) : [])
+      .filter((w) => w && typeof w === "object")
+      .sort((a, b) => (a.layout?.y ?? 0) - (b.layout?.y ?? 0) || (a.layout?.x ?? 0) - (b.layout?.x ?? 0));
+
+    const widgetsResueltos: WidgetReporte[] = [];
+    for (const [wIdx, w] of widgets.entries()) {
+      try {
+        const cid = `grafica-v${vIdx + 1}-${wIdx + 1}@orion`;
+        const r = await calcularWidget(w, permitidos, cid);
+        if (r) widgetsResueltos.push(r);
+      } catch (e) {
+        console.error("[reporte] widget", w.label, e);
+        widgetsResueltos.push({ tipo: "nota", titulo: w.label || "Widget", texto: "No se pudo calcular este widget." });
+      }
+    }
+    resultados.push({ id: vista.id, nombre: vista.nombre, widgets: widgetsResueltos });
+  }
+  return resultados;
+}
+
+/**
  * Calcula los widgets de una vista guardada para el reporte. `permitidos` es
  * el alcance de proyectos de quien pide el reporte (null = sin restricción);
  * los proyectos elegidos en cada widget se intersectan con él, igual que en
@@ -192,30 +235,24 @@ async function calcularWidget(w: WidgetDashboardBI, permitidos: string[] | null,
  */
 export async function calcularVistaDashboardReporte(vistaId: string | null | undefined, permitidos: string[] | null): Promise<VistaDashboardReporte | null> {
   if (!vistaId) return null;
-  const vista = await prisma.vistaDashboardBI.findUnique({ where: { id: vistaId }, select: { id: true, nombre: true, widgets: true } });
-  if (!vista) return null;
+  const [primera] = await calcularVistasDashboardReporte([vistaId], permitidos);
+  return primera ?? null;
+}
 
-  const widgets = (Array.isArray(vista.widgets) ? (vista.widgets as unknown as WidgetDashboardBI[]) : [])
-    .filter((w) => w && typeof w === "object")
-    .sort((a, b) => (a.layout?.y ?? 0) - (b.layout?.y ?? 0) || (a.layout?.x ?? 0) - (b.layout?.x ?? 0));
-
-  const resultados: WidgetReporte[] = [];
-  for (const [i, w] of widgets.entries()) {
-    try {
-      const r = await calcularWidget(w, permitidos, `grafica-${i}@orion`);
-      if (r) resultados.push(r);
-    } catch (e) {
-      console.error("[reporte] widget", w.label, e);
-      resultados.push({ tipo: "nota", titulo: w.label || "Widget", texto: "No se pudo calcular este widget." });
+/** Adjuntos inline (CID) para el correo: una imagen por cada gráfica de la vista o vistas. */
+export function adjuntosGraficas(vista: VistaDashboardReporte | VistaDashboardReporte[] | null | undefined): { filename: string; content: Buffer; contentId: string }[] {
+  if (!vista) return [];
+  const vistas = Array.isArray(vista) ? vista : [vista];
+  const adjuntos: { filename: string; content: Buffer; contentId: string }[] = [];
+  let contador = 1;
+  for (const v of vistas) {
+    if (!v) continue;
+    for (const w of v.widgets) {
+      if (w.tipo === "grafica") {
+        adjuntos.push({ filename: `grafica-${contador++}.png`, content: Buffer.from(w.png, "base64"), contentId: w.cid });
+      }
     }
   }
-  return { id: vista.id, nombre: vista.nombre, widgets: resultados };
+  return adjuntos;
 }
 
-/** Adjuntos inline (CID) para el correo: una imagen por cada gráfica de la vista. */
-export function adjuntosGraficas(vista: VistaDashboardReporte | null | undefined): { filename: string; content: Buffer; contentId: string }[] {
-  if (!vista) return [];
-  return vista.widgets
-    .filter((w): w is Extract<WidgetReporte, { tipo: "grafica" }> => w.tipo === "grafica")
-    .map((w, i) => ({ filename: `grafica-${i + 1}.png`, content: Buffer.from(w.png, "base64"), contentId: w.cid }));
-}

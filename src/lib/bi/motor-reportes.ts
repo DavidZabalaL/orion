@@ -13,7 +13,7 @@ import { enviarReporteBI, enviarReporteEstatusFlotaHtml } from "@/lib/email";
 import { registrarAccesoReporteBI } from "@/lib/bi/auditoria";
 import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
-import { calcularVistaDashboardReporte, adjuntosGraficas } from "@/lib/reportes/vista-dashboard-reporte";
+import { calcularVistasDashboardReporte, adjuntosGraficas } from "@/lib/reportes/vista-dashboard-reporte";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 import { inicioDeHoyMx } from "@/lib/timezone";
@@ -53,7 +53,14 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       // fechas (calcularReporteConAlcance, sí incluye el día seleccionado
       // completo) es un caso distinto y no cambia. Va en el cuerpo del
       // correo (HTML), sin PDF adjunto — ver src/lib/reportes/estatus-flota-html.ts.
-      const filtros = reporte.filtrosJson as { proyectoIds?: string[] | null; camposExtra?: CampoExtraSeleccionado[]; ordenSecciones?: unknown; incluirGeneral?: boolean; vistaDashboardId?: string | null } | null;
+      const filtros = reporte.filtrosJson as {
+        proyectoIds?: string[] | null;
+        camposExtra?: CampoExtraSeleccionado[];
+        ordenSecciones?: unknown;
+        incluirGeneral?: boolean;
+        vistaDashboardId?: string | null;
+        vistaDashboardIds?: string[] | null;
+      } | null;
       proyectoIds = filtros?.proyectoIds ?? [];
       const hasta = new Date(inicioDeHoyMx().getTime() - 1); // 23:59:59.999 MX de ayer — excluye lo capturado hoy
       const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS + 1);
@@ -64,15 +71,20 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         hasta,
         camposExtraSeleccionados: filtros?.camposExtra ?? [],
       });
-      // Sin indicadoresDashboard: no hay sesión de navegador en el cron. La
-      // vista de dashboard elegida sí se recalcula aquí, con el alcance de
+      // Sin indicadoresDashboard: no hay sesión de navegador en el cron. Las
+      // vistas de dashboard elegidas sí se recalculan aquí, con el alcance de
       // proyectos de quien configuró el envío (igual que un reporte bi_tabla).
-      const vistaDashboard = filtros?.vistaDashboardId
-        ? await calcularVistaDashboardReporte(filtros.vistaDashboardId, await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "M"))
-        : null;
-      const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true, vistaDashboard);
+      const vistaDashboardIds = Array.isArray(filtros?.vistaDashboardIds)
+        ? (filtros.vistaDashboardIds as string[])
+        : filtros?.vistaDashboardId
+        ? [filtros.vistaDashboardId]
+        : [];
+      const vistasDashboard = vistaDashboardIds.length > 0
+        ? await calcularVistasDashboardReporte(vistaDashboardIds, await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "M"))
+        : [];
+      const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true, vistasDashboard);
       totalRegistros = datos.general.totalUnidades;
-      envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html, imagenesInline: adjuntosGraficas(vistaDashboard) });
+      envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html, imagenesInline: adjuntosGraficas(vistasDashboard) });
     } else if (reporte.tipo === TIPO_BI_TABLA) {
       // Reporte genérico "selector libre de BI" (Panel de Reportes): el
       // alcance de proyecto es el del DUEÑO del reporte (no hay sesión en el

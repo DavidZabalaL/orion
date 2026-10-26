@@ -8,7 +8,7 @@ import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
-import { calcularVistaDashboardReporte, adjuntosGraficas, type VistaDashboardReporte } from "@/lib/reportes/vista-dashboard-reporte";
+import { calcularVistasDashboardReporte, adjuntosGraficas, type VistaDashboardReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { sanearOrdenSecciones, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
@@ -348,7 +348,9 @@ async function calcularReporteConAlcance(input: { proyectoIds: string[]; desde: 
   });
 }
 
-export type ResultadoDatosEstatusFlota = { ok: true; datos: EstatusFlotaReporte; vistaDashboard: VistaDashboardReporte | null } | { ok: false; error: string };
+export type ResultadoDatosEstatusFlota =
+  | { ok: true; datos: EstatusFlotaReporte; vistaDashboard: VistaDashboardReporte | null; vistasDashboard: VistaDashboardReporte[] }
+  | { ok: false; error: string };
 
 /** Datos del reporte para armar el PDF en el cliente ("Descargar PDF"). */
 export async function obtenerDatosEstatusFlota(input: {
@@ -356,13 +358,24 @@ export async function obtenerDatosEstatusFlota(input: {
   desde: string;
   hasta: string;
   camposExtra?: CampoExtraSeleccionado[];
-  /** Vista guardada de "Mis dashboards" a incluir — ver vista-dashboard-reporte.ts. */
+  /** Vista guardada de "Mis dashboards" a incluir (compatibilidad). */
   vistaDashboardId?: string | null;
+  /** Vistas guardadas de "Mis dashboards" a incluir — ver vista-dashboard-reporte.ts. */
+  vistaDashboardIds?: string[];
 }): Promise<ResultadoDatosEstatusFlota> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   try {
-    const [datos, vistaDashboard] = await Promise.all([calcularReporteConAlcance(input), calcularVistaDashboardReporte(input.vistaDashboardId, await alcanceGeneralPermitido())]);
-    return { ok: true, datos: JSON.parse(JSON.stringify(datos)), vistaDashboard: vistaDashboard && JSON.parse(JSON.stringify(vistaDashboard)) };
+    const ids = input.vistaDashboardIds ?? (input.vistaDashboardId ? [input.vistaDashboardId] : []);
+    const [datos, vistasDashboard] = await Promise.all([
+      calcularReporteConAlcance(input),
+      calcularVistasDashboardReporte(ids, await alcanceGeneralPermitido()),
+    ]);
+    return {
+      ok: true,
+      datos: JSON.parse(JSON.stringify(datos)),
+      vistaDashboard: vistasDashboard[0] ? JSON.parse(JSON.stringify(vistasDashboard[0])) : null,
+      vistasDashboard: JSON.parse(JSON.stringify(vistasDashboard)),
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo calcular el reporte." };
   }
@@ -381,16 +394,22 @@ export async function enviarEstatusFlotaAhora(input: {
   ordenSecciones?: SeccionReporteId[];
   /** Incluir el bloque de alcance global (todo lo permitido, no solo los proyectos seleccionados) — default true. */
   incluirGeneral?: boolean;
-  /** Vista guardada de "Mis dashboards" a incluir — ver vista-dashboard-reporte.ts. */
+  /** Vista guardada de "Mis dashboards" a incluir (compatibilidad). */
   vistaDashboardId?: string | null;
+  /** Vistas guardadas de "Mis dashboards" a incluir — ver vista-dashboard-reporte.ts. */
+  vistaDashboardIds?: string[];
 }): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
 
   try {
-    const [datos, vistaDashboard] = await Promise.all([calcularReporteConAlcance(input), calcularVistaDashboardReporte(input.vistaDashboardId, await alcanceGeneralPermitido())]);
-    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones), input.incluirGeneral ?? true, vistaDashboard);
-    const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html, imagenesInline: adjuntosGraficas(vistaDashboard) });
+    const ids = input.vistaDashboardIds ?? (input.vistaDashboardId ? [input.vistaDashboardId] : []);
+    const [datos, vistasDashboard] = await Promise.all([
+      calcularReporteConAlcance(input),
+      calcularVistasDashboardReporte(ids, await alcanceGeneralPermitido()),
+    ]);
+    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones), input.incluirGeneral ?? true, vistasDashboard);
+    const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html, imagenesInline: adjuntosGraficas(vistasDashboard) });
     if (!envio.enviado) return { ok: false, error: envio.error ?? "No se pudo enviar el correo." };
     return { ok: true };
   } catch (e) {
@@ -415,8 +434,10 @@ export type ConfigEstatusFlotaProgramado = {
   ordenSecciones: SeccionReporteId[];
   /** Incluir el bloque de alcance global (todo lo permitido, no solo los proyectos seleccionados) — default true, configuraciones guardadas antes de este campo lo asumen así. */
   incluirGeneral: boolean;
-  /** Vista guardada de "Mis dashboards" que se incluye en cada envío (null = ninguna) — ver vista-dashboard-reporte.ts. */
+  /** Vista guardada de "Mis dashboards" que se incluye en cada envío (null = ninguna, compatibilidad). */
   vistaDashboardId: string | null;
+  /** Vistas guardadas de "Mis dashboards" que se incluyen en cada envío — ver vista-dashboard-reporte.ts. */
+  vistaDashboardIds: string[];
 };
 
 const TIPO_ESTATUS_FLOTA = "estatus_flota";
@@ -445,7 +466,8 @@ export async function guardarProgramacionEstatusFlota(input: {
   camposExtra: CampoExtraSeleccionado[];
   ordenSecciones: SeccionReporteId[];
   incluirGeneral: boolean;
-  vistaDashboardId: string | null;
+  vistaDashboardId?: string | null;
+  vistaDashboardIds?: string[];
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await auth();
   if (!(await tienePermisoModulo("M", "editar")) || !session?.user?.id) {
@@ -465,15 +487,30 @@ export async function guardarProgramacionEstatusFlota(input: {
       return !!dataset && !!obtenerCampo(dataset, c.campoId);
     })
     .slice(0, MAX_CAMPOS_EXTRA);
-  const vistaDashboardId = input.vistaDashboardId
-    ? (await prisma.vistaDashboardBI.findUnique({ where: { id: input.vistaDashboardId }, select: { id: true } }))?.id ?? null
-    : null;
+
+  const rawIds = input.vistaDashboardIds ?? (input.vistaDashboardId ? [input.vistaDashboardId] : []);
+  const vistasValidas = rawIds.length > 0
+    ? await prisma.vistaDashboardBI.findMany({
+        where: { id: { in: rawIds } },
+        select: { id: true },
+      })
+    : [];
+  const setValidos = new Set(vistasValidas.map((v) => v.id));
+  const vistaDashboardIds = rawIds.filter((id) => setValidos.has(id));
+  const vistaDashboardId = vistaDashboardIds[0] ?? null;
 
   const data = {
     nombre,
     tipo: TIPO_ESTATUS_FLOTA,
     camposJson: [],
-    filtrosJson: { proyectoIds: input.proyectoIds, camposExtra: camposExtraValidos, ordenSecciones: sanearOrdenSecciones(input.ordenSecciones), incluirGeneral: input.incluirGeneral, vistaDashboardId },
+    filtrosJson: {
+      proyectoIds: input.proyectoIds,
+      camposExtra: camposExtraValidos,
+      ordenSecciones: sanearOrdenSecciones(input.ordenSecciones),
+      incluirGeneral: input.incluirGeneral,
+      vistaDashboardId,
+      vistaDashboardIds,
+    },
     destinatarios: input.destinatarios,
     hora: input.hora,
     diaSemana: input.diaSemana,

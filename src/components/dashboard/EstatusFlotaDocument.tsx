@@ -758,19 +758,25 @@ export function EstatusFlotaDocument({
   ordenSecciones,
   incluirGeneral = true,
   vistaDashboard,
+  vistasDashboard,
 }: {
   datos: EstatusFlotaReporte;
   indicadoresDashboard?: IndicadorDashboard[];
-  /** Vista guardada de "Mis dashboards" elegida en el modal — va como primera página. */
+  /** Vista guardada de "Mis dashboards" elegida en el modal (compatibilidad con un solo dashboard). */
   vistaDashboard?: VistaDashboardReporte | null;
+  /** Vistas guardadas de "Mis dashboards" elegidas en el modal — van como páginas iniciales. */
+  vistasDashboard?: VistaDashboardReporte[] | null;
   /** Orden en que se muestran las secciones — ver EstatusFlotaModal. Sin especificar, usa ORDEN_SECCIONES_DEFAULT. */
   ordenSecciones?: SeccionReporteId[];
   /** Alcance completo de la plataforma (o de todo lo permitido al usuario) — independiente de qué proyectos se hayan seleccionado para desglosar. Se sigue calculando siempre (ver calcularEstatusFlotaReporte); esto solo decide si se incluye en el documento. */
   incluirGeneral?: boolean;
 }) {
+  const listaVistas = vistasDashboard ?? (vistaDashboard ? [vistaDashboard] : []);
   return (
     <Document>
-      {vistaDashboard && <PaginaVistaDashboard vista={vistaDashboard} />}
+      {listaVistas.map((vista) => (
+        <PaginaVistaDashboard key={vista.id} vista={vista} />
+      ))}
       {/* Los indicadores del dashboard actual solo aplican al alcance general —
           es el mismo alcance que se ve al abrir "Mis dashboards". */}
       {incluirGeneral && <PaginaEstatus datos={datos.general} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} />}

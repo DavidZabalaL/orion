@@ -102,7 +102,14 @@ type ProgramacionItem = Omit<ConfigEstatusFlotaProgramado, "destinatarios"> & {
 };
 
 let contadorClaveLocal = 0;
-function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtraSeleccionado[]; ordenSecciones: SeccionReporteId[]; incluirGeneral: boolean; vistaDashboardId: string | null }): ProgramacionItem {
+function nuevaProgramacion(base: {
+  proyectoIds: string[];
+  camposExtra: CampoExtraSeleccionado[];
+  ordenSecciones: SeccionReporteId[];
+  incluirGeneral: boolean;
+  vistaDashboardId: string | null;
+  vistaDashboardIds: string[];
+}): ProgramacionItem {
   contadorClaveLocal += 1;
   return {
     claveLocal: `nueva-${contadorClaveLocal}`,
@@ -118,6 +125,7 @@ function nuevaProgramacion(base: { proyectoIds: string[]; camposExtra: CampoExtr
     ordenSecciones: base.ordenSecciones,
     incluirGeneral: base.incluirGeneral,
     vistaDashboardId: base.vistaDashboardId,
+    vistaDashboardIds: base.vistaDashboardIds,
   };
 }
 
@@ -144,9 +152,15 @@ export function EstatusFlotaModal({
   const [mostrarSelectorCampos, setMostrarSelectorCampos] = useState(false);
   const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(primera?.ordenSecciones ?? ORDEN_SECCIONES_DEFAULT);
   const [incluirGeneral, setIncluirGeneral] = useState(primera?.incluirGeneral ?? true);
-  const [vistaDashboardId, setVistaDashboardId] = useState<string>(
-    primera?.vistaDashboardId && vistasDashboard.some((v) => v.id === primera.vistaDashboardId) ? primera.vistaDashboardId : ""
-  );
+  const [vistaDashboardIds, setVistaDashboardIds] = useState<string[]>(() => {
+    if (primera?.vistaDashboardIds && primera.vistaDashboardIds.length > 0) {
+      return primera.vistaDashboardIds.filter((id) => vistasDashboard.some((v) => v.id === id));
+    }
+    if (primera?.vistaDashboardId && vistasDashboard.some((v) => v.id === primera.vistaDashboardId)) {
+      return [primera.vistaDashboardId];
+    }
+    return [];
+  });
 
   const [programaciones, setProgramaciones] = useState<ProgramacionItem[]>(
     configuracionesIniciales.map((c) => {
@@ -170,9 +184,14 @@ export function EstatusFlotaModal({
   const indicadoresVistaAbierta: IndicadorDashboard[] = items
     .filter((i) => i.type === "kpi" && i.value !== undefined)
     .map((i) => ({ title: i.title, value: String(i.value) }));
-  // Con una vista elegida, sus KPIs ya van completos en el reporte — no se
+  // Con una o más vistas elegidas, sus KPIs ya van completos en el reporte — no se
   // repiten los de la vista que esté abierta en pantalla.
-  const indicadoresDashboard: IndicadorDashboard[] = vistaDashboardId ? [] : indicadoresVistaAbierta;
+  const indicadoresDashboard: IndicadorDashboard[] = vistaDashboardIds.length > 0 ? [] : indicadoresVistaAbierta;
+
+  function alternarDashboard(id: string) {
+    setVistaDashboardIds((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
+  }
+  const todosDashboardsSeleccionados = vistasDashboard.length > 0 && vistaDashboardIds.length === vistasDashboard.length;
 
   function alternarProyecto(id: string) {
     setSeleccionados((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -216,14 +235,21 @@ export function EstatusFlotaModal({
   const todosSeleccionados = proyectosDisponibles.length > 0 && seleccionados.length === proyectosDisponibles.length;
 
   async function descargar() {
-    if (!incluirGeneral && seleccionados.length === 0 && !vistaDashboardId) {
-      setMensaje({ tipo: "error", texto: "Elige un dashboard, al menos un proyecto o incluye el resumen general." });
+    if (!incluirGeneral && seleccionados.length === 0 && vistaDashboardIds.length === 0) {
+      setMensaje({ tipo: "error", texto: "Elige al menos un dashboard, un proyecto o incluye el resumen general." });
       return;
     }
     setDescargando(true);
     setMensaje(null);
     try {
-      const res = await obtenerDatosEstatusFlota({ proyectoIds: seleccionados, desde, hasta, camposExtra, vistaDashboardId: vistaDashboardId || null });
+      const res = await obtenerDatosEstatusFlota({
+        proyectoIds: seleccionados,
+        desde,
+        hasta,
+        camposExtra,
+        vistaDashboardIds,
+        vistaDashboardId: vistaDashboardIds[0] ?? null,
+      });
       if (!res.ok) {
         setMensaje({ tipo: "error", texto: res.error });
         return;
@@ -239,7 +265,16 @@ export function EstatusFlotaModal({
         porProyecto: res.datos.porProyecto.map(rehidratarFechasAlcance),
         general: rehidratarFechasAlcance(res.datos.general),
       };
-      const blob = await pdf(<EstatusFlotaDocument datos={datos} indicadoresDashboard={indicadoresDashboard} ordenSecciones={ordenSecciones} incluirGeneral={incluirGeneral} vistaDashboard={res.vistaDashboard} />).toBlob();
+      const blob = await pdf(
+        <EstatusFlotaDocument
+          datos={datos}
+          indicadoresDashboard={indicadoresDashboard}
+          ordenSecciones={ordenSecciones}
+          incluirGeneral={incluirGeneral}
+          vistasDashboard={res.vistasDashboard}
+          vistaDashboard={res.vistaDashboard}
+        />
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -255,8 +290,8 @@ export function EstatusFlotaModal({
   }
 
   async function enviarAhora() {
-    if (!incluirGeneral && seleccionados.length === 0 && !vistaDashboardId) {
-      setMensaje({ tipo: "error", texto: "Elige un dashboard, al menos un proyecto o incluye el resumen general." });
+    if (!incluirGeneral && seleccionados.length === 0 && vistaDashboardIds.length === 0) {
+      setMensaje({ tipo: "error", texto: "Elige al menos un dashboard, un proyecto o incluye el resumen general." });
       return;
     }
     const listaDestinatarios = destinatarios.split(",").map((d) => d.trim()).filter(Boolean);
@@ -266,13 +301,34 @@ export function EstatusFlotaModal({
     }
     setEnviando(true);
     setMensaje(null);
-    const res = await enviarEstatusFlotaAhora({ proyectoIds: seleccionados, desde, hasta, destinatarios: listaDestinatarios, camposExtra, indicadoresDashboard, ordenSecciones, incluirGeneral, vistaDashboardId: vistaDashboardId || null });
+    const res = await enviarEstatusFlotaAhora({
+      proyectoIds: seleccionados,
+      desde,
+      hasta,
+      destinatarios: listaDestinatarios,
+      camposExtra,
+      indicadoresDashboard,
+      ordenSecciones,
+      incluirGeneral,
+      vistaDashboardIds,
+      vistaDashboardId: vistaDashboardIds[0] ?? null,
+    });
     setEnviando(false);
     setMensaje(res.ok ? { tipo: "ok", texto: "Correo enviado." } : { tipo: "error", texto: res.error ?? "No se pudo enviar." });
   }
 
   function agregarProgramacion() {
-    setProgramaciones((prev) => [...prev, nuevaProgramacion({ proyectoIds: seleccionados, camposExtra, ordenSecciones, incluirGeneral, vistaDashboardId: vistaDashboardId || null })]);
+    setProgramaciones((prev) => [
+      ...prev,
+      nuevaProgramacion({
+        proyectoIds: seleccionados,
+        camposExtra,
+        ordenSecciones,
+        incluirGeneral,
+        vistaDashboardId: vistaDashboardIds[0] ?? null,
+        vistaDashboardIds,
+      }),
+    ]);
   }
 
   function actualizarProgramacion(idx: number, patch: Partial<ProgramacionItem>) {
@@ -288,8 +344,8 @@ export function EstatusFlotaModal({
       setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Indica al menos un destinatario." } }));
       return;
     }
-    if (!item.incluirGeneral && item.proyectoIds.length === 0 && !vistaDashboardId) {
-      setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Elige un dashboard, al menos un proyecto o incluye el resumen general." } }));
+    if (!item.incluirGeneral && item.proyectoIds.length === 0 && vistaDashboardIds.length === 0) {
+      setMensajePorIdx((prev) => ({ ...prev, [idx]: { tipo: "error", texto: "Elige al menos un dashboard, un proyecto o incluye el resumen general." } }));
       return;
     }
     setGuardandoIdx(idx);
@@ -307,7 +363,8 @@ export function EstatusFlotaModal({
       camposExtra,
       ordenSecciones,
       incluirGeneral: item.incluirGeneral,
-      vistaDashboardId: vistaDashboardId || null,
+      vistaDashboardId: vistaDashboardIds[0] ?? null,
+      vistaDashboardIds,
     });
     setGuardandoIdx(null);
     if (res.ok) {
@@ -347,7 +404,7 @@ export function EstatusFlotaModal({
               {descargando ? "Generando el PDF…" : "Enviando el correo…"}
             </p>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-              Calculando datos{vistaDashboardId ? " y dibujando las gráficas del dashboard" : ""}. Puede tardar unos segundos; no cierres esta ventana.
+              Calculando datos{vistaDashboardIds.length > 0 ? " y dibujando las gráficas de los dashboards" : ""}. Puede tardar unos segundos; no cierres esta ventana.
             </p>
           </div>
         )}
@@ -367,15 +424,42 @@ export function EstatusFlotaModal({
           </label>
 
           <div>
-            <label style={labelStyle}>Dashboard a incluir (opcional)</label>
-            <select value={vistaDashboardId} onChange={(e) => setVistaDashboardId(e.target.value)} style={fieldStyle}>
-              <option value="">Ninguno — solo los indicadores de la vista abierta</option>
-              {vistasDashboard.map((v) => (
-                <option key={v.id} value={v.id}>{v.nombre}</option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between mb-1.5">
+              <label style={{ ...labelStyle, marginBottom: 0 }}>
+                Dashboards a incluir (opcional){vistaDashboardIds.length > 0 ? ` · ${vistaDashboardIds.length} seleccionado${vistaDashboardIds.length > 1 ? "s" : ""}` : ""}
+              </label>
+              {vistasDashboard.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setVistaDashboardIds(todosDashboardsSeleccionados ? [] : vistasDashboard.map((v) => v.id))}
+                  style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer" }}
+                >
+                  {todosDashboardsSeleccionados ? "Quitar selección" : "Seleccionar todos"}
+                </button>
+              )}
+            </div>
+            {vistasDashboard.length === 0 ? (
+              <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                No hay dashboards personalizados guardados en &ldquo;Mis dashboards&rdquo;.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1 pl-1 max-h-36 overflow-y-auto rounded-lg p-2" style={{ background: "var(--field-bg)" }}>
+                {vistasDashboard.map((v) => (
+                  <label key={v.id} className="flex items-center gap-2 cursor-pointer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                    <input
+                      type="checkbox"
+                      checked={vistaDashboardIds.includes(v.id)}
+                      onChange={() => alternarDashboard(v.id)}
+                    />
+                    {v.nombre}
+                  </label>
+                ))}
+              </div>
+            )}
             <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              Agrega al PDF y al correo (inmediato o automático) los indicadores y tablas de esa vista; las gráficas se incluyen como tabla de datos.
+              {vistaDashboardIds.length === 0
+                ? "Ninguno seleccionado — se incluirán solo los indicadores de la vista actualmente abierta."
+                : "Agrega al PDF y al correo las páginas completas con indicadores, tablas y gráficas de cada dashboard seleccionado."}
             </p>
           </div>
 
@@ -624,7 +708,7 @@ export function EstatusFlotaModal({
                 Envíos automáticos
               </p>
               <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-                Cada envío tiene su propio día, hora, periodo de datos, proyectos y destinatarios — puedes tener más de uno (ej. uno semanal para toda la flota y otro mensual solo para un proyecto). Todos usan el mismo &ldquo;Dashboard a incluir&rdquo;, &ldquo;Datos adicionales&rdquo; y &ldquo;Orden de las secciones&rdquo; de arriba; las fechas Desde/Hasta de arriba solo aplican a la descarga o el envío inmediato.
+                Cada envío tiene su propio día, hora, periodo de datos, proyectos y destinatarios — puedes tener más de uno (ej. uno semanal para toda la flota y otro mensual solo para un proyecto). Todos usan los mismos &ldquo;Dashboards a incluir&rdquo;, &ldquo;Datos adicionales&rdquo; y &ldquo;Orden de las secciones&rdquo; de arriba; las fechas Desde/Hasta de arriba solo aplican a la descarga o el envío inmediato.
               </p>
 
               {programaciones.map((item, idx) => {
