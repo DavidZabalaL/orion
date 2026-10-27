@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { MapPin, Satellite, Radio } from "lucide-react";
+import { MapPin, Satellite, Radio, Maximize2, Minimize2, ChevronUp, ChevronDown } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { BuscadorTexto } from "@/components/ui/buscador-texto";
 import { PosicionesLista, type PosicionRow } from "@/components/mapa/posiciones-lista";
@@ -36,6 +36,11 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
   const [detalle, setDetalle] = useState<DetalleUnidad | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [puntosClave, setPuntosClave] = useState<PuntoClaveFeature[]>([]);
+  const [mapaExpandido, setMapaExpandido] = useState(false);
+  const [sugerenciasAbiertas, setSugerenciasAbiertas] = useState(false);
+
+  const mapaContenedorRef = useRef<HTMLDivElement>(null);
+  const buscadorContenedorRef = useRef<HTMLDivElement>(null);
 
   const instalacionCercana = useMemo(() => {
     if (!detalle?.ultima || !puntosClave.length) return null;
@@ -59,6 +64,22 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
     } finally {
       setCargandoDetalle(false);
     }
+  }, []);
+
+  const seleccionarUnidad = useCallback((numeroEconomico: string) => {
+    setSugerenciasAbiertas(false);
+    cargarDetalle(numeroEconomico);
+    mapaContenedorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [cargarDetalle]);
+
+  useEffect(() => {
+    function alClickFuera(e: MouseEvent) {
+      if (buscadorContenedorRef.current && !buscadorContenedorRef.current.contains(e.target as Node)) {
+        setSugerenciasAbiertas(false);
+      }
+    }
+    document.addEventListener("mousedown", alClickFuera);
+    return () => document.removeEventListener("mousedown", alClickFuera);
   }, []);
 
   const ruta: PuntoRuta[] = useMemo(() => detalle?.ruta.map((p) => ({ lat: p.lat, lng: p.lng })) ?? [], [detalle]);
@@ -208,15 +229,121 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
         )}
       </div>
 
-      <BuscadorTexto value={busqueda} onChange={setBusqueda} placeholder="Buscar número económico…" />
+      <div className="flex flex-wrap items-center justify-between gap-3" ref={buscadorContenedorRef}>
+        <div className="relative flex-1 min-w-[240px] max-w-md">
+          <BuscadorTexto
+            value={busqueda}
+            onChange={(v) => {
+              setBusqueda(v);
+              setSugerenciasAbiertas(true);
+            }}
+            onFocus={() => {
+              setSugerenciasAbiertas(true);
+              if (mapaExpandido) setMapaExpandido(false);
+            }}
+            onClick={() => {
+              setSugerenciasAbiertas(true);
+              if (mapaExpandido) setMapaExpandido(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filtradas.length > 0) {
+                e.preventDefault();
+                seleccionarUnidad(filtradas[0].numeroEconomico);
+              }
+            }}
+            placeholder="Buscar número económico…"
+            className="w-full"
+          />
 
-      <div className="relative">
+          {sugerenciasAbiertas && busqueda.trim().length > 0 && (
+            <div
+              className="absolute left-0 top-full mt-1.5 w-full rounded-xl overflow-hidden z-30 shadow-lg border"
+              style={{ background: "var(--panel-bg)", borderColor: "var(--field-border)" }}
+            >
+              {filtradas.length === 0 ? (
+                <div className="px-4 py-3 text-xs" style={{ color: "var(--sidebar-text)" }}>
+                  Sin unidades que coincidan con &ldquo;{busqueda}&rdquo;
+                </div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--sidebar-text)", borderBottom: "1px solid var(--field-border)" }}>
+                    Coincidencias ({filtradas.length}) · Enter o clic para ubicar en mapa
+                  </div>
+                  {filtradas.slice(0, 8).map((u) => (
+                    <button
+                      key={u.numeroEconomico}
+                      type="button"
+                      onClick={() => seleccionarUnidad(u.numeroEconomico)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-[var(--chip)] transition-colors cursor-pointer"
+                      style={{ borderBottom: "1px solid var(--field-border)" }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <MapPin size={14} className="text-[var(--color-primary)] shrink-0" />
+                        <div>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+                            {u.numeroEconomico}
+                          </div>
+                          <div className="truncate text-xs" style={{ color: "var(--sidebar-text)" }}>
+                            {u.descripcion} {u.proyecto ? `· ${u.proyecto}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        {u.timestamp === null ? (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "var(--chip)", color: "var(--sidebar-text)" }}>
+                            Sin señal
+                          </span>
+                        ) : u.esAnomalo ? (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "var(--status-escena-bg)", color: "var(--color-status-escena)" }}>
+                            Anómalo
+                          </span>
+                        ) : (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "var(--status-cerrado-bg)", color: "var(--color-status-cerrado)" }}>
+                            Válido
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMapaExpandido((prev) => !prev)}
+          className="flex items-center gap-2 rounded-md px-3.5 h-10 transition-colors font-medium text-sm"
+          style={{
+            background: "var(--panel-bg)",
+            border: "1px solid var(--field-border)",
+            color: "var(--sidebar-text-active)",
+            boxShadow: "var(--shadow-sm)",
+            cursor: "pointer",
+          }}
+          title={mapaExpandido ? "Reducir mapa a tamaño normal" : "Ampliar mapa"}
+        >
+          {mapaExpandido ? (
+            <>
+              <Minimize2 size={15} /> Reducir mapa
+            </>
+          ) : (
+            <>
+              <Maximize2 size={15} /> Ampliar mapa
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="relative" ref={mapaContenedorRef}>
         <FlotaMap
           puntos={puntosMapa}
           ruta={ruta}
           seleccionado={seleccionada ?? undefined}
-          onSeleccionar={cargarDetalle}
+          onSeleccionar={seleccionarUnidad}
           onPuntosClaveCargados={setPuntosClave}
+          expandido={mapaExpandido}
         />
         {seleccionada && (
           <UnidadPanel
@@ -233,10 +360,62 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
       </div>
 
       <div>
-        <h3 className="mb-3" style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
-          Última posición conocida
-        </h3>
-        <PosicionesLista posiciones={filtradas} />
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <h3 style={{ fontFamily: "var(--font)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+              Última posición conocida
+            </h3>
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ background: "var(--chip)", color: "var(--sidebar-text)" }}>
+              {filtradas.length} {filtradas.length === 1 ? "unidad" : "unidades"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMapaExpandido((prev) => !prev)}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors text-xs font-semibold"
+            style={{
+              background: "var(--panel-bg)",
+              border: "1px solid var(--field-border)",
+              color: "var(--sidebar-text-active)",
+              boxShadow: "var(--shadow-sm)",
+              cursor: "pointer",
+            }}
+          >
+            {mapaExpandido ? (
+              <>
+                <ChevronDown size={14} /> Mostrar lista de unidades
+              </>
+            ) : (
+              <>
+                <ChevronUp size={14} /> Minimizar lista y ampliar mapa
+              </>
+            )}
+          </button>
+        </div>
+
+        {mapaExpandido ? (
+          <div
+            onClick={() => setMapaExpandido(false)}
+            className="flex items-center justify-between p-4 rounded-xl cursor-pointer hover:bg-[var(--chip)] transition-colors border"
+            style={{ background: "var(--panel-bg)", borderColor: "var(--field-border)" }}
+          >
+            <span className="text-sm" style={{ color: "var(--sidebar-text)" }}>
+              Lista de unidades minimizada ({filtradas.length} unidades). Haz clic aquí o en el buscador para verla completa.
+            </span>
+            <span
+              className="flex items-center gap-1 text-xs font-semibold"
+              style={{ color: "var(--color-primary)" }}
+            >
+              <ChevronDown size={14} /> Desplegar
+            </span>
+          </div>
+        ) : (
+          <PosicionesLista
+            posiciones={filtradas}
+            seleccionada={seleccionada}
+            onSeleccionar={seleccionarUnidad}
+          />
+        )}
       </div>
     </div>
   );

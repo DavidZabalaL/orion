@@ -31,6 +31,7 @@ export type Modulo = {
   icon: LucideIcon;
   descripcion: string;
   grupo: Grupo;
+  ocultoEnSidebar?: boolean;
 };
 
 export const MODULOS: Modulo[] = [
@@ -43,7 +44,7 @@ export const MODULOS: Modulo[] = [
   { id: "E", label: "TAG / Peajes", href: "/tag", icon: Ticket, descripcion: "Gasto de casetas por unidad", grupo: "Operación y gasto" },
   { id: "F", label: "Seguros + Coberturas", href: "/seguros", icon: ShieldCheck, descripcion: "Vigencias, vencimientos y coberturas", grupo: "Operación y gasto" },
   { id: "G", label: "Geolocalización", href: "/mapa", icon: MapPin, descripcion: "Posición, historial y geocercas (IntelliHub)", grupo: "Geo" },
-  { id: "G.1", label: "Integridad de datos GPS", href: "/mapa/integridad", icon: Satellite, descripcion: "Filtro de lecturas imposibles y validación de km", grupo: "Geo" },
+  { id: "G.1", label: "Integridad de datos GPS", href: "/mapa/integridad", icon: Satellite, descripcion: "Filtro de lecturas imposibles y validación de km", grupo: "Geo", ocultoEnSidebar: true },
   { id: "H", label: "Proyectos", href: "/proyectos", icon: FolderKanban, descripcion: "Estructura de proyectos y presupuesto semanal", grupo: "Gestión" },
   { id: "I", label: "Bitácora de movimientos", href: "/auditoria", icon: ClipboardList, descripcion: "Consulta cualquier movimiento de unidades, proyectos y operadores", grupo: "Gestión" },
   { id: "M", label: "Dashboards", href: "/dashboards", icon: LayoutDashboard, descripcion: "Dashboards guardados y explorador libre de BI (lenguaje natural, insights, forecast)", grupo: "Gestión" },

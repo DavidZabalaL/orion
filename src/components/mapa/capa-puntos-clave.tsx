@@ -52,6 +52,8 @@ function iconoClusterPuntos(cluster: { getChildCount: () => number }): L.DivIcon
   });
 }
 
+const cacheGeoJson: Record<string, PuntoClaveFeature[]> = {};
+
 export function CapaPuntosClave({
   capasActivas,
   manifestCapas,
@@ -61,12 +63,15 @@ export function CapaPuntosClave({
   manifestCapas: CapaInfo[];
   onPuntosCargados?: (puntos: PuntoClaveFeature[]) => void;
 }) {
-  const [datosCapas, setDatosCapas] = useState<Record<string, PuntoClaveFeature[]>>({});
+  const [datosCapas, setDatosCapas] = useState<Record<string, PuntoClaveFeature[]>>(cacheGeoJson);
 
   // Cargar datos GeoJSON cuando una capa se activa y no está en caché
   useEffect(() => {
     capasActivas.forEach(async (capaId) => {
-      if (datosCapas[capaId]) return;
+      if (cacheGeoJson[capaId]) {
+        setDatosCapas((prev) => (prev[capaId] ? prev : { ...prev, [capaId]: cacheGeoJson[capaId] }));
+        return;
+      }
       const info = manifestCapas.find((c) => c.id === capaId);
       if (!info) return;
 
@@ -74,6 +79,7 @@ export function CapaPuntosClave({
         const res = await fetch(`/data/puntos-clave/${info.archivo}`);
         if (res.ok) {
           const json: GeoJSONPuntosClave = await res.json();
+          cacheGeoJson[capaId] = json.features;
           setDatosCapas((prev) => ({
             ...prev,
             [capaId]: json.features,
@@ -83,7 +89,7 @@ export function CapaPuntosClave({
         console.error(`Error al cargar capa ${capaId}:`, err);
       }
     });
-  }, [capasActivas, manifestCapas, datosCapas]);
+  }, [capasActivas, manifestCapas]);
 
   // Consolidar todos los puntos activos para el callback de cercanía
   const todosLosPuntosActivos = useMemo(() => {

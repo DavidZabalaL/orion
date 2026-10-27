@@ -121,7 +121,7 @@ export function Sidebar({
 
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
           {GRUPOS.map((grupo) => {
-            const modulosDelGrupo = MODULOS.filter((m) => m.grupo === grupo && modulosVisibles.includes(m.id));
+            const modulosDelGrupo = MODULOS.filter((m) => m.grupo === grupo && modulosVisibles.includes(m.id) && !m.ocultoEnSidebar);
             if (modulosDelGrupo.length === 0) return null;
             const grupoColapsado = !colapsado && gruposColapsados.has(grupo);
             return (

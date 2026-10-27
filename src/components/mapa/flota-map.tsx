@@ -114,18 +114,45 @@ function AjustarVistaRuta({ ruta }: { ruta: PuntoRuta[] }) {
   return null;
 }
 
+/** Centra de inmediato el mapa sobre la unidad seleccionada al hacer clic en ella (en la lista o buscador). */
+function CentrarUnidadSeleccionada({ seleccionado, puntos }: { seleccionado?: string; puntos: PuntoMapa[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!seleccionado) return;
+    const p = puntos.find((pt) => pt.numeroEconomico === seleccionado);
+    if (p && p.lat != null && p.lng != null) {
+      map.setView([p.lat, p.lng], ZOOM_UNIDAD_SELECCIONADA, { animate: true });
+    }
+  }, [seleccionado, puntos, map]);
+  return null;
+}
+
+/** Invalida el tamaño de Leaflet tras animar la ampliación o reducción del mapa para evitar huecos grises. */
+function ActualizarTamanoMapa({ expandido }: { expandido: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [expandido, map]);
+  return null;
+}
+
 export function FlotaMap({
   puntos,
   ruta = [],
   seleccionado,
   onSeleccionar,
   onPuntosClaveCargados,
+  expandido = false,
 }: {
   puntos: PuntoMapa[];
   ruta?: PuntoRuta[];
   seleccionado?: string;
   onSeleccionar?: (numeroEconomico: string) => void;
   onPuntosClaveCargados?: (puntos: PuntoClaveFeature[]) => void;
+  expandido?: boolean;
 }) {
   const [manifestCapas, setManifestCapas] = useState<CapaInfo[]>([]);
   const [capasActivas, setCapasActivas] = useState<string[]>([]);
@@ -192,9 +219,17 @@ export function FlotaMap({
       <MapContainer
         center={centro}
         zoom={puntos.length > 0 ? 6 : 5}
-        style={{ height: "520px", width: "100%", borderRadius: "var(--radius-lg, 12px)" }}
+        style={{
+          height: expandido ? "calc(100vh - 160px)" : "520px",
+          minHeight: expandido ? "720px" : "520px",
+          width: "100%",
+          borderRadius: "var(--radius-lg, 12px)",
+          transition: "height 0.25s ease-in-out",
+        }}
         scrollWheelZoom
       >
+        <ActualizarTamanoMapa expandido={expandido} />
+        <CentrarUnidadSeleccionada seleccionado={seleccionado} puntos={puntos} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
