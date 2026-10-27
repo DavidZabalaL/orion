@@ -3,10 +3,15 @@ import { formatearValorBI, formatearCeldaBI } from "@/lib/bi/formato-valor";
 import type { VistaDashboardReporte, WidgetReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import { Document, Page, Text, View, StyleSheet, Svg, Circle, Image } from "@react-pdf/renderer";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
-import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import {
+  LABEL_MOTIVO,
+  TIPO_SINIESTRO_LABEL,
+  ESTATUS_SINIESTRO_LABEL,
+  ESTATUS_GASTO_LABEL,
+} from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
-import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
+import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto, ApoyoReporteItem } from "@/lib/reportes/estatus-flota";
 import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
@@ -414,6 +419,104 @@ function TarjetaIndicadorDashboard({ indicador }: { indicador: IndicadorDashboar
   );
 }
 
+function TablaSiniestros({ datos }: { datos: EstatusFlota }) {
+  const filas = datos.siniestrosDetalle;
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={styles.seccionTitulo}>
+        SINIESTROS ({datos.siniestrosPeriodo} en el periodo · {datos.siniestrosAcumuladoAnio} acumulados en el año)
+      </Text>
+      {filas.length === 0 ? (
+        <View style={{ ...styles.tablaContenedor, padding: 12 }}>
+          <Text style={styles.listaVacio}>Sin siniestros registrados en el periodo.</Text>
+        </View>
+      ) : (
+        <View style={styles.tablaContenedor}>
+          <View style={styles.tablaHeaderFila}>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 85 }}>FOLIO</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>FECHA</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 110 }}>UNIDAD</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 90 }}>PROYECTO</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 80 }}>TIPO</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 75 }}>ESTATUS</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 70, textAlign: "right" }}>COSTO/EST.</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>DESCRIPCIÓN</Text>
+          </View>
+          {filas.map((s, i) => (
+            <View key={`${s.id}-${i}`} style={styles.tablaFila}>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 85, fontWeight: "bold" }}>{s.folio}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{fmtFechaCorta(s.fecha)}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 110 }}>{s.numeroEconomico}{s.vehiculo ? ` (${s.vehiculo})` : ""}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 90 }}>{s.proyecto ?? "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 80 }}>{TIPO_SINIESTRO_LABEL[s.tipo] ?? s.tipo}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 75 }}>{ESTATUS_SINIESTRO_LABEL[s.estatus] ?? s.estatus}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 70, textAlign: "right" }}>{s.costo !== null ? fmtMoneyPdf(s.costo) : "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>{s.descripcion}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function SubtablaApoyoPdf({ titulo, items, totalMonto }: { titulo: string; items: ApoyoReporteItem[]; totalMonto: number }) {
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Text style={{ ...styles.seccionTitulo, fontSize: 8.5 }}>
+        {titulo} ({items.length} solicitudes · {fmtMoneyPdf(totalMonto)})
+      </Text>
+      {items.length === 0 ? (
+        <View style={{ ...styles.tablaContenedor, padding: 12 }}>
+          <Text style={styles.listaVacio}>Sin solicitudes registradas.</Text>
+        </View>
+      ) : (
+        <View style={styles.tablaContenedor}>
+          <View style={styles.tablaHeaderFila}>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>FECHA</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 55 }}>UNIDAD</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 90 }}>PROYECTO</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 130 }}>CONCEPTO</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 130 }}>PROVEEDOR</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 85 }}>ESTATUS</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 75 }}>ODC / SC</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 70, textAlign: "right" }}>IMPORTE</Text>
+          </View>
+          {items.map((a, i) => (
+            <View key={`${a.id}-${i}`} style={styles.tablaFila}>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 55 }}>{fmtFechaCorta(a.fecha)}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 55, fontWeight: "bold" }}>{a.numeroEconomico ?? "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 90 }}>{a.proyecto ?? "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 130 }}>{a.descripcion ?? a.servicio ?? CATEGORIA_GASTO_LABEL[a.categoria] ?? a.categoria}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 130 }}>{a.proveedor ?? "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 85 }}>{ESTATUS_GASTO_LABEL[a.estatus] ?? a.estatus}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 75 }}>{[a.odc ? `ODC: ${a.odc}` : null, a.sc ? `SC: ${a.sc}` : null].filter(Boolean).join(" · ") || "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 70, textAlign: "right", fontWeight: "bold" }}>{fmtMoneyPdf(a.costo)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function TablaApoyosComprasFinanzas({ datos }: { datos: EstatusFlota }) {
+  const totalGeneral = datos.totalApoyosCompras + datos.totalApoyosFinanzas + datos.apoyosOtros.reduce((acc, a) => acc + a.costo, 0);
+  const totalItems = datos.apoyosCompras.length + datos.apoyosFinanzas.length + datos.apoyosOtros.length;
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={styles.seccionTitulo}>
+        APOYOS DE COMPRAS Y FINANZAS ({totalItems} solicitudes · {fmtMoneyPdf(totalGeneral)})
+      </Text>
+      <SubtablaApoyoPdf titulo="APOYOS DE COMPRAS" items={datos.apoyosCompras} totalMonto={datos.totalApoyosCompras} />
+      <SubtablaApoyoPdf titulo="APOYOS DE FINANZAS" items={datos.apoyosFinanzas} totalMonto={datos.totalApoyosFinanzas} />
+      {datos.apoyosOtros.length > 0 && (
+        <SubtablaApoyoPdf titulo="OTROS APOYOS" items={datos.apoyosOtros} totalMonto={datos.apoyosOtros.reduce((acc, a) => acc + a.costo, 0)} />
+      )}
+    </View>
+  );
+}
+
 /** Una página del reporte para un alcance específico (general, selección combinada, o un proyecto individual). */
 function PaginaEstatus({
   datos,
@@ -463,6 +566,13 @@ function PaginaEstatus({
             <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
           </Tarjeta>
         );
+      if (!cubiertoPorDashboard(indicadoresDashboard, "siniestro"))
+        tarjetasResumen.push(
+          <Tarjeta key="siniestros" titulo="Siniestros">
+            <Text style={styles.kpiValor}>{datos.siniestrosPeriodo}</Text>
+            <Text style={styles.kpiCaption}>en el periodo · {datos.siniestrosAcumuladoAnio} acumulados en el año</Text>
+          </Tarjeta>
+        );
       if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
         tarjetasResumen.push(
           <Tarjeta key="checklists" titulo="Actividad checklists del periodo">
@@ -484,11 +594,11 @@ function PaginaEstatus({
           const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
           tarjetasResumen.push(
             <Tarjeta key="presupuesto" titulo="Presupuesto anual">
-              <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.presupuestoAnual)}</Text>
+              <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.gastoAcumuladoAnio)}</Text>
               <View style={styles.barraFondo}>
                 <View style={{ width: `${Math.min(100, pctPresupuestoAnual)}%`, height: "100%", backgroundColor: pctPresupuestoAnual > 90 ? RED : BLUE }} />
               </View>
-              <Text style={styles.kpiCaption}>Acumulado del año: {fmtMoneyPdf(datos.gastoAcumuladoAnio)} · {pctPresupuestoAnual}%</Text>
+              <Text style={styles.kpiCaption}>Presupuestado: {fmtMoneyPdf(datos.presupuestoAnual)} · {pctPresupuestoAnual}% ejercido</Text>
             </Tarjeta>
           );
         }
@@ -536,6 +646,10 @@ function PaginaEstatus({
     ),
 
     unidadesNoDisponibles: () => <TablaUnidadesNoDisponibles datos={datos} />,
+
+    siniestros: () => <TablaSiniestros datos={datos} />,
+
+    apoyosComprasFinanzas: () => <TablaApoyosComprasFinanzas datos={datos} />,
 
     datosAdicionales: () => {
       if (datos.camposExtra.length === 0) return null;

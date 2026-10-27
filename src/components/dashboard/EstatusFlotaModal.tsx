@@ -37,12 +37,24 @@ function hoyISO(offsetDias = 0): string {
  * el tipo diga `Date` — hay que reconstruirlos antes de pasarlos al PDF
  * (EstatusFlotaDocument llama `.toLocaleDateString()` sobre esos campos).
  */
-function rehidratarFechasAlcance<T extends { desde: Date; hasta: Date; proximosServicios: { fecha: Date }[] }>(alcance: T): T {
+function rehidratarFechasAlcance<T extends {
+  desde: Date;
+  hasta: Date;
+  proximosServicios: { fecha: Date }[];
+  siniestrosDetalle?: { fecha: Date }[];
+  apoyosCompras?: { fecha: Date; fechaPago?: Date | null }[];
+  apoyosFinanzas?: { fecha: Date; fechaPago?: Date | null }[];
+  apoyosOtros?: { fecha: Date; fechaPago?: Date | null }[];
+}>(alcance: T): T {
   return {
     ...alcance,
     desde: new Date(alcance.desde),
     hasta: new Date(alcance.hasta),
-    proximosServicios: alcance.proximosServicios.map((s) => ({ ...s, fecha: new Date(s.fecha) })),
+    proximosServicios: (alcance.proximosServicios ?? []).map((s) => ({ ...s, fecha: new Date(s.fecha) })),
+    siniestrosDetalle: (alcance.siniestrosDetalle ?? []).map((s) => ({ ...s, fecha: new Date(s.fecha) })),
+    apoyosCompras: (alcance.apoyosCompras ?? []).map((a) => ({ ...a, fecha: new Date(a.fecha), fechaPago: a.fechaPago ? new Date(a.fechaPago) : null })),
+    apoyosFinanzas: (alcance.apoyosFinanzas ?? []).map((a) => ({ ...a, fecha: new Date(a.fecha), fechaPago: a.fechaPago ? new Date(a.fechaPago) : null })),
+    apoyosOtros: (alcance.apoyosOtros ?? []).map((a) => ({ ...a, fecha: new Date(a.fecha), fechaPago: a.fechaPago ? new Date(a.fechaPago) : null })),
   };
 }
 
@@ -191,6 +203,17 @@ export function EstatusFlotaModal({
   function alternarDashboard(id: string) {
     setVistaDashboardIds((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
   }
+
+  function moverDashboard(indice: number, direccion: -1 | 1) {
+    setVistaDashboardIds((prev) => {
+      const destino = indice + direccion;
+      if (destino < 0 || destino >= prev.length) return prev;
+      const copia = [...prev];
+      [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
+      return copia;
+    });
+  }
+
   const todosDashboardsSeleccionados = vistasDashboard.length > 0 && vistaDashboardIds.length === vistasDashboard.length;
 
   function alternarProyecto(id: string) {
@@ -454,6 +477,50 @@ export function EstatusFlotaModal({
                     {v.nombre}
                   </label>
                 ))}
+              </div>
+            )}
+            {vistaDashboardIds.length > 1 && (
+              <div className="mt-2 flex flex-col gap-1 rounded-lg p-2" style={{ background: "var(--field-bg)" }}>
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)" }}>
+                  Orden de los dashboards para el envío:
+                </span>
+                {vistaDashboardIds.map((id, i) => {
+                  const dashboard = vistasDashboard.find((v) => v.id === id);
+                  if (!dashboard) return null;
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1"
+                      style={{ background: "var(--chip)" }}
+                    >
+                      <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text-active)" }}>
+                        {i + 1}. {dashboard.nombre}
+                      </span>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moverDashboard(i, -1)}
+                          disabled={i === 0}
+                          className="flex h-5 w-5 items-center justify-center rounded disabled:opacity-30"
+                          style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)" }}
+                          title="Subir"
+                        >
+                          <ChevronUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moverDashboard(i, 1)}
+                          disabled={i === vistaDashboardIds.length - 1}
+                          className="flex h-5 w-5 items-center justify-center rounded disabled:opacity-30"
+                          style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)" }}
+                          title="Bajar"
+                        >
+                          <ChevronDown size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
             <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>

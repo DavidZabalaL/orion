@@ -3,7 +3,52 @@ import { calcularSlaPorUnidadesEnRango } from "@/lib/sla-disponibilidad";
 import { obtenerPresupuestoDelMes, type ResumenPresupuestoMes } from "@/lib/presupuesto";
 import { calcularCamposExtra } from "@/lib/reportes/campos-extra";
 import type { CampoExtraSeleccionado, CampoExtraResultado } from "@/lib/reportes/campos-extra-tipos";
-import type { EstatusUnidad, MotivoIndisponibilidad, CategoriaGasto, TipoVehiculo } from "@/generated/prisma/enums";
+import type {
+  EstatusUnidad,
+  MotivoIndisponibilidad,
+  CategoriaGasto,
+  TipoVehiculo,
+  TipoSiniestro,
+  EstatusSiniestro,
+  EstatusGasto,
+} from "@/generated/prisma/enums";
+
+export {
+  TIPO_SINIESTRO_LABEL,
+  ESTATUS_SINIESTRO_LABEL,
+  ESTATUS_GASTO_LABEL,
+} from "@/lib/reportes/estatus-flota-labels";
+
+export type SiniestroReporteItem = {
+  id: string;
+  folio: string;
+  numeroEconomico: string;
+  vehiculo: string | null;
+  proyecto: string | null;
+  fecha: Date;
+  tipo: TipoSiniestro;
+  estatus: EstatusSiniestro;
+  costo: number | null;
+  descripcion: string;
+};
+
+export type ApoyoReporteItem = {
+  id: string;
+  numeroEconomico: string | null;
+  vehiculo: string | null;
+  proyecto: string | null;
+  departamento: "Compras" | "Finanzas" | "Sin departamento";
+  categoria: CategoriaGasto;
+  fecha: Date;
+  costo: number;
+  descripcion: string | null;
+  proveedor: string | null;
+  servicio: string | null;
+  estatus: EstatusGasto;
+  sc: string | null;
+  odc: string | null;
+  fechaPago: Date | null;
+};
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const HORIZONTE_PROXIMO_SERVICIO_DIAS = 7;
@@ -74,6 +119,22 @@ export type EstatusFlota = {
   gastoPorCategoriaAnio: { categoria: CategoriaGasto; monto: number }[];
   /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
   checklistsPromedioDiario: number;
+  /** Siniestros registrados en el periodo [desde, hasta]. */
+  siniestrosPeriodo: number;
+  /** Siniestros acumulados en el año de `hasta` (1 de enero a `hasta`). */
+  siniestrosAcumuladoAnio: number;
+  /** Detalle de los siniestros ocurridos en el periodo del reporte. */
+  siniestrosDetalle: SiniestroReporteItem[];
+  /** Solicitudes de apoyo marcadas para el departamento de Compras. */
+  apoyosCompras: ApoyoReporteItem[];
+  /** Solicitudes de apoyo marcadas para el departamento de Finanzas. */
+  apoyosFinanzas: ApoyoReporteItem[];
+  /** Solicitudes de apoyo sin departamento específico asignado. */
+  apoyosOtros: ApoyoReporteItem[];
+  /** Total importe apoyos de compras. */
+  totalApoyosCompras: number;
+  /** Total importe apoyos de finanzas. */
+  totalApoyosFinanzas: number;
   /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
   camposExtra: CampoExtraResultado[];
 };
@@ -251,11 +312,14 @@ export async function calcularEstatusFlota({
   // presupuestado contra lo gastado en lo que va de ese año.
   const inicioAnio = new Date(Date.UTC(hasta.getUTCFullYear(), 0, 1));
 
+  const filtroProyectoSiniestro = proyectoIds !== null ? { unidad: { proyectoId: { in: proyectoIds } } } : {};
+
   const [
     gastosPorCategoria, combustibleAgg, tagAgg,
     gastosPorCategoriaMes, combustibleAggMes, tagAggMes,
     gastosPorCategoriaAnio, combustibleAnioAgg, tagAnioAgg,
     presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg,
+    siniestrosPeriodoRaw, siniestrosAnioCount, apoyosRaw,
   ] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
@@ -309,9 +373,115 @@ export async function calcularEstatusFlota({
       where: { anio: hasta.getFullYear(), ...(proyectoIds !== null ? { proyectoId: { in: proyectoIds } } : {}) },
       _sum: { montoPresupuestado: true },
     }),
+    prisma.siniestro.findMany({
+      where: { fecha: { gte: desde, lte: hasta }, ...filtroProyectoSiniestro },
+      orderBy: { fecha: "desc" },
+      select: {
+        id: true,
+        folio: true,
+        numeroEconomico: true,
+        fecha: true,
+        tipo: true,
+        estatus: true,
+        descripcion: true,
+        costoReparacion: true,
+        costoArrastre: true,
+        estimacionDanos: true,
+        unidad: { select: { marca: true, unidadModelo: true, proyecto: { select: { nombre: true } } } },
+      },
+    }),
+    prisma.siniestro.count({
+      where: { fecha: { gte: inicioAnio, lte: hasta }, ...filtroProyectoSiniestro },
+    }),
+    prisma.gastoVehicular.findMany({
+      where: {
+        ...filtroProyectoGasto,
+        AND: [
+          { OR: [{ apoyoPago: true }, { departamentoApoyoId: { not: null } }] },
+          {
+            OR: [
+              { fecha: { gte: desde, lte: hasta } },
+              { estatus: { not: "REALIZADO" }, fecha: { lte: hasta } },
+            ],
+          },
+        ],
+      },
+      orderBy: { fecha: "desc" },
+      select: {
+        id: true,
+        numeroEconomico: true,
+        categoria: true,
+        descripcion: true,
+        fecha: true,
+        costo: true,
+        proveedor: true,
+        servicio: true,
+        estatus: true,
+        sc: true,
+        odc: true,
+        fechaPago: true,
+        departamentoApoyo: { select: { nombre: true } },
+        unidad: { select: { marca: true, unidadModelo: true, proyecto: { select: { nombre: true } } } },
+        proyectoReportante: { select: { nombre: true } },
+      },
+    }),
   ]);
   const presupuestoAnual = Number(presupuestoPartidaAgg._sum.montoPresupuestado ?? 0);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
+
+  const siniestrosDetalle: SiniestroReporteItem[] = siniestrosPeriodoRaw.map((s) => {
+    const reparacion = Number(s.costoReparacion ?? 0);
+    const arrastre = Number(s.costoArrastre ?? 0);
+    const totalCostos = reparacion + arrastre;
+    const costo = totalCostos > 0 ? totalCostos : (s.estimacionDanos !== null ? Number(s.estimacionDanos) : null);
+    return {
+      id: s.id,
+      folio: s.folio,
+      numeroEconomico: s.numeroEconomico,
+      vehiculo: s.unidad ? `${s.unidad.marca} ${s.unidad.unidadModelo}` : null,
+      proyecto: s.unidad?.proyecto?.nombre ?? null,
+      fecha: s.fecha,
+      tipo: s.tipo,
+      estatus: s.estatus,
+      costo,
+      descripcion: s.descripcion,
+    };
+  });
+
+  const apoyosCompras: ApoyoReporteItem[] = [];
+  const apoyosFinanzas: ApoyoReporteItem[] = [];
+  const apoyosOtros: ApoyoReporteItem[] = [];
+
+  for (const a of apoyosRaw) {
+    const deptoNombre = a.departamentoApoyo?.nombre;
+    const item: ApoyoReporteItem = {
+      id: a.id,
+      numeroEconomico: a.numeroEconomico,
+      vehiculo: a.unidad ? `${a.unidad.marca} ${a.unidad.unidadModelo}` : null,
+      proyecto: a.unidad?.proyecto?.nombre ?? a.proyectoReportante?.nombre ?? null,
+      departamento: deptoNombre === "Compras" ? "Compras" : deptoNombre === "Finanzas" ? "Finanzas" : "Sin departamento",
+      categoria: a.categoria,
+      fecha: a.fecha,
+      costo: Number(a.costo),
+      descripcion: a.descripcion,
+      proveedor: a.proveedor,
+      servicio: a.servicio,
+      estatus: a.estatus,
+      sc: a.sc,
+      odc: a.odc,
+      fechaPago: a.fechaPago,
+    };
+    if (deptoNombre === "Compras") {
+      apoyosCompras.push(item);
+    } else if (deptoNombre === "Finanzas") {
+      apoyosFinanzas.push(item);
+    } else {
+      apoyosOtros.push(item);
+    }
+  }
+
+  const totalApoyosCompras = apoyosCompras.reduce((acc, a) => acc + a.costo, 0);
+  const totalApoyosFinanzas = apoyosFinanzas.reduce((acc, a) => acc + a.costo, 0);
 
   function armarGastoPorCategoria(
     porCategoria: { categoria: CategoriaGasto; _sum: { costo: unknown } }[],
@@ -356,6 +526,14 @@ export async function calcularEstatusFlota({
     gastoAcumuladoAnio,
     gastoPorCategoriaAnio,
     checklistsPromedioDiario,
+    siniestrosPeriodo: siniestrosPeriodoRaw.length,
+    siniestrosAcumuladoAnio: siniestrosAnioCount,
+    siniestrosDetalle,
+    apoyosCompras,
+    apoyosFinanzas,
+    apoyosOtros,
+    totalApoyosCompras,
+    totalApoyosFinanzas,
     camposExtra,
   };
 }

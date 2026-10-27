@@ -11,7 +11,15 @@ import { fmtMoney } from "@/lib/formato";
 import { formatearValorBI, formatearCeldaBI } from "@/lib/bi/formato-valor";
 import type { VistaDashboardReporte, WidgetReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
-import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto } from "@/lib/reportes/estatus-flota";
+import {
+  type EstatusFlota,
+  type EstatusFlotaReporte,
+  type FlotaProyecto,
+  type ApoyoReporteItem,
+  TIPO_SINIESTRO_LABEL,
+  ESTATUS_SINIESTRO_LABEL,
+  ESTATUS_GASTO_LABEL,
+} from "@/lib/reportes/estatus-flota";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
@@ -242,6 +250,93 @@ function listaProximosServicios(datos: EstatusFlota): string {
     ${restantes > 0 ? `<div style="font-size:11px; color:${SLATE}; font-style:italic;">+ ${restantes} más</div>` : ""}`;
 }
 
+function tablaSiniestros(datos: EstatusFlota): string {
+  const filas = datos.siniestrosDetalle;
+  return `
+    <div style="margin-bottom:16px;">
+      ${seccionTitulo(`SINIESTROS (${datos.siniestrosPeriodo} en el periodo · ${datos.siniestrosAcumuladoAnio} acumulados en el año)`)}
+      ${filas.length === 0 ? `
+        <div style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; padding:12px; font-size:11px; color:${SLATE}; font-style:italic;">
+          Sin siniestros registrados en el periodo.
+        </div>
+      ` : `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; border-collapse:collapse; font-size:11px;">
+          <tr style="background:${SURFACE};">
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">FOLIO</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">FECHA</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">UNIDAD</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PROYECTO</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">TIPO</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">ESTATUS</td>
+            <td align="right" style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">COSTO/EST.</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">DESCRIPCIÓN</td>
+          </tr>
+          ${filas.map((s) => `
+            <tr>
+              <td style="padding:5px 10px; font-weight:bold; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(s.folio)}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(fmtFechaCorta(s.fecha))}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(s.numeroEconomico)}${s.vehiculo ? ` (${esc(s.vehiculo)})` : ""}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(s.proyecto ?? "—")}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(TIPO_SINIESTRO_LABEL[s.tipo] ?? s.tipo)}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(ESTATUS_SINIESTRO_LABEL[s.estatus] ?? s.estatus)}</td>
+              <td align="right" style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${s.costo !== null ? esc(fmtMoney(s.costo)) : "—"}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(s.descripcion)}</td>
+            </tr>
+          `).join("")}
+        </table>
+      `}
+    </div>`;
+}
+
+function renderSubtablaApoyoHtml(titulo: string, items: ApoyoReporteItem[], totalMonto: number): string {
+  return `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:bold; color:${SLATE}; margin-bottom:4px;">${esc(titulo)} (${items.length} solicitudes · ${esc(fmtMoney(totalMonto))})</div>
+      ${items.length === 0 ? `
+        <div style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; padding:8px 12px; font-size:11px; color:${SLATE}; font-style:italic;">
+          Sin solicitudes registradas.
+        </div>
+      ` : `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; border-collapse:collapse; font-size:11px;">
+          <tr style="background:${SURFACE};">
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">FECHA</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">UNIDAD</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PROYECTO</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">CONCEPTO</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">PROVEEDOR</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">ESTATUS</td>
+            <td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">ODC / SC</td>
+            <td align="right" style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">IMPORTE</td>
+          </tr>
+          ${items.map((a) => `
+            <tr>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(fmtFechaCorta(a.fecha))}</td>
+              <td style="padding:5px 10px; font-weight:bold; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(a.numeroEconomico ?? "—")}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(a.proyecto ?? "—")}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(a.descripcion ?? a.servicio ?? CATEGORIA_GASTO_LABEL[a.categoria] ?? a.categoria)}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(a.proveedor ?? "—")}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(ESTATUS_GASTO_LABEL[a.estatus] ?? a.estatus)}</td>
+              <td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc([a.odc ? `ODC: ${a.odc}` : null, a.sc ? `SC: ${a.sc}` : null].filter(Boolean).join(" · ") || "—")}</td>
+              <td align="right" style="padding:5px 10px; font-weight:bold; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(fmtMoney(a.costo))}</td>
+            </tr>
+          `).join("")}
+        </table>
+      `}
+    </div>`;
+}
+
+function tablaApoyosComprasFinanzas(datos: EstatusFlota): string {
+  const totalGeneral = datos.totalApoyosCompras + datos.totalApoyosFinanzas + datos.apoyosOtros.reduce((acc, a) => acc + a.costo, 0);
+  const totalItems = datos.apoyosCompras.length + datos.apoyosFinanzas.length + datos.apoyosOtros.length;
+  return `
+    <div style="margin-bottom:16px;">
+      ${seccionTitulo(`APOYOS DE COMPRAS Y FINANZAS (${totalItems} solicitudes · ${esc(fmtMoney(totalGeneral))})`)}
+      ${renderSubtablaApoyoHtml("APOYOS DE COMPRAS", datos.apoyosCompras, datos.totalApoyosCompras)}
+      ${renderSubtablaApoyoHtml("APOYOS DE FINANZAS", datos.apoyosFinanzas, datos.totalApoyosFinanzas)}
+      ${datos.apoyosOtros.length > 0 ? renderSubtablaApoyoHtml("OTROS APOYOS", datos.apoyosOtros, datos.apoyosOtros.reduce((acc, a) => acc + a.costo, 0)) : ""}
+    </div>`;
+}
+
 /**
  * true si algún indicador del dashboard (snapshot de "Mis dashboards" al
  * momento del envío, ej. "Enviar ahora") ya cubre este concepto — en ese
@@ -275,6 +370,8 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
         tarjetasResumen.push(tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")));
       if (!cubiertoPorDashboard(indicadoresDashboard, "unidades"))
         tarjetasResumen.push(tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)));
+      if (!cubiertoPorDashboard(indicadoresDashboard, "siniestro"))
+        tarjetasResumen.push(tarjeta("Siniestros", kpi(String(datos.siniestrosPeriodo), `en el periodo · ${datos.siniestrosAcumuladoAnio} acumulados en el año`)));
       if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
         tarjetasResumen.push(tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")));
       // Total de unidades no disponibles y presupuesto anual — solo en el
@@ -286,12 +383,12 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
           const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
           tarjetasResumen.push(
             tarjeta(
-              "Presupuesto anual",
-              `${kpi(esc(fmtMoney(datos.presupuestoAnual)))}
+              "Presupuesto anual (acumulado)",
+              `${kpi(esc(fmtMoney(datos.gastoAcumuladoAnio)))}
                <div style="background:${SURFACE}; border-radius:4px; height:7px; overflow:hidden; margin-top:10px;">
                  <div style="background:${pctPresupuestoAnual > 90 ? RED : BLUE}; width:${Math.min(100, pctPresupuestoAnual)}%; height:7px;"></div>
                </div>
-               <div style="font-size:11px; color:${SLATE}; margin-top:4px;">Acumulado del año: ${esc(fmtMoney(datos.gastoAcumuladoAnio))} · ${pctPresupuestoAnual}%</div>`
+               <div style="font-size:11px; color:${SLATE}; margin-top:4px;">Presupuestado: ${esc(fmtMoney(datos.presupuestoAnual))} · ${pctPresupuestoAnual}% ejercido</div>`
             )
           );
         }
@@ -326,6 +423,10 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
     proximosServicios: () => filaTarjetas([tarjeta("Próximos servicios (7 días)", listaProximosServicios(datos))]),
 
     unidadesNoDisponibles: () => tablaUnidadesNoDisponibles(datos),
+
+    siniestros: () => tablaSiniestros(datos),
+
+    apoyosComprasFinanzas: () => tablaApoyosComprasFinanzas(datos),
 
     datosAdicionales: () => {
       if (datos.camposExtra.length === 0) return "";

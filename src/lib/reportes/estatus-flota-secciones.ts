@@ -12,15 +12,19 @@ export type SeccionReporteId =
   | "flotaPorProyecto"
   | "proximosServicios"
   | "unidadesNoDisponibles"
+  | "siniestros"
+  | "apoyosComprasFinanzas"
   | "datosAdicionales";
 
 export const SECCION_REPORTE_LABEL: Record<SeccionReporteId, string> = {
   indicadoresDashboard: "Indicadores del dashboard actual",
-  resumen: "SLA, unidades y checklists",
+  resumen: "SLA, unidades, siniestros y checklists",
   disponibilidadGasto: "Disponibilidad y gasto vs. presupuesto",
   flotaPorProyecto: "Flota por proyecto",
   proximosServicios: "Próximos servicios",
   unidadesNoDisponibles: "Unidades no disponibles (detalle)",
+  siniestros: "Siniestros del periodo y acumulado anual",
+  apoyosComprasFinanzas: "Apoyos de compras y finanzas",
   datosAdicionales: "Datos adicionales",
 };
 
@@ -31,6 +35,8 @@ export const ORDEN_SECCIONES_DEFAULT: SeccionReporteId[] = [
   "flotaPorProyecto",
   "proximosServicios",
   "unidadesNoDisponibles",
+  "siniestros",
+  "apoyosComprasFinanzas",
   "datosAdicionales",
 ];
 
