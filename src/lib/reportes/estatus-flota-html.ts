@@ -53,9 +53,10 @@ function fmtFechaCorta(fecha: Date): string {
   return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
-/** Fila de 1 a 3 tarjetas de igual ancho — misma agrupación que TARJETAS_POR_FILA en el PDF. */
+/** Fila de tarjetas adaptables que se distribuyen uniformemente sin dejar huecos vacíos. */
 function filaTarjetas(tarjetasHtml: string[]): string {
-  const ancho = Math.round(100 / 3);
+  if (tarjetasHtml.length === 0) return "";
+  const ancho = Math.round(100 / tarjetasHtml.length);
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
       <tr>
@@ -64,9 +65,6 @@ function filaTarjetas(tarjetasHtml: string[]): string {
             (html, i) => `
           <td width="${ancho}%" valign="top" style="padding-right:${i < tarjetasHtml.length - 1 ? 12 : 0}px;">${html}</td>`
           )
-          .join("")}
-        ${Array.from({ length: 3 - tarjetasHtml.length })
-          .map(() => `<td width="${ancho}%"></td>`)
           .join("")}
       </tr>
     </table>`;
@@ -357,12 +355,16 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
   const pctDisp = totalDisp > 0 ? Math.round((datos.unidadesDisponibles / totalDisp) * 1000) / 10 : 0;
 
   const secciones: Record<SeccionReporteId, () => string> = {
-    indicadoresDashboard: () =>
-      indicadoresDashboard && indicadoresDashboard.length > 0
-        ? Array.from({ length: Math.ceil(indicadoresDashboard.length / 3) })
-            .map((_, i) => filaTarjetas(indicadoresDashboard.slice(i * 3, i * 3 + 3).map((ind) => tarjeta(ind.title, kpi(esc(ind.value))))))
+    indicadoresDashboard: () => {
+      const kpisEfectivos = (indicadoresDashboard ?? []).filter(
+        (ind) => !ind.title.toLowerCase().includes("presupuesto")
+      );
+      return kpisEfectivos.length > 0
+        ? Array.from({ length: Math.ceil(kpisEfectivos.length / 3) })
+            .map((_, i) => filaTarjetas(kpisEfectivos.slice(i * 3, i * 3 + 3).map((ind) => tarjeta(ind.title, kpi(esc(ind.value))))))
             .join("")
-        : "",
+        : "";
+    },
 
     resumen: () => {
       const tarjetasResumen: string[] = [];
@@ -373,7 +375,7 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
       tarjetasResumen.push(tarjeta("Siniestros", kpi(String(datos.siniestrosPeriodo), `en el periodo · ${datos.siniestrosAcumuladoAnio} acumulados en el año`)));
       if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
         tarjetasResumen.push(tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")));
-      if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
+      if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible", "unidades", "disponible"))
         tarjetasResumen.push(tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)));
 
       // Presupuesto anualizado: Gasto acumulado en lo que va del año y en el mismo recuadro el valor presupuestado

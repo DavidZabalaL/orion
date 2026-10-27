@@ -194,7 +194,7 @@ export function EstatusFlotaModal({
   // Vacío si el tab activo es "Explorador libre" en vez de "Mis dashboards".
   const { items } = useExportRegistry();
   const indicadoresVistaAbierta: IndicadorDashboard[] = items
-    .filter((i) => i.type === "kpi" && i.value !== undefined)
+    .filter((i) => i.type === "kpi" && i.value !== undefined && !i.title.toLowerCase().includes("presupuesto"))
     .map((i) => ({ title: i.title, value: String(i.value) }));
   // Con una o más vistas elegidas, sus KPIs ya van completos en el reporte — no se
   // repiten los de la vista que esté abierta en pantalla.

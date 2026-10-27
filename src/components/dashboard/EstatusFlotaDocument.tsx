@@ -534,21 +534,23 @@ function PaginaEstatus({
   // fijo en el código. Cada uno puede devolver `null` (ej. sin datos
   // adicionales elegidos) sin dejar un hueco visible.
   const seccionesDisponibles: Record<SeccionReporteId, () => React.ReactNode> = {
-    indicadoresDashboard: () =>
-      indicadoresDashboard && indicadoresDashboard.length > 0 ? (
+    indicadoresDashboard: () => {
+      const kpisEfectivos = (indicadoresDashboard ?? []).filter(
+        (ind) => !ind.title.toLowerCase().includes("presupuesto")
+      );
+      if (kpisEfectivos.length === 0) return null;
+      return (
         <>
-          {enGrupos(indicadoresDashboard, TARJETAS_POR_FILA).map((grupo, i) => (
+          {enGrupos(kpisEfectivos, TARJETAS_POR_FILA).map((grupo, i) => (
             <View key={`dash-${i}`} style={styles.fila} wrap={false}>
               {grupo.map((ind) => (
                 <TarjetaIndicadorDashboard key={ind.title} indicador={ind} />
               ))}
-              {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
-                <View key={`dash-hueco-${j}`} style={{ flex: 1 }} />
-              ))}
             </View>
           ))}
         </>
-      ) : null,
+      );
+    },
 
     resumen: () => {
       const tarjetasResumen: ReactNode[] = [];
@@ -579,7 +581,7 @@ function PaginaEstatus({
             <Text style={styles.kpiCaption}>promedio por día</Text>
           </Tarjeta>
         );
-      if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
+      if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible", "unidades", "disponible"))
         tarjetasResumen.push(
           <Tarjeta key="no-disponibles" titulo="Total de unidades no disponibles">
             <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
@@ -612,9 +614,6 @@ function PaginaEstatus({
       return enGrupos(tarjetasResumen, TARJETAS_POR_FILA).map((grupo, i) => (
         <View key={i} style={styles.fila} wrap={false}>
           {grupo}
-          {grupo.length < TARJETAS_POR_FILA && Array.from({ length: TARJETAS_POR_FILA - grupo.length }).map((_, j) => (
-            <View key={`resumen-hueco-${j}`} style={{ flex: 1 }} />
-          ))}
         </View>
       ));
     },
