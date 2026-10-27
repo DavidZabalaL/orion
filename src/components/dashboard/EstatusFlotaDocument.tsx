@@ -556,16 +556,16 @@ function PaginaEstatus({
       const tarjetasResumen: ReactNode[] = [];
       if (!cubiertoPorDashboard(indicadoresDashboard, "sla"))
         tarjetasResumen.push(
-          <Tarjeta key="sla" titulo="SLA promedio del periodo">
+          <Tarjeta key="sla" titulo="SLA del periodo">
             <Text style={styles.kpiValor}>{datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—"}</Text>
-            <Text style={styles.kpiCaption}>Disponibilidad ponderada del periodo</Text>
+            <Text style={styles.kpiCaption}>Del {fmtFechaPdf(datos.desde)} al {fmtFechaPdf(datos.hasta)} (ponderado)</Text>
           </Tarjeta>
         );
       if (!cubiertoPorDashboard(indicadoresDashboard, "unidades"))
         tarjetasResumen.push(
-          <Tarjeta key="unidades" titulo="Unidades">
+          <Tarjeta key="unidades" titulo="Disponibilidad al corte">
             <Text style={styles.kpiValor}>{datos.totalUnidades}</Text>
-            <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
+            <Text style={styles.kpiCaption}>Al corte del {fmtFechaPdf(datos.hasta)} ({datos.unidadesDisponibles} disp. · {datos.unidadesNoDisponibles} no disp.)</Text>
           </Tarjeta>
         );
       tarjetasResumen.push(
@@ -574,18 +574,31 @@ function PaginaEstatus({
           <Text style={styles.kpiCaption}>en el periodo · {datos.siniestrosAcumuladoAnio} acumulados en el año</Text>
         </Tarjeta>
       );
-      if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
+      if (!cubiertoPorDashboard(indicadoresDashboard, "checklist")) {
+        const pctTxt = datos.pctChecklistSemanal !== null ? `${datos.pctChecklistSemanal}%` : "—";
+        const extraTotal =
+          datos.unidadesConChecklistSemanalTotal > datos.unidadesConChecklistSemanal
+            ? ` (${datos.unidadesConChecklistSemanalTotal} en total)`
+            : "";
+        const detalleChk =
+          datos.unidadesMovieron > 0
+            ? `${datos.unidadesConChecklistSemanal} de ${datos.unidadesMovieron} unidades que se movieron${extraTotal}`
+            : `${datos.unidadesConChecklistSemanal} con checklist (0 con movimiento GPS)`;
         tarjetasResumen.push(
-          <Tarjeta key="checklists" titulo="Actividad checklists del periodo">
-            <Text style={styles.kpiValor}>{datos.checklistsPromedioDiario}</Text>
-            <Text style={styles.kpiCaption}>promedio por día</Text>
+          <Tarjeta key="checklists" titulo="Actividad de checklists">
+            <Text style={styles.kpiValor}>{pctTxt}</Text>
+            <Text style={{ ...styles.kpiCaption, fontWeight: "bold", fontSize: 6.5, textTransform: "uppercase", marginBottom: 2 }}>
+              Checklists semanales del periodo
+            </Text>
+            <Text style={styles.kpiCaption}>{detalleChk}</Text>
           </Tarjeta>
         );
+      }
       if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible", "unidades", "disponible"))
         tarjetasResumen.push(
-          <Tarjeta key="no-disponibles" titulo="Total de unidades no disponibles">
+          <Tarjeta key="no-disponibles" titulo="Unidades no disponibles al corte">
             <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
-            <Text style={styles.kpiCaption}>de {datos.totalUnidades} unidades totales</Text>
+            <Text style={styles.kpiCaption}>Al corte del {fmtFechaPdf(datos.hasta)} (de {datos.totalUnidades} totales)</Text>
           </Tarjeta>
         );
 
@@ -620,8 +633,11 @@ function PaginaEstatus({
 
     disponibilidadGasto: () => (
       <View style={styles.fila} wrap={false}>
-        <Tarjeta titulo="Disponibilidad">
+        <Tarjeta titulo="Disponibilidad al corte">
           <DonaDisponibilidad disponibles={datos.unidadesDisponibles} noDisponibles={datos.unidadesNoDisponibles} />
+          <Text style={{ ...styles.kpiCaption, marginTop: 4 }}>
+            Al corte del {fmtFechaPdf(datos.hasta)}
+          </Text>
         </Tarjeta>
         <Tarjeta titulo="Gasto del periodo vs. presupuesto">
           <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.gastoTotal)}</Text>

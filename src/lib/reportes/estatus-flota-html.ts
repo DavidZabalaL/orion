@@ -369,14 +369,54 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
     resumen: () => {
       const tarjetasResumen: string[] = [];
       if (!cubiertoPorDashboard(indicadoresDashboard, "sla"))
-        tarjetasResumen.push(tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")));
+        tarjetasResumen.push(
+          tarjeta(
+            "SLA del periodo",
+            kpi(
+              datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—",
+              `Del ${esc(fmtFechaCorta(datos.desde))} al ${esc(fmtFechaCorta(datos.hasta))} (ponderado)`
+            )
+          )
+        );
       if (!cubiertoPorDashboard(indicadoresDashboard, "unidades"))
-        tarjetasResumen.push(tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)));
+        tarjetasResumen.push(
+          tarjeta(
+            "Disponibilidad al corte",
+            kpi(
+              String(datos.totalUnidades),
+              `Al corte del ${esc(fmtFechaCorta(datos.hasta))} (${datos.unidadesDisponibles} disp. · ${datos.unidadesNoDisponibles} no disp.)`
+            )
+          )
+        );
       tarjetasResumen.push(tarjeta("Siniestros", kpi(String(datos.siniestrosPeriodo), `en el periodo · ${datos.siniestrosAcumuladoAnio} acumulados en el año`)));
-      if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
-        tarjetasResumen.push(tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")));
+      if (!cubiertoPorDashboard(indicadoresDashboard, "checklist")) {
+        const pctTxt = datos.pctChecklistSemanal !== null ? `${datos.pctChecklistSemanal}%` : "—";
+        const extraTotal =
+          datos.unidadesConChecklistSemanalTotal > datos.unidadesConChecklistSemanal
+            ? ` (${datos.unidadesConChecklistSemanalTotal} en total)`
+            : "";
+        const detalleChk =
+          datos.unidadesMovieron > 0
+            ? `${datos.unidadesConChecklistSemanal} de ${datos.unidadesMovieron} unidades que se movieron${extraTotal}`
+            : `${datos.unidadesConChecklistSemanal} con checklist (0 unidades con movimiento GPS)`;
+        tarjetasResumen.push(
+          tarjeta(
+            "Actividad de checklists",
+            `${kpi(pctTxt, detalleChk)}
+             <div style="font-size:10px; color:${SLATE}; font-weight:600; text-transform:uppercase; letter-spacing:0.02em; margin-top:2px;">Checklists semanales del periodo</div>`
+          )
+        );
+      }
       if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible", "unidades", "disponible"))
-        tarjetasResumen.push(tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)));
+        tarjetasResumen.push(
+          tarjeta(
+            "Unidades no disponibles al corte",
+            kpi(
+              String(datos.unidadesNoDisponibles),
+              `Al corte del ${esc(fmtFechaCorta(datos.hasta))} (de ${datos.totalUnidades} totales)`
+            )
+          )
+        );
 
       // Presupuesto anualizado: Gasto acumulado en lo que va del año y en el mismo recuadro el valor presupuestado
       const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
@@ -401,11 +441,12 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
     disponibilidadGasto: () =>
       filaTarjetas([
         tarjeta(
-          "Disponibilidad",
+          "Disponibilidad al corte",
           `<div style="font-size:20px; font-weight:bold; color:${totalDisp > 0 ? GREEN : SLATE};">${totalDisp > 0 ? `${pctDisp}%` : "—"}</div>
            <div style="font-size:11px; color:${SLATE}; margin-top:4px;">
              <span style="color:${GREEN};">●</span> Disp. (${datos.unidadesDisponibles}) &nbsp; <span style="color:${RED};">●</span> No disp. (${datos.unidadesNoDisponibles})
-           </div>`
+           </div>
+           <div style="font-size:10px; color:${SLATE}; margin-top:4px;">Al corte del ${esc(fmtFechaCorta(datos.hasta))} (${datos.unidadesDisponibles} de ${datos.totalUnidades} unidades)</div>`
         ),
         tarjeta(
           "Gasto del periodo vs. presupuesto",

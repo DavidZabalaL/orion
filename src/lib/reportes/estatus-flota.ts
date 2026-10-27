@@ -117,8 +117,18 @@ export type EstatusFlota = {
   gastoAcumuladoAnio: number;
   /** Desglose por partida de `gastoAcumuladoAnio` (1 de enero del año de `hasta` a `hasta`). */
   gastoPorCategoriaAnio: { categoria: CategoriaGasto; monto: number }[];
+  /** Total de checklists (cualquier tipo) registrados en el periodo [desde, hasta]. */
+  totalChecklists: number;
   /** Checklists (cualquier tipo) capturados por día en promedio, en unidades de este alcance, dentro de [desde, hasta]. */
   checklistsPromedioDiario: number;
+  /** Total de unidades activas que registraron movimiento en GPS (>= 1 km) en el periodo [desde, hasta]. */
+  unidadesMovieron: number;
+  /** Unidades que registraron movimiento Y completaron al menos un checklist semanal en el periodo [desde, hasta]. */
+  unidadesConChecklistSemanal: number;
+  /** Total de unidades con al menos un checklist semanal registrado en [desde, hasta] (incluyendo estáticas). */
+  unidadesConChecklistSemanalTotal: number;
+  /** Porcentaje de cumplimiento de checklists semanales respecto a las unidades que se movieron (0-100, o null si ninguna se movió). */
+  pctChecklistSemanal: number | null;
   /** Siniestros registrados en el periodo [desde, hasta]. */
   siniestrosPeriodo: number;
   /** Siniestros acumulados en el año de `hasta` (1 de enero a `hasta`). */
@@ -320,6 +330,7 @@ export async function calcularEstatusFlota({
     gastosPorCategoriaAnio, combustibleAnioAgg, tagAnioAgg,
     presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg,
     siniestrosPeriodoRaw, siniestrosAnioCount, apoyosRaw,
+    posicionesGpsPeriodo, checklistsSemanalesRaw,
   ] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
@@ -425,9 +436,56 @@ export async function calcularEstatusFlota({
         proyectoReportante: { select: { nombre: true } },
       },
     }),
+    economicosNoBaja.length > 0
+      ? prisma.posicionGPS.groupBy({
+          by: ["numeroEconomico"],
+          where: {
+            numeroEconomico: { in: economicosNoBaja },
+            timestamp: { gte: desde, lte: hasta },
+            kmValidado: { not: null },
+            esAnomalo: false,
+          },
+          _min: { kmValidado: true },
+          _max: { kmValidado: true },
+        })
+      : Promise.resolve([]),
+    economicosNoBaja.length > 0
+      ? prisma.checklist.groupBy({
+          by: ["numeroEconomico"],
+          where: {
+            numeroEconomico: { in: economicosNoBaja },
+            tipo: "SEMANAL",
+            fecha: { gte: desde, lte: hasta },
+          },
+        })
+      : Promise.resolve([]),
   ]);
   const presupuestoAnual = Number(presupuestoPartidaAgg._sum.montoPresupuestado ?? 0);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
+
+  // Umbral de 1 km para descartar ruido de GPS — misma lógica que el módulo de Checklists.
+  const UMBRAL_MOVIMIENTO_KM = 1;
+  const economicosMovidos = new Set(
+    posicionesGpsPeriodo
+      .filter(
+        (p) =>
+          p._min.kmValidado !== null &&
+          p._max.kmValidado !== null &&
+          p._max.kmValidado - p._min.kmValidado >= UMBRAL_MOVIMIENTO_KM
+      )
+      .map((p) => p.numeroEconomico)
+  );
+  const economicosConChecklistSemanal = new Set(checklistsSemanalesRaw.map((c) => c.numeroEconomico));
+  const unidadesMovieron = economicosMovidos.size;
+  const unidadesConChecklistSemanalTotal = economicosConChecklistSemanal.size;
+  const unidadesConChecklistSemanal =
+    unidadesMovieron > 0
+      ? Array.from(economicosMovidos).filter((e) => economicosConChecklistSemanal.has(e)).length
+      : unidadesConChecklistSemanalTotal;
+  const pctChecklistSemanal =
+    unidadesMovieron > 0
+      ? Math.round((unidadesConChecklistSemanal / unidadesMovieron) * 100)
+      : null;
 
   const siniestrosDetalle: SiniestroReporteItem[] = siniestrosPeriodoRaw.map((s) => {
     const reparacion = Number(s.costoReparacion ?? 0);
@@ -525,7 +583,12 @@ export async function calcularEstatusFlota({
     presupuestoAnual,
     gastoAcumuladoAnio,
     gastoPorCategoriaAnio,
+    totalChecklists,
     checklistsPromedioDiario,
+    unidadesMovieron,
+    unidadesConChecklistSemanal,
+    unidadesConChecklistSemanalTotal,
+    pctChecklistSemanal,
     siniestrosPeriodo: siniestrosPeriodoRaw.length,
     siniestrosAcumuladoAnio: siniestrosAnioCount,
     siniestrosDetalle,
