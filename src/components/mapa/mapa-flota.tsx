@@ -37,10 +37,37 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [puntosClave, setPuntosClave] = useState<PuntoClaveFeature[]>([]);
   const [mapaExpandido, setMapaExpandido] = useState(false);
+  const [pantallaCompleta, setPantallaCompleta] = useState(false);
   const [sugerenciasAbiertas, setSugerenciasAbiertas] = useState(false);
 
   const mapaContenedorRef = useRef<HTMLDivElement>(null);
   const buscadorContenedorRef = useRef<HTMLDivElement>(null);
+
+  function alternarMapaExpandido() {
+    setMapaExpandido((prev) => {
+      const siguiente = !prev;
+      if (siguiente) {
+        setTimeout(() => {
+          buscadorContenedorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      }
+      return siguiente;
+    });
+  }
+
+  function alternarPantallaCompleta() {
+    setPantallaCompleta((prev) => !prev);
+  }
+
+  useEffect(() => {
+    function alTecla(e: KeyboardEvent) {
+      if (e.key === "Escape" && pantallaCompleta) {
+        setPantallaCompleta(false);
+      }
+    }
+    window.addEventListener("keydown", alTecla);
+    return () => window.removeEventListener("keydown", alTecla);
+  }, [pantallaCompleta]);
 
   const instalacionCercana = useMemo(() => {
     if (!detalle?.ultima || !puntosClave.length) return null;
@@ -311,52 +338,119 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setMapaExpandido((prev) => !prev)}
-          className="flex items-center gap-2 rounded-md px-3.5 h-10 transition-colors font-medium text-sm"
-          style={{
-            background: "var(--panel-bg)",
-            border: "1px solid var(--field-border)",
-            color: "var(--sidebar-text-active)",
-            boxShadow: "var(--shadow-sm)",
-            cursor: "pointer",
-          }}
-          title={mapaExpandido ? "Reducir mapa a tamaño normal" : "Ampliar mapa"}
-        >
-          {mapaExpandido ? (
-            <>
-              <Minimize2 size={15} /> Reducir mapa
-            </>
-          ) : (
-            <>
-              <Maximize2 size={15} /> Ampliar mapa
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={alternarMapaExpandido}
+            className="flex items-center gap-2 rounded-md px-3.5 h-10 transition-colors font-medium text-sm"
+            style={{
+              background: "var(--panel-bg)",
+              border: "1px solid var(--field-border)",
+              color: "var(--sidebar-text-active)",
+              boxShadow: "var(--shadow-sm)",
+              cursor: "pointer",
+            }}
+            title={mapaExpandido ? "Reducir mapa a tamaño normal" : "Ampliar mapa"}
+          >
+            {mapaExpandido ? (
+              <>
+                <Minimize2 size={15} /> Reducir mapa
+              </>
+            ) : (
+              <>
+                <Maximize2 size={15} /> Ampliar mapa
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={alternarPantallaCompleta}
+            className="flex items-center gap-1.5 rounded-md px-3 h-10 transition-colors font-medium text-sm"
+            style={{
+              background: "var(--panel-bg)",
+              border: "1px solid var(--field-border)",
+              color: "var(--sidebar-text-active)",
+              boxShadow: "var(--shadow-sm)",
+              cursor: "pointer",
+            }}
+            title="Ver en pantalla completa"
+          >
+            <Maximize2 size={15} />
+            <span className="hidden sm:inline text-xs">Pantalla completa</span>
+          </button>
+        </div>
       </div>
 
-      <div className="relative" ref={mapaContenedorRef}>
-        <FlotaMap
-          puntos={puntosMapa}
-          ruta={ruta}
-          seleccionado={seleccionada ?? undefined}
-          onSeleccionar={seleccionarUnidad}
-          onPuntosClaveCargados={setPuntosClave}
-          expandido={mapaExpandido}
-        />
-        {seleccionada && (
-          <UnidadPanel
-            detalle={detalle}
-            instalacionCercana={instalacionCercana}
-            cargando={cargandoDetalle}
-            onCerrar={() => {
-              setSeleccionada(null);
-              setDetalle(null);
-            }}
-            onAmpliarHistorial={() => cargarDetalle(seleccionada, 7)}
-          />
+      <div
+        className={
+          pantallaCompleta
+            ? "fixed inset-0 z-[1000] p-3 md:p-4 flex flex-col gap-2"
+            : "relative"
+        }
+        style={pantallaCompleta ? { background: "var(--color-bg)" } : undefined}
+        ref={mapaContenedorRef}
+      >
+        {pantallaCompleta && (
+          <div
+            className="flex items-center justify-between gap-3 pb-2 border-b"
+            style={{ borderColor: "var(--field-border)" }}
+          >
+            <div className="flex items-center gap-3">
+              <h2
+                style={{
+                  fontFamily: "var(--font)",
+                  fontSize: "var(--text-lg)",
+                  fontWeight: 700,
+                  color: "var(--sidebar-text-active)",
+                }}
+              >
+                Geolocalización en vivo
+              </h2>
+              <span
+                className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                style={{ background: "var(--chip)", color: "var(--sidebar-text)" }}
+              >
+                {filtradas.length} {filtradas.length === 1 ? "unidad" : "unidades"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPantallaCompleta(false)}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors text-xs font-semibold cursor-pointer"
+              style={{
+                background: "var(--panel-bg)",
+                border: "1px solid var(--field-border)",
+                color: "var(--sidebar-text-active)",
+              }}
+            >
+              <Minimize2 size={14} /> Salir de pantalla completa (Esc)
+            </button>
+          </div>
         )}
+        <div className={pantallaCompleta ? "relative flex-1 min-h-0 w-full" : "relative w-full"}>
+          <FlotaMap
+            puntos={puntosMapa}
+            ruta={ruta}
+            seleccionado={seleccionada ?? undefined}
+            onSeleccionar={seleccionarUnidad}
+            onPuntosClaveCargados={setPuntosClave}
+            expandido={mapaExpandido}
+            pantallaCompleta={pantallaCompleta}
+            onTogglePantallaCompleta={alternarPantallaCompleta}
+          />
+          {seleccionada && (
+            <UnidadPanel
+              detalle={detalle}
+              instalacionCercana={instalacionCercana}
+              cargando={cargandoDetalle}
+              onCerrar={() => {
+                setSeleccionada(null);
+                setDetalle(null);
+              }}
+              onAmpliarHistorial={() => cargarDetalle(seleccionada, 7)}
+            />
+          )}
+        </div>
       </div>
 
       <div>
@@ -371,7 +465,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
           </div>
           <button
             type="button"
-            onClick={() => setMapaExpandido((prev) => !prev)}
+            onClick={alternarMapaExpandido}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors text-xs font-semibold"
             style={{
               background: "var(--panel-bg)",

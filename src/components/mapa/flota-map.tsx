@@ -10,7 +10,7 @@ import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap } fro
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import Link from "next/link";
-import { Car, Truck, Forklift, Scooter } from "lucide-react";
+import { Car, Truck, Forklift, Scooter, Maximize2, Minimize2 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
@@ -128,14 +128,24 @@ function CentrarUnidadSeleccionada({ seleccionado, puntos }: { seleccionado?: st
 }
 
 /** Invalida el tamaño de Leaflet tras animar la ampliación o reducción del mapa para evitar huecos grises. */
-function ActualizarTamanoMapa({ expandido }: { expandido: boolean }) {
+function ActualizarTamanoMapa({ expandido, pantallaCompleta }: { expandido: boolean; pantallaCompleta?: boolean }) {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 280);
-    return () => clearTimeout(timer);
-  }, [expandido, map]);
+    const container = map.getContainer();
+    if (container) {
+      container.style.height = "100%";
+      container.style.width = "100%";
+    }
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 60);
+    const t2 = setTimeout(() => map.invalidateSize(), 150);
+    const t3 = setTimeout(() => map.invalidateSize(), 320);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [expandido, pantallaCompleta, map]);
   return null;
 }
 
@@ -146,6 +156,8 @@ export function FlotaMap({
   onSeleccionar,
   onPuntosClaveCargados,
   expandido = false,
+  pantallaCompleta = false,
+  onTogglePantallaCompleta,
 }: {
   puntos: PuntoMapa[];
   ruta?: PuntoRuta[];
@@ -153,6 +165,8 @@ export function FlotaMap({
   onSeleccionar?: (numeroEconomico: string) => void;
   onPuntosClaveCargados?: (puntos: PuntoClaveFeature[]) => void;
   expandido?: boolean;
+  pantallaCompleta?: boolean;
+  onTogglePantallaCompleta?: () => void;
 }) {
   const [manifestCapas, setManifestCapas] = useState<CapaInfo[]>([]);
   const [capasActivas, setCapasActivas] = useState<string[]>([]);
@@ -205,8 +219,20 @@ export function FlotaMap({
       ? [puntos.reduce((s, p) => s + p.lat, 0) / puntos.length, puntos.reduce((s, p) => s + p.lng, 0) / puntos.length]
       : CENTRO_MEXICO;
 
+  const altura = pantallaCompleta ? "100%" : expandido ? "calc(100vh - 130px)" : "520px";
+  const minAltura = pantallaCompleta ? "100%" : expandido ? "720px" : "520px";
+
   return (
-    <div className="relative w-full">
+    <div
+      className="relative w-full transition-[height] duration-300 ease-in-out"
+      style={{
+        height: altura,
+        minHeight: minAltura,
+        width: "100%",
+        borderRadius: pantallaCompleta ? 0 : "var(--radius-lg, 12px)",
+        overflow: "hidden",
+      }}
+    >
       {manifestCapas.length > 0 && (
         <ControlCapasPuntos
           capas={manifestCapas}
@@ -216,19 +242,33 @@ export function FlotaMap({
           onDesactivarTodas={desactivarTodas}
         />
       )}
+      {onTogglePantallaCompleta && (
+        <button
+          type="button"
+          onClick={onTogglePantallaCompleta}
+          className="absolute top-3 right-3 z-[999] flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shadow-md transition-all cursor-pointer"
+          style={{
+            background: "var(--panel-bg, #ffffff)",
+            color: "var(--sidebar-text-active, #0f172a)",
+            border: "1px solid var(--border-color, #e2e8f0)",
+            boxShadow: "var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1))",
+          }}
+          title={pantallaCompleta ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
+        >
+          {pantallaCompleta ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          <span>{pantallaCompleta ? "Salir" : "Pantalla completa"}</span>
+        </button>
+      )}
       <MapContainer
         center={centro}
         zoom={puntos.length > 0 ? 6 : 5}
         style={{
-          height: expandido ? "calc(100vh - 160px)" : "520px",
-          minHeight: expandido ? "720px" : "520px",
+          height: "100%",
           width: "100%",
-          borderRadius: "var(--radius-lg, 12px)",
-          transition: "height 0.25s ease-in-out",
         }}
         scrollWheelZoom
       >
-        <ActualizarTamanoMapa expandido={expandido} />
+        <ActualizarTamanoMapa expandido={expandido} pantallaCompleta={pantallaCompleta} />
         <CentrarUnidadSeleccionada seleccionado={seleccionado} puntos={puntos} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
