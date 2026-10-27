@@ -18,7 +18,7 @@ export type SeccionReporteId =
 
 export const SECCION_REPORTE_LABEL: Record<SeccionReporteId, string> = {
   indicadoresDashboard: "Indicadores del dashboard actual",
-  resumen: "SLA, unidades, siniestros y checklists",
+  resumen: "Resumen general (SLA, unidades, siniestros y presupuesto)",
   disponibilidadGasto: "Disponibilidad y gasto vs. presupuesto",
   flotaPorProyecto: "Flota por proyecto",
   proximosServicios: "Próximos servicios",

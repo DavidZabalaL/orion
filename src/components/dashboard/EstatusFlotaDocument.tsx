@@ -566,13 +566,12 @@ function PaginaEstatus({
             <Text style={styles.kpiCaption}>{datos.unidadesDisponibles} disponibles · {datos.unidadesNoDisponibles} no disponibles</Text>
           </Tarjeta>
         );
-      if (!cubiertoPorDashboard(indicadoresDashboard, "siniestro"))
-        tarjetasResumen.push(
-          <Tarjeta key="siniestros" titulo="Siniestros">
-            <Text style={styles.kpiValor}>{datos.siniestrosPeriodo}</Text>
-            <Text style={styles.kpiCaption}>en el periodo · {datos.siniestrosAcumuladoAnio} acumulados en el año</Text>
-          </Tarjeta>
-        );
+      tarjetasResumen.push(
+        <Tarjeta key="siniestros" titulo="Siniestros">
+          <Text style={styles.kpiValor}>{datos.siniestrosPeriodo}</Text>
+          <Text style={styles.kpiCaption}>en el periodo · {datos.siniestrosAcumuladoAnio} acumulados en el año</Text>
+        </Tarjeta>
+      );
       if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
         tarjetasResumen.push(
           <Tarjeta key="checklists" titulo="Actividad checklists del periodo">
@@ -580,29 +579,36 @@ function PaginaEstatus({
             <Text style={styles.kpiCaption}>promedio por día</Text>
           </Tarjeta>
         );
-      // Total de unidades no disponibles y presupuesto anual — solo en el
-      // resumen general, no en el desglose por proyecto (pedido explícito).
-      if (datos.proyectoLabel === "General") {
-        if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
-          tarjetasResumen.push(
-            <Tarjeta key="no-disponibles" titulo="Total de unidades no disponibles">
-              <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
-              <Text style={styles.kpiCaption}>de {datos.totalUnidades} unidades totales</Text>
-            </Tarjeta>
-          );
-        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto")) {
-          const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
-          tarjetasResumen.push(
-            <Tarjeta key="presupuesto" titulo="Presupuesto anual">
-              <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.gastoAcumuladoAnio)}</Text>
-              <View style={styles.barraFondo}>
-                <View style={{ width: `${Math.min(100, pctPresupuestoAnual)}%`, height: "100%", backgroundColor: pctPresupuestoAnual > 90 ? RED : BLUE }} />
-              </View>
-              <Text style={styles.kpiCaption}>Presupuestado: {fmtMoneyPdf(datos.presupuestoAnual)} · {pctPresupuestoAnual}% ejercido</Text>
-            </Tarjeta>
-          );
-        }
-      }
+      if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
+        tarjetasResumen.push(
+          <Tarjeta key="no-disponibles" titulo="Total de unidades no disponibles">
+            <Text style={styles.kpiValor}>{datos.unidadesNoDisponibles}</Text>
+            <Text style={styles.kpiCaption}>de {datos.totalUnidades} unidades totales</Text>
+          </Tarjeta>
+        );
+
+      // Presupuesto anualizado: Gasto acumulado en lo que va del año y en el mismo recuadro el valor presupuestado
+      const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
+      tarjetasResumen.push(
+        <Tarjeta key="presupuesto" titulo="Presupuesto anualizado">
+          <Text style={styles.kpiValor}>{fmtMoneyPdf(datos.gastoAcumuladoAnio)}</Text>
+          <Text style={{ ...styles.kpiCaption, fontWeight: "bold", fontSize: 6.5, textTransform: "uppercase", marginBottom: 2 }}>
+            Acumulado en lo que va del año
+          </Text>
+          <View style={styles.barraFondo}>
+            <View
+              style={{
+                width: `${Math.min(100, pctPresupuestoAnual)}%`,
+                height: "100%",
+                backgroundColor: pctPresupuestoAnual > 90 ? RED : BLUE,
+              }}
+            />
+          </View>
+          <Text style={{ ...styles.kpiCaption, marginTop: 3 }}>
+            Presupuestado: {fmtMoneyPdf(datos.presupuestoAnual)}{datos.presupuestoAnual > 0 ? ` · ${pctPresupuestoAnual}% ejercido` : ""}
+          </Text>
+        </Tarjeta>
+      );
       return enGrupos(tarjetasResumen, TARJETAS_POR_FILA).map((grupo, i) => (
         <View key={i} style={styles.fila} wrap={false}>
           {grupo}

@@ -370,29 +370,27 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
         tarjetasResumen.push(tarjeta("SLA promedio del periodo", kpi(datos.slaPromedio !== null ? `${datos.slaPromedio}%` : "—", "Disponibilidad ponderada del periodo")));
       if (!cubiertoPorDashboard(indicadoresDashboard, "unidades"))
         tarjetasResumen.push(tarjeta("Unidades", kpi(String(datos.totalUnidades), `${datos.unidadesDisponibles} disponibles · ${datos.unidadesNoDisponibles} no disponibles`)));
-      if (!cubiertoPorDashboard(indicadoresDashboard, "siniestro"))
-        tarjetasResumen.push(tarjeta("Siniestros", kpi(String(datos.siniestrosPeriodo), `en el periodo · ${datos.siniestrosAcumuladoAnio} acumulados en el año`)));
+      tarjetasResumen.push(tarjeta("Siniestros", kpi(String(datos.siniestrosPeriodo), `en el periodo · ${datos.siniestrosAcumuladoAnio} acumulados en el año`)));
       if (!cubiertoPorDashboard(indicadoresDashboard, "checklist"))
         tarjetasResumen.push(tarjeta("Actividad checklists del periodo", kpi(String(datos.checklistsPromedioDiario), "promedio por día")));
-      // Total de unidades no disponibles y presupuesto anual — solo en el
-      // resumen general, no en el desglose por proyecto (pedido explícito).
-      if (datos.proyectoLabel === "General") {
-        if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
-          tarjetasResumen.push(tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)));
-        if (!cubiertoPorDashboard(indicadoresDashboard, "presupuesto")) {
-          const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
-          tarjetasResumen.push(
-            tarjeta(
-              "Presupuesto anual (acumulado)",
-              `${kpi(esc(fmtMoney(datos.gastoAcumuladoAnio)))}
-               <div style="background:${SURFACE}; border-radius:4px; height:7px; overflow:hidden; margin-top:10px;">
-                 <div style="background:${pctPresupuestoAnual > 90 ? RED : BLUE}; width:${Math.min(100, pctPresupuestoAnual)}%; height:7px;"></div>
-               </div>
-               <div style="font-size:11px; color:${SLATE}; margin-top:4px;">Presupuestado: ${esc(fmtMoney(datos.presupuestoAnual))} · ${pctPresupuestoAnual}% ejercido</div>`
-            )
-          );
-        }
-      }
+      if (!cubiertoPorDashboard(indicadoresDashboard, "no disponible"))
+        tarjetasResumen.push(tarjeta("Total de unidades no disponibles", kpi(String(datos.unidadesNoDisponibles), `de ${datos.totalUnidades} unidades totales`)));
+
+      // Presupuesto anualizado: Gasto acumulado en lo que va del año y en el mismo recuadro el valor presupuestado
+      const pctPresupuestoAnual = datos.presupuestoAnual > 0 ? Math.round((datos.gastoAcumuladoAnio / datos.presupuestoAnual) * 100) : 0;
+      tarjetasResumen.push(
+        tarjeta(
+          "Presupuesto anualizado",
+          `${kpi(esc(fmtMoney(datos.gastoAcumuladoAnio)))}
+           <div style="font-size:10px; color:${SLATE}; font-weight:600; text-transform:uppercase; letter-spacing:0.02em; margin-top:2px;">Acumulado en lo que va del año</div>
+           <div style="background:${SURFACE}; border-radius:4px; height:7px; overflow:hidden; margin-top:8px;">
+             <div style="background:${pctPresupuestoAnual > 90 ? RED : BLUE}; width:${Math.min(100, pctPresupuestoAnual)}%; height:7px;"></div>
+           </div>
+           <div style="font-size:11px; color:${SLATE}; margin-top:5px;">
+             <strong style="color:${NAVY};">Presupuestado:</strong> ${esc(fmtMoney(datos.presupuestoAnual))}${datos.presupuestoAnual > 0 ? ` · <span style="font-weight:600; color:${pctPresupuestoAnual > 90 ? RED : NAVY};">${pctPresupuestoAnual}% ejercido</span>` : ""}
+           </div>`
+        )
+      );
       return Array.from({ length: Math.ceil(tarjetasResumen.length / 3) })
         .map((_, i) => filaTarjetas(tarjetasResumen.slice(i * 3, i * 3 + 3)))
         .join("");
