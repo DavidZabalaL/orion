@@ -16,7 +16,13 @@ import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion"
 import { guardarVistaDashboard, eliminarVistaDashboard } from "@/app/(app)/dashboards/actions";
 import { registrarAccesoBI } from "@/app/(app)/reportes/bi/actions";
 
-export type VistaDashboard = { id: string; nombre: string; widgets: WidgetDashboardBI[] };
+export type VistaDashboard = {
+  id: string;
+  nombre: string;
+  widgets: WidgetDashboardBI[];
+  rolesPrioritarios?: string[];
+  proyectosPrioritarios?: string[];
+};
 
 const TEMPORAL = "__temporal__";
 // Solo dos niveles a propósito: un "md" intermedio sin layout propio hacía que
@@ -47,7 +53,17 @@ function nuevoIdWidget(): string {
   return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `w-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }: { vistas: VistaDashboard[]; puedeEditar: boolean; proyectosDisponibles: ProyectoDisponible[] }) {
+export function BiDashboardEditor({
+  vistas,
+  puedeEditar,
+  proyectosDisponibles,
+  rolesDisponibles = [],
+}: {
+  vistas: VistaDashboard[];
+  puedeEditar: boolean;
+  proyectosDisponibles: ProyectoDisponible[];
+  rolesDisponibles?: { id: string; nombre: string }[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { width, containerRef, mounted } = useContainerWidth();
@@ -56,6 +72,8 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
   const [vistaActivaId, setVistaActivaId] = useState<string>(primeraVista?.id ?? TEMPORAL);
   const [nombreVista, setNombreVista] = useState(primeraVista?.nombre ?? "Vista sugerida");
   const [widgets, setWidgets] = useState<WidgetDashboardBI[]>(primeraVista?.widgets ?? WIDGETS_BI_DEFAULT);
+  const [rolesPrioritarios, setRolesPrioritarios] = useState<string[]>(primeraVista?.rolesPrioritarios ?? []);
+  const [proyectosPrioritarios, setProyectosPrioritarios] = useState<string[]>(primeraVista?.proyectosPrioritarios ?? []);
   const [editMode, setEditMode] = useState(false);
   const [formulario, setFormulario] = useState<"agregar" | { editarId: string } | null>(null);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
@@ -95,12 +113,16 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
     if (id === TEMPORAL) {
       setNombreVista("Vista sugerida");
       setWidgets(WIDGETS_BI_DEFAULT);
+      setRolesPrioritarios([]);
+      setProyectosPrioritarios([]);
       return;
     }
     const v = vistas.find((v) => v.id === id);
     if (v) {
       setNombreVista(v.nombre);
       setWidgets(v.widgets);
+      setRolesPrioritarios(v.rolesPrioritarios ?? []);
+      setProyectosPrioritarios(v.proyectosPrioritarios ?? []);
     }
   }
 
@@ -111,6 +133,8 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
         id: vistaActivaId !== TEMPORAL ? vistaActivaId : undefined,
         nombre: nombreVista,
         widgets,
+        rolesPrioritarios,
+        proyectosPrioritarios,
       });
       if (res.ok) {
         setMensaje({ tipo: "ok", texto: "Vista guardada." });
@@ -127,11 +151,18 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
     if (!nombre) return;
     setMensaje(null);
     startTransition(async () => {
-      const res = await guardarVistaDashboard({ nombre, widgets });
+      const res = await guardarVistaDashboard({
+        nombre,
+        widgets,
+        rolesPrioritarios,
+        proyectosPrioritarios,
+      });
       if (res.ok && res.id) {
         setNombreDuplicado(null);
         setVistaActivaId(res.id);
         setNombreVista(nombre);
+        setRolesPrioritarios(rolesPrioritarios);
+        setProyectosPrioritarios(proyectosPrioritarios);
         setMensaje({ tipo: "ok", texto: `Vista duplicada como "${nombre}".` });
         router.refresh();
       } else {
@@ -241,9 +272,39 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
         {!editMode && mensajeEl && <div className="mb-5">{mensajeEl}</div>}
 
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-            {nombreVista}
-          </h2>
+          <div>
+            <h2 style={{ fontFamily: "var(--font)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
+              {nombreVista}
+            </h2>
+            {(rolesPrioritarios.length > 0 || proyectosPrioritarios.length > 0) && (
+              <div className="mt-1 flex flex-wrap items-center gap-1.5" data-no-print>
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
+                  Prioritario para:
+                </span>
+                {rolesPrioritarios.map((r) => (
+                  <span
+                    key={r}
+                    className="rounded-full px-2 py-0.5"
+                    style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+                  >
+                    Rol: {r}
+                  </span>
+                ))}
+                {proyectosPrioritarios.map((pid) => {
+                  const pNombre = proyectosDisponibles.find((p) => p.id === pid)?.nombre ?? pid;
+                  return (
+                    <span
+                      key={pid}
+                      className="rounded-full px-2 py-0.5"
+                      style={{ background: "var(--chip)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)" }}
+                    >
+                      Proyecto: {pNombre}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           {editMode && (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2" data-no-print>
               <span className="rounded-full px-2.5 py-1" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600 }}>
@@ -371,6 +432,71 @@ export function BiDashboardEditor({ vistas, puedeEditar, proyectosDisponibles }:
                 Nombre de la vista
               </label>
               <input value={nombreVista} onChange={(e) => setNombreVista(e.target.value)} placeholder="Nombre de la vista" style={{ ...fieldStyle, width: "100%" }} />
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-lg p-3" style={{ background: "var(--field-bg)", border: "1px solid var(--field-border)" }}>
+              <div>
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--sidebar-text-active)", display: "block" }}>
+                  Prioridad de visualización
+                </span>
+                <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)", marginTop: 2 }}>
+                  Aparecerá como primer dashboard para los perfiles o proyectos seleccionados (sin ocultar los demás).
+                </p>
+              </div>
+
+              <div>
+                <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em", display: "block", marginBottom: 4 }}>
+                  Perfiles / Roles prioritarios
+                </label>
+                <div className="flex max-h-32 flex-col gap-1 overflow-y-auto rounded-md p-2" style={{ background: "var(--panel-bg)", border: "1px solid var(--field-border)" }}>
+                  {rolesDisponibles.length === 0 && (
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>No hay roles registrados.</span>
+                  )}
+                  {rolesDisponibles.map((r) => {
+                    const checked = rolesPrioritarios.includes(r.nombre);
+                    return (
+                      <label key={r.id} className="flex items-center gap-2 cursor-pointer select-none" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text-active)" }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const m = e.target.checked;
+                            setRolesPrioritarios((prev) => (m ? [...prev, r.nombre] : prev.filter((x) => x !== r.nombre)));
+                          }}
+                        />
+                        {r.nombre}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase", letterSpacing: "0.03em", display: "block", marginBottom: 4 }}>
+                  Proyectos prioritarios
+                </label>
+                <div className="flex max-h-32 flex-col gap-1 overflow-y-auto rounded-md p-2" style={{ background: "var(--panel-bg)", border: "1px solid var(--field-border)" }}>
+                  {proyectosDisponibles.length === 0 && (
+                    <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>No hay proyectos disponibles.</span>
+                  )}
+                  {proyectosDisponibles.map((p) => {
+                    const checked = proyectosPrioritarios.includes(p.id);
+                    return (
+                      <label key={p.id} className="flex items-center gap-2 cursor-pointer select-none" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text-active)" }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const m = e.target.checked;
+                            setProyectosPrioritarios((prev) => (m ? [...prev, p.id] : prev.filter((x) => x !== p.id)));
+                          }}
+                        />
+                        {p.nombre}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">

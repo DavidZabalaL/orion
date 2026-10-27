@@ -1166,13 +1166,15 @@ model ConfiguracionWidgets {
 // ───────────────────────── DASHBOARDS BI — VISTAS GUARDADAS ─────────────────────────
 
 model VistaDashboardBI {
-  id          String   @id @default(cuid())
-  nombre      String
-  widgets     Json
-  creadoPorId String?
-  creadoPor   Usuario? @relation(fields: [creadoPorId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  nombre                String
+  widgets               Json
+  rolesPrioritarios     String[] @default([])
+  proyectosPrioritarios String[] @default([])
+  creadoPorId           String?
+  creadoPor             Usuario? @relation(fields: [creadoPorId], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 // ───────────────────────── CAPA SEMÁNTICA — MÉTRICAS BI ─────────────────────────

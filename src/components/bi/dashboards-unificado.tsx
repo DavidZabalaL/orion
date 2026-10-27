@@ -26,6 +26,7 @@ export function DashboardsUnificado({
   vistas,
   puedeEditar,
   proyectosDisponibles,
+  rolesDisponibles = [],
   metricasDisponibles,
   tabInicial,
   configuracionesEstatusFlota,
@@ -34,6 +35,7 @@ export function DashboardsUnificado({
   vistas: VistaDashboard[];
   puedeEditar: boolean;
   proyectosDisponibles: ProyectoDisponible[];
+  rolesDisponibles?: { id: string; nombre: string }[];
   metricasDisponibles: MetricaDisponible[];
   tabInicial: TabId;
   configuracionesEstatusFlota: ConfigEstatusFlotaProgramado[];
@@ -106,7 +108,14 @@ export function DashboardsUnificado({
           ))}
         </div>
 
-        {tab === "propios" && <BiDashboardEditor vistas={vistas} puedeEditar={puedeEditar} proyectosDisponibles={proyectosDisponibles} />}
+        {tab === "propios" && (
+          <BiDashboardEditor
+            vistas={vistas}
+            puedeEditar={puedeEditar}
+            proyectosDisponibles={proyectosDisponibles}
+            rolesDisponibles={rolesDisponibles}
+          />
+        )}
         {tab === "explorador" && <BiExplorer proyectosDisponibles={proyectosDisponibles} metricasDisponibles={metricasDisponibles} />}
 
         {mostrarEstatusFlota && (

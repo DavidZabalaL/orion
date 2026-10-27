@@ -1,6 +1,7 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo, tienePermisoModulo } from "@/lib/permisos";
-import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { obtenerProyectosAsignados, proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { DashboardsUnificado } from "@/components/bi/dashboards-unificado";
 import { resolverMetrica } from "@/lib/bi/metricas";
 import type { MetricaDisponible } from "@/components/bi/bi-explorer";
@@ -21,8 +22,11 @@ export default async function DashboardsPage({
   const { tab, generar } = await searchParams;
 
   const proyectosPermitidos = await proyectosPermitidosParaModulo("M");
-  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reportesEstatusFlota] = await Promise.all([
-    prisma.vistaDashboardBI.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, nombre: true, widgets: true } }),
+  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reportesEstatusFlota, rolesDb, session, asignados] = await Promise.all([
+    prisma.vistaDashboardBI.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, nombre: true, widgets: true, rolesPrioritarios: true, proyectosPrioritarios: true },
+    }),
     tienePermisoModulo("M", "editar"),
     prisma.proyecto.findMany({
       where: proyectosPermitidos === null ? undefined : { id: { in: proyectosPermitidos } },
@@ -31,6 +35,9 @@ export default async function DashboardsPage({
     }),
     prisma.metricaBI.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
     prisma.reporteProgramado.findMany({ where: { tipo: "estatus_flota" }, orderBy: { createdAt: "asc" } }),
+    prisma.rol.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    auth(),
+    obtenerProyectosAsignados(),
   ]);
 
   // Uno o más envíos automáticos (a pedido: poder tener un 2do/3er reporte
@@ -68,10 +75,37 @@ export default async function DashboardsPage({
     };
   });
 
-  const vistas: VistaDashboard[] = vistasDb.map((v) => ({
+  const rolUsuario = session?.user?.rol ?? null;
+  const rolUsuarioId = rolesDb.find((r) => r.nombre === rolUsuario)?.id;
+  const asignacionesProyecto = asignados.todos ? [] : asignados.ids;
+
+  // Ordena las vistas para que aparezcan primero las que coincidan con el rol o proyectos
+  // asignados del usuario actual, preservando el orden original para el resto.
+  const vistasOrdenadas = [...vistasDb].sort((a, b) => {
+    const calcularScore = (v: typeof a) => {
+      let score = 0;
+      const coincideRol = rolUsuario
+        ? (v.rolesPrioritarios ?? []).includes(rolUsuario) || (rolUsuarioId ? (v.rolesPrioritarios ?? []).includes(rolUsuarioId) : false)
+        : false;
+      if (coincideRol) score += 2;
+
+      const coincideProyecto = asignacionesProyecto.length > 0
+        ? (v.proyectosPrioritarios ?? []).some((pid) => asignacionesProyecto.includes(pid))
+        : false;
+      if (coincideProyecto) score += 2;
+
+      return score;
+    };
+
+    return calcularScore(b) - calcularScore(a);
+  });
+
+  const vistas: VistaDashboard[] = vistasOrdenadas.map((v) => ({
     id: v.id,
     nombre: v.nombre,
     widgets: v.widgets as unknown as WidgetDashboardBI[],
+    rolesPrioritarios: v.rolesPrioritarios ?? [],
+    proyectosPrioritarios: v.proyectosPrioritarios ?? [],
   }));
 
   const metricasDisponibles: MetricaDisponible[] = metricas
@@ -87,6 +121,7 @@ export default async function DashboardsPage({
       vistas={vistas}
       puedeEditar={puedeEditar}
       proyectosDisponibles={proyectosDisponibles}
+      rolesDisponibles={rolesDb}
       metricasDisponibles={metricasDisponibles}
       tabInicial={tab === "explorador" ? "explorador" : "propios"}
       configuracionesEstatusFlota={configuracionesEstatusFlota}

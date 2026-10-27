@@ -250,7 +250,13 @@ function validarWidgets(widgets: unknown): WidgetDashboardBI[] | null {
   return limpios;
 }
 
-export async function guardarVistaDashboard(input: { id?: string; nombre: string; widgets: WidgetDashboardBI[] }): Promise<ResultadoVistaDashboard> {
+export async function guardarVistaDashboard(input: {
+  id?: string;
+  nombre: string;
+  widgets: WidgetDashboardBI[];
+  rolesPrioritarios?: string[];
+  proyectosPrioritarios?: string[];
+}): Promise<ResultadoVistaDashboard> {
   if (!(await tienePermisoModulo("M", "editar"))) {
     return { ok: false, error: "No tienes permiso para guardar vistas de dashboard." };
   }
@@ -262,6 +268,13 @@ export async function guardarVistaDashboard(input: { id?: string; nombre: string
   if (!widgets) return { ok: false, error: "Combinación inválida en uno de los widgets." };
   if (widgets.length === 0) return { ok: false, error: "Agrega al menos una combinación antes de guardar." };
 
+  const rolesPrioritarios = Array.isArray(input.rolesPrioritarios)
+    ? Array.from(new Set(input.rolesPrioritarios.filter((r): r is string => typeof r === "string" && r.trim().length > 0)))
+    : [];
+  const proyectosPrioritarios = Array.isArray(input.proyectosPrioritarios)
+    ? Array.from(new Set(input.proyectosPrioritarios.filter((p): p is string => typeof p === "string" && p.trim().length > 0)))
+    : [];
+
   const session = await auth();
   const usuarioId = session?.user?.id;
 
@@ -269,7 +282,7 @@ export async function guardarVistaDashboard(input: { id?: string; nombre: string
     if (input.id) {
       const actualizada = await prisma.vistaDashboardBI.update({
         where: { id: input.id },
-        data: { nombre, widgets },
+        data: { nombre, widgets, rolesPrioritarios, proyectosPrioritarios },
       });
       if (usuarioId) {
         await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "update", entidad: "VistaDashboardBI", entidadId: actualizada.id, detalle: { nombre } });
@@ -279,7 +292,13 @@ export async function guardarVistaDashboard(input: { id?: string; nombre: string
     }
 
     const creada = await prisma.vistaDashboardBI.create({
-      data: { nombre, widgets, creadoPorId: usuarioId ?? null },
+      data: {
+        nombre,
+        widgets,
+        rolesPrioritarios,
+        proyectosPrioritarios,
+        creadoPorId: usuarioId ?? null,
+      },
     });
     if (usuarioId) {
       await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "create", entidad: "VistaDashboardBI", entidadId: creada.id, detalle: { nombre } });
