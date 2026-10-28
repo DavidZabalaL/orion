@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
@@ -25,14 +26,14 @@ export async function esDevAdmin(): Promise<boolean> {
   return esCorreoDevAdmin(session?.user?.email);
 }
 
-async function obtenerPermisosDelRol(): Promise<PermisosJson | null> {
+const obtenerPermisosDelRol = cache(async (): Promise<PermisosJson | null> => {
   const session = await auth();
   const rolNombre = session?.user?.rol;
   if (!rolNombre) return null;
 
   const rol = await prisma.rol.findUnique({ where: { nombre: rolNombre }, select: { permisos: true } });
   return (rol?.permisos as PermisosJson | undefined) ?? null;
-}
+});
 
 /** true si el rol actual tiene acceso global ("*"), como el Administrador o el equipo de Desarrollo — sin restricción de proyecto. */
 export async function esRolGlobal(): Promise<boolean> {

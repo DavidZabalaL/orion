@@ -1,3 +1,4 @@
+import { cache } from "react";
 import NextAuth, { CredentialsSignin } from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Credentials from "next-auth/providers/credentials";
@@ -16,7 +17,7 @@ class DemasiadosIntentos extends CredentialsSignin {
   code = "demasiados_intentos";
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
   ...authConfig,
   providers: [
     MicrosoftEntraID({
@@ -224,3 +225,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+export const { handlers, signIn, signOut } = nextAuth;
+// El callback `session` consulta la BD en cada llamada y una página llama auth() varias veces
+// (layout, permisos, proyectos) — cache() la reduce a una sola consulta por request.
+export const auth = cache(() => nextAuth.auth());
