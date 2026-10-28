@@ -45,7 +45,12 @@ export function ControlCapasPuntos({
   }, [capas, capasActivas]);
 
   return (
-    <div className="absolute top-3 left-14 z-[999] font-sans">
+    <div
+      className="absolute top-3 left-14 z-[999] font-sans"
+      onMouseDown={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+    >
       {/* Botón flotante */}
       <button
         onClick={() => setAbierto((v) => !v)}
@@ -76,8 +81,9 @@ export function ControlCapasPuntos({
       {/* Panel desplegable de capas */}
       {abierto && (
         <div
-          className="mt-2 w-80 max-h-[75vh] flex flex-col rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2"
+          className="mt-2 w-80 flex flex-col rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2"
           style={{
+            maxHeight: "min(360px, calc(100vh - 160px))",
             background: "var(--panel-bg, #ffffff)",
             border: "1px solid var(--border-color, #e2e8f0)",
             boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
@@ -85,7 +91,7 @@ export function ControlCapasPuntos({
         >
           {/* Header */}
           <div
-            className="p-3.5 flex items-center justify-between border-b"
+            className="p-3.5 flex items-center justify-between border-b shrink-0"
             style={{ borderColor: "var(--border-color, #e2e8f0)" }}
           >
             <div>
@@ -107,7 +113,7 @@ export function ControlCapasPuntos({
 
           {/* Acciones Rápidas */}
           <div
-            className="px-3 py-2 flex items-center justify-between text-xs bg-slate-50/50 border-b"
+            className="px-3 py-2 flex items-center justify-between text-xs bg-slate-50/50 border-b shrink-0"
             style={{ borderColor: "var(--border-color, #e2e8f0)" }}
           >
             <span style={{ color: "var(--sidebar-text)" }}>Selección rápida:</span>
@@ -131,7 +137,13 @@ export function ControlCapasPuntos({
           </div>
 
           {/* Lista de Capas agrupadas */}
-          <div className="p-3 overflow-y-auto flex flex-col gap-3 text-xs">
+          <div
+            className="p-3 overflow-y-auto flex-1 min-h-0 flex flex-col gap-3 text-xs overscroll-contain"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "var(--border-color, #cbd5e1) transparent",
+            }}
+          >
             {Object.entries(porRegion).map(([region, lista]) => (
               <div key={region} className="flex flex-col gap-1.5">
                 <div
