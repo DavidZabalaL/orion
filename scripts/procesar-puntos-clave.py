@@ -120,10 +120,13 @@ def procesar_kml(kml_path, categoria="Sitio", region="Puebla"):
                     })
     return features
 
-def procesar_excel(xlsx_path, categoria, region, nombre_cols=None, muni_col=None, desc_col=None):
+def procesar_excel(xlsx_path, categoria, region, nombre_cols=None, muni_col=None, desc_col=None, sheet_name=None):
     features = []
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-    ws = wb.active
+    if sheet_name and sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+    else:
+        ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
     if not rows:
         return features
@@ -385,20 +388,61 @@ def main():
             "activoPorDefecto": False,
         })
 
-    # 8. Chiapas — Ubicaciones
-    chiapas_xlsx = os.path.join(SOURCE_DIR, "Chiapas", "Chiapas ubicaciones_V2.xlsx")
+    # 8. Chiapas — Ubicaciones (PMIs/Arcos) y Oficinas/Hoteles
+    chiapas_v2_55 = os.path.join(SOURCE_DIR, "Chiapas", "Chiapas ubicaciones_V2[55].xlsx")
+    chiapas_v2 = os.path.join(SOURCE_DIR, "Chiapas", "Chiapas ubicaciones_V2.xlsx")
+    chiapas_xlsx = chiapas_v2_55 if os.path.exists(chiapas_v2_55) else chiapas_v2
+
     if os.path.exists(chiapas_xlsx):
-        f = procesar_excel(chiapas_xlsx, categoria="Instalación Chiapas", region="Chiapas", nombre_cols=["NOMBRE"], muni_col="MUNICIPIO2", desc_col="OBSERVACIONES")
-        cnt = guardar_geojson(f, "chiapas-ubicaciones.json")
+        wb_temp = openpyxl.load_workbook(chiapas_xlsx, read_only=True)
+        sheets = wb_temp.sheetnames
+        wb_temp.close()
+
+        # 8a. Chiapas — Base, Estacionamientos y Hoteles habituales
+        if "oficina y hoteles" in sheets:
+            f_hoteles = procesar_excel(
+                chiapas_xlsx,
+                categoria="Base / Hotel",
+                region="Chiapas",
+                nombre_cols=["NOMBRE"],
+                muni_col="MUNICIPIO2",
+                desc_col="OBSERVACIONES",
+                sheet_name="oficina y hoteles"
+            )
+            cnt_hoteles = guardar_geojson(f_hoteles, "chiapas-base-hoteles.json")
+            capas.append({
+                "id": "chiapas-base-hoteles",
+                "nombre": "Chiapas — Base, Estacionamientos y Hoteles",
+                "archivo": "chiapas-base-hoteles.json",
+                "region": "Chiapas",
+                "categoria": "Base / Hotel",
+                "icono": "Building2",
+                "color": "#059669", # Esmeralda / Base
+                "totalPuntos": cnt_hoteles,
+                "activoPorDefecto": True,
+            })
+
+        # 8b. Chiapas — PMIs, Arcos y Sitios
+        pmi_sheet = "PMI arcos y Sitio" if "PMI arcos y Sitio" in sheets else sheets[0]
+        f_pmis = procesar_excel(
+            chiapas_xlsx,
+            categoria="Instalación Chiapas",
+            region="Chiapas",
+            nombre_cols=["NOMBRE"],
+            muni_col="MUNICIPIO2",
+            desc_col="OBSERVACIONES",
+            sheet_name=pmi_sheet
+        )
+        cnt_pmis = guardar_geojson(f_pmis, "chiapas-ubicaciones.json")
         capas.append({
             "id": "chiapas-ubicaciones",
-            "nombre": "Chiapas — Ubicaciones (1,100 pts)",
+            "nombre": f"Chiapas — PMIs y Arcos ({cnt_pmis:,} pts)",
             "archivo": "chiapas-ubicaciones.json",
             "region": "Chiapas",
             "categoria": "Instalación Chiapas",
             "icono": "MapPin",
             "color": "#2563eb", # Azul
-            "totalPuntos": cnt,
+            "totalPuntos": cnt_pmis,
             "activoPorDefecto": False,
         })
 

@@ -1,7 +1,7 @@
 {
   "actualizado": "2026-10-23",
-  "totalCapas": 13,
-  "totalPuntosGlobal": 5738,
+  "totalCapas": 14,
+  "totalPuntosGlobal": 5752,
   "capas": [
     {
       "id": "morelos-pmc",
@@ -81,8 +81,19 @@
       "activoPorDefecto": false
     },
     {
+      "id": "chiapas-base-hoteles",
+      "nombre": "Chiapas — Base, Estacionamientos y Hoteles",
+      "archivo": "chiapas-base-hoteles.json",
+      "region": "Chiapas",
+      "categoria": "Base / Hotel",
+      "icono": "Building2",
+      "color": "#059669",
+      "totalPuntos": 14,
+      "activoPorDefecto": true
+    },
+    {
       "id": "chiapas-ubicaciones",
-      "nombre": "Chiapas — Ubicaciones (1,100 pts)",
+      "nombre": "Chiapas — PMIs y Arcos (1,111 pts)",
       "archivo": "chiapas-ubicaciones.json",
       "region": "Chiapas",
       "categoria": "Instalación Chiapas",

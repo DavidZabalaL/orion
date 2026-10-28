@@ -1,0 +1,243 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.118011,
+          16.75483
+        ]
+      },
+      "properties": {
+        "nombre": "OFICINA SYM",
+        "municipio": "TUXTLA",
+        "descripcion": "",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.11894,
+          16.755156
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACIONAMIENTO 1RA NTE",
+        "municipio": "TUXTLA",
+        "descripcion": "ESTACIONAMIENTO FIJO",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.111398,
+          16.753987
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACIONAMIENTO 5A OTE",
+        "municipio": "TUXTLA",
+        "descripcion": "ESTACIONAMIENTO FIJO",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.118049,
+          16.754465
+        ]
+      },
+      "properties": {
+        "nombre": "ESTACIONAMIENTO 2 PTE",
+        "municipio": "TUXTLA",
+        "descripcion": "ESTACIONAMIENTO FIJO",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -92.255077,
+          14.903571
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel 15 Avenida",
+        "municipio": "Tapachula",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -92.264257,
+          14.909032
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Fenix",
+        "municipio": "Tapachula",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.148753,
+          17.867216
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Montebello",
+        "municipio": "Reforma",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.756037,
+          16.088545
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Real Pineda",
+        "municipio": "Tonalá",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -92.634615,
+          16.72167
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Buen Samaritano",
+        "municipio": "San Cristóbal de las Casas",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.146903,
+          17.867384
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel campo blanco",
+        "municipio": "Reforma",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -91.993223,
+          17.51549
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel D’Marco Express",
+        "municipio": "Palenque",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -92.134682,
+          16.236367
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Luminus",
+        "municipio": "Comitán de Domínguez",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.114561,
+          17.510967
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Girasoles",
+        "municipio": "Pichucalco",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -93.265403,
+          16.234866
+        ]
+      },
+      "properties": {
+        "nombre": "Hotel Santa Catarina",
+        "municipio": "Villaflores",
+        "descripcion": "Hotel habitual",
+        "categoria": "Base / Hotel",
+        "region": "Chiapas"
+      }
+    }
+  ]
+}
