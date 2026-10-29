@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { BookOpen, LogOut, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 import { cerrarSesion } from "@/lib/auth-actions";
 import { iniciales } from "@/lib/formato";
@@ -87,6 +87,17 @@ export function UserMenu({
               <ShieldCheck size={14} /> Analítica de uso y trazabilidad
             </Link>
           )}
+          {/* Los manuales de todas las plataformas viven en la Mesa de Ayuda (Tickets), servidos con sesión. */}
+          <a
+            href="https://mesa-ayuda-kabat.vercel.app/manuales/orion"
+            target="_blank"
+            rel="noopener"
+            onClick={() => setAbierto(false)}
+            className="flex w-full items-center gap-2 px-3 py-2"
+            style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}
+          >
+            <BookOpen size={14} /> Ayuda · Manual de usuario
+          </a>
           <form action={cerrarSesion}>
             <button
               type="submit"
