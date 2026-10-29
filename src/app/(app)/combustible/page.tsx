@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CreditCard, Fuel, Upload } from "lucide-react";
+import { ClipboardCheck, CreditCard, Fuel, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { CombustiblePanel } from "@/components/combustible/combustible-panel";
 import type { GrupoCombustible } from "@/components/combustible/combustible-acordeon";
@@ -124,6 +124,9 @@ export default async function CombustiblePage({ searchParams }: { searchParams: 
         <div className="flex items-center gap-2 flex-wrap">
           <Link href="/combustible/autorizacion" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--status-revision-bg)", color: "var(--color-status-revision)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", fontWeight: 600 }}>
             <Fuel size={16} /> Autorizaciones
+          </Link>
+          <Link href="/combustible/conciliacion" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
+            <ClipboardCheck size={16} /> Conciliación con checklist
           </Link>
           <Link href="/combustible/mapeo-tarjetas" className="flex items-center gap-2 rounded-md px-4 h-10" style={{ background: "var(--panel-bg)", color: "var(--sidebar-text-active)", fontFamily: "var(--font-ui)", fontSize: "var(--text-base)" }}>
             <CreditCard size={16} /> Mapeo tarjeta → económico

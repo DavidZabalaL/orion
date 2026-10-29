@@ -1,9 +1,23 @@
 // Conciliación 1 a 1 entre el checklist de carga de combustible (lo que reporta
 // el operador) y la transacción real (Efectivale/captura en Combustible).
-// Regla pedida: sin tolerancia — litros e importe deben coincidir al centavo.
+import { fmtFechaHora } from "@/lib/formato";
+import type { HojaExcel } from "@/lib/exportar-excel";
+
+/** Tolerancia acordada: diferencias de lectura entre la bomba y Efectivale. */
+export const TOLERANCIA_LITROS = 1;
+export const TOLERANCIA_IMPORTE = 2;
 
 // INCOMPLETO: checklist del formulario anterior (hasta oct-2026) que no pedía litros ni importe — no se puede comparar.
 export type EstadoConciliacion = "CONCILIADA" | "DIFERENCIA" | "INCOMPLETO" | "SIN_CHECKLIST" | "SIN_TRANSACCION" | "PENDIENTE";
+
+export const ETIQUETA_ESTADO: Record<EstadoConciliacion, string> = {
+  CONCILIADA: "Conciliada",
+  DIFERENCIA: "Con diferencia",
+  SIN_CHECKLIST: "Carga sin checklist",
+  SIN_TRANSACCION: "Checklist sin transacción",
+  PENDIENTE: "Pendiente de importar",
+  INCOMPLETO: "Checklist sin litros/importe",
+};
 
 export type ChecklistCarga = { id: string; numeroEconomico: string; fecha: Date; litros: number | null; importe: number | null };
 export type TransaccionCarga = { id: string; numeroEconomico: string; fecha: Date; litros: number; importe: number; estacion: string | null };
@@ -18,8 +32,13 @@ export type FilaConciliacion = {
 const OFFSET_MX_MS = 6 * 60 * 60 * 1000;
 /** Día calendario en hora de México, como número de días — para comparar "mismo día ± 1". */
 const diaMx = (d: Date) => Math.floor((d.getTime() - OFFSET_MX_MS) / 86_400_000);
-const centavos = (n: number | null) => (n === null || !Number.isFinite(n) ? null : Math.round(n * 100));
-const coincide = (c: ChecklistCarga, t: TransaccionCarga) => centavos(c.litros) === centavos(t.litros) && centavos(c.importe) === centavos(t.importe);
+// Se compara en centavos para que 1.00 L / $2.00 exactos entren en la tolerancia sin errores de punto flotante.
+const centavos = (n: number) => Math.round(n * 100);
+const coincide = (c: ChecklistCarga, t: TransaccionCarga) =>
+  c.litros !== null &&
+  c.importe !== null &&
+  Math.abs(centavos(c.litros) - centavos(t.litros)) <= TOLERANCIA_LITROS * 100 &&
+  Math.abs(centavos(c.importe) - centavos(t.importe)) <= TOLERANCIA_IMPORTE * 100;
 
 /**
  * `coberturaHasta`: fecha de la transacción importada más reciente. Un checklist
@@ -66,4 +85,35 @@ export function conciliarCargas(checklists: ChecklistCarga[], transacciones: Tra
   }
 
   return filas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime() || a.numeroEconomico.localeCompare(b.numeroEconomico));
+}
+
+type FilaSerializable = {
+  estado: EstadoConciliacion;
+  numeroEconomico: string;
+  fecha: Date | string;
+  checklist: { litros: number | null; importe: number | null } | null;
+  transaccion: { fecha: Date | string; litros: number; importe: number; estacion: string | null } | null;
+};
+
+/** Diferencia checklist − transacción redondeada a centavos; null si falta alguno de los dos. */
+export const diferencia = (a: number | null | undefined, b: number | null | undefined) => (a == null || b == null ? null : Math.round((a - b) * 100) / 100);
+
+/** Misma tabla que la vista, para la descarga y el adjunto del correo. */
+export function hojaConciliacion(filas: FilaSerializable[]): HojaExcel {
+  return {
+    nombre: "Conciliación",
+    headers: ["Fecha", "Unidad", "Estado", "Litros checklist", "Importe checklist", "Litros transacción", "Importe transacción", "Dif. litros", "Dif. importe", "Estación"],
+    filas: filas.map((f) => [
+      fmtFechaHora(f.transaccion?.fecha ?? f.fecha),
+      f.numeroEconomico,
+      ETIQUETA_ESTADO[f.estado],
+      f.checklist?.litros ?? "",
+      f.checklist?.importe ?? "",
+      f.transaccion?.litros ?? "",
+      f.transaccion?.importe ?? "",
+      diferencia(f.checklist?.litros, f.transaccion?.litros) ?? "",
+      diferencia(f.checklist?.importe, f.transaccion?.importe) ?? "",
+      f.transaccion?.estacion ?? "",
+    ]),
+  };
 }

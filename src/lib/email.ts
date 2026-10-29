@@ -208,12 +208,14 @@ export async function enviarChecklistsExcel({
   buffer,
   nombreArchivo,
   resumen,
+  asunto = "Orión — Exportación de checklists",
 }: {
   destinatarios: string[];
   buffer: Buffer;
   nombreArchivo: string;
   /** Texto corto describiendo qué se exportó (tipos y rango de fechas), para el cuerpo del correo. */
   resumen: string;
+  asunto?: string;
 }): Promise<ResultadoEnvioCorreo> {
   if (!process.env.RESEND_API_KEY) {
     return { enviado: false, error: "RESEND_API_KEY no configurado." };
@@ -224,7 +226,7 @@ export async function enviarChecklistsExcel({
     await enviarConReintento({
       from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: destinatarios,
-      subject: "Orión — Exportación de checklists",
+      subject: asunto,
       html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el Excel con ${resumen}, generado desde Orión.</p>`,
       attachments: [{ filename: nombreArchivo, content: buffer, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }],
     });

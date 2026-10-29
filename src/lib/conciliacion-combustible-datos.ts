@@ -1,47 +1,31 @@
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requerirPermisoModulo } from "@/lib/permisos";
-import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { leerFiltrosGasto, type SearchParamsFiltros } from "@/lib/filtros-gasto";
 import { parseFechaLocalMx, finDelDiaMx } from "@/lib/timezone";
-import { FiltrosGasto } from "@/components/ui/filtros-gasto";
 import { conciliarCargas } from "@/lib/conciliacion-combustible";
-import { ConciliacionCombustibleTabla } from "@/components/dashboard/conciliacion-combustible-tabla";
 import type { TipoVehiculo } from "@/generated/prisma/enums";
 
-export const dynamic = "force-dynamic";
-
 const DIA_MS = 86_400_000;
-const isoDia = (d: Date) => new Date(d.getTime() - 6 * 3_600_000).toISOString().slice(0, 10);
+export const isoDiaMx = (d: Date) => new Date(d.getTime() - 6 * 3_600_000).toISOString().slice(0, 10);
 const numero = (v: unknown) => {
   const n = Number(String(v ?? "").replace(/[^0-9.-]/g, ""));
   return String(v ?? "").trim() && Number.isFinite(n) ? n : null;
 };
 
-export default async function ConciliacionCombustiblePage({ searchParams }: { searchParams: Promise<SearchParamsFiltros> }) {
-  await requerirPermisoModulo("M");
-  const proyectosPermitidos = await proyectosPermitidosParaModulo("M");
-  const filtros = leerFiltrosGasto(await searchParams);
-
-  const [primerChecklist, ultimaImportada, proyectos] = await Promise.all([
+/** Datos de la vista de conciliación — la usan la página y el envío por correo, para que ambos muestren lo mismo. */
+export async function cargarConciliacionCombustible(sp: SearchParamsFiltros, proyectosPermitidos: string[] | null) {
+  const filtros = leerFiltrosGasto(sp);
+  const [primerChecklist, ultimaImportada] = await Promise.all([
     prisma.checklist.findFirst({ where: { tipo: "CARGA_COMBUSTIBLE" }, orderBy: { fecha: "asc" }, select: { fecha: true } }),
     prisma.combustible.findFirst({ where: { fuente: "ARCHIVO", numeroEconomico: { not: null } }, orderBy: { fecha: "desc" }, select: { fecha: true } }),
-    prisma.proyecto.findMany({
-      where: { estatus: "ACTIVO", ...(proyectosPermitidos !== null ? { id: { in: proyectosPermitidos } } : {}) },
-      select: { id: true, nombre: true },
-      orderBy: { nombre: "asc" },
-    }),
   ]);
 
   // Por defecto los últimos 30 días; nunca antes de que existiera el checklist de carga
   // (si no, toda transacción previa saldría como "sin checklist").
   const hoy = new Date();
-  const desdeTexto = filtros.desde || isoDia(new Date(hoy.getTime() - 30 * DIA_MS));
-  const hastaTexto = filtros.hasta || isoDia(hoy);
-  const inicioPrograma = primerChecklist?.fecha ?? hoy;
-  const inicio = new Date(Math.max(parseFechaLocalMx(desdeTexto)!.getTime(), inicioPrograma.getTime()));
-  const fin = finDelDiaMx(hastaTexto)!;
+  const desde = filtros.desde || isoDiaMx(new Date(hoy.getTime() - 30 * DIA_MS));
+  const hasta = filtros.hasta || isoDiaMx(hoy);
+  const inicio = new Date(Math.max(parseFechaLocalMx(desde)!.getTime(), (primerChecklist?.fecha ?? hoy).getTime()));
+  const fin = finDelDiaMx(hasta)!;
   // ±1 día de margen para emparejar en los bordes del rango; luego se recorta.
   const rango = { gte: new Date(inicio.getTime() - DIA_MS), lte: new Date(fin.getTime() + DIA_MS) };
 
@@ -72,24 +56,5 @@ export default async function ConciliacionCombustiblePage({ searchParams }: { se
     ultimaImportada?.fecha ?? null
   ).filter((f) => f.fecha >= inicio && f.fecha <= fin);
 
-  return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div>
-        <Link href="/dashboards" className="inline-flex items-center gap-1 w-fit" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
-          <ChevronLeft size={15} /> Volver a Dashboards
-        </Link>
-        <h1 className="mt-2" style={{ fontFamily: "var(--font)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--sidebar-text-active)" }}>
-          Conciliación de cargas de combustible
-        </h1>
-        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-          Cruza cada checklist de carga con la transacción real (misma unidad, mismo día ± 1). Litros e importe deben coincidir exactamente.
-          Transacciones importadas hasta el <strong>{ultimaImportada ? isoDia(ultimaImportada.fecha) : "—"}</strong>; los checklists posteriores quedan pendientes.
-        </p>
-      </div>
-
-      <FiltrosGasto filtros={{ ...filtros, desde: desdeTexto, hasta: hastaTexto }} proyectos={proyectos} placeholderBusqueda="Número económico…" />
-
-      <ConciliacionCombustibleTabla filas={JSON.parse(JSON.stringify(filas))} />
-    </div>
-  );
+  return { filas, filtros: { ...filtros, desde, hasta }, ultimaImportada: ultimaImportada?.fecha ?? null };
 }
