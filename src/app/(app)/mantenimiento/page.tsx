@@ -45,7 +45,9 @@ export default async function MantenimientoPage() {
   ]);
 
   const gastoTotal = porCategoria.reduce((acc, c) => acc + Number(c._sum.costo ?? 0), 0);
-  const vencidos = pendientes.filter((p) => p.fecha < new Date());
+  // Vencida = ya pasó el día de entrada a taller y sigue pendiente (no la fecha de registro).
+  const hoy = new Date().toISOString().slice(0, 10);
+  const vencidos = pendientes.filter((p) => p.fechaIngresoTaller && p.fechaIngresoTaller.toISOString().slice(0, 10) < hoy);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">

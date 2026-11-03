@@ -386,7 +386,6 @@ function Detalle({ label, value }: { label: string; value: string | null }) {
 export function PendientesLista({ pendientes, isAdmin = false, departamentos = [] }: { pendientes: GastoRow[]; isAdmin?: boolean; departamentos?: { id: string; nombre: string }[] }) {
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
-  const ahora = useMemo(() => new Date(), []);
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toUpperCase();
@@ -404,7 +403,7 @@ export function PendientesLista({ pendientes, isAdmin = false, departamentos = [
           {filtrados.map((g) => (
             <Fragment key={g.id}>
               <tr style={{ borderBottom: expandido === g.id ? "none" : "1px solid var(--field-border)" }}>
-                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: new Date(g.fecha) < ahora ? "var(--color-status-escena)" : "var(--field-text)" }}>
+                <td className="px-4 py-3" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-base)", color: g.fechaIngresoTaller && soloFecha(g.fechaIngresoTaller) < HOY ? "var(--color-status-escena)" : "var(--field-text)" }}>
                   {fmtFecha(g.fecha)}
                 </td>
                 <td className="px-4 py-3">
