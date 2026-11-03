@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Orión — Requerimientos Técnicos de Integración para Proveedor de GPS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+  :root {
+    --ink: #0f172a;
+    --ink-light: #334155;
+    --ink-soft: #64748b;
+    --line: #cbd5e1;
+    --line-subtle: #e2e8f0;
+    --bg: #ffffff;
+    --panel: #f8fafc;
+    --brand: #2b7fff;
+    --brand-dark: #1d4ed8;
+    --brand-bg: #eff6ff;
+    --good: #059669;
+    --good-bg: #ecfdf5;
+    --warn: #d97706;
+    --warn-bg: #fffbeb;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --navy-dark: #0b1424;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Public Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+    background: #f1f5f9;
+    font-size: 10.7px;
+    line-height: 1.41;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 20px auto;
+    background: var(--bg);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .doc-header {
+    background: linear-gradient(135deg, #0b1424 0%, #132745 55%, #1d4ed8 100%);
+    color: #ffffff;
+    padding: 20px 32px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--brand);
+  }
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .kabat-tag {
+    font-size: 16px;
+    font-weight: 800;
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .brand-divider {
+    width: 1px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .orion-logo svg {
+    height: 34px;
+    width: auto;
+    display: block;
+  }
+  .doc-meta {
+    text-align: right;
+  }
+  .doc-pill {
+    display: inline-block;
+    background: rgba(43, 127, 255, 0.35);
+    border: 1px solid rgba(147, 197, 253, 0.4);
+    color: #bfdbfe;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .doc-main-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 3px;
+    color: #ffffff;
+  }
+  .doc-ref {
+    font-size: 9.5px;
+    color: #94a3b8;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Strip */
+  .exec-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: #f8fafc;
+    border-bottom: 1px solid var(--line);
+  }
+  .strip-item {
+    padding: 9px 16px;
+    border-right: 1px solid var(--line-subtle);
+  }
+  .strip-item:last-child { border-right: none; }
+  .strip-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: var(--brand-dark);
+  }
+  .strip-lbl {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
+  }
+
+  .doc-content {
+    padding: 20px 32px 28px;
+  }
+
+  h1 {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--navy-dark);
+    margin: 13px 0 6px;
+    padding-bottom: 3px;
+    border-bottom: 2px solid #e2e8f0;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  h1:first-of-type { margin-top: 0; }
+  h2 {
+    font-size: 11.8px;
+    font-weight: 700;
+    color: var(--brand-dark);
+    margin: 9px 0 4px;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  p {
+    margin: 0 0 5px;
+    color: var(--ink-light);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 9px;
+    font-size: 10.1px;
+  }
+  th {
+    background: #f1f5f9;
+    color: var(--navy-dark);
+    text-align: left;
+    padding: 5px 7px;
+    font-weight: 700;
+    font-size: 9.4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-top: 1px solid var(--line);
+    border-bottom: 2px solid var(--line);
+  }
+  td {
+    padding: 4.5px 7px;
+    border-bottom: 1px solid var(--line-subtle);
+    color: var(--ink);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background: #fbfcfe;
+  }
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  code, .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.8px;
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: #0f172a;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 8.8px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .badge-req { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .badge-des { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .badge-ok  { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+  .callout {
+    border-radius: 6px;
+    padding: 9px 12px;
+    margin: 8px 0 11px;
+    font-size: 11px;
+    border-left: 4px solid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout-info {
+    background: var(--brand-bg);
+    border-color: var(--brand);
+    color: #1e3a8a;
+  }
+  .callout-warn {
+    background: var(--warn-bg);
+    border-color: var(--warn);
+    color: #78350f;
+  }
+  .callout-title {
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+
+  pre {
+    background: #0b1424;
+    color: #e2e8f0;
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    line-height: 1.38;
+    overflow-x: auto;
+    margin: 6px 0 11px;
+    border: 1px solid #1e293b;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  pre .key { color: #93c5fd; }
+  pre .str { color: #86efac; }
+  pre .num { color: #fde047; }
+  pre .bool { color: #f472b6; }
+  pre .cmt { color: #64748b; font-style: italic; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 7px 0 11px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line-subtle);
+    border-radius: 6px;
+    padding: 9px 11px;
+  }
+  .card-h {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--navy-dark);
+    margin-bottom: 3px;
+  }
+  .card-b {
+    font-size: 10.4px;
+    color: var(--ink-soft);
+    margin: 0;
+    line-height: 1.42;
+  }
+
+  ul {
+    margin: 0 0 8px;
+    padding-left: 18px;
+  }
+  li {
+    margin-bottom: 3px;
+    color: var(--ink-light);
+  }
+
+  .page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .doc-footer {
+    border-top: 1px solid var(--line);
+    padding: 9px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    font-size: 9.8px;
+    color: var(--ink-soft);
+  }
+
+  @media print {
+    body { background: #ffffff; }
+    .container {
+      max-width: 100%;
+      margin: 0;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    @page {
+      size: letter;
+      margin: 8mm 11mm 9mm 11mm;
+    }
+    .doc-header { padding: 12px 18px 10px; }
+    .doc-content { padding: 10px 18px; }
+    .doc-footer { padding: 6px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ENCABEZADO -->
+  <div class="doc-header">
+    <div class="brand-group">
+      <div class="kabat-tag">KABAT</div>
+      <div class="brand-divider"></div>
+      <div class="orion-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="180" height="40" viewBox="0 0 228 60" fill="none">
+          <g transform="translate(0 6)">
+            <rect width="48" height="48" rx="11" fill="#2b7fff"></rect>
+            <g transform="scale(0.5)">
+              <path d="M14 62 H82 M62 14 V82" stroke="#0b1529" stroke-opacity="0.4" stroke-width="8" stroke-linecap="round"></path>
+              <circle cx="30" cy="62" r="7" fill="#ffffff"></circle>
+              <circle cx="62" cy="28" r="7" fill="#ffffff"></circle>
+              <circle cx="62" cy="62" r="13" fill="#00d492"></circle>
+              <circle cx="62" cy="62" r="20" stroke="#00d492" stroke-opacity="0.45" stroke-width="4" fill="none"></circle>
+            </g>
+          </g>
+          <text x="64" y="32" font-family="'Public Sans', sans-serif" font-size="26" font-weight="800" letter-spacing="-0.5" fill="#e8edf5">Orión</text>
+          <text x="64" y="48" font-family="'Public Sans', sans-serif" font-size="11" font-weight="700" letter-spacing="0.8" fill="#93c5fd">CONTROL VEHICULAR</text>
+        </svg>
+      </div>
+    </div>
+    <div class="doc-meta">
+      <span class="doc-pill">Especificación Técnica de Integración</span>
+      <div class="doc-main-title">Requerimientos de Conexión GPS → Orión</div>
+      <div class="doc-ref">Plataforma Orión · Grupo Kabat · Octubre 2026</div>
+    </div>
+  </div>
+
+  <!-- BANDA EJECUTIVA -->
+  <div class="exec-strip">
+    <div class="strip-item">
+      <div class="strip-val">API / Webhook</div>
+      <div class="strip-lbl">Fuentes soportadas en Orión</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-val">&le; 15 min</div>
+      <div class="strip-lbl">Intervalo máx. sin hueco (G.1)</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-val">Odómetro Acum.</div>
+      <div class="strip-lbl">Requisito para kmOficial y Combustible</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-val">Batch / Push</div>
+      <div class="strip-lbl">60s máx. ejecución Serverless</div>
+    </div>
+  </div>
+
+  <div class="doc-content">
+
+    <!-- 1. OBJETIVO Y ARQUITECTURA DE ORIÓN -->
+    <h1>1. Objetivo y Arquitectura de Recepción en Orión</h1>
+    <p>
+      <strong>Orión</strong> es la plataforma central de administración de flota de <strong>Grupo Kabat</strong> (construida sobre Next.js en Vercel y PostgreSQL Serverless en Neon con Prisma ORM). Orión no reemplaza la plataforma del proveedor de GPS, sino que <strong>consume de forma automatizada las posiciones, velocidades y lecturas de odómetro</strong> para alimentar su propio modelo de datos y cruzarlos con todos los módulos operativos del sistema.
+    </p>
+    <p>
+      Este documento define <strong>exclusivamente las características técnicas de software, API, Webhooks y contrato de datos</strong> que debe cumplir un proveedor de GPS para conectarse a Orión sin modificar las reglas de negocio actuales.
+    </p>
+
+    <h2>1.1 Modelo de Datos de Recepción en Orión</h2>
+    <p>
+      Toda lectura recibida por Orión se valida y almacena en el modelo central de flota con la siguiente estructura técnica:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 24%;">Entidad / Campo en Orión</th>
+          <th style="width: 22%;">Tipo de Dato</th>
+          <th style="width: 54%;">Uso directo dentro de la plataforma Orión</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Unidad.numeroEconomico</code></td>
+          <td><code>String (PK)</code></td>
+          <td>Identificador maestro de la unidad en Grupo Kabat (ej. <code>KAB-100</code>). Toda posición se vincula a esta llave.</td>
+        </tr>
+        <tr>
+          <td><code>Unidad.idExternoGps</code></td>
+          <td><code>Int / String (@unique)</code></td>
+          <td>ID único del vehículo en la API del proveedor para cruzar el catálogo externo contra el <code>numeroEconomico</code>.</td>
+        </tr>
+        <tr>
+          <td><code>Unidad.kmOficial</code></td>
+          <td><code>Int</code></td>
+          <td>Odómetro maestro de la unidad. Se actualiza automáticamente con cada lectura GPS válida (no anómala).</td>
+        </tr>
+        <tr>
+          <td><code>PosicionGPS.lat / lng</code></td>
+          <td><code>Decimal(9, 6)</code></td>
+          <td>Coordenadas WGS84 con precisión de 6 decimales para el mapa en vivo, rutas y filtro geográfico.</td>
+        </tr>
+        <tr>
+          <td><code>PosicionGPS.velocidad</code></td>
+          <td><code>Decimal(6, 2)?</code></td>
+          <td>Velocidad instantánea almacenada en <strong>km/h</strong> para visualización en mapa e historial.</td>
+        </tr>
+        <tr>
+          <td><code>PosicionGPS.timestamp</code></td>
+          <td><code>DateTime</code></td>
+          <td>Instante exacto (UTC) en que se generó la lectura. Sirve para deduplicar, ordenar rutas y triangular TAG/Combustible.</td>
+        </tr>
+        <tr>
+          <td><code>PosicionGPS.fuente</code></td>
+          <td><code>API | WEBHOOK</code></td>
+          <td>Indica si la lectura entró por consulta periódica en lote (<code>API</code>) o por empuje en tiempo real (<code>WEBHOOK</code>).</td>
+        </tr>
+        <tr>
+          <td><code>PosicionGPS.kmReportado</code></td>
+          <td><code>Int?</code></td>
+          <td>Odómetro crudo en kilómetros enteros reportado por el proveedor al momento de la lectura.</td>
+        </tr>
+        <tr>
+          <td><code>PosicionGPS.kmValidado</code></td>
+          <td><code>Int?</code></td>
+          <td>Igual a <code>kmReportado</code> si la lectura supera las 3 validaciones de integridad (Capa 1); <code>null</code> si es anómala.</td>
+        </tr>
+        <tr>
+          <td><code>HuecoSenalGPS</code></td>
+          <td>Tabla de auditoría</td>
+          <td>Se crea automáticamente si transcurren <strong>&gt; 15 minutos</strong> entre dos lecturas sucesivas de una misma unidad.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 2. MODALIDADES DE CONEXIÓN -->
+    <h1>2. Modalidades de Conexión Soportadas (REST Batch y/o Webhook)</h1>
+    <p>
+      Debido a que Orión opera sobre infraestructura <strong>Serverless</strong> (con límite de ejecución de <code>60 segundos</code> por invocación y base de datos con suspensión automática por inactividad), la plataforma del proveedor debe ofrecer al menos uno —e idealmente ambos— de los siguientes mecanismos de integración:
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h">Opción A: API REST de Consulta en Lote (Batch Polling)</div>
+        <p class="card-b">
+          Un endpoint único que devuelva el último estado de <strong>todos los vehículos de la cuenta en una sola llamada HTTP</strong> (o paginado con tamaño de página &ge; 500 vehículos) y tiempo de respuesta <strong>&lt; 2 segundos</strong>.<br/><br/>
+          <strong>Restricción crítica:</strong> No es admisible una API que obligue a realizar 1 petición HTTP individual por cada vehículo (~116 llamadas secuenciales agotan el timeout serverless).
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-h">Opción B: Webhooks HTTP POST (Push en Tiempo Real)</div>
+        <p class="card-b">
+          Envío automático de peticiones <code>POST</code> (JSON) hacia un endpoint de Orión cada vez que las unidades transmiten nuevas lecturas.<br/><br/>
+          <strong>Ventaja para Orión:</strong> Actualización inmediata en el mapa sin esperar al cron de 10 minutos, y cero consumo de base de datos cuando toda la flota está estacionada.
+        </p>
+      </div>
+    </div>
+
+    <h2>2.1 Requisitos de Autenticación y Seguridad de API</h2>
+    <ul>
+      <li><strong>Para API REST (Pull):</strong> Autenticación mediante API Key en encabezado (<code>Authorization: Bearer &lt;TOKEN&gt;</code>) o endpoint de sesión por credenciales que devuelva un token con tiempo de expiración explícito (<code>expiresInSeconds</code> &ge; 3600s) para cachearlo en memoria entre ejecuciones tibias.</li>
+      <li><strong>Para Webhooks (Push):</strong> Capacidad de enviar un encabezado de autorización (<code>Authorization: Bearer &lt;SECRET&gt;</code>) o firma criptográfica HMAC-SHA256 para que Orión valide la autenticidad del origen.</li>
+    </ul>
+
+    <!-- 3. DICCIONARIO DE DATOS Y REGLAS CRÍTICAS -->
+    <h1>3. Datos Obligatorios por Lectura y Reglas Críticas de Integración</h1>
+    <p>
+      Para alimentar el contrato de ingesta de Orión, el proveedor debe entregar en cada lectura los siguientes campos:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 20%;">Campo Requerido</th>
+          <th style="width: 16%;">Tipo / Unidad</th>
+          <th style="width: 14%;">Criticidad</th>
+          <th style="width: 50%;">Regla Técnica en el Código de Orión</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Identificador de Vehículo</strong></td>
+          <td><code>Int</code> o <code>String</code></td>
+          <td><span class="badge badge-req">Obligatorio</span></td>
+          <td>ID único e inmutable por unidad en la plataforma del proveedor, o bien devolución directa del <code>numeroEconomico</code> / <code>placas</code> / <code>VIN</code> para mapearlo contra la tabla <code>Unidad</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Latitud (<code>lat</code>)</strong></td>
+          <td><code>Number</code> (WGS84)</td>
+          <td><span class="badge badge-req">Obligatorio</span></td>
+          <td>Grados decimales con al menos 5–6 decimales (ej. <code>22.284512</code>). Lecturas nulas se omiten.</td>
+        </tr>
+        <tr>
+          <td><strong>Longitud (<code>lng</code>)</strong></td>
+          <td><code>Number</code> (WGS84)</td>
+          <td><span class="badge badge-req">Obligatorio</span></td>
+          <td>Grados decimales con al menos 5–6 decimales (ej. <code>-97.863124</code>). Lecturas nulas se omiten.</td>
+        </tr>
+        <tr>
+          <td><strong>Timestamp de Lectura</strong></td>
+          <td><code>String</code> (ISO-8601 UTC)</td>
+          <td><span class="badge badge-req">Obligatorio</span></td>
+          <td><strong>Debe ser la hora exacta en que el GPS capturó la posición</strong>, nunca la hora en que se consultó la API. Si la unidad está detenida y no ha reportado un punto nuevo, el timestamp no debe cambiar.</td>
+        </tr>
+        <tr>
+          <td><strong>Odómetro Acumulado</strong></td>
+          <td><code>Number</code> (km)</td>
+          <td><span class="badge badge-req">Obligatorio</span></td>
+          <td>Kilometraje total acumulado del vehículo (preferentemente en <strong>km</strong>; si se entrega en millas debe ser constante y documentado). <strong>Orión no calcula distancias sumando coordenadas</strong>; usa exclusivamente la diferencia de este odómetro.</td>
+        </tr>
+        <tr>
+          <td><strong>Velocidad Instantánea</strong></td>
+          <td><code>Number</code> (km/h)</td>
+          <td><span class="badge badge-req">Obligatorio</span></td>
+          <td>Velocidad al momento de la lectura (preferentemente en <strong>km/h</strong>; si es mph debe estar documentado).</td>
+        </tr>
+        <tr>
+          <td><strong>Estado de Ignición / Motor</strong></td>
+          <td><code>Boolean</code></td>
+          <td><span class="badge badge-des">Fase 2 Spec</span></td>
+          <td>Indica si el motor está encendido (<code>true/false</code>). Requerido para alertas de ralentí y uso fuera de horario previstas en la especificación de Orión.</td>
+        </tr>
+        <tr>
+          <td><strong>Horómetro Acumulado</strong></td>
+          <td><code>Number</code> (horas)</td>
+          <td><span class="badge badge-des">Deseable (Grúas)</span></td>
+          <td>Horas totales de operación del motor. Permite automatizar el umbral de mantenimiento preventivo de grúas configurado cada <code>500 horas</code> en Orión.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ Por qué el Odómetro Acumulado y el Timestamp Real son Indispensables en Orión</div>
+      <p style="margin:0;">
+        <strong>1) Deduplicación por timestamp:</strong> Antes de insertar, Orión verifica <code>if (anterior && anterior.timestamp &gt;= timestamp) return omitido</code>. Si la API del proveedor maquilla el timestamp poniendo la "hora actual de consulta" cuando un vehículo lleva días apagado, Orión insertará lecturas falsas cada 10 minutos e impedirá que funcionen las alertas de unidades sin señal.<br/>
+        <strong>2) Distancia por diferencia de odómetro:</strong> Tanto en el mapa como en historial, checklists y combustible, Orión calcula la distancia recorrida en un periodo como <code>MAX(kmValidado) - MIN(kmValidado)</code> (la fórmula Haversine solo se usa para descartar anomalías, nunca para sumar kilómetros). Sin odómetro acumulado en la API, el kilometraje recorrido en Orión sería <code>0 km</code>.
+      </p>
+    </div>
+
+    <h2>3.1 Ejemplo de Payload Esperado (Respuesta Batch o Cuerpo de Webhook)</h2>
+    <pre>
+{
+  <span class="key">"statuses"</span>: [
+    {
+      <span class="key">"vehicleId"</span>: <span class="num">40821</span>,                            <span class="cmt">// ID único en plataforma GPS (mapeado en Unidad)</span>
+      <span class="key">"vehicleName"</span>: <span class="str">"KAB-104"</span>,                      <span class="cmt">// Número económico en Orión</span>
+      <span class="key">"lat"</span>: <span class="num">22.284512</span>,                              <span class="cmt">// Latitud WGS84</span>
+      <span class="key">"lon"</span>: <span class="num">-97.863124</span>,                             <span class="cmt">// Longitud WGS84</span>
+      <span class="key">"velocityKmh"</span>: <span class="num">64.5</span>,                           <span class="cmt">// Velocidad en km/h</span>
+      <span class="key">"odometerKm"</span>: <span class="num">54210</span>,                           <span class="cmt">// Odómetro acumulado en km</span>
+      <span class="key">"engineHours"</span>: <span class="num">1248.5</span>,                         <span class="cmt">// Horómetro acumulado (para grúas)</span>
+      <span class="key">"ignitionOn"</span>: <span class="bool">true</span>,                            <span class="cmt">// Estado de encendido</span>
+      <span class="key">"lastUpdateUtc"</span>: <span class="str">"2026-10-30T15:20:00.000Z"</span>    <span class="cmt">// Instante real de la lectura en UTC</span>
+    }
+  ]
+}</pre>
+
+    <!-- 4. MÓDULOS DE ORIÓN QUE DEPENDEN DEL GPS -->
+    <h1>4. Reglas de Negocio de Orión que Consumen los Datos GPS</h1>
+    <p>
+      El proveedor debe garantizar que la calidad, frecuencia y precisión de sus datos cumplan con los umbrales exactos que tienen programados los módulos de Orión:
+    </p>
+
+    <h2>4.1 Sub-módulo G.1 — Filtro Automático de Integridad y Huecos de Señal</h2>
+    <p>
+      Cada punto entrante pasa por tres validaciones automáticas de integridad antes de guardarse en Orión:
+    </p>
+    <ul>
+      <li><strong>Filtro 1 — Geocerca País (<code>FUERA_DE_PAIS</code>):</strong> Toda lectura fuera del cuadrante de México (<code>lat</code> fuera de <code>14.0° a 33.0°</code> o <code>lng</code> fuera de <code>-118.5° a -86.0°</code>, incluyendo coordenadas <code>0, 0</code>) se marca como <code>esAnomalo = true</code> y su odómetro se descarta (<code>kmValidado = null</code>).</li>
+      <li><strong>Filtro 2 — Velocidad Implícita (<code>VELOCIDAD_IMPOSIBLE</code>):</strong> Si la distancia Haversine entre el punto anterior y el nuevo dividida entre el tiempo transcurrido supera <strong>180 km/h</strong>, el punto se marca como anómalo y se excluye de <code>kmValidado</code> y de <code>Unidad.kmOficial</code>.</li>
+      <li><strong>Filtro 3 — Salto Lineal (<code>SALTO_DISTANCIA</code>):</strong> Si entre dos lecturas sucesivas hay una distancia lineal mayor a <strong>300 km</strong> sin lecturas intermedias, se marca como anómalo. <em>Requisito para el proveedor:</em> Cuando un vehículo recupere cobertura celular y descargue puntos guardados en memoria (buffer), la plataforma del proveedor debe entregarlos en orden cronológico con sus timestamps originales para no provocar falsos saltos de distancia o velocidad.</li>
+      <li><strong>Detección de Huecos de Señal (<code>HuecoSenalGPS</code>):</strong> Si entre la lectura previa y la actual de una unidad transcurren <strong>más de 15 minutos</strong>, Orión crea automáticamente un registro de pérdida de señal. Por lo tanto, la frecuencia de reporte de unidades en movimiento debe ser <strong>&le; 5 a 10 minutos</strong> (idealmente de 1 a 5 minutos).</li>
+    </ul>
+
+    <h2>4.2 Módulo D — Cálculo de Combustible, Rendimiento y Sobrellenado</h2>
+    <p>
+      Orión utiliza las lecturas de odómetro validado (<code>PosicionGPS.kmValidado</code>) para auditar cada carga de combustible:
+    </p>
+    <ul>
+      <li><strong>Búsqueda de odómetro al momento de la carga:</strong> Para cada carga registrada, Orión busca la lectura GPS válida inmediatamente anterior o igual a la fecha/hora de la carga, exigiendo que la lectura no tenga más de <strong>48 horas de antigüedad</strong>.</li>
+      <li><strong>Cargas sin hora (importadas por día):</strong> Cuando un archivo de proveedor de combustible solo trae fecha, Orión toma el odómetro GPS al inicio del día (<code>00:00 hrs México, UTC-6</code>) y el odómetro más alto del cierre de ese día para validar el rango mínimo y máximo que pudo recorrer la unidad.</li>
+      <li><strong>Alertas automáticas:</strong> Con el kilometraje GPS entre cargas se calcula el rendimiento real (<code>km/L</code>), el nivel estimado del tanque antes de cargar (que también se muestra en el mapa en vivo) y se disparan las alertas de <strong>Sobrellenado</strong> (exceso &gt; 15% de la capacidad del tanque) y de <strong>Discrepancia <code>Km ≠ GPS</code></strong> (cuando el odómetro capturado manualmente difiere &gt; 15% y &ge; 50 km respecto al GPS).</li>
+    </ul>
+
+    <h2>4.3 Módulo E y Alertas — Triangulación TAG / Combustible / GPS</h2>
+    <p>
+      Orión ejecuta tres cruces automáticos de auditoría sobre los últimos 7 días de operación:
+    </p>
+    <ul>
+      <li><strong>TAG sin GPS cercano:</strong> Por cada cobro de caseta (IAVE, PASE, TeleVía), Orión verifica que exista al menos una lectura en <code>PosicionGPS</code> para esa unidad dentro de una ventana de <strong>&plusmn;60 minutos</strong> alrededor de la hora del cruce.</li>
+      <li><strong>Combustible sin actividad:</strong> Verifica que el día calendario en que una unidad reporta una carga de combustible tenga al menos un punto GPS o cruce de TAG registrado en ese mismo día.</li>
+      <li><strong>Unidad activa sin señal GPS:</strong> Detecta unidades activas disponibles cuya última lectura en <code>PosicionGPS</code> tenga más de <strong>48 a 72 horas</strong>. Por ello, las unidades estacionadas deben emitir al menos un reporte periódico de estado (<em>heartbeat</em> cada 6–12 horas) para confirmar que su GPS sigue operativo.</li>
+    </ul>
+
+    <h2>4.4 Módulo A.1, Mantenimiento (C) y Reporte Ejecutivo de Estatus de Flota</h2>
+    <ul>
+      <li><strong>Movimiento real para Checklists Semanales:</strong> Tanto el módulo de Checklists como el Reporte Ejecutivo de Estatus de Flota determinan qué unidades estuvieron en operación verificando que <code>MAX(kmValidado) - MIN(kmValidado) &ge; 1 km</code> en el periodo.</li>
+      <li><strong>Mantenimiento Preventivo:</strong> Cada vez que entra una lectura válida con odómetro acumulado, Orión actualiza <code>Unidad.kmOficial</code>, disparando los avisos de servicio preventivo cada <strong>5,000 km</strong>.</li>
+    </ul>
+
+    <!-- 5. CUESTIONARIO Y CHECKLIST TÉCNICO PARA EL PROVEEDOR -->
+    <h1>5. Matriz de Evaluación Técnica para Proveedores Candidatos (RFP)</h1>
+    <p>
+      Todo proveedor candidato debe responder y entregar evidencia técnica de los siguientes 10 puntos antes de realizar pruebas de integración con Orión:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 4%;">#</th>
+          <th style="width: 31%;">Requerimiento Técnico de Integración</th>
+          <th style="width: 13%;">Carácter</th>
+          <th style="width: 37%;">Pregunta / Entregable Solicitado al Proveedor</th>
+          <th style="width: 15%;">Cumple (Sí / No / Evidencia)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><strong>Documentación de API y Sandbox</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Cuentan con documentación OpenAPI / Swagger o colección de Postman y credenciales de prueba?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><strong>Consulta Masiva (Batch) o Webhooks</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Su API permite consultar el estatus de toda la flota (~116 unidades) en una sola llamada HTTP, y/o enviar Webhooks HTTP POST en tiempo real?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><strong>Entrega de Odómetro Acumulado</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Cada registro de posición en la API/Webhook incluye el odómetro acumulado total del vehículo (en km)?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><strong>Timestamp Real de Lectura GPS</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿El timestamp entregado corresponde al instante real de la lectura del GPS en UTC (sin alterarse cuando la unidad está estacionada)?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><strong>Frecuencia de Actualización (&le; 10 min)</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Cuál es el intervalo de actualización en ruta (ej. 1–5 min) y cada cuánto reporta una unidad estacionada (heartbeat)? (Requerido &lt; 15 min en ruta).</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><strong>Mapeo de Identificador de Unidad</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Qué identificador único expone la API (ID inmutable, placa, VIN o campo para guardar nuestro <code>numeroEconomico</code>)?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><strong>Consulta de Historial por Rango de Fechas</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Cuentan con endpoint para recuperar el historial de puntos de una unidad entre dos fechas (para rellenar lecturas ante cortes)? ¿Cuántos meses conservan?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td><strong>Estado del Motor y Horómetro</strong></td>
+          <td><span class="badge badge-des">Deseable / Fase 2</span></td>
+          <td>¿La API entrega el estado de ignición (encendido/apagado) y las horas acumuladas de motor (horómetro para grúas)?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td><strong>Límites de Tasa (Rate Limits) y Costo de API</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Cuál es el límite de peticiones por minuto/hora permitido y se confirma que el uso de API/Webhooks está incluido sin costo por llamada?</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td><strong>SLA de Disponibilidad de Plataforma</strong></td>
+          <td><span class="badge badge-req">Indispensable</span></td>
+          <td>¿Cuál es el SLA de disponibilidad mensual garantizado para la API/Webhooks (objetivo &ge; 99.8%)?</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info">
+      <div class="callout-title">🔌 Proceso de Pruebas de Conexión con Orión</div>
+      <p style="margin:0;">
+        Para validar técnicamente a los proveedores finalistas, Grupo Kabat solicitará acceso temporal a un endpoint de prueba (o muestra real de payload JSON de sus endpoints de estatus masivo e historial) para verificar que los campos 1 al 7 cumplan con el contrato de datos descrito en la Sección 3 de este documento.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- PIE DE PÁGINA -->
+  <div class="doc-footer">
+    <div>
+      <strong>Grupo Kabat · Control Vehicular</strong> — Plataforma Orión
+    </div>
+    <div>
+      Especificación Técnica de Integración GPS · Basada en la arquitectura de producción de Orión
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
