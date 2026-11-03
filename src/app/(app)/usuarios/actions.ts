@@ -252,19 +252,29 @@ export async function alternarEstatusUsuario(formData: FormData) {
   revalidatePath("/usuarios");
 }
 
-export async function actualizarUsuario(formData: FormData) {
+export async function actualizarUsuario(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   await exigirPermisoModulo("K", "editar");
 
   const id = String(formData.get("id") ?? "");
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rolId = String(formData.get("rolId") ?? "");
   const proyectoIds = formData.getAll("proyectoIds").map(String);
+  const correoNuevo = String(formData.get("correo") ?? "").trim().toLowerCase();
 
   if (!id || !nombre || !rolId) {
     throw new Error("Nombre y rol son obligatorios.");
   }
 
   const actual = await exigirAccesoAUsuarioObjetivo(id);
+
+  // Corrección de un correo mal capturado: con el correo equivocado la persona
+  // no puede entrar ni recuperar su contraseña (el enlace llega a esa dirección).
+  const cambiaCorreo = correoNuevo !== "" && correoNuevo !== actual.correo;
+  if (cambiaCorreo) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoNuevo)) return { ok: false, error: `"${correoNuevo}" no es un correo válido.` };
+    const enUso = await prisma.usuario.findUnique({ where: { correo: correoNuevo }, select: { id: true } });
+    if (enUso) return { ok: false, error: `El correo ${correoNuevo} ya pertenece a otra cuenta.` };
+  }
   const session = await auth();
   const esGlobalCaller = await esRolGlobal();
 
@@ -300,6 +310,8 @@ export async function actualizarUsuario(formData: FormData) {
         nombre,
         rolId,
         proyectos: { create: proyectoIds.map((proyectoId) => ({ proyectoId })) },
+        // Cambiar el correo cierra las sesiones abiertas de esa cuenta.
+        ...(cambiaCorreo ? { correo: correoNuevo, sesionInvalidadaEn: new Date() } : {}),
       },
     }),
     // Si esta cuenta es también un Operador, se espeja el proyecto principal
@@ -315,11 +327,12 @@ export async function actualizarUsuario(formData: FormData) {
       accion: "update",
       entidad: "Usuario",
       entidadId: id,
-      detalle: { nombre, rolId },
+      detalle: { nombre, rolId, ...(cambiaCorreo ? { correoAnterior: actual.correo, correoNuevo } : {}) },
     });
   }
 
   revalidatePath("/usuarios");
+  return { ok: true };
 }
 
 export type ResultadoEliminarUsuario = { ok: boolean; error?: string };

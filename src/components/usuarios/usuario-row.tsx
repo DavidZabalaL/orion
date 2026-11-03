@@ -46,6 +46,7 @@ export function UsuarioRow({
   const [pending, startTransition] = useTransition();
   const [modo, setModo] = useState<"ver" | "editar" | "confirmar-eliminar">("ver");
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+  const [errorEditar, setErrorEditar] = useState<string | null>(null);
   const [reenvioEstado, setReenvioEstado] = useState<{ tipo: "ok" | "ok-sin-correo"; link?: string; error?: string } | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const style = ESTATUS_STYLE[u.estatus];
@@ -199,9 +200,11 @@ export function UsuarioRow({
       {modo === "editar" && (
         <form
           action={(fd) => {
+            setErrorEditar(null);
             startTransition(async () => {
-              await actualizarUsuario(fd);
-              setModo("ver");
+              const r = await actualizarUsuario(fd);
+              if (r.ok) setModo("ver");
+              else setErrorEditar(r.error);
             });
           }}
           className="rounded-md p-3 mt-3 flex flex-col gap-3"
@@ -212,6 +215,10 @@ export function UsuarioRow({
             <div>
               <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Nombre</label>
               <input name="nombre" defaultValue={u.nombre} required style={fieldStyle} />
+            </div>
+            <div>
+              <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Correo</label>
+              <input name="correo" type="email" defaultValue={u.correo} required style={fieldStyle} />
             </div>
             <div>
               <label className="block mb-1" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--sidebar-text)", textTransform: "uppercase" }}>Rol</label>
@@ -233,6 +240,7 @@ export function UsuarioRow({
               ))}
             </div>
           </div>
+          {errorEditar && <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--color-error)" }}>{errorEditar}</p>}
           <div className="flex items-center gap-2">
             <button type="submit" disabled={pending} className="rounded-md px-3 h-8 font-semibold disabled:opacity-60" style={{ background: "var(--color-primary)", color: "#fff", fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)" }}>
               {pending ? "Guardando…" : "Guardar"}
