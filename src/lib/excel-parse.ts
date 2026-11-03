@@ -15,6 +15,8 @@ export type ResultadoImportacion = {
 
 export type FilaMapeada = Record<string, string>;
 
+const MAX_TAMANO_WORKBOOK_BYTES = 15 * 1024 * 1024; // 15 MB
+
 function esCsv(archivo: File) {
   return /\.csv$/i.test(archivo.name) || archivo.type === "text/csv";
 }
@@ -72,6 +74,9 @@ function parsearCsv(texto: string, nombre: string): HojaParseada {
 // OOXML moderno (.xlsx); muchos reportes de proveedores (p.ej. Efectivale)
 // vienen en el formato binario antiguo (.xls, BIFF/OLE2), que SheetJS sí soporta.
 function parsearExcelConSheetJS(buffer: ArrayBuffer, maxFilas = 500): HojaParseada[] {
+  if (buffer.byteLength > MAX_TAMANO_WORKBOOK_BYTES) {
+    throw new Error("El archivo excede el tamaño máximo permitido (15 MB).");
+  }
   const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
   const hojas: HojaParseada[] = [];
 
@@ -106,6 +111,9 @@ export type ResultadoParseo = { ok: true; hojas: HojaParseada[] } | { ok: false;
 export async function parsearWorkbook(formData: FormData, campoArchivo = "archivo", maxFilas = 500): Promise<ResultadoParseo> {
   const archivo = formData.get(campoArchivo);
   if (!(archivo instanceof File)) return { ok: false, error: "Sube un archivo .xlsx, .xls o .csv válido." };
+  if (archivo.size > MAX_TAMANO_WORKBOOK_BYTES) {
+    return { ok: false, error: "El archivo excede el tamaño máximo permitido (15 MB)." };
+  }
 
   try {
     const hojas = esCsv(archivo)
