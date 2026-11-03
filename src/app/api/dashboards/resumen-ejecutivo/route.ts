@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
+import { consumirCuotaUsuario } from "@/lib/limite-intentos";
 import { geminiDisponible, obtenerClienteGemini, MODELO_INSIGHT } from "@/lib/ai/gemini-client";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +38,16 @@ function sanitizarParaPdf(texto: string): string {
  * pero el motivo se devuelve al cliente para mostrarlo.
  */
 export async function POST(req: NextRequest) {
-  if (!(await tienePermisoModulo("M"))) {
+  const session = await auth();
+  if (!session?.user?.id || !(await tienePermisoModulo("M"))) {
     return NextResponse.json({ error: "No tienes permiso para generar resúmenes ejecutivos." }, { status: 403 });
+  }
+
+  if (!(await consumirCuotaUsuario("ia_bi", session.user.id, 15, 60_000))) {
+    return NextResponse.json(
+      { summary: "", error: "Demasiadas solicitudes de IA. Intenta de nuevo en un minuto." },
+      { status: 429 }
+    );
   }
 
   let body: { items?: ResumenItem[]; customPrompt?: string };

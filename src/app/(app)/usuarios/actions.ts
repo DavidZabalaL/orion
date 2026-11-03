@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { enviarInvitacion, enviarInvitacionOperador } from "@/lib/email";
 import { exigirPermisoModulo, tienePermisoModulo, esRolGlobal, PERMISOS_ESPECIALES } from "@/lib/permisos";
+import { obtenerProyectosAsignados, proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { esCorreoDevAdmin } from "@/lib/dev-admin";
 import { MODULOS } from "@/lib/modulos";
 import { logActivity } from "@/lib/activity";
 import { hashToken } from "@/lib/secreto";
@@ -14,6 +16,11 @@ const VIGENCIA_INVITACION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 
 const IDS_MODULOS = new Set(MODULOS.map((m) => m.id));
 const IDS_PERMISOS_ESPECIALES = new Set(PERMISOS_ESPECIALES.map((p) => p.id));
+
+function rolTieneAccesoGlobal(permisos: unknown): boolean {
+  if (Array.isArray(permisos)) return permisos.includes("*");
+  return !!permisos && typeof permisos === "object" && "*" in (permisos as Record<string, unknown>);
+}
 
 /**
  * Editar permisos de roles equivale a poder otorgarse cualquier acceso, así
@@ -32,12 +39,56 @@ async function exigirEdicionDeRol(rolId: string): Promise<void> {
 }
 
 /** Asignar un rol con acceso global ("*") solo lo puede hacer alguien que ya lo tiene. */
-async function exigirAsignacionDeRol(rolId: string): Promise<void> {
-  const rol = await prisma.rol.findUnique({ where: { id: rolId }, select: { permisos: true } });
+async function exigirAsignacionDeRol(rolId: string, sinCorreoInstitucional = false): Promise<void> {
+  const rol = await prisma.rol.findUnique({ where: { id: rolId }, select: { nombre: true, permisos: true } });
   if (!rol) throw new Error("Rol no encontrado.");
-  if ("*" in (rol.permisos as Record<string, unknown>) && !(await esRolGlobal())) {
+  const esGlobalCaller = await esRolGlobal();
+  const rolObjetivoGlobal = rolTieneAccesoGlobal(rol.permisos);
+  if (rolObjetivoGlobal && !esGlobalCaller) {
     throw new Error("Solo un Administrador puede asignar un rol con acceso total.");
   }
+  if (sinCorreoInstitucional) {
+    if (rolObjetivoGlobal) {
+      throw new Error("No se puede asignar acceso por contraseña a un rol con acceso total.");
+    }
+    if (!esGlobalCaller && rol.nombre !== "Operador") {
+      throw new Error("Solo el rol Operador puede darse de alta sin correo institucional.");
+    }
+  }
+}
+
+async function exigirAccesoAUsuarioObjetivo(id: string) {
+  const objetivo = await prisma.usuario.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      nombre: true,
+      correo: true,
+      rolId: true,
+      operadorId: true,
+      metodoAcceso: true,
+      estatus: true,
+      rol: { select: { nombre: true, permisos: true } },
+      proyectos: { select: { proyectoId: true } },
+    },
+  });
+  if (!objetivo) throw new Error("Usuario no encontrado.");
+
+  if (!(await esRolGlobal())) {
+    if (esCorreoDevAdmin(objetivo.correo) || rolTieneAccesoGlobal(objetivo.rol.permisos)) {
+      throw new Error("Solo un Administrador puede modificar cuentas con acceso total.");
+    }
+    const permitidosK = await proyectosPermitidosParaModulo("K");
+    const asignados = await obtenerProyectosAsignados();
+    const permitidos = permitidosK !== null && permitidosK.length > 0 ? permitidosK : (asignados.todos ? null : asignados.ids);
+    if (permitidos !== null) {
+      const idsObjetivo = objetivo.proyectos.map((p) => p.proyectoId);
+      if (idsObjetivo.length === 0 || !idsObjetivo.every((pid) => permitidos.includes(pid))) {
+        throw new Error("No tienes permiso para administrar usuarios fuera de tus proyectos asignados.");
+      }
+    }
+  }
+  return objetivo;
 }
 
 export type ResultadoInvitarUsuario = {
@@ -63,7 +114,14 @@ export async function invitarUsuario(formData: FormData): Promise<ResultadoInvit
   if (!nombre || !correo || !rolId) {
     throw new Error("Nombre, correo y rol son obligatorios.");
   }
-  await exigirAsignacionDeRol(rolId);
+  await exigirAsignacionDeRol(rolId, sinCorreoInstitucional);
+
+  const asignados = await obtenerProyectosAsignados();
+  if (!asignados.todos) {
+    if (proyectoIds.length === 0 || !proyectoIds.every((pid) => asignados.ids.includes(pid))) {
+      throw new Error("Solo puedes asignar proyectos a los que tienes acceso.");
+    }
+  }
 
   const metodoAcceso = sinCorreoInstitucional ? "CORREO_PASSWORD" : "MICROSOFT";
   // En BD solo se guarda el hash; el token en claro va únicamente en el enlace.
@@ -128,14 +186,17 @@ export async function reenviarInvitacion(formData: FormData): Promise<ResultadoR
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("ID de usuario requerido.");
 
-  const usuario = await prisma.usuario.findUniqueOrThrow({
-    where: { id },
-    select: { nombre: true, correo: true, metodoAcceso: true, estatus: true },
-  });
+  const usuario = await exigirAccesoAUsuarioObjetivo(id);
+  if (usuario.estatus !== "INVITADO") {
+    throw new Error("Solo se puede reenviar la invitación a cuentas con estatus Invitado.");
+  }
 
   let token: string | null = null;
 
   if (usuario.metodoAcceso === "CORREO_PASSWORD") {
+    if (rolTieneAccesoGlobal(usuario.rol.permisos)) {
+      throw new Error("No se puede emitir un enlace de contraseña para un rol con acceso total.");
+    }
     // Regenerar token siempre para que el enlace anterior quede inválido (en BD
     // solo vive el hash, así que el token anterior no se puede reenviar).
     token = randomBytes(32).toString("hex");
@@ -147,7 +208,7 @@ export async function reenviarInvitacion(formData: FormData): Promise<ResultadoR
 
   const resultado = token
     ? await enviarInvitacionOperador({ correo: usuario.correo, nombre: usuario.nombre, token })
-    : await enviarInvitacion({ correo: usuario.correo, nombre: usuario.nombre, rol: "" });
+    : await enviarInvitacion({ correo: usuario.correo, nombre: usuario.nombre, rol: usuario.rol.nombre });
 
   return {
     correoEnviado: resultado.enviado,
@@ -163,7 +224,7 @@ export async function alternarEstatusUsuario(formData: FormData) {
   const estatusActual = String(formData.get("estatus") ?? "");
   const nuevoEstatus = estatusActual === "DESACTIVADO" ? "ACTIVO" : "DESACTIVADO";
 
-  const usuario = await prisma.usuario.findUnique({ where: { id }, select: { operadorId: true } });
+  const usuario = await exigirAccesoAUsuarioObjetivo(id);
 
   await prisma.$transaction([
     prisma.usuario.update({ where: { id }, data: { estatus: nuevoEstatus } }),
@@ -203,13 +264,32 @@ export async function actualizarUsuario(formData: FormData) {
     throw new Error("Nombre y rol son obligatorios.");
   }
 
-  const actual = await prisma.usuario.findUnique({ where: { id }, select: { operadorId: true, rolId: true } });
-  if (actual?.rolId !== rolId) {
-    await exigirAsignacionDeRol(rolId);
-    const session = await auth();
-    if (session?.user?.id === id && !(await esRolGlobal())) {
-      throw new Error("No puedes cambiar tu propio rol.");
+  const actual = await exigirAccesoAUsuarioObjetivo(id);
+  const session = await auth();
+  const esGlobalCaller = await esRolGlobal();
+
+  if (!esGlobalCaller) {
+    const asignados = await obtenerProyectosAsignados();
+    if (!asignados.todos) {
+      if (proyectoIds.length === 0 || !proyectoIds.every((pid) => asignados.ids.includes(pid))) {
+        throw new Error("Solo puedes asignar proyectos a los que tienes acceso.");
+      }
     }
+    if (session?.user?.id === id) {
+      if (actual.rolId !== rolId) {
+        throw new Error("No puedes cambiar tu propio rol.");
+      }
+      const proyectosActuales = new Set(actual.proyectos.map((p) => p.proyectoId));
+      const mismosProyectos =
+        proyectosActuales.size === proyectoIds.length && proyectoIds.every((pid) => proyectosActuales.has(pid));
+      if (!mismosProyectos) {
+        throw new Error("No puedes modificar tus propios proyectos asignados.");
+      }
+    }
+  }
+
+  if (actual.rolId !== rolId) {
+    await exigirAsignacionDeRol(rolId, actual.metodoAcceso === "CORREO_PASSWORD");
   }
 
   await prisma.$transaction([
@@ -228,7 +308,6 @@ export async function actualizarUsuario(formData: FormData) {
     ...(actual?.operadorId ? [prisma.operador.update({ where: { id: actual.operadorId }, data: { proyectoId: proyectoIds[0] ?? null } })] : []),
   ]);
 
-  const session = await auth();
   if (session?.user?.id) {
     await logActivity({
       userId: session.user.id,
@@ -254,6 +333,12 @@ export async function eliminarUsuario(formData: FormData): Promise<ResultadoElim
   const session = await auth();
   if (session?.user?.id === id) {
     return { ok: false, error: "No puedes eliminar tu propia cuenta." };
+  }
+
+  try {
+    await exigirAccesoAUsuarioObjetivo(id);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No tienes permiso para eliminar este usuario." };
   }
 
   try {
@@ -357,6 +442,10 @@ export async function actualizarModulosProyecto(formData: FormData) {
   await exigirPermisoModulo("K", "editar");
 
   const proyectoId = String(formData.get("proyectoId") ?? "");
+  const permitidos = await proyectosPermitidosParaModulo("K");
+  if (permitidos !== null && !permitidos.includes(proyectoId)) {
+    throw new Error("No tienes permiso para modificar este proyecto.");
+  }
   const modulosActivos = formData.getAll("modulosActivos").map(String).filter((m) => IDS_MODULOS.has(m));
   await prisma.proyecto.update({ where: { id: proyectoId }, data: { modulosActivos } });
 

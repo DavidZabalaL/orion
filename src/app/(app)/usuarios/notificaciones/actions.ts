@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 
@@ -77,6 +78,11 @@ export async function actualizarNotificacionRescateProyecto(formData: FormData) 
 
   const proyectoId = String(formData.get("proyectoId") ?? "");
   if (!proyectoId) throw new Error("Selecciona un proyecto.");
+
+  const permitidos = await proyectosPermitidosParaModulo("K");
+  if (permitidos !== null && !permitidos.includes(proyectoId)) {
+    throw new Error("No tienes permiso para configurar notificaciones en este proyecto.");
+  }
 
   const destinatarios = String(formData.get("destinatariosRescate") ?? "")
     .split(",")

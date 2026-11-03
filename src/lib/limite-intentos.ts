@@ -36,3 +36,24 @@ export async function intentosExcedidos(tipo: TipoIntento, clave: string, ip: st
 export async function registrarIntento(tipo: TipoIntento, clave: string, ip: string | null, exitoso: boolean): Promise<void> {
   await prisma.intentoAcceso.create({ data: { tipo, clave, ip, exitoso } });
 }
+
+/**
+ * Límite por usuario autenticado (IA/BI y envío manual de correos) reutilizando
+ * el índice `(tipo, clave, createdAt)` de `IntentoAcceso`. Devuelve `true` si
+ * la llamada está dentro de cuota (y registra el consumo), o `false` si excedió.
+ */
+export async function consumirCuotaUsuario(
+  tipo: "ia_bi" | "envio_correo",
+  usuarioId: string,
+  maxPorVentana = 10,
+  ventanaMs = 60_000,
+): Promise<boolean> {
+  if (!usuarioId) return false;
+  const desde = new Date(Date.now() - ventanaMs);
+  const recientes = await prisma.intentoAcceso.count({
+    where: { tipo, clave: usuarioId, createdAt: { gte: desde } },
+  });
+  if (recientes >= maxPorVentana) return false;
+  await prisma.intentoAcceso.create({ data: { tipo, clave: usuarioId, ip: null, exitoso: true } });
+  return true;
+}

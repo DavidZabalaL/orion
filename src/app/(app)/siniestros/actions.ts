@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
@@ -34,6 +35,14 @@ export async function crearSiniestro(fd: FormData) {
   }
   if (fecha > hoy()) {
     return { ok: false, error: "La fecha no puede ser futura." };
+  }
+
+  const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+  if (!unidad) return { ok: false, error: "Unidad no encontrada." };
+
+  const permitidos = await proyectosPermitidosParaModulo("S");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para registrar siniestros en esta unidad." };
   }
 
   const folio = generarFolio(fecha);
@@ -78,6 +87,17 @@ export async function actualizarEstatusSiniestro(fd: FormData) {
   const estatus = fd.get("estatus") as string;
   if (!id || !estatus) return { ok: false, error: "Faltan parámetros." };
 
+  const actual = await prisma.siniestro.findUnique({
+    where: { id },
+    select: { unidad: { select: { proyectoId: true } } },
+  });
+  if (!actual) return { ok: false, error: "Siniestro no encontrado." };
+
+  const permitidos = await proyectosPermitidosParaModulo("S");
+  if (permitidos !== null && (!actual.unidad.proyectoId || !permitidos.includes(actual.unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para actualizar este siniestro." };
+  }
+
   await prisma.siniestro.update({
     where: { id },
     data: { estatus: estatus as never, updatedAt: new Date() },
@@ -100,6 +120,17 @@ export async function actualizarSiniestro(fd: FormData) {
 
   const fecha = fd.get("fecha") as string;
   if (fecha && fecha > hoy()) return { ok: false, error: "La fecha no puede ser futura." };
+
+  const actual = await prisma.siniestro.findUnique({
+    where: { id },
+    select: { unidad: { select: { proyectoId: true } } },
+  });
+  if (!actual) return { ok: false, error: "Siniestro no encontrado." };
+
+  const permitidos = await proyectosPermitidosParaModulo("S");
+  if (permitidos !== null && (!actual.unidad.proyectoId || !permitidos.includes(actual.unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para actualizar este siniestro." };
+  }
 
   await prisma.siniestro.update({
     where: { id },

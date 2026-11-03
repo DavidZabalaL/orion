@@ -227,7 +227,7 @@ export async function enviarChecklistsExcel({
       from: process.env.EMAIL_FROM ?? EMAIL_FROM_DEFAULT,
       to: destinatarios,
       subject: asunto,
-      html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el Excel con ${resumen}, generado desde Orión.</p>`,
+      html: `<p style="font-family:sans-serif;font-size:14px;color:#334155;">Adjunto el Excel con ${escaparHtml(resumen)}, generado desde Orión.</p>`,
       attachments: [{ filename: nombreArchivo, content: buffer, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }],
     });
     return { enviado: true };

@@ -107,7 +107,17 @@ export async function asignarEconomicoCombustible(formData: FormData) {
     }
   }
 
-  const previo = await prisma.combustible.findUnique({ where: { id }, select: { numeroEconomico: true } });
+  const previo = await prisma.combustible.findUnique({
+    where: { id },
+    select: { numeroEconomico: true, proyectoReportanteId: true, unidad: { select: { proyectoId: true } } },
+  });
+  if (!previo) throw new Error("Registro de combustible no encontrado.");
+  if (permitidos !== null) {
+    const proyectoPrevio = previo.unidad?.proyectoId ?? previo.proyectoReportanteId;
+    if (proyectoPrevio && !permitidos.includes(proyectoPrevio)) {
+      throw new Error("No tienes permiso para modificar este registro.");
+    }
+  }
   await prisma.combustible.update({ where: { id }, data: { numeroEconomico, proyectoReportanteId } });
   // La carga entra (o sale) de la cadena de una unidad: se recalculan ambas.
   if (numeroEconomico) await recalcularCombustibleUnidad(numeroEconomico);

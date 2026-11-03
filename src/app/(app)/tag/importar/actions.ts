@@ -29,14 +29,17 @@ export async function importarTags(
     throw new Error("Selecciona un proveedor válido.");
   }
 
+  const permitidos = await proyectosPermitidosParaModulo("E");
   if (proyectoFallbackId) {
-    const permitidos = await proyectosPermitidosParaModulo("E");
     if (permitidos !== null && !permitidos.includes(proyectoFallbackId)) {
       throw new Error("No tienes permiso para asignar al proyecto seleccionado.");
     }
   }
 
-  const unidades = await prisma.unidad.findMany({ select: { numeroEconomico: true } });
+  const unidades = await prisma.unidad.findMany({
+    where: permitidos !== null ? { proyectoId: { in: permitidos } } : undefined,
+    select: { numeroEconomico: true },
+  });
   const economicosValidos = new Set(unidades.map((u) => u.numeroEconomico));
 
   const existentes = await prisma.tag.findMany({

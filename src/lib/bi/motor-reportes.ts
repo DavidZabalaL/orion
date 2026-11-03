@@ -61,11 +61,13 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         vistaDashboardId?: string | null;
         vistaDashboardIds?: string[] | null;
       } | null;
-      proyectoIds = filtros?.proyectoIds ?? [];
+      const permitidosCreador = await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "M");
+      const elegidos = filtros?.proyectoIds ?? [];
+      proyectoIds = permitidosCreador === null ? elegidos : elegidos.filter((id) => permitidosCreador.includes(id));
       const hasta = new Date(inicioDeHoyMx().getTime() - 1); // 23:59:59.999 MX de ayer — excluye lo capturado hoy
       const desde = new Date(hasta.getTime() - reporte.periodoDias * DIA_MS + 1);
       const datos = await calcularEstatusFlotaReporte({
-        proyectoIdsPermitidos: null,
+        proyectoIdsPermitidos: permitidosCreador,
         proyectoIdsSeleccionados: proyectoIds,
         desde,
         hasta,
@@ -80,7 +82,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         ? [filtros.vistaDashboardId]
         : [];
       const vistasDashboard = vistaDashboardIds.length > 0
-        ? await calcularVistasDashboardReporte(vistaDashboardIds, await proyectosPermitidosParaModuloDeUsuario(reporte.creadoPorId, "M"))
+        ? await calcularVistasDashboardReporte(vistaDashboardIds, permitidosCreador)
         : [];
       const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true, vistasDashboard);
       totalRegistros = datos.general.totalUnidades;

@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { exigirPermisoModulo } from "@/lib/permisos";
+import { esRolGlobal, exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 
 export async function crearSolicitudAutorizacion(
@@ -25,6 +26,18 @@ export async function crearSolicitudAutorizacion(
     if (!proyectoId) return { ok: false, error: "Proyecto requerido." };
     if (!motivo) return { ok: false, error: "Motivo requerido." };
     if (!monto || isNaN(monto) || monto <= 0) return { ok: false, error: "Monto inválido." };
+
+    const permitidos = await proyectosPermitidosParaModulo("D");
+    if (permitidos !== null && !permitidos.includes(proyectoId)) {
+      return { ok: false, error: "No tienes permiso para solicitar autorizaciones en ese proyecto." };
+    }
+    if (numeroEconomico) {
+      const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+      if (!unidad) return { ok: false, error: "La unidad no existe." };
+      if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+        return { ok: false, error: "No tienes permiso para esa unidad." };
+      }
+    }
 
     const solicitud = await prisma.solicitudAutorizacionCombustible.create({
       data: {
@@ -68,6 +81,14 @@ export async function responderSolicitud(
     const solicitud = await prisma.solicitudAutorizacionCombustible.findUnique({ where: { id } });
     if (!solicitud) return { ok: false, error: "Solicitud no encontrada." };
     if (solicitud.estatus !== "PENDIENTE") return { ok: false, error: "La solicitud ya fue respondida." };
+
+    const permitidos = await proyectosPermitidosParaModulo("D");
+    if (permitidos !== null && !permitidos.includes(solicitud.proyectoId)) {
+      return { ok: false, error: "No tienes permiso para responder solicitudes de ese proyecto." };
+    }
+    if (solicitud.solicitadoPorId === session.user.id && !(await esRolGlobal())) {
+      return { ok: false, error: "No puedes aprobar o rechazar tu propia solicitud." };
+    }
 
     await prisma.solicitudAutorizacionCombustible.update({
       where: { id },

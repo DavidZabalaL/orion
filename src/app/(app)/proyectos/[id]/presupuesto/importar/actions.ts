@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { puedeCargarPresupuesto, exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { parsearExcelPresupuesto, resolverCategoria, resolverProyecto, type FilaPresupuestoExcel } from "@/lib/import-presupuesto";
 import { CATEGORIA_GASTO_LABEL } from "@/lib/categorias-gasto";
 import { logActivity } from "@/lib/activity";
@@ -34,8 +35,12 @@ export async function previsualizarCargaPresupuesto(formData: FormData): Promise
     const anio = parseInt(String(formData.get("anio") ?? ""), 10);
     const filas = await parsearExcelPresupuesto(formData);
 
+    const permitidos = await proyectosPermitidosParaModulo("H");
     const proyectos = await prisma.proyecto.findMany({
-      where: { estatus: "ACTIVO" },
+      where: {
+        estatus: "ACTIVO",
+        ...(permitidos !== null ? { id: { in: permitidos } } : {}),
+      },
       select: { id: true, nombre: true, estadoRepublica: true },
       orderBy: { nombre: "asc" },
     });
@@ -94,7 +99,8 @@ export async function confirmarCargaPresupuesto(
     const usuarioId = session?.user?.id;
     if (!usuarioId) return { ok: false, error: "Sesión inválida." };
 
-    const resultado = await ejecutarImportacion(filas, proyectoPorAlias, categoriaPorTexto, archivoNombre, usuarioId);
+    const permitidos = await proyectosPermitidosParaModulo("H");
+    const resultado = await ejecutarImportacion(filas, proyectoPorAlias, categoriaPorTexto, archivoNombre, usuarioId, permitidos);
     return { ok: true, datos: resultado };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo confirmar la importación." };
@@ -106,7 +112,8 @@ async function ejecutarImportacion(
   proyectoPorAlias: Record<string, string>,
   categoriaPorTexto: Record<string, string>,
   archivoNombre: string,
-  usuarioId: string
+  usuarioId: string,
+  permitidos: string[] | null
 ): Promise<ResultadoImportacionPresupuesto> {
   const resultado: ResultadoImportacionPresupuesto = { creadas: 0, actualizadas: 0, sinCambio: 0, omitidas: [] };
   const motivosOmitidas = new Map<string, number>();
@@ -118,6 +125,10 @@ async function ejecutarImportacion(
 
     if (!proyectoId) {
       motivosOmitidas.set("Proyecto no resuelto", (motivosOmitidas.get("Proyecto no resuelto") ?? 0) + 1);
+      continue;
+    }
+    if (permitidos !== null && !permitidos.includes(proyectoId)) {
+      motivosOmitidas.set("Sin permiso en el proyecto", (motivosOmitidas.get("Sin permiso en el proyecto") ?? 0) + 1);
       continue;
     }
     if (!categoria || !(categoria in CATEGORIA_GASTO_LABEL)) {

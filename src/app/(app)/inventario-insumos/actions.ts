@@ -82,7 +82,7 @@ export async function eliminarInsumo(formData: FormData): Promise<ResultadoSimpl
 }
 
 export async function registrarConsumo(formData: FormData): Promise<ResultadoSimple> {
-  await exigirPermisoModulo("A");
+  await exigirPermisoModulo("N", "editar");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "Sin sesión." };
@@ -99,11 +99,29 @@ export async function registrarConsumo(formData: FormData): Promise<ResultadoSim
   const cantidad = parseFloat(cantidadStr);
   if (isNaN(cantidad) || cantidad <= 0) return { ok: false, error: "La cantidad debe ser mayor a 0." };
 
-  const insumo = await prisma.insumoInventario.findUnique({
-    where: { id: insumoId },
-    select: { existencias: true },
-  });
+  const [insumo, unidad] = await Promise.all([
+    prisma.insumoInventario.findUnique({
+      where: { id: insumoId },
+      select: { existencias: true, proyectoId: true },
+    }),
+    prisma.unidad.findUnique({
+      where: { numeroEconomico },
+      select: { proyectoId: true },
+    }),
+  ]);
   if (!insumo) return { ok: false, error: "Insumo no encontrado." };
+  if (!unidad) return { ok: false, error: "Unidad no encontrada." };
+
+  const permitidos = await proyectosPermitidosParaModulo("N");
+  if (permitidos !== null) {
+    if (!permitidos.includes(insumo.proyectoId)) {
+      return { ok: false, error: "No tienes permiso para registrar consumos en ese proyecto." };
+    }
+    if (unidad.proyectoId && !permitidos.includes(unidad.proyectoId)) {
+      return { ok: false, error: "No tienes permiso para esa unidad." };
+    }
+  }
+
   if (Number(insumo.existencias) < cantidad) {
     return { ok: false, error: `Existencias insuficientes (disponible: ${Number(insumo.existencias)}).` };
   }
@@ -198,7 +216,7 @@ export async function registrarEntradaInsumo(formData: FormData): Promise<Result
 export type ResultadoConsumoMasivo = { ok: boolean; error?: string; creados?: number };
 
 export async function registrarConsumoMasivo(formData: FormData): Promise<ResultadoConsumoMasivo> {
-  await exigirPermisoModulo("A");
+  await exigirPermisoModulo("N", "editar");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "Sin sesión." };
@@ -225,6 +243,21 @@ export async function registrarConsumoMasivo(formData: FormData): Promise<Result
     select: { existencias: true, proyectoId: true },
   });
   if (!insumo) return { ok: false, error: "Insumo no encontrado." };
+
+  const permitidos = await proyectosPermitidosParaModulo("N");
+  if (permitidos !== null && !permitidos.includes(insumo.proyectoId)) {
+    return { ok: false, error: "No tienes permiso para registrar consumos en ese proyecto." };
+  }
+  if (permitidos !== null) {
+    const unidades = await prisma.unidad.findMany({
+      where: { numeroEconomico: { in: numerosEconomicos } },
+      select: { numeroEconomico: true, proyectoId: true },
+    });
+    if (unidades.some((u) => !u.proyectoId || !permitidos.includes(u.proyectoId))) {
+      return { ok: false, error: "Una o más unidades seleccionadas están fuera de tus proyectos asignados." };
+    }
+  }
+
   if (Number(insumo.existencias) < totalCantidad) {
     return {
       ok: false,

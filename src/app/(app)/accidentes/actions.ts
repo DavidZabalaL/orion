@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
@@ -30,6 +31,17 @@ export async function registrarAccidente(
 
     const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
     if (!unidad) return { ok: false, error: "La unidad no existe." };
+
+    const permitidos = await proyectosPermitidosParaModulo("A");
+    if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+      return { ok: false, error: "No tienes permiso para registrar accidentes en esta unidad." };
+    }
+    if (operadorId && permitidos !== null) {
+      const op = await prisma.operador.findUnique({ where: { id: operadorId }, select: { proyectoId: true } });
+      if (!op?.proyectoId || !permitidos.includes(op.proyectoId)) {
+        return { ok: false, error: "No tienes permiso para vincular ese operador." };
+      }
+    }
 
     const accidente = await prisma.accidente.create({
       data: {
@@ -77,6 +89,14 @@ export async function registrarCurso(
 
     if (!operadorId || !nombre || !fecha) {
       return { ok: false, error: "Operador, nombre del curso y fecha son obligatorios." };
+    }
+
+    const operador = await prisma.operador.findUnique({ where: { id: operadorId }, select: { proyectoId: true } });
+    if (!operador) return { ok: false, error: "El operador no existe." };
+
+    const permitidos = await proyectosPermitidosParaModulo("L");
+    if (permitidos !== null && (!operador.proyectoId || !permitidos.includes(operador.proyectoId))) {
+      return { ok: false, error: "No tienes permiso para registrar cursos a este operador." };
     }
 
     await prisma.cursoOperador.create({

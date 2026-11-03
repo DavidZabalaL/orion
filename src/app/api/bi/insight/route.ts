@@ -4,7 +4,9 @@
 // fabricar datos falsos para que el LLM los "explique", y el modelo solo ve
 // agregados ya filtrados por permisos, nunca filas crudas con PII.
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
+import { consumirCuotaUsuario } from "@/lib/limite-intentos";
 import { validarParamsSimple, resolverAlcanceProyecto, ejecutarSimple, type Filtro } from "@/lib/bi/motor-consultas";
 import { hashDeObjeto, obtenerInsightCacheado, guardarInsightCache } from "@/lib/bi/insight-cache";
 import { geminiDisponible, obtenerClienteGemini, MODELO_INSIGHT } from "@/lib/ai/gemini-client";
@@ -23,11 +25,15 @@ type BodyInsight = {
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!(await tienePermisoModulo("M"))) {
+  const session = await auth();
+  if (!session?.user?.id || !(await tienePermisoModulo("M"))) {
     return NextResponse.json({ error: "No tienes permiso para consultar el motor de BI." }, { status: 403 });
   }
   if (!geminiDisponible()) {
     return NextResponse.json({ error: "Los resúmenes automáticos no están configurados en este entorno." }, { status: 503 });
+  }
+  if (!(await consumirCuotaUsuario("ia_bi", session.user.id, 15, 60_000))) {
+    return NextResponse.json({ error: "Demasiadas solicitudes de IA. Intenta de nuevo en un minuto." }, { status: 429 });
   }
 
   let body: BodyInsight;

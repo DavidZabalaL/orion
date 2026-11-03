@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { puedeEditarCapacidadTanque, tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
-import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
@@ -30,6 +30,14 @@ export async function actualizarCapacidadTanque(formData: FormData): Promise<Res
   }
   if (!numeroEconomico || !capacidadTanqueLitros || capacidadTanqueLitros <= 0) {
     return { ok: false, error: "Captura una capacidad válida, mayor a 0." };
+  }
+
+  const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
+  if (!unidad) return { ok: false, error: "La unidad no existe." };
+
+  const permitidos = await proyectosPermitidosParaModulo("A");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
   }
 
   await prisma.unidad.update({ where: { numeroEconomico }, data: { capacidadTanqueLitros } });
@@ -377,6 +385,11 @@ export async function actualizarUnidad(formData: FormData) {
   }
 
   const ahoraActualizar = new Date();
+  const numeroOAnulo = (v: unknown) => (v == null ? null : Number(v));
+  const capacidadFinal =
+    numeroOAnulo(anterior.capacidadTanqueLitros) !== capacidadTanqueLitros && (await puedeEditarCapacidadTanque())
+      ? capacidadTanqueLitros
+      : anterior.capacidadTanqueLitros;
 
   await prisma.unidad.update({
     where: { numeroEconomico },
@@ -388,7 +401,7 @@ export async function actualizarUnidad(formData: FormData) {
       tipoVehiculo: tipoVehiculo as never,
       tipoCombustible: tipoCombustible as never,
       rendimientoPromedio,
-      capacidadTanqueLitros,
+      capacidadTanqueLitros: capacidadFinal,
       proyectoId,
       resguardanteId,
       propietario: propietario as never,
@@ -400,8 +413,7 @@ export async function actualizarUnidad(formData: FormData) {
     },
   });
 
-  const numeroOAnulo = (v: unknown) => (v == null ? null : Number(v));
-  if (numeroOAnulo(anterior.capacidadTanqueLitros) !== capacidadTanqueLitros || numeroOAnulo(anterior.rendimientoPromedio) !== rendimientoPromedio) {
+  if (numeroOAnulo(anterior.capacidadTanqueLitros) !== numeroOAnulo(capacidadFinal) || numeroOAnulo(anterior.rendimientoPromedio) !== rendimientoPromedio) {
     await recalcularCombustibleUnidad(numeroEconomico);
   }
 
@@ -484,5 +496,17 @@ export async function alternarOcultarSlaDisponibilidad(oculto: boolean): Promise
  */
 export async function obtenerResumenGpsUnidad(numeroEconomico: string, dias: number): Promise<ResumenGpsPeriodo> {
   await exigirPermisoModulo("A", "ver");
+  const [unidad, permitidos, restriccionOp] = await Promise.all([
+    prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } }),
+    proyectosPermitidosParaModulo("A"),
+    unidadRestringidaParaOperador(),
+  ]);
+  if (!unidad) throw new Error("La unidad no existe.");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    throw new Error("No tienes permiso para consultar esta unidad.");
+  }
+  if (restriccionOp.esOperador && !restriccionOp.numerosEconomicos.includes(numeroEconomico)) {
+    throw new Error("No tienes permiso para consultar esta unidad.");
+  }
   return calcularResumenGpsPeriodo(numeroEconomico, dias);
 }

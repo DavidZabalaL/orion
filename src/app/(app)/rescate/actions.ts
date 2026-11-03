@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { auth } from "@/auth";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { enviarNotificacionTicketRescate } from "@/lib/email";
@@ -34,6 +35,23 @@ export async function crearTicket(formData: FormData): Promise<ResultadoSimple> 
 
   const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true } });
   if (!unidad) return { ok: false, error: "Unidad no encontrada." };
+
+  const [permitidos, restriccionOp] = await Promise.all([
+    proyectosPermitidosParaModulo("R"),
+    unidadRestringidaParaOperador(),
+  ]);
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para reportar tickets en esta unidad." };
+  }
+  if (restriccionOp.esOperador && !restriccionOp.numerosEconomicos.includes(numeroEconomico)) {
+    const sesionTurno = await prisma.bitacoraUsoUnidad.findFirst({
+      where: { numeroEconomico, fin: null, operador: { usuario: { id: session.user.id } } },
+      select: { id: true },
+    });
+    if (!sesionTurno) {
+      return { ok: false, error: "Solo puedes reportar rescate sobre tu unidad asignada o activa en turno." };
+    }
+  }
 
   const motivo = await prisma.catalogoMotivoRescate.findUnique({ where: { id: motivoId } });
   if (!motivo) return { ok: false, error: "Motivo no encontrado." };
@@ -116,9 +134,15 @@ export async function avanzarEstatus(formData: FormData): Promise<ResultadoSimpl
 
   const ticket = await prisma.ticketRescate.findUnique({
     where: { id: ticketId },
-    include: { motivo: { select: { categoria: true } } },
+    include: { motivo: { select: { categoria: true } }, unidad: { select: { proyectoId: true } } },
   });
   if (!ticket) return { ok: false, error: "Ticket no encontrado." };
+
+  const permitidos = await proyectosPermitidosParaModulo("R");
+  const proyectoTicket = ticket.proyectoId ?? ticket.unidad.proyectoId;
+  if (permitidos !== null && (!proyectoTicket || !permitidos.includes(proyectoTicket))) {
+    return { ok: false, error: "No tienes permiso para modificar este ticket." };
+  }
 
   // Regla: ticket SEG no puede cerrarlo quien lo reportó
   if (ticket.motivo.categoria === "SEGURIDAD" && (nuevoEstatus === "CERRADO" || nuevoEstatus === "RESUELTO") && ticket.reportadoPorId === session.user.id) {
@@ -162,6 +186,18 @@ export async function asignarTicket(formData: FormData): Promise<ResultadoSimple
   const asignadoAId = String(formData.get("asignadoAId") ?? "").trim() || null;
 
   if (!ticketId) return { ok: false, error: "Ticket no especificado." };
+
+  const ticket = await prisma.ticketRescate.findUnique({
+    where: { id: ticketId },
+    select: { proyectoId: true, unidad: { select: { proyectoId: true } } },
+  });
+  if (!ticket) return { ok: false, error: "Ticket no encontrado." };
+
+  const permitidos = await proyectosPermitidosParaModulo("R");
+  const proyectoTicket = ticket.proyectoId ?? ticket.unidad.proyectoId;
+  if (permitidos !== null && (!proyectoTicket || !permitidos.includes(proyectoTicket))) {
+    return { ok: false, error: "No tienes permiso para asignar este ticket." };
+  }
 
   await prisma.ticketRescate.update({
     where: { id: ticketId },

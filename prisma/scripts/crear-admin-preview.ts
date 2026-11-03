@@ -4,9 +4,22 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "bcryptjs";
 
 const CORREO = "admin@orion.local";
-const PASSWORD_PLANO = "KabatPreview2026!";
 
-async function crearAdminEnBd(envPath: string) {
+function obtenerPasswordPreview(): string {
+  if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+    throw new Error("Este script nunca debe ejecutarse en producción.");
+  }
+  const password = process.env.PREVIEW_ADMIN_PASSWORD?.trim();
+  if (!password || password.length < 12) {
+    throw new Error("Define PREVIEW_ADMIN_PASSWORD (mínimo 12 caracteres) en el entorno antes de ejecutar este script.");
+  }
+  return password;
+}
+
+async function crearAdminEnBd(envPath: string, passwordPlano: string) {
+  if (envPath === ".env" || envPath.endsWith("/.env")) {
+    throw new Error("Por seguridad, este script no permite apuntar a .env (producción). Usa .env.staging.");
+  }
   const env = dotenv.config({ path: envPath }).parsed;
   if (!env?.DATABASE_URL) {
     console.log(`[Saltando] No se encontró DATABASE_URL en ${envPath}`);
@@ -28,7 +41,7 @@ async function crearAdminEnBd(envPath: string) {
       return;
     }
 
-    const passwordHash = await hash(PASSWORD_PLANO, 10);
+    const passwordHash = await hash(passwordPlano, 10);
 
     const usuario = await prisma.usuario.upsert({
       where: { correo: CORREO },
@@ -54,7 +67,6 @@ async function crearAdminEnBd(envPath: string) {
     console.log(`  Correo: ${usuario.correo}`);
     console.log(`  Rol: Administrador`);
     console.log(`  Método: CORREO_PASSWORD`);
-    console.log(`  Contraseña: ${PASSWORD_PLANO}`);
   } catch (err: any) {
     console.error(`Error al procesar ${envPath}:`, err.message);
   } finally {
@@ -64,8 +76,8 @@ async function crearAdminEnBd(envPath: string) {
 
 async function main() {
   console.log("=== Creación de Usuario Administrador para Preview ===");
-  await crearAdminEnBd(".env.staging");
-  await crearAdminEnBd(".env");
+  const passwordPlano = obtenerPasswordPreview();
+  await crearAdminEnBd(".env.staging", passwordPlano);
 }
 
 main();

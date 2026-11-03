@@ -98,11 +98,16 @@ export async function actualizarTag(formData: FormData): Promise<ResultadoCrearT
   const errorAsignacion = await validarAsignacion(numeroEconomico, proyectoReportanteId, permitidos);
   if (errorAsignacion) return { ok: false, error: errorAsignacion };
 
-  const anterior = await prisma.tag.findUnique({ where: { id }, select: { numeroEconomico: true } });
+  const anterior = await prisma.tag.findUnique({
+    where: { id },
+    select: { numeroEconomico: true, proyectoReportanteId: true, unidad: { select: { proyectoId: true } } },
+  });
   if (!anterior) return { ok: false, error: "El registro no existe." };
-  if (permitidos !== null && anterior.numeroEconomico) {
-    const unidadAnterior = await prisma.unidad.findUnique({ where: { numeroEconomico: anterior.numeroEconomico }, select: { proyectoId: true } });
-    if (!unidadAnterior?.proyectoId || !permitidos.includes(unidadAnterior.proyectoId)) return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  if (permitidos !== null) {
+    const proyectoAnterior = anterior.unidad?.proyectoId ?? anterior.proyectoReportanteId;
+    if (!proyectoAnterior || !permitidos.includes(proyectoAnterior)) {
+      return { ok: false, error: "No tienes permiso para realizar esta acción." };
+    }
   }
 
   await prisma.tag.update({
@@ -140,6 +145,18 @@ export async function asignarEconomicoTag(formData: FormData) {
   const permitidos = await proyectosPermitidosParaModulo("E");
   const errorAsignacion = await validarAsignacion(numeroEconomico, proyectoReportanteId, permitidos);
   if (errorAsignacion) throw new Error(errorAsignacion);
+
+  const anterior = await prisma.tag.findUnique({
+    where: { id },
+    select: { numeroEconomico: true, proyectoReportanteId: true, unidad: { select: { proyectoId: true } } },
+  });
+  if (!anterior) throw new Error("El registro no existe.");
+  if (permitidos !== null) {
+    const proyectoAnterior = anterior.unidad?.proyectoId ?? anterior.proyectoReportanteId;
+    if (proyectoAnterior && !permitidos.includes(proyectoAnterior)) {
+      throw new Error("No tienes permiso para realizar esta acción.");
+    }
+  }
 
   await prisma.tag.update({ where: { id }, data: { numeroEconomico, proyectoReportanteId } });
 

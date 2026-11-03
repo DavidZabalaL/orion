@@ -23,8 +23,13 @@ export async function alternarEstatusOperador(formData: FormData) {
   const estatusActual = String(formData.get("estatus") ?? "");
   const nuevoEstatus = estatusActual === "BAJA" ? "ACTIVO" : "BAJA";
 
-  const operador = await prisma.operador.findUnique({ where: { id }, select: { usuario: { select: { id: true } } } });
+  const operador = await prisma.operador.findUnique({ where: { id }, select: { proyectoId: true, usuario: { select: { id: true } } } });
   if (!operador) throw new Error("El operador no existe.");
+
+  const permitidos = await proyectosPermitidosParaModulo("L");
+  if (permitidos !== null && (!operador.proyectoId || !permitidos.includes(operador.proyectoId))) {
+    throw new Error("No tienes permiso para realizar esta acción.");
+  }
 
   await prisma.$transaction([
     prisma.operador.update({ where: { id }, data: { estatus: nuevoEstatus as never } }),

@@ -65,15 +65,30 @@ const nextAuth = NextAuth({
         const password = credentials.password as string | undefined;
         if (!correo || !password) return null;
 
+        // Las cuentas .local (como admin@orion.local) son exclusivas de entornos de preview con PREVIEW_LOGIN_ENABLED.
+        if (!PREVIEW_LOGIN_HABILITADO && (correo === "admin@orion.local" || correo.endsWith(".local"))) {
+          return null;
+        }
+
         // Límite de fuerza bruta por cuenta y por IP (ver src/lib/limite-intentos.ts).
         const ip = ipDeEncabezados(request.headers);
         if (await intentosExcedidos("login", correo, ip)) throw new DemasiadosIntentos();
 
-        const usuario = await prisma.usuario.findUnique({ where: { correo } });
+        const usuario = await prisma.usuario.findUnique({
+          where: { correo },
+          include: { rol: { select: { nombre: true, permisos: true } } },
+        });
+        const permisos = usuario?.rol?.permisos;
+        const tieneAccesoGlobal =
+          Array.isArray(permisos)
+            ? permisos.includes("*")
+            : !!permisos && typeof permisos === "object" && "*" in (permisos as Record<string, unknown>);
+
         const valido =
           !!usuario &&
           usuario.estatus === "ACTIVO" &&
           usuario.metodoAcceso === "CORREO_PASSWORD" &&
+          (PREVIEW_LOGIN_HABILITADO || !tieneAccesoGlobal) &&
           !!usuario.passwordHash &&
           (await compare(password, usuario.passwordHash));
 
@@ -189,7 +204,12 @@ const nextAuth = NextAuth({
             // — exactamente el "a veces entra, a veces no" reportado. Ahora
             // los tres casos que no deben dar acceso comparten un solo
             // resultado: sesión sin id, igual que una falla real de BD.
-            if (invalidada || !usuario || usuario.estatus === "DESACTIVADO") {
+            const cuentaPreviewFueraDePreview =
+              !PREVIEW_LOGIN_HABILITADO &&
+              !!usuario &&
+              (usuario.correo.toLowerCase() === "admin@orion.local" || usuario.correo.toLowerCase().endsWith(".local"));
+
+            if (invalidada || !usuario || usuario.estatus === "DESACTIVADO" || cuentaPreviewFueraDePreview) {
               session.user.id = "";
             } else {
               session.user.name = usuario.nombre;

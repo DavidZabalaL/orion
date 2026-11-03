@@ -22,6 +22,14 @@ export async function tomarUnidad(numeroEconomico: string): Promise<ResultadoTur
   const identidad = await resolverIdentidad();
   if (!identidad) return { ok: false, error: "No tienes permiso para tomar o liberar unidades." };
 
+  const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico }, select: { proyectoId: true, estatus: true } });
+  if (!unidad || unidad.estatus === "BAJA") return { ok: false, error: "La unidad no existe o está dada de baja." };
+
+  const permitidos = await proyectosPermitidosParaModulo("O");
+  if (permitidos !== null && (!unidad.proyectoId || !permitidos.includes(unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para tomar una unidad fuera de tus proyectos asignados." };
+  }
+
   const ahora = new Date();
 
   try {
@@ -83,6 +91,17 @@ export async function liberarUnidad(): Promise<ResultadoTurno> {
 /** Fuerza el cierre de una sesión que tomó OTRA persona — ver puedeLiberarUnidadAjena. */
 export async function liberarUnidadAjena(id: string): Promise<ResultadoTurno> {
   if (!(await puedeLiberarUnidadAjena())) return { ok: false, error: "No tienes permiso para liberar unidades de otras personas." };
+
+  const sesion = await prisma.bitacoraUsoUnidad.findUnique({
+    where: { id },
+    select: { unidad: { select: { proyectoId: true } } },
+  });
+  if (!sesion) return { ok: false, error: "Sesión no encontrada." };
+
+  const permitidos = await proyectosPermitidosParaModulo("O");
+  if (permitidos !== null && (!sesion.unidad.proyectoId || !permitidos.includes(sesion.unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para liberar unidades fuera de tus proyectos asignados." };
+  }
 
   await prisma.bitacoraUsoUnidad.updateMany({
     where: { id, fin: null },
@@ -204,8 +223,8 @@ export type FiltrosBitacoraAdmin = {
   tipoVehiculo?: TipoVehiculo;
   /** "tomada" = sesión abierta (fin null) ahora mismo; "liberada" = ya cerrada; sin especificar = ambas. */
   estatus?: "tomada" | "liberada";
-  /** Proyectos a los que el usuario tiene acceso para el módulo "O" — null = sin restricción (rol global). */
-  proyectosPermitidos: string[] | null;
+  /** Proyectos a los que el usuario tiene acceso para el módulo "O" — null = sin restricción (rol global). Se recalcula en el servidor. */
+  proyectosPermitidos?: string[] | null;
   desde: Date;
   hasta: Date;
   /** Búsqueda libre por número económico, operador/usuario que la tomó. */
@@ -216,19 +235,24 @@ export type FiltrosBitacoraAdmin = {
 export async function obtenerBitacoraUsoTodos(filtros: FiltrosBitacoraAdmin): Promise<RegistroBitacoraAdmin[]> {
   if (!(await tienePermisoModulo("O"))) throw new Error("No tienes permiso para consultar esta información.");
 
-  // Intersección entre el proyecto elegido en el filtro y los proyectos a los
-  // que el usuario tiene acceso — si elige uno fuera de su alcance, no ve nada
-  // (en vez de ignorar la restricción de proyecto). El proyecto de cada fila
-  // se filtra por el de la UNIDAD, no el de la persona (una fila puede venir
-  // de un Usuario sin proyecto propio asignado individualmente).
+  // El alcance real de proyectos se resuelve en el servidor; cualquier lista
+  // recibida del cliente solo puede acotar dentro de lo permitido, nunca ampliarlo.
+  const permitidosServidor = await proyectosPermitidosParaModulo("O");
+  const permitidosEfectivos =
+    permitidosServidor === null
+      ? (filtros.proyectosPermitidos ?? null)
+      : filtros.proyectosPermitidos
+        ? filtros.proyectosPermitidos.filter((id) => permitidosServidor.includes(id))
+        : permitidosServidor;
+
   const proyectosIds =
-    filtros.proyectosPermitidos === null
+    permitidosEfectivos === null
       ? filtros.proyectoId
         ? [filtros.proyectoId]
         : null
       : filtros.proyectoId
-        ? filtros.proyectosPermitidos.filter((id) => id === filtros.proyectoId)
-        : filtros.proyectosPermitidos;
+        ? permitidosEfectivos.filter((id) => id === filtros.proyectoId)
+        : permitidosEfectivos;
 
   const q = filtros.q?.trim();
 

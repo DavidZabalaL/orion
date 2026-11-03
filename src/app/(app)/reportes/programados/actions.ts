@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
+import { esRolGlobal, tienePermisoModulo, exigirPermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { logActivity } from "@/lib/activity";
 import { obtenerDataset, type FiltroGuardable } from "@/lib/bi/metadata";
 import { validarColumnasTabla } from "@/lib/bi/motor-consultas";
@@ -84,7 +85,7 @@ export async function guardarReporteBiTabla(input: {
   diaMes?: number;
   formato: FormatoReporte;
 }): Promise<ResultadoReporteProgramado> {
-  await exigirPermisoModulo("M");
+  await exigirPermisoModulo("M", "editar");
 
   const nombre = input.nombre.trim().slice(0, 120);
   if (!nombre) return { ok: false, error: "Ponle un nombre al reporte." };
@@ -105,28 +106,44 @@ export async function guardarReporteBiTabla(input: {
   if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };
 
   if (input.id) {
-    const existente = await prisma.reporteProgramado.findUnique({ where: { id: input.id }, select: { tipo: true } });
+    const existente = await prisma.reporteProgramado.findUnique({ where: { id: input.id }, select: { tipo: true, creadoPorId: true } });
     if (!existente) return { ok: false, error: "El reporte ya no existe." };
     if (existente.tipo !== TIPO_BI_TABLA) return { ok: false, error: "Este reporte se edita desde su propio configurador." };
+    if (existente.creadoPorId !== session.user.id && !(await esRolGlobal())) {
+      return { ok: false, error: "Solo quien creó este reporte o un Administrador puede editarlo." };
+    }
+  }
+
+  const permitidos = await proyectosPermitidosParaModulo("M");
+  const solicitados = input.proyectoIds ?? [];
+  const proyectoIdsValidados =
+    permitidos === null
+      ? solicitados
+      : solicitados.length > 0
+      ? solicitados.filter((id) => permitidos.includes(id))
+      : permitidos;
+  if (permitidos !== null && solicitados.length > 0 && proyectoIdsValidados.length === 0) {
+    return { ok: false, error: "No tienes acceso a los proyectos seleccionados." };
   }
 
   const data = {
     nombre,
     tipo: TIPO_BI_TABLA,
     camposJson: { datasetId: input.datasetId, columnas: columnas.map((c) => c.id) },
-    filtrosJson: { filtros: input.filtros ?? [], proyectoIds: input.proyectoIds ?? [] },
+    filtrosJson: { filtros: input.filtros ?? [], proyectoIds: proyectoIdsValidados },
     destinatarios,
     hora: input.hora,
     diaSemana: input.diaSemana ?? 1,
     diaMes: input.diaMes ?? 1,
     frecuencia: input.frecuencia,
     formato: input.formato,
+    creadoPorId: session.user.id,
   };
 
   try {
     const reporte = input.id
       ? await prisma.reporteProgramado.update({ where: { id: input.id }, data })
-      : await prisma.reporteProgramado.create({ data: { ...data, creadoPorId: session.user.id } });
+      : await prisma.reporteProgramado.create({ data });
 
     await logActivity({
       userId: session.user.id,
@@ -145,21 +162,39 @@ export async function guardarReporteBiTabla(input: {
 }
 
 export async function alternarActivoReporte(id: string, activo: boolean): Promise<ResultadoReporteProgramado> {
-  await exigirPermisoModulo("M");
+  await exigirPermisoModulo("M", "editar");
+  const session = await auth();
+  const existente = await prisma.reporteProgramado.findUnique({ where: { id }, select: { creadoPorId: true } });
+  if (!existente) return { ok: false, error: "Reporte no encontrado." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó este reporte o un Administrador puede modificarlo." };
+  }
   await prisma.reporteProgramado.update({ where: { id }, data: { activo } });
   revalidatePath("/reportes/programados");
   return { ok: true };
 }
 
 export async function eliminarReporteProgramado(id: string): Promise<ResultadoReporteProgramado> {
-  await exigirPermisoModulo("M");
+  await exigirPermisoModulo("M", "editar");
+  const session = await auth();
+  const existente = await prisma.reporteProgramado.findUnique({ where: { id }, select: { creadoPorId: true } });
+  if (!existente) return { ok: false, error: "Reporte no encontrado." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó este reporte o un Administrador puede eliminarlo." };
+  }
   await prisma.reporteProgramado.delete({ where: { id } });
   revalidatePath("/reportes/programados");
   return { ok: true };
 }
 
 export async function ejecutarReporteAhora(id: string): Promise<ResultadoReporteProgramado> {
-  if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso." };
+  if (!(await tienePermisoModulo("M", "editar"))) return { ok: false, error: "No tienes permiso." };
+  const session = await auth();
+  const existente = await prisma.reporteProgramado.findUnique({ where: { id }, select: { creadoPorId: true } });
+  if (!existente) return { ok: false, error: "Reporte no encontrado." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó este reporte o un Administrador puede ejecutarlo." };
+  }
   const resultado = await ejecutarReporteProgramado(id);
   revalidatePath("/reportes/programados");
   if (!resultado.ok) return { ok: false, error: resultado.error ?? "No se pudo ejecutar el reporte." };

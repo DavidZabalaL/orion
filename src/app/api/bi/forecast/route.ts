@@ -3,7 +3,9 @@
 // src/lib/bi/forecast.ts — el LLM solo redacta la explicación de los números
 // ya calculados, nunca los predice ni los corrige.
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { tienePermisoModulo } from "@/lib/permisos";
+import { consumirCuotaUsuario } from "@/lib/limite-intentos";
 import { validarParamsSimple, resolverAlcanceProyecto, ejecutarSimple, type Filtro } from "@/lib/bi/motor-consultas";
 import { proyectar, detectarAnomalias, tendencia } from "@/lib/bi/forecast";
 import { hashDeObjeto, obtenerInsightCacheado, guardarInsightCache } from "@/lib/bi/insight-cache";
@@ -26,7 +28,8 @@ type BodyForecast = {
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!(await tienePermisoModulo("M"))) {
+  const session = await auth();
+  if (!session?.user?.id || !(await tienePermisoModulo("M"))) {
     return NextResponse.json({ error: "No tienes permiso para consultar el motor de BI." }, { status: 403 });
   }
 
@@ -72,7 +75,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const datosHash = hashDeObjeto({ historico: resultado.datos, proyeccion, anomalias });
       let explicacion = await obtenerInsightCacheado("forecast", claveConsulta, datosHash);
 
-      if (!explicacion) {
+      if (!explicacion && (await consumirCuotaUsuario("ia_bi", session.user.id, 15, 60_000))) {
         try {
           const client = obtenerClienteGemini();
           const response = await client.models.generateContent({

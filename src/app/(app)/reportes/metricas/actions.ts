@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { exigirPermisoModulo } from "@/lib/permisos";
+import { esRolGlobal, exigirPermisoModulo } from "@/lib/permisos";
 import { logActivity } from "@/lib/activity";
 import { metricaEsValida } from "@/lib/bi/metricas";
 import { obtenerDataset } from "@/lib/bi/metadata";
@@ -73,6 +73,15 @@ export async function guardarMetrica(input: InputMetrica): Promise<ResultadoMetr
 
   try {
     if (input.id) {
+      const existente = await prisma.metricaBI.findUnique({
+        where: { id: input.id },
+        select: { creadoPorId: true },
+      });
+      if (!existente) return { ok: false, error: "Métrica no encontrada." };
+      if (existente.creadoPorId !== usuarioId && !(await esRolGlobal())) {
+        return { ok: false, error: "Solo quien creó la métrica o un administrador global puede editarla." };
+      }
+
       const actualizada = await prisma.metricaBI.update({
         where: { id: input.id },
         data: {
@@ -114,6 +123,15 @@ export async function guardarMetrica(input: InputMetrica): Promise<ResultadoMetr
 
 export async function alternarMetrica(id: string, activo: boolean): Promise<ResultadoMetrica> {
   await exigirPermisoModulo("M", "editar");
+  const session = await auth();
+  const existente = await prisma.metricaBI.findUnique({
+    where: { id },
+    select: { creadoPorId: true },
+  });
+  if (!existente) return { ok: false, error: "Métrica no encontrada." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó la métrica o un administrador global puede modificarla." };
+  }
   await prisma.metricaBI.update({ where: { id }, data: { activo } });
   revalidatePath("/reportes/metricas");
   return { ok: true };
@@ -123,6 +141,15 @@ export async function eliminarMetrica(id: string): Promise<ResultadoMetrica> {
   await exigirPermisoModulo("M", "editar");
 
   const session = await auth();
+  const existente = await prisma.metricaBI.findUnique({
+    where: { id },
+    select: { creadoPorId: true },
+  });
+  if (!existente) return { ok: false, error: "Métrica no encontrada." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó la métrica o un administrador global puede eliminarla." };
+  }
+
   try {
     await prisma.metricaBI.delete({ where: { id } });
   } catch {

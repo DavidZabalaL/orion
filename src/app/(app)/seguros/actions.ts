@@ -149,8 +149,13 @@ export async function editarSeguro(formData: FormData): Promise<ResultadoEditarS
     return { ok: false, error: "Faltan campos obligatorios." };
   }
 
-  const anterior = await prisma.seguro.findUnique({ where: { id } });
+  const anterior = await prisma.seguro.findUnique({ where: { id }, include: { unidad: { select: { proyectoId: true } } } });
   if (!anterior) return { ok: false, error: "Póliza no encontrada." };
+
+  const permitidos = await proyectosPermitidosParaModulo("F");
+  if (permitidos !== null && (!anterior.unidad.proyectoId || !permitidos.includes(anterior.unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para editar pólizas fuera de tus proyectos asignados." };
+  }
 
   let coberturas: CoberturaInput[] = [];
   try {

@@ -1,6 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { esRolGlobal, puedeDescargarPolizaSeguro, puedeVerPolizaSeguro, tienePermisoModulo } from "@/lib/permisos";
+import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
+
+const MODULOS_POR_CARPETA: Record<string, string[]> = {
+  polizas: ["F"],
+  "documentos-unidad": ["A", "B"],
+  tarjetas: ["A", "B"],
+  licencias: ["L"],
+  checklist: ["A.1", "A", "S", "R"],
+  "": ["L", "A.1"],
+};
 
 /**
  * Qué se necesita para ver un archivo, según la carpeta donde se guardó en
@@ -21,6 +32,16 @@ const PERMISO_POR_CARPETA: Record<string, () => Promise<boolean>> = {
 
 async function algunModulo(modulos: string[]): Promise<boolean> {
   for (const m of modulos) if (await tienePermisoModulo(m)) return true;
+  return false;
+}
+
+async function tieneAccesoProyectoEnAlgunModulo(modulos: string[], proyectoId: string | null): Promise<boolean> {
+  for (const m of modulos) {
+    if (m !== "F" && !(await tienePermisoModulo(m))) continue;
+    const permitidos = await proyectosPermitidosParaModulo(m);
+    if (permitidos === null) return true;
+    if (proyectoId ? permitidos.includes(proyectoId) : permitidos.length > 0) return true;
+  }
   return false;
 }
 
@@ -64,6 +85,77 @@ export async function GET(request: NextRequest) {
   const autorizado = permiso ? await permiso() : await esRolGlobal();
   if (!autorizado) {
     return new NextResponse("No tienes permiso para ver este archivo", { status: 403 });
+  }
+
+  if (!(await esRolGlobal())) {
+    const modulosCarpeta = MODULOS_POR_CARPETA[carpeta] ?? [];
+    const doc = await prisma.documento.findFirst({
+      where: { url: parsed.toString() },
+      include: {
+        seguros: { select: { unidad: { select: { proyectoId: true, numeroEconomico: true } } } },
+        documentosUnidad: { select: { unidad: { select: { proyectoId: true, numeroEconomico: true } } } },
+        unidadTarjetaCirculacion: { select: { proyectoId: true, numeroEconomico: true } },
+        unidadTarjetaCombustible: { select: { proyectoId: true, numeroEconomico: true } },
+        checklists: { select: { numeroEconomico: true, unidad: { select: { proyectoId: true } } } },
+        gastos: { select: { proyectoReportanteId: true, numeroEconomico: true, unidad: { select: { proyectoId: true } } } },
+        siniestro: { select: { numeroEconomico: true, unidad: { select: { proyectoId: true } } } },
+        documentosOperador: { select: { operador: { select: { proyectoId: true } } } },
+        operadoresFoto: { select: { proyectoId: true } },
+      },
+    });
+
+    let proyectoId: string | null = null;
+    let numeroEconomico: string | null = null;
+
+    if (doc) {
+      if (doc.seguros[0]?.unidad) {
+        proyectoId = doc.seguros[0].unidad.proyectoId;
+        numeroEconomico = doc.seguros[0].unidad.numeroEconomico;
+      } else if (doc.documentosUnidad[0]?.unidad) {
+        proyectoId = doc.documentosUnidad[0].unidad.proyectoId;
+        numeroEconomico = doc.documentosUnidad[0].unidad.numeroEconomico;
+      } else if (doc.unidadTarjetaCirculacion) {
+        proyectoId = doc.unidadTarjetaCirculacion.proyectoId;
+        numeroEconomico = doc.unidadTarjetaCirculacion.numeroEconomico;
+      } else if (doc.unidadTarjetaCombustible) {
+        proyectoId = doc.unidadTarjetaCombustible.proyectoId;
+        numeroEconomico = doc.unidadTarjetaCombustible.numeroEconomico;
+      } else if (doc.checklists[0]) {
+        proyectoId = doc.checklists[0].unidad?.proyectoId ?? null;
+        numeroEconomico = doc.checklists[0].numeroEconomico;
+      } else if (doc.gastos[0]) {
+        proyectoId = doc.gastos[0].proyectoReportanteId ?? doc.gastos[0].unidad?.proyectoId ?? null;
+        numeroEconomico = doc.gastos[0].numeroEconomico;
+      } else if (doc.siniestro) {
+        proyectoId = doc.siniestro.unidad?.proyectoId ?? null;
+        numeroEconomico = doc.siniestro.numeroEconomico;
+      } else if (doc.documentosOperador[0]?.operador) {
+        proyectoId = doc.documentosOperador[0].operador.proyectoId;
+      } else if (doc.operadoresFoto[0]) {
+        proyectoId = doc.operadoresFoto[0].proyectoId;
+      } else if (doc.entidadId) {
+        if (doc.entidadRelacionada === "DocumentoOperador" || doc.entidadRelacionada === "Operador") {
+          const op = await prisma.operador.findUnique({ where: { id: doc.entidadId }, select: { proyectoId: true } });
+          proyectoId = op?.proyectoId ?? null;
+        } else if (doc.entidadRelacionada === "Unidad" || doc.entidadRelacionada === "DocumentoUnidad") {
+          const u = await prisma.unidad.findUnique({
+            where: { numeroEconomico: doc.entidadId },
+            select: { proyectoId: true, numeroEconomico: true },
+          });
+          proyectoId = u?.proyectoId ?? null;
+          numeroEconomico = u?.numeroEconomico ?? null;
+        }
+      }
+    }
+
+    const restringida = await unidadRestringidaParaOperador();
+    if (restringida.esOperador && numeroEconomico && !restringida.numerosEconomicos.includes(numeroEconomico)) {
+      return new NextResponse("No tienes permiso para ver este archivo", { status: 403 });
+    }
+
+    if (!(await tieneAccesoProyectoEnAlgunModulo(modulosCarpeta, proyectoId))) {
+      return new NextResponse("No tienes permiso para ver este archivo", { status: 403 });
+    }
   }
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;

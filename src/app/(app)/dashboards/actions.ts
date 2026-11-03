@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { tienePermisoModulo } from "@/lib/permisos";
+import { esRolGlobal, tienePermisoModulo } from "@/lib/permisos";
+import { consumirCuotaUsuario } from "@/lib/limite-intentos";
 import { logActivity } from "@/lib/activity";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
@@ -268,7 +269,7 @@ export async function guardarVistaDashboard(input: {
   if (!widgets) return { ok: false, error: "Combinación inválida en uno de los widgets." };
   if (widgets.length === 0) return { ok: false, error: "Agrega al menos una combinación antes de guardar." };
 
-  const rolesPrioritarios = Array.isArray(input.rolesPrioritarios)
+  const rolesPrioritariosSolicitados = Array.isArray(input.rolesPrioritarios)
     ? Array.from(new Set(input.rolesPrioritarios.filter((r): r is string => typeof r === "string" && r.trim().length > 0)))
     : [];
   const proyectosPrioritarios = Array.isArray(input.proyectosPrioritarios)
@@ -277,32 +278,40 @@ export async function guardarVistaDashboard(input: {
 
   const session = await auth();
   const usuarioId = session?.user?.id;
+  if (!usuarioId) return { ok: false, error: "Sesión no válida." };
+  const esGlobal = await esRolGlobal();
 
   try {
     if (input.id) {
+      const existente = await prisma.vistaDashboardBI.findUnique({
+        where: { id: input.id },
+        select: { creadoPorId: true, rolesPrioritarios: true },
+      });
+      if (!existente) return { ok: false, error: "La vista ya no existe." };
+      if (existente.creadoPorId !== usuarioId && !esGlobal) {
+        return { ok: false, error: "Solo quien creó esta vista o un Administrador puede editarla." };
+      }
+      const rolesPrioritarios = esGlobal ? rolesPrioritariosSolicitados : existente.rolesPrioritarios;
       const actualizada = await prisma.vistaDashboardBI.update({
         where: { id: input.id },
         data: { nombre, widgets, rolesPrioritarios, proyectosPrioritarios },
       });
-      if (usuarioId) {
-        await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "update", entidad: "VistaDashboardBI", entidadId: actualizada.id, detalle: { nombre } });
-      }
+      await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "update", entidad: "VistaDashboardBI", entidadId: actualizada.id, detalle: { nombre } });
       revalidatePath("/dashboards");
       return { ok: true, id: actualizada.id };
     }
 
+    const rolesPrioritarios = esGlobal ? rolesPrioritariosSolicitados : [];
     const creada = await prisma.vistaDashboardBI.create({
       data: {
         nombre,
         widgets,
         rolesPrioritarios,
         proyectosPrioritarios,
-        creadoPorId: usuarioId ?? null,
+        creadoPorId: usuarioId,
       },
     });
-    if (usuarioId) {
-      await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "create", entidad: "VistaDashboardBI", entidadId: creada.id, detalle: { nombre } });
-    }
+    await logActivity({ userId: usuarioId, modulo: "dashboards", accion: "create", entidad: "VistaDashboardBI", entidadId: creada.id, detalle: { nombre } });
     revalidatePath("/dashboards");
     return { ok: true, id: creada.id };
   } catch {
@@ -316,13 +325,19 @@ export async function eliminarVistaDashboard(id: string): Promise<ResultadoVista
   }
   if (!id) return { ok: false, error: "Vista inválida." };
 
+  const session = await auth();
+  const existente = await prisma.vistaDashboardBI.findUnique({ where: { id }, select: { creadoPorId: true } });
+  if (!existente) return { ok: false, error: "La vista ya no existe." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó esta vista o un Administrador puede eliminarla." };
+  }
+
   try {
     await prisma.vistaDashboardBI.delete({ where: { id } });
   } catch {
     return { ok: false, error: "No se pudo eliminar la vista." };
   }
 
-  const session = await auth();
   if (session?.user?.id) {
     await logActivity({ userId: session.user.id, modulo: "dashboards", accion: "delete", entidad: "VistaDashboardBI", entidadId: id });
   }
@@ -421,6 +436,11 @@ export async function enviarEstatusFlotaAhora(input: {
   if (!(await tienePermisoModulo("M"))) return { ok: false, error: "No tienes permiso para generar este reporte." };
   if (input.destinatarios.length === 0) return { ok: false, error: "Indica al menos un destinatario." };
 
+  const session = await auth();
+  if (!session?.user?.id || !(await consumirCuotaUsuario("envio_correo", session.user.id, 5, 60_000))) {
+    return { ok: false, error: "Demasiados envíos de correo en poco tiempo. Espera un minuto e intenta de nuevo." };
+  }
+
   try {
     const ids = input.vistaDashboardIds ?? (input.vistaDashboardId ? [input.vistaDashboardId] : []);
     const [datos, vistasDashboard] = await Promise.all([
@@ -518,12 +538,25 @@ export async function guardarProgramacionEstatusFlota(input: {
   const vistaDashboardIds = rawIds.filter((id) => setValidos.has(id));
   const vistaDashboardId = vistaDashboardIds[0] ?? null;
 
+  const permitidos = await alcanceGeneralPermitido();
+  const proyectoIdsValidados = await validarSeleccion(input.proyectoIds, permitidos);
+
+  if (input.id) {
+    const existente = await prisma.reporteProgramado.findUnique({ where: { id: input.id }, select: { creadoPorId: true, tipo: true } });
+    if (!existente || existente.tipo !== TIPO_ESTATUS_FLOTA) {
+      return { ok: false, error: "La programación ya no existe." };
+    }
+    if (existente.creadoPorId !== session.user.id && !(await esRolGlobal())) {
+      return { ok: false, error: "Solo quien creó esta programación o un Administrador puede editarla." };
+    }
+  }
+
   const data = {
     nombre,
     tipo: TIPO_ESTATUS_FLOTA,
     camposJson: [],
     filtrosJson: {
-      proyectoIds: input.proyectoIds,
+      proyectoIds: proyectoIdsValidados,
       camposExtra: camposExtraValidos,
       ordenSecciones: sanearOrdenSecciones(input.ordenSecciones),
       incluirGeneral: input.incluirGeneral,
@@ -554,6 +587,12 @@ export async function guardarProgramacionEstatusFlota(input: {
 export async function eliminarProgramacionEstatusFlota(id: string): Promise<ResultadoSimple> {
   if (!(await tienePermisoModulo("M", "editar"))) {
     return { ok: false, error: "No tienes permiso para eliminar el envío automático." };
+  }
+  const session = await auth();
+  const existente = await prisma.reporteProgramado.findFirst({ where: { id, tipo: TIPO_ESTATUS_FLOTA }, select: { creadoPorId: true } });
+  if (!existente) return { ok: false, error: "La programación ya no existe." };
+  if (existente.creadoPorId !== session?.user?.id && !(await esRolGlobal())) {
+    return { ok: false, error: "Solo quien creó esta programación o un Administrador puede eliminarla." };
   }
   try {
     await prisma.reporteProgramado.deleteMany({ where: { id, tipo: TIPO_ESTATUS_FLOTA } });

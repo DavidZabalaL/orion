@@ -9,6 +9,7 @@ import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { SECCIONES_CHECKLIST_SEMANAL, esNoAplica } from "@/lib/checklist-semanal";
 import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { consumirCuotaUsuario } from "@/lib/limite-intentos";
 import { logActivity } from "@/lib/activity";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import { parseFechaLocalMx } from "@/lib/timezone";
@@ -519,10 +520,20 @@ export type IndicadorChecklistUnidad = {
  * dataset BI "checklist" (ver src/lib/bi/metadata.ts), para que ambos
  * lugares cuenten exactamente lo mismo.
  */
-export async function obtenerIndicadoresChecklistSemanal(proyectosPermitidos: string[] | null): Promise<IndicadorChecklistUnidad[]> {
+export async function obtenerIndicadoresChecklistSemanal(proyectosPermitidos?: string[] | null): Promise<IndicadorChecklistUnidad[]> {
   await exigirPermisoModulo("A.1");
 
-  const filtroProyecto = proyectosPermitidos !== null ? Prisma.sql`AND u."proyectoId" IN (${Prisma.join(proyectosPermitidos)})` : Prisma.empty;
+  const permitidosServidor = await proyectosPermitidosParaModulo("A.1");
+  const permitidosEfectivos =
+    permitidosServidor === null
+      ? (proyectosPermitidos ?? null)
+      : proyectosPermitidos
+        ? proyectosPermitidos.filter((id) => permitidosServidor.includes(id))
+        : permitidosServidor;
+
+  if (permitidosEfectivos !== null && permitidosEfectivos.length === 0) return [];
+
+  const filtroProyecto = permitidosEfectivos !== null ? Prisma.sql`AND u."proyectoId" IN (${Prisma.join(permitidosEfectivos)})` : Prisma.empty;
 
   return prisma.$queryRaw<IndicadorChecklistUnidad[]>`
     SELECT DISTINCT ON (c."numeroEconomico")
@@ -694,6 +705,11 @@ export async function enviarChecklistsPorCorreo(input: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   await exigirPermisoModulo("A.1");
 
+  const session = await auth();
+  if (!session?.user?.id || !(await consumirCuotaUsuario("envio_correo", session.user.id, 5, 60_000))) {
+    return { ok: false, error: "Demasiados envíos de correo en poco tiempo. Espera un minuto e intenta de nuevo." };
+  }
+
   const destinatarios = input.destinatarios.map((d) => d.trim()).filter(Boolean);
   if (destinatarios.length === 0) return { ok: false, error: "Agrega al menos un destinatario." };
   const invalidos = destinatarios.filter((d) => !REGEX_EMAIL.test(d));
@@ -728,8 +744,16 @@ export async function enviarChecklistsPorCorreo(input: {
 export async function cerrarReporteFalla(input: { id: string; costoResolucion?: number; reabrir?: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
   await exigirPermisoModulo("A.1", "editar");
 
-  const checklist = await prisma.checklist.findUnique({ where: { id: input.id }, select: { tipo: true, numeroEconomico: true } });
+  const checklist = await prisma.checklist.findUnique({
+    where: { id: input.id },
+    select: { tipo: true, numeroEconomico: true, unidad: { select: { proyectoId: true } } },
+  });
   if (!checklist || checklist.tipo !== "REPORTE_FALLA") return { ok: false, error: "Este checklist no es un reporte de falla." };
+
+  const permitidos = await proyectosPermitidosParaModulo("A.1");
+  if (permitidos !== null && (!checklist.unidad.proyectoId || !permitidos.includes(checklist.unidad.proyectoId))) {
+    return { ok: false, error: "No tienes permiso para realizar esta acción." };
+  }
 
   if (input.reabrir) {
     await prisma.checklist.update({
