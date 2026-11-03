@@ -15,6 +15,17 @@ import { ControlCapasPuntos } from "@/components/mapa/control-capas-puntos";
 
 export type PuntoRutaHistorial = { lat: number; lng: number; timestamp: string };
 
+// Más de esto entre dos puntos seguidos = tramo sin datos intermedios; se dibuja punteado.
+const SALTO_KM = 2;
+
+function distanciaKm(a: PuntoRutaHistorial, b: PuntoRutaHistorial): number {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
 const AZUL: [number, number, number] = [59, 130, 246];
 const ROJO: [number, number, number] = [239, 68, 68];
 
@@ -47,7 +58,7 @@ function AjustarVista({ ruta }: { ruta: PuntoRutaHistorial[] }) {
   return null;
 }
 
-export function RutaMap({ ruta }: { ruta: PuntoRutaHistorial[] }) {
+export function RutaMap({ ruta, detallada = false }: { ruta: PuntoRutaHistorial[]; detallada?: boolean }) {
   const [manifestCapas, setManifestCapas] = useState<CapaInfo[]>([]);
   const [capasActivas, setCapasActivas] = useState<string[]>([]);
 
@@ -83,6 +94,7 @@ export function RutaMap({ ruta }: { ruta: PuntoRutaHistorial[] }) {
         [p.lat, p.lng],
       ] as [number, number][],
       color: colorEntreTiempo(i / (ruta.length - 2 || 1)),
+      aproximado: distanciaKm(ruta[i], p) > SALTO_KM,
     }));
   }, [ruta]);
 
@@ -100,8 +112,16 @@ export function RutaMap({ ruta }: { ruta: PuntoRutaHistorial[] }) {
   const inicio = ruta[0];
   const fin = ruta[ruta.length - 1];
 
+  const hayTramosAproximados = segmentos.some((s) => s.aproximado);
+
   return (
     <div className="relative w-full">
+      <p className="mb-2" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" }}>
+        {detallada
+          ? "Trazo detallado desde la bitácora del GPS (Intellihub)."
+          : "Trazo aproximado: una muestra cada ~10 min, unida en línea recta."}
+        {hayTramosAproximados && " Los tramos punteados no tienen lecturas intermedias; el camino real puede ser otro."}
+      </p>
       {manifestCapas.length > 0 && (
         <ControlCapasPuntos
           capas={manifestCapas}
@@ -124,7 +144,7 @@ export function RutaMap({ ruta }: { ruta: PuntoRutaHistorial[] }) {
           />
         )}
         {segmentos.map((s, i) => (
-          <Polyline key={i} positions={s.posiciones} pathOptions={{ color: s.color, weight: 4, opacity: 0.85 }} />
+          <Polyline key={i} positions={s.posiciones} pathOptions={{ color: s.color, weight: 4, opacity: s.aproximado ? 0.6 : 0.85, dashArray: s.aproximado ? "6 8" : undefined }} />
         ))}
         <Marker position={[inicio.lat, inicio.lng]} icon={iconoPunto("rgb(59,130,246)", "circulo")}>
           <Popup>Inicio · {fmtFechaHora(inicio.timestamp)}</Popup>

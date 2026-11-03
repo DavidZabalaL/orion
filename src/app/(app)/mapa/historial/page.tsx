@@ -7,7 +7,8 @@ import { fmtFechaHora } from "@/lib/formato";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { parseFechaLocalMx, finDelDiaMx } from "@/lib/timezone";
-import { RutaMapLazy } from "@/components/mapa/ruta-map-lazy";
+import { RutaMapLazy, type PuntoRutaHistorial } from "@/components/mapa/ruta-map-lazy";
+import { obtenerLogVehiculo } from "@/lib/intellihub";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,27 @@ export default async function HistorialRecorridoPage({
       })
     : [];
 
+  // Trazo detallado desde la bitácora de Intellihub; si falla o no hay GPS
+  // ligado, se cae a las muestras guardadas cada ~10 min.
+  let ruta: PuntoRutaHistorial[] = [...posiciones]
+    .reverse()
+    .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng), timestamp: p.timestamp.toISOString() }));
+  let rutaDetallada = false;
+  if (unidadSeleccionada) {
+    const unidad = await prisma.unidad.findUnique({ where: { numeroEconomico: unidadSeleccionada }, select: { intellihubVehicleId: true } });
+    if (unidad?.intellihubVehicleId) {
+      try {
+        const log = await obtenerLogVehiculo(unidad.intellihubVehicleId, desde, hasta);
+        if (log.length > 0) {
+          ruta = log;
+          rutaDetallada = true;
+        }
+      } catch (error) {
+        console.error("historial: no se pudo traer la bitácora de Intellihub", error);
+      }
+    }
+  }
+
   const validos = posiciones.filter((p) => p.kmValidado !== null);
   const distanciaKm = validos.length > 1
     ? Math.max(...validos.map((p) => p.kmValidado!)) - Math.min(...validos.map((p) => p.kmValidado!))
@@ -95,11 +117,7 @@ export default async function HistorialRecorridoPage({
         Distancia validada en el rango: <strong style={{ color: "var(--sidebar-text-active)", fontFamily: "var(--font-mono)" }}>{distanciaKm.toLocaleString("es-MX")} km</strong> · {posiciones.length} lecturas ({validos.length} válidas)
       </div>
 
-      <RutaMapLazy
-        ruta={[...posiciones]
-          .reverse()
-          .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng), timestamp: p.timestamp.toISOString() }))}
-      />
+      <RutaMapLazy ruta={ruta} detallada={rutaDetallada} />
 
       {posiciones.length === 0 ? (
         <EmptyState>Sin lecturas GPS en el rango seleccionado.</EmptyState>

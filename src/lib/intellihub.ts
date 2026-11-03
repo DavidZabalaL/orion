@@ -77,6 +77,47 @@ export async function obtenerEstatusVehiculos(): Promise<EstatusVehiculoIntellih
   return resultados;
 }
 
+/**
+ * Bitácora de posiciones de un vehículo (cada pocos segundos, a diferencia del
+ * cron que solo guarda una foto cada 10 min). Se consulta en vivo para dibujar
+ * el historial; no se persiste. Devuelve los puntos en orden cronológico.
+ */
+export async function obtenerLogVehiculo(
+  vehicleId: number,
+  desde: Date,
+  hasta: Date
+): Promise<{ lat: number; lng: number; timestamp: string }[]> {
+  const token = await obtenerToken();
+  const params = `startDate=${desde.toISOString().slice(0, 19)}Z&endDate=${hasta.toISOString().slice(0, 19)}Z&pageSize=500`;
+
+  async function pagina(n: number) {
+    const respuesta = await fetch(`${BASE_URL}/vehicles/log/${vehicleId}?${params}&pageNumber=${n}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!respuesta.ok) {
+      throw new Error(`Error al consultar /vehicles/log en Intellihub API (HTTP ${respuesta.status}).`);
+    }
+    return (await respuesta.json()) as {
+      totalPages: number;
+      vehicleLogs: { lat: number | null; lon: number | null; logDateUTC: string }[] | null;
+    };
+  }
+
+  // La primera página dice cuántas hay; el resto se pide en paralelo (7 días ≈ 10 páginas).
+  const primera = await pagina(1);
+  // shortcut: tope de 60 páginas (~30k puntos, semanas de recorrido); rangos más largos se truncan.
+  const total = Math.min(primera.totalPages ?? 1, 60);
+  const resto = await Promise.all(Array.from({ length: total - 1 }, (_, i) => pagina(i + 2)));
+
+  const puntos = [primera, ...resto]
+    .flatMap((p) => p.vehicleLogs ?? [])
+    .filter((l) => l.lat != null && l.lon != null && l.logDateUTC)
+    .map((l) => ({ lat: l.lat as number, lng: l.lon as number, timestamp: l.logDateUTC }));
+
+  return puntos.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
 export function mphAKmh(mph: number): number {
   return mph * MILLAS_A_KM;
 }
