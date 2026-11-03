@@ -42,6 +42,7 @@ function rehidratarFechasAlcance<T extends {
   hasta: Date;
   proximosServicios: { fecha: Date }[];
   siniestrosDetalle?: { fecha: Date }[];
+  indisponibilidadDetalle?: { fechaIngresoTaller?: Date | null; fechaEstimadaSalida?: Date | null }[];
   apoyosCompras?: { fecha: Date; fechaPago?: Date | null }[];
   apoyosFinanzas?: { fecha: Date; fechaPago?: Date | null }[];
   apoyosOtros?: { fecha: Date; fechaPago?: Date | null }[];
@@ -52,6 +53,11 @@ function rehidratarFechasAlcance<T extends {
     hasta: new Date(alcance.hasta),
     proximosServicios: (alcance.proximosServicios ?? []).map((s) => ({ ...s, fecha: new Date(s.fecha) })),
     siniestrosDetalle: (alcance.siniestrosDetalle ?? []).map((s) => ({ ...s, fecha: new Date(s.fecha) })),
+    indisponibilidadDetalle: (alcance.indisponibilidadDetalle ?? []).map((u) => ({
+      ...u,
+      fechaIngresoTaller: u.fechaIngresoTaller ? new Date(u.fechaIngresoTaller) : null,
+      fechaEstimadaSalida: u.fechaEstimadaSalida ? new Date(u.fechaEstimadaSalida) : null,
+    })),
     apoyosCompras: (alcance.apoyosCompras ?? []).map((a) => ({ ...a, fecha: new Date(a.fecha), fechaPago: a.fechaPago ? new Date(a.fechaPago) : null })),
     apoyosFinanzas: (alcance.apoyosFinanzas ?? []).map((a) => ({ ...a, fecha: new Date(a.fecha), fechaPago: a.fechaPago ? new Date(a.fechaPago) : null })),
     apoyosOtros: (alcance.apoyosOtros ?? []).map((a) => ({ ...a, fecha: new Date(a.fecha), fechaPago: a.fechaPago ? new Date(a.fechaPago) : null })),
@@ -156,7 +162,9 @@ export function EstatusFlotaModal({
   puedeEditar: boolean;
 }) {
   const primera = configuracionesIniciales[0];
-  const [seleccionados, setSeleccionados] = useState<string[]>(primera?.proyectoIds ?? []);
+  const [seleccionados, setSeleccionados] = useState<string[]>(() =>
+    (primera?.proyectoIds ?? []).filter((id) => proyectosDisponibles.some((p) => p.id === id))
+  );
   const [desde, setDesde] = useState(hoyISO(-7));
   const [hasta, setHasta] = useState(hoyISO());
   const [destinatarios, setDestinatarios] = useState(primera?.destinatarios.join(", ") ?? "");

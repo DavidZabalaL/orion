@@ -107,12 +107,14 @@ function fmtMoneyPdf(valor: number): string {
   return `$${Math.round(valor).toLocaleString("es-MX")}`;
 }
 
-function fmtFechaPdf(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
+function fmtFechaPdf(fecha: Date | string): string {
+  const d = fecha instanceof Date ? fecha : new Date(fecha);
+  return d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
-function fmtFechaCorta(fecha: Date): string {
-  return fecha.toLocaleDateString("es-MX", { month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
+function fmtFechaCorta(fecha: Date | string): string {
+  const d = fecha instanceof Date ? fecha : new Date(fecha);
+  return d.toLocaleDateString("es-MX", { month: "short", day: "numeric", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 
 function Tarjeta({ titulo, children, flexBasis }: { titulo: string; children: React.ReactNode; flexBasis?: number }) {
