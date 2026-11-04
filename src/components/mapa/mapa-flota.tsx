@@ -109,7 +109,7 @@ export function MapaFlota({ unidades, tipos }: { unidades: UnidadMapaRow[]; tipo
     return () => document.removeEventListener("mousedown", alClickFuera);
   }, []);
 
-  const ruta: PuntoRuta[] = useMemo(() => detalle?.ruta.map((p) => ({ lat: p.lat, lng: p.lng })) ?? [], [detalle]);
+  const ruta: PuntoRuta[] = useMemo(() => (detalle?.trazo ?? detalle?.ruta)?.map((p) => ({ lat: p.lat, lng: p.lng })) ?? [], [detalle]);
 
   const proyectos = useMemo(() => {
     const set = new Set(unidades.map((u) => u.proyecto ?? "Sin proyecto"));

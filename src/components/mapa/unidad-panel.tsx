@@ -29,6 +29,8 @@ export type DetalleUnidad = {
   rangoDias: number;
   kmRango: number;
   ruta: { lat: number; lng: number; timestamp: string; velocidad: number | null }[];
+  /** Trazo detallado de Intellihub para la línea del mapa; null si no se pudo traer. */
+  trazo: { lat: number; lng: number }[] | null;
 };
 
 const filaStyle: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text)" };

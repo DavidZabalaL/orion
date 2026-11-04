@@ -9,6 +9,7 @@ import { exigirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import { obtenerLogVehiculo } from "@/lib/intellihub";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ nume
       capacidadTanqueLitros: true,
       rendimientoPromedio: true,
       proyectoId: true,
+      intellihubVehicleId: true,
       proyecto: { select: { nombre: true } },
       resguardante: { select: { nombre: true } },
     },
@@ -64,6 +66,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ nume
       orderBy: { kmActual: "desc" },
     }),
   ]);
+
+  // Trazo del mapa desde la bitácora de Intellihub (un punto cada pocos segundos);
+  // las muestras guardadas cada ~10 min se unían en línea recta y no seguían las calles.
+  // Si falla, el cliente usa `ruta`.
+  let trazo: { lat: number; lng: number }[] | null = null;
+  if (unidad.intellihubVehicleId) {
+    try {
+      const log = await obtenerLogVehiculo(unidad.intellihubVehicleId, inicioRango, new Date());
+      if (log.length > 1) trazo = log.map((p) => ({ lat: p.lat, lng: p.lng }));
+    } catch (error) {
+      console.error("mapa/detalle: no se pudo traer la bitácora de Intellihub", error);
+    }
+  }
 
   const kmValidadosRango = posicionesRango.map((p) => p.kmValidado).filter((v): v is number => v !== null);
   const kmRango = kmValidadosRango.length > 1 ? Math.max(...kmValidadosRango) - Math.min(...kmValidadosRango) : 0;
@@ -99,6 +114,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ nume
       : null,
     combustible,
     rangoDias: dias,
+    trazo,
     kmRango: Math.round(kmRango),
     // Si el rango pedido no trae ninguna lectura (unidad sin movimiento
     // reciente, o cuyo GPS dejó de reportar hace semanas/meses — ver
