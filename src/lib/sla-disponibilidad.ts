@@ -113,14 +113,13 @@ export async function calcularSlaMesActualPorUnidades(numerosEconomicos: string[
  * de estatus de flota (periodo elegido libremente desde el Dashboard).
  */
 export async function calcularSlaPorUnidadesEnRango(numerosEconomicos: string[], rango: { desde: Date; hasta: Date }): Promise<Map<string, SlaUnidad>> {
-  const resultado = new Map<string, SlaUnidad>();
-  if (numerosEconomicos.length === 0) return resultado;
+  return (await calcularSlaPorUnidadesEnRangos(numerosEconomicos, [rango]))[0];
+}
 
+/** Igual, para varios rangos con una sola lectura del historial (un Map por rango, en el mismo orden) — usado por el Comparador de Dashboards. */
+export async function calcularSlaPorUnidadesEnRangos(numerosEconomicos: string[], rangos: { desde: Date; hasta: Date }[]): Promise<Map<string, SlaUnidad>[]> {
   const porUnidad = await obtenerPeriodosPorUnidad(numerosEconomicos);
-  for (const numeroEconomico of numerosEconomicos) {
-    resultado.set(numeroEconomico, calcularSlaEnRango(porUnidad.get(numeroEconomico) ?? [], rango));
-  }
-  return resultado;
+  return rangos.map((rango) => new Map(numerosEconomicos.map((n) => [n, calcularSlaEnRango(porUnidad.get(n) ?? [], rango)])));
 }
 
 /**

@@ -5,7 +5,7 @@
 import { prisma } from "@/lib/prisma";
 
 export type AccionAccesoBI = "vio" | "exporto_pdf" | "exporto_excel" | "exporto_imagen" | "recibio_correo";
-export type TipoRecursoBI = "vista_dashboard" | "explorador" | "reporte_programado";
+export type TipoRecursoBI = "vista_dashboard" | "explorador" | "reporte_programado" | "comparador";
 
 export async function registrarAccesoReporteBI(input: {
   userId: string;

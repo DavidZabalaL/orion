@@ -120,6 +120,39 @@ export function colorParaValor(valor: number, columna: string, reglas: ReglaColo
   return null;
 }
 
+const OPERADORES_REGLA_COLOR_VALIDOS: OperadorReglaColor[] = ["mayor", "menor", "igual", "entre", "personalizada", "sobre_promedio", "bajo_promedio", "mayor_que_columna", "menor_que_columna"];
+const MAX_REGLAS_COLOR = 20;
+
+/** Validación en el servidor de reglas que llegan del cliente (widgets, comparador): undefined = sin reglas, null = inválidas. */
+export function validarReglasColor(reglas: unknown): ReglaColorColumna[] | undefined | null {
+  if (reglas === undefined) return undefined;
+  if (!Array.isArray(reglas) || reglas.length > MAX_REGLAS_COLOR) return null;
+  const limpias: ReglaColorColumna[] = [];
+  for (const r of reglas) {
+    if (!r || typeof r !== "object") return null;
+    const { id, columna, operador, valor, valorMin, valorMax, expresion, color, columnaComparada } = r as Record<string, unknown>;
+    if (typeof id !== "string" || typeof columna !== "string" || typeof color !== "string") return null;
+    if (!OPERADORES_REGLA_COLOR_VALIDOS.includes(operador as OperadorReglaColor)) return null;
+    if (valor !== undefined && typeof valor !== "number") return null;
+    if (valorMin !== undefined && typeof valorMin !== "number") return null;
+    if (valorMax !== undefined && typeof valorMax !== "number") return null;
+    if (expresion !== undefined && typeof expresion !== "string") return null;
+    if (columnaComparada !== undefined && typeof columnaComparada !== "string") return null;
+    limpias.push({
+      id,
+      columna: columna.slice(0, 200),
+      operador: operador as OperadorReglaColor,
+      valor,
+      valorMin,
+      valorMax,
+      expresion: typeof expresion === "string" ? expresion.slice(0, 100) : undefined,
+      columnaComparada: typeof columnaComparada === "string" && columnaComparada ? columnaComparada.slice(0, 200) : undefined,
+      color: color.slice(0, 20),
+    });
+  }
+  return limpias;
+}
+
 /** Promedio simple de una serie — helper compartido para pasarlo a `colorParaValor` cuando se colorea una lista completa (tabla, barras). */
 export function promedioDe(valores: number[]): number | undefined {
   if (valores.length === 0) return undefined;

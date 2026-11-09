@@ -347,6 +347,7 @@ model Usuario {
   presupuestosPartidaCargados         PresupuestoPartida[]
   notificacionesLeidas                NotificacionLeida[]
   vistasDashboardBI                   VistaDashboardBI[]
+  comparacionesGuardadas              ComparacionGuardada[]
   actividad                           ActivityLog[]
   ticketsReportados                   TicketRescate[]                     @relation("TicketReportadoPor")
   ticketsAsignados                    TicketRescate[]                     @relation("TicketAsignadoA")
@@ -1175,6 +1176,23 @@ model VistaDashboardBI {
   creadoPor             Usuario? @relation(fields: [creadoPorId], references: [id])
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+// ───────────────────────── DASHBOARDS BI — COMPARACIONES GUARDADAS ─────────────────────────
+// Configuración del Comparador (métricas × periodos, desglose y alcance) con
+// nombre, visible para quien tenga acceso a Dashboards. `config` ya viene
+// validada contra el catálogo BI al guardar y se revalida al ejecutar; los
+// periodos con atajo ("Mes anterior") se recalculan al abrirla. Ver
+// src/lib/bi/comparador-tipos.ts.
+
+model ComparacionGuardada {
+  id          String   @id @default(cuid())
+  nombre      String
+  config      Json
+  creadoPorId String
+  creadoPor   Usuario  @relation(fields: [creadoPorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ───────────────────────── CAPA SEMÁNTICA — MÉTRICAS BI ─────────────────────────

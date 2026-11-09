@@ -78,17 +78,20 @@ export type AlcanceProyecto = {
   llave: string;
 };
 
+/** Lo elegido por el llamador ∩ lo que su rol puede ver en el módulo M (null = todos los proyectos). */
+export async function proyectosEfectivos(proyectoIdsElegidos: string[] | undefined): Promise<string[] | null> {
+  const permitidos = await proyectosPermitidosParaModulo("M");
+  if (!Array.isArray(proyectoIdsElegidos) || proyectoIdsElegidos.length === 0) return permitidos;
+  return permitidos === null ? proyectoIdsElegidos : proyectoIdsElegidos.filter((id) => permitidos.includes(id));
+}
+
 /**
  * Alcance de proyecto obligatorio: intersecta lo elegido por el llamador con
  * lo que su rol realmente puede ver (`proyectosPermitidosParaModulo`). Se
  * agrega SIEMPRE como condición WHERE, separada de `filtros`.
  */
 export async function resolverAlcanceProyecto(dataset: DatasetMeta, proyectoIdsElegidos: string[] | undefined): Promise<AlcanceProyecto> {
-  const permitidos = await proyectosPermitidosParaModulo("M");
-  let efectivos: string[] | null = permitidos;
-  if (Array.isArray(proyectoIdsElegidos) && proyectoIdsElegidos.length > 0) {
-    efectivos = permitidos === null ? proyectoIdsElegidos : proyectoIdsElegidos.filter((id) => permitidos.includes(id));
-  }
+  const efectivos = await proyectosEfectivos(proyectoIdsElegidos);
   if (efectivos === null) return { condicion: Prisma.empty, llave: "ALL" };
   if (efectivos.length === 0) return { condicion: Prisma.sql`FALSE`, llave: "NONE" };
   return { condicion: Prisma.sql`${Prisma.raw(dataset.proyectoScopeExpr)} IN (${Prisma.join(efectivos)})`, llave: [...efectivos].sort().join(",") };

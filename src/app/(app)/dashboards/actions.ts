@@ -33,7 +33,7 @@ import {
   type DatasetMeta,
 } from "@/lib/bi/metadata";
 import { validarColumnasTabla } from "@/lib/bi/motor-consultas";
-import type { ReglaColorColumna, OperadorReglaColor } from "@/lib/bi/reglas-color";
+import { validarReglasColor } from "@/lib/bi/reglas-color";
 
 export type ResultadoVistaDashboard = { ok: boolean; error?: string; id?: string };
 
@@ -57,38 +57,6 @@ function validarFiltros(filtros: unknown, ds: DatasetMeta): FiltroGuardable[] | 
     limpios.push({ campoId, valores: valores.map((v: string) => v.slice(0, 200)) });
   }
   return limpios;
-}
-
-const OPERADORES_REGLA_COLOR_VALIDOS: OperadorReglaColor[] = ["mayor", "menor", "igual", "entre", "personalizada", "sobre_promedio", "bajo_promedio", "mayor_que_columna", "menor_que_columna"];
-const MAX_REGLAS_COLOR = 20;
-
-function validarReglasColor(reglas: unknown): ReglaColorColumna[] | undefined | null {
-  if (reglas === undefined) return undefined;
-  if (!Array.isArray(reglas) || reglas.length > MAX_REGLAS_COLOR) return null;
-  const limpias: ReglaColorColumna[] = [];
-  for (const r of reglas) {
-    if (!r || typeof r !== "object") return null;
-    const { id, columna, operador, valor, valorMin, valorMax, expresion, color, columnaComparada } = r as Record<string, unknown>;
-    if (typeof id !== "string" || typeof columna !== "string" || typeof color !== "string") return null;
-    if (!OPERADORES_REGLA_COLOR_VALIDOS.includes(operador as OperadorReglaColor)) return null;
-    if (valor !== undefined && typeof valor !== "number") return null;
-    if (valorMin !== undefined && typeof valorMin !== "number") return null;
-    if (valorMax !== undefined && typeof valorMax !== "number") return null;
-    if (expresion !== undefined && typeof expresion !== "string") return null;
-    if (columnaComparada !== undefined && typeof columnaComparada !== "string") return null;
-    limpias.push({
-      id,
-      columna: columna.slice(0, 200),
-      operador: operador as OperadorReglaColor,
-      valor,
-      valorMin,
-      valorMax,
-      expresion: typeof expresion === "string" ? expresion.slice(0, 100) : undefined,
-      columnaComparada: typeof columnaComparada === "string" && columnaComparada ? columnaComparada.slice(0, 200) : undefined,
-      color: color.slice(0, 20),
-    });
-  }
-  return limpias;
 }
 
 function validarProyectoIds(proyectoIds: unknown): string[] | undefined | null {

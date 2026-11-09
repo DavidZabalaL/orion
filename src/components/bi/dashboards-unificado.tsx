@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sigma, LayoutGrid, Compass, CalendarClock, MailCheck } from "lucide-react";
+import { Sigma, LayoutGrid, Compass, CalendarClock, MailCheck, GitCompareArrows } from "lucide-react";
 import { BiDashboardEditor, type VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import { BiExplorer, type MetricaDisponible } from "@/components/bi/bi-explorer";
+import { Comparador } from "@/components/bi/comparador";
+import type { ComparacionGuardadaVista } from "@/app/(app)/dashboards/comparador-actions";
 import type { ProyectoDisponible } from "@/components/bi/selectores-combinacion";
 import { ExportRegistryProvider } from "@/components/dashboard/ExportRegistryContext";
 import { EstatusFlotaModal } from "@/components/dashboard/EstatusFlotaModal";
@@ -13,8 +15,15 @@ import type { ConfigEstatusFlotaProgramado } from "@/app/(app)/dashboards/action
 const TABS = [
   { id: "propios", label: "Mis dashboards", icon: LayoutGrid },
   { id: "explorador", label: "Explorador libre", icon: Compass },
+  { id: "comparador", label: "Comparador", icon: GitCompareArrows },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
+
+const DESCRIPCION_TAB: Record<TabId, string> = {
+  propios: "Guarda tus propias vistas con las combinaciones que más uses.",
+  explorador: "Combina cualquier dimensión con cualquier métrica, pregunta en lenguaje natural, o pide un resumen automático.",
+  comparador: "Compara varias métricas entre 2 y 4 periodos, en total o desglosadas por proyecto o unidad.",
+};
 
 /**
  * Antes eran dos pantallas separadas (/dashboards con la cuadrícula de
@@ -31,6 +40,7 @@ export function DashboardsUnificado({
   tabInicial,
   configuracionesEstatusFlota,
   abrirEstatusFlota = false,
+  comparacionesGuardadas,
 }: {
   vistas: VistaDashboard[];
   puedeEditar: boolean;
@@ -41,6 +51,7 @@ export function DashboardsUnificado({
   configuracionesEstatusFlota: ConfigEstatusFlotaProgramado[];
   /** Abre el configurador de "Estatus de flota" al cargar (botón Editar de /reportes/programados). */
   abrirEstatusFlota?: boolean;
+  comparacionesGuardadas: ComparacionGuardadaVista[];
 }) {
   const [tab, setTab] = useState<TabId>(tabInicial);
   const [mostrarEstatusFlota, setMostrarEstatusFlota] = useState(abrirEstatusFlota);
@@ -54,9 +65,7 @@ export function DashboardsUnificado({
               Dashboards
             </h1>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-              {tab === "propios"
-                ? "Guarda tus propias vistas con las combinaciones que más uses."
-                : "Combina cualquier dimensión con cualquier métrica, pregunta en lenguaje natural, o pide un resumen automático."}
+              {DESCRIPCION_TAB[tab]}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -116,6 +125,9 @@ export function DashboardsUnificado({
           />
         )}
         {tab === "explorador" && <BiExplorer proyectosDisponibles={proyectosDisponibles} metricasDisponibles={metricasDisponibles} />}
+        {tab === "comparador" && (
+          <Comparador proyectosDisponibles={proyectosDisponibles} metricasDisponibles={metricasDisponibles} comparacionesGuardadas={comparacionesGuardadas} puedeEditar={puedeEditar} />
+        )}
 
         {mostrarEstatusFlota && (
           <EstatusFlotaModal

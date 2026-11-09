@@ -10,6 +10,7 @@ import type { VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
 import type { ConfigEstatusFlotaProgramado } from "@/app/(app)/dashboards/actions";
+import type { ConfigComparador } from "@/lib/bi/comparador-tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function DashboardsPage({
   const { tab, generar } = await searchParams;
 
   const proyectosPermitidos = await proyectosPermitidosParaModulo("M");
-  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reportesEstatusFlota, rolesDb, session, asignados] = await Promise.all([
+  const [vistasDb, puedeEditar, proyectosDisponibles, metricas, reportesEstatusFlota, rolesDb, session, asignados, comparacionesDb] = await Promise.all([
     prisma.vistaDashboardBI.findMany({
       orderBy: { createdAt: "asc" },
       select: { id: true, nombre: true, widgets: true, rolesPrioritarios: true, proyectosPrioritarios: true },
@@ -38,6 +39,7 @@ export default async function DashboardsPage({
     prisma.rol.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
     auth(),
     obtenerProyectosAsignados(),
+    prisma.comparacionGuardada.findMany({ orderBy: { nombre: "asc" }, select: { id: true, nombre: true, config: true, creadoPorId: true } }),
   ]);
 
   // Uno o más envíos automáticos (a pedido: poder tener un 2do/3er reporte
@@ -123,9 +125,11 @@ export default async function DashboardsPage({
       proyectosDisponibles={proyectosDisponibles}
       rolesDisponibles={rolesDb}
       metricasDisponibles={metricasDisponibles}
-      tabInicial={tab === "explorador" ? "explorador" : "propios"}
+      tabInicial={tab === "explorador" || tab === "comparador" ? tab : "propios"}
       configuracionesEstatusFlota={configuracionesEstatusFlota}
       abrirEstatusFlota={generar === "estatus-flota"}
+      // `config` se validó contra el catálogo al guardarse y se revalida en el servidor al ejecutar.
+      comparacionesGuardadas={comparacionesDb.map((c) => ({ ...c, config: c.config as unknown as ConfigComparador }))}
     />
   );
 }
