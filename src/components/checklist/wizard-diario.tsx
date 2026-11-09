@@ -143,10 +143,8 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
 
   // Guia phase
   const [estados, setEstados] = useState<Record<string, "ok" | "revisar">>(borradorInicial?.estados ?? {});
-  // Las fotos ya NO se suben al tomarlas — se comprimen y se guardan en
-  // memoria (archivo comprimido, unos cientos de KB) hasta que se envía todo
-  // el checklist al final. Así ningún paso intermedio depende de tener buena
-  // señal; solo el envío final la necesita. Ver enviar().
+  // Fotos comprimidas que aún no terminan de subir en segundo plano; al subir
+  // salen de aquí y su URL pasa a `urlsSubidas`. Ver los handlers y enviar().
   const [archivosPorPunto, setArchivosPorPunto] = useState<Record<string, File>>({});
 
   // Lecturas phase
@@ -486,15 +484,9 @@ export function WizardDiario({ unidades, proyectos, esAdmin, fechaHoraActual, pe
       fd.set("evidenciaUrl", urls["evidenciaUrl"] ?? "");
       if (esGrua && urls["foto_horometro"]) fd.set("foto_horometro", urls["foto_horometro"]);
       for (const [k, v] of Object.entries(estados)) fd.set(`punto_${k}`, v);
-      for (const k of Object.keys(archivosPorPunto)) {
-        const url = urls[`foto_${k}`];
-        if (url) fd.set(`foto_${k}`, url);
-      }
       for (const [k, v] of Object.entries(respuestasExtra)) fd.set(k, v);
-      for (const campo of Object.keys(archivosExtra)) {
-        const url = urls[campo];
-        if (url) fd.set(campo, url);
-      }
+      // Todas las URLs, no solo las de archivos aún en memoria: lo ya subido en segundo plano ya salió de archivosPorPunto/archivosExtra.
+      for (const [campo, url] of Object.entries(urls)) if (campo !== "evidenciaUrl" && campo !== "foto_horometro") fd.set(campo, url);
       if (firmaBase64) fd.set("seg_firma_responsable", firmaBase64);
       const res = await crearChecklist(fd);
       if (!res.ok) { setError(res.error); return; }

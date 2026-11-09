@@ -1,12 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ClipboardCheck, Fuel, AlertTriangle } from "lucide-react";
 import { WizardDiario } from "@/components/checklist/wizard-diario";
 import { WizardSemanal } from "@/components/checklist/wizard-semanal";
 import { WizardCargaCombustible } from "@/components/checklist/wizard-carga-combustible";
 import { WizardReporteFalla } from "@/components/checklist/wizard-reporte-falla";
+import { leerBorrador } from "@/lib/borrador-checklist";
+
+// Cada valor es también la clave de borrador de su wizard (CLAVE_BORRADOR en wizard-*.tsx).
+type TipoChecklist = "diario" | "semanal" | "carga_combustible" | "reporte_falla";
+
+// Android puede matar la pestaña mientras la app de Cámara está al frente y recargarla al volver, lo que
+// regresaba al operador a estas tarjetas. sessionStorage (sobrevive la recarga, muere con la pestaña)
+// recuerda qué wizard estaba abierto para reabrirlo solo; su borrador restaura el paso.
+const CLAVE_EN_CURSO = "orion-checklist-en-curso";
+
+function leerEnCurso(): TipoChecklist | null {
+  try {
+    const tipo = window.sessionStorage.getItem(CLAVE_EN_CURSO) as TipoChecklist | null;
+    return tipo && leerBorrador(tipo) !== null ? tipo : null;
+  } catch {
+    return null;
+  }
+}
+
+const sinSuscripcion = () => () => {};
 
 type UnidadWizard = {
   numeroEconomico: string;
@@ -33,10 +53,24 @@ type Props = {
 
 export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual, permitirGaleriaFotos, permitirApoyoOperador }: Props) {
   const router = useRouter();
-  const [activo, setActivo] = useState<null | "diario" | "semanal" | "carga_combustible" | "reporte_falla">(null);
+  // El servidor pinta siempre las tarjetas (null); el wizard en curso se lee ya en el cliente, sin desajuste de hidratación.
+  const enCurso = useSyncExternalStore(sinSuscripcion, leerEnCurso, () => null);
+  // undefined = aún sin decidir; se fija una sola vez para que borrar el borrador al terminar no cierre el wizard.
+  const [activo, setActivo] = useState<TipoChecklist | null | undefined>(undefined);
+  if (activo === undefined && enCurso) setActivo(enCurso);
+
+  function abrir(tipo: TipoChecklist | null) {
+    try {
+      if (tipo) window.sessionStorage.setItem(CLAVE_EN_CURSO, tipo);
+      else window.sessionStorage.removeItem(CLAVE_EN_CURSO);
+    } catch {
+      // Sin sessionStorage solo se pierde la reapertura automática tras una recarga.
+    }
+    setActivo(tipo);
+  }
 
   function alTerminar() {
-    setActivo(null);
+    abrir(null);
     router.refresh();
   }
 
@@ -49,7 +83,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         fechaHoraActual={fechaHoraActual}
         permitirGaleriaFotos={permitirGaleriaFotos}
         onTerminar={alTerminar}
-        onCancelar={() => setActivo(null)}
+        onCancelar={() => abrir(null)}
       />
     );
   }
@@ -64,7 +98,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         permitirGaleriaFotos={permitirGaleriaFotos}
         permitirApoyoOperador={permitirApoyoOperador}
         onTerminar={alTerminar}
-        onCancelar={() => setActivo(null)}
+        onCancelar={() => abrir(null)}
       />
     );
   }
@@ -76,7 +110,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         permitirGaleriaFotos={permitirGaleriaFotos}
         permitirApoyoOperador={permitirApoyoOperador}
         onTerminar={alTerminar}
-        onCancelar={() => setActivo(null)}
+        onCancelar={() => abrir(null)}
       />
     );
   }
@@ -87,7 +121,7 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
         unidades={unidades}
         permitirGaleriaFotos={permitirGaleriaFotos}
         onTerminar={alTerminar}
-        onCancelar={() => setActivo(null)}
+        onCancelar={() => abrir(null)}
       />
     );
   }
@@ -97,25 +131,25 @@ export function ChecklistEntrada({ unidades, proyectos, esAdmin, fechaHoraActual
       <TarjetaIniciar
         titulo="Checklist Diario"
         descripcion="Odómetro, 6 puntos de inspección y evidencia fotográfica. Reemplaza el formulario de Fast Field."
-        onClick={() => setActivo("diario")}
+        onClick={() => abrir("diario")}
         icono={<ClipboardCheck size={28} color="var(--color-primary)" />}
       />
       <TarjetaIniciar
         titulo="Checklist Semanal"
         descripcion="Inspección completa de 59 puntos: niveles, exterior, interior y herramientas."
-        onClick={() => setActivo("semanal")}
+        onClick={() => abrir("semanal")}
         icono={<ClipboardCheck size={28} color="var(--color-primary)" />}
       />
       <TarjetaIniciar
         titulo="Carga de Combustible"
         descripcion="Registro de carga con zona, responsable, vehículo, evidencia fotográfica y firma digital."
-        onClick={() => setActivo("carga_combustible")}
+        onClick={() => abrir("carga_combustible")}
         icono={<Fuel size={28} color="var(--color-status-revision)" />}
       />
       <TarjetaIniciar
         titulo="Reporte de Falla"
         descripcion="Reporta una falla del vehículo — notifica de inmediato al Gerente administrativo del proyecto."
-        onClick={() => setActivo("reporte_falla")}
+        onClick={() => abrir("reporte_falla")}
         icono={<AlertTriangle size={28} color="var(--color-status-escena)" />}
       />
     </div>
