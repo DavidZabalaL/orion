@@ -13,6 +13,11 @@ export function inicioDeHoyMx(): Date {
   return new Date(ahoraEnMarcoMx.getTime() + OFFSET_MX_HORAS * HORA_MS);
 }
 
+/** "YYYY-MM-DD" de hoy en México. new Date().toISOString() da el día UTC: desde las 18:00 MX ya es mañana. */
+export function hoyMx(): string {
+  return new Date(Date.now() - OFFSET_MX_HORAS * HORA_MS).toISOString().slice(0, 10);
+}
+
 /** Medianoche del día 1 del mes actual en hora de México, expresada como instante UTC. */
 export function inicioDeMesMx(): Date {
   const ahoraEnMarcoMx = new Date(Date.now() - OFFSET_MX_HORAS * HORA_MS);

@@ -20,7 +20,7 @@ import { resolverIdentidadTurno, mismaIdentidad } from "@/lib/identidad-turno";
 import { tieneAlertaChecklist, construirHojasExcelChecklists, construirHojaIndicadores, TIPO_CHECKLIST_LABEL } from "@/lib/checklist-exportar";
 import { generarExcelBuffer } from "@/lib/exportar-excel";
 import { enviarChecklistsExcel } from "@/lib/email";
-import { detectarAlertasCargaCombustible } from "@/lib/checklist-carga-combustible-alertas";
+import { detectarAlertasCargaCombustible, validarMontosCarga, PRECIO_LITRO_MIN, PRECIO_LITRO_MAX } from "@/lib/checklist-carga-combustible-alertas";
 import type { TipoChecklist, TipoVehiculo } from "@/generated/prisma/enums";
 import { TIPOS_IMAGEN, nombreArchivoSeguro, validarTipoArchivo } from "@/lib/validar-archivo";
 
@@ -299,6 +299,8 @@ export async function crearChecklistCargaCombustible(
     const firmaResponsable = String(formData.get("carg_firma_responsable") ?? "").trim();
 
     if (!fecha) return { ok: false, error: "La fecha es obligatoria." };
+    const fechaCarga = parseFechaLocalMx(fecha);
+    if (!fechaCarga || fechaCarga.getTime() > Date.now()) return { ok: false, error: "La fecha de la carga no puede ser futura." };
     if (!zona || !(ESTADOS_CARGA as readonly string[]).includes(zona))
       return { ok: false, error: "Estado no válido." };
     if (!municipio) return { ok: false, error: "El municipio es obligatorio." };
@@ -313,8 +315,8 @@ export async function crearChecklistCargaCombustible(
       return { ok: false, error: "El % de combustible antes de la carga es obligatorio y debe estar entre 0 y 100." };
     if (!porcentajeDespues || Number(porcentajeDespues) < 0 || Number(porcentajeDespues) > 100)
       return { ok: false, error: "El % de combustible después de la carga es obligatorio y debe estar entre 0 y 100." };
-    if (!litrosCargados || Number(litrosCargados) <= 0) return { ok: false, error: "Los litros cargados son obligatorios." };
-    if (!cantidadPagada || Number(cantidadPagada) <= 0) return { ok: false, error: "La cantidad pagada es obligatoria." };
+    const errorMontos = validarMontosCarga(litrosCargados, cantidadPagada);
+    if (errorMontos) return { ok: false, error: errorMontos };
     if (!fotoOdometroAntes) return { ok: false, error: "La foto del odómetro antes es obligatoria." };
     if (!fotoOdometroDespues) return { ok: false, error: "La foto del odómetro después es obligatoria." };
     if (!fotoEvidenciaBomba1) return { ok: false, error: "La evidencia de bomba es obligatoria." };
@@ -362,7 +364,7 @@ export async function crearChecklistCargaCombustible(
       data: {
         numeroEconomico,
         tipo: "CARGA_COMBUSTIBLE",
-        fecha: parseFechaLocalMx(fecha)!,
+        fecha: fechaCarga,
         puntosInspeccion: {},
         respuestasSemanal: respuestas,
         capturadoPorId: session.user.id,
@@ -597,6 +599,8 @@ export async function obtenerPrecioPromedioLitroCargaCombustible(): Promise<numb
       AND (c."respuestasSemanal"->>'litros_cargados') ~ '^[0-9]+(\.[0-9]+)?$'
       AND (c."respuestasSemanal"->>'cantidad_pagada') ~ '^[0-9]+(\.[0-9]+)?$'
       AND (c."respuestasSemanal"->>'litros_cargados')::numeric > 0
+      -- Sin los capturados con el punto decimal mal (ej. 30976 L): uno solo movía el promedio y alertaba a todos.
+      AND (c."respuestasSemanal"->>'cantidad_pagada')::numeric / (c."respuestasSemanal"->>'litros_cargados')::numeric BETWEEN ${PRECIO_LITRO_MIN} AND ${PRECIO_LITRO_MAX}
   `;
   const promedio = filas[0]?.promedio;
   return promedio != null ? Number(promedio) : null;

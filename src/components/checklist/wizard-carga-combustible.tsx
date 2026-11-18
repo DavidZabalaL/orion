@@ -17,6 +17,9 @@ import {
   type EstadoCarga,
   type AreaCarga,
 } from "@/lib/checklist-carga-combustible";
+import { validarMontosCarga } from "@/lib/checklist-carga-combustible-alertas";
+import { hoyMx } from "@/lib/timezone";
+
 
 type UnidadWizard = {
   numeroEconomico: string;
@@ -67,6 +70,8 @@ const labelStyle: React.CSSProperties = {
 
 const CLAVE_BORRADOR = "carga_combustible";
 type BorradorCargaCombustible = {
+  /** Día (MX) en que se guardó: el borrador solo rescata recargas del mismo día. */
+  dia?: string;
   fase: Fase;
   fecha: string;
   zona: EstadoCarga;
@@ -136,14 +141,18 @@ export function WizardCargaCombustible({
   onTerminar: () => void;
   onCancelar: () => void;
 }) {
-  const [borradorInicial] = useState(() => leerBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR));
+  // Un borrador de otro día es una carga abandonada: reusarlo dejaba su fecha (y sus fotos) en la carga nueva.
+  const [borradorInicial] = useState(() => {
+    const b = leerBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR);
+    return b?.dia === hoyMx() ? b : null;
+  });
 
   const [fase, setFase] = useState<Fase>(borradorInicial?.fase ?? "vehiculo");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   // Fase vehiculo
-  const [fecha, setFecha] = useState(borradorInicial?.fecha ?? new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(borradorInicial?.fecha ?? hoyMx());
   const [tipoVehiculo, setTipoVehiculo] = useState(borradorInicial?.tipoVehiculo ?? "CAMIONETA");
   const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
 
@@ -174,7 +183,7 @@ export function WizardCargaCombustible({
   useEffect(() => {
     if (fase === "exito") return;
     guardarBorrador<BorradorCargaCombustible>(CLAVE_BORRADOR, {
-      fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia,
+      dia: hoyMx(), fase, fecha, zona, municipio, area, responsable, tipoLicencia, urlLicencia,
       tipoVehiculo, numeroEconomico, tipoCombustible, porcentajeAntes, porcentajeDespues,
       litrosCargados, cantidadPagada, observaciones, urlsFotosCarga,
     });
@@ -256,7 +265,17 @@ export function WizardCargaCombustible({
     setFase("carga");
   }
 
+  function validarCarga() {
+    for (const [txt, nombre] of [[porcentajeAntes, "antes"], [porcentajeDespues, "después"]] as const) {
+      if (!txt.trim() || !(Number(txt) >= 0 && Number(txt) <= 100))
+        return `El % de combustible ${nombre} de la carga es obligatorio y debe estar entre 0 y 100.`;
+    }
+    return validarMontosCarga(litrosCargados, cantidadPagada);
+  }
+
   function continuarDesdeCarga() {
+    const err = validarCarga();
+    if (err) { setError(err); return; }
     setError(null);
     setFase("generales");
   }
@@ -363,7 +382,7 @@ export function WizardCargaCombustible({
               <input
                 type="date"
                 value={fecha}
-                max={new Date().toISOString().slice(0, 10)}
+                max={hoyMx()}
                 onChange={(e) => setFecha(e.target.value)}
                 style={fieldStyle}
               />
@@ -488,7 +507,7 @@ export function WizardCargaCombustible({
                 label="Odómetro antes de cargar"
                 requerido
                 permitirGaleria={permitirGaleriaFotos}
-                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_antes}
+                initialUrl={urlsFotosCarga.carg_foto_odometro_antes}
                 bloqueado={procesandoFotoCarga}
                 onSubiendoChange={setProcesandoFotoCarga}
                 onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
@@ -502,7 +521,7 @@ export function WizardCargaCombustible({
                 label="Evidencia de bomba"
                 requerido
                 permitirGaleria={permitirGaleriaFotos}
-                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_1}
+                initialUrl={urlsFotosCarga.carg_foto_evidencia_bomba_1}
                 bloqueado={procesandoFotoCarga}
                 onSubiendoChange={setProcesandoFotoCarga}
                 onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
@@ -527,7 +546,7 @@ export function WizardCargaCombustible({
                 label="Odómetro después de cargar"
                 requerido
                 permitirGaleria={permitirGaleriaFotos}
-                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_odometro_despues}
+                initialUrl={urlsFotosCarga.carg_foto_odometro_despues}
                 bloqueado={procesandoFotoCarga}
                 onSubiendoChange={setProcesandoFotoCarga}
                 onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
@@ -541,7 +560,7 @@ export function WizardCargaCombustible({
                 label="Evidencia de bomba 2 (opcional)"
                 requerido={false}
                 permitirGaleria={permitirGaleriaFotos}
-                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_evidencia_bomba_2}
+                initialUrl={urlsFotosCarga.carg_foto_evidencia_bomba_2}
                 bloqueado={procesandoFotoCarga}
                 onSubiendoChange={setProcesandoFotoCarga}
                 onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}
@@ -555,7 +574,7 @@ export function WizardCargaCombustible({
                 label="Foto del ticket"
                 requerido
                 permitirGaleria={permitirGaleriaFotos}
-                initialUrl={borradorInicial?.urlsFotosCarga.carg_foto_ticket}
+                initialUrl={urlsFotosCarga.carg_foto_ticket}
                 bloqueado={procesandoFotoCarga}
                 onSubiendoChange={setProcesandoFotoCarga}
                 onSubidaPendienteChange={(p) => setSubidasPendientesCarga((n) => n + (p ? 1 : -1))}

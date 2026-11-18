@@ -5,7 +5,7 @@ import { ChecklistHistorialLista } from "@/components/checklist/checklist-histor
 import { SelectorFiltrosHistorial } from "@/components/checklist/selector-filtros-historial";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
-import { parseFechaLocalMx } from "@/lib/timezone";
+import { parseFechaLocalMx, hoyMx } from "@/lib/timezone";
 import { obtenerPrecioPromedioLitroCargaCombustible } from "@/app/(app)/checklist/actions";
 import { tieneAlertaChecklist } from "@/lib/checklist-exportar";
 import type { TipoVehiculo, TipoChecklist } from "@/generated/prisma/enums";
@@ -29,7 +29,7 @@ export default async function HistorialChecklistPage({
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A.1");
   const { desde: desdeParam, hasta: hastaParam, tipo, proyectoId, tipoVehiculo, soloAlertas } = await searchParams;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyMx();
   const desde = desdeParam ?? hoy;
   const hasta = hastaParam ?? hoy;
   const { inicio } = rangoDia(desde);

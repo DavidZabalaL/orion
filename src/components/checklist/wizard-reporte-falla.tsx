@@ -6,6 +6,7 @@ import { crearChecklistReporteFalla } from "@/app/(app)/checklist/actions";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { DEPARTAMENTOS_FALLA, TIPOS_FALLA, MAX_FOTOS_REPORTE_FALLA } from "@/lib/checklist-reporte-falla";
 import { leerBorrador, guardarBorrador, borrarBorrador } from "@/lib/borrador-checklist";
+import { hoyMx } from "@/lib/timezone";
 
 type UnidadWizard = {
   numeroEconomico: string;
@@ -35,10 +36,6 @@ const labelStyle: React.CSSProperties = {
   display: "block",
   marginBottom: 4,
 };
-
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function horaActual() {
   return new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -81,7 +78,7 @@ export function WizardReporteFalla({
 
   const [numeroEconomico, setNumeroEconomico] = useState(borradorInicial?.numeroEconomico ?? "");
   const [kilometraje, setKilometraje] = useState(borradorInicial?.kilometraje ?? "");
-  const [fecha, setFecha] = useState(borradorInicial?.fecha ?? hoyISO());
+  const [fecha, setFecha] = useState(borradorInicial?.fecha ?? hoyMx());
   const [hora, setHora] = useState(borradorInicial?.hora ?? horaActual());
   const [nombreConductor, setNombreConductor] = useState(borradorInicial?.nombreConductor ?? "");
   const [departamento, setDepartamento] = useState<string>(borradorInicial?.departamento ?? DEPARTAMENTOS_FALLA[0]);
@@ -192,7 +189,7 @@ export function WizardReporteFalla({
 
         <div>
           <label style={labelStyle}>Fecha de reporte *</label>
-          <input type="date" value={fecha} max={hoyISO()} onChange={(e) => setFecha(e.target.value)} style={fieldStyle} />
+          <input type="date" value={fecha} max={hoyMx()} onChange={(e) => setFecha(e.target.value)} style={fieldStyle} />
         </div>
 
         <div>

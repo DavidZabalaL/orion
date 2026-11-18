@@ -8,6 +8,7 @@ import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 import { CampoFotoSemanal } from "@/components/checklist/campo-foto-semanal";
 import { SECCIONES_CHECKLIST_SEMANAL, type CampoSemanal } from "@/lib/checklist-semanal";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
+import { hoyMx } from "@/lib/timezone";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -171,7 +172,7 @@ export function ChecklistSemanalForm({ unidades, sedes }: { unidades: Unidad[]; 
     setRespuestas((r) => ({ ...r, [key]: v }));
   }
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyMx();
 
   return (
     <form

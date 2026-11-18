@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requerirPermisoModulo } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
+import { hoyMx } from "@/lib/timezone";
 import { obtenerComparativoCargaCombustible } from "@/app/(app)/checklist/actions";
 import { SelectorFiltrosCombustible } from "@/components/checklist/selector-filtros-combustible";
 import { ComparativoCombustibleLista } from "@/components/checklist/comparativo-combustible-lista";
@@ -18,7 +19,7 @@ export default async function ComparativoCombustiblePage({
   const proyectosPermitidos = await proyectosPermitidosParaModulo("A.1");
   const { desde: desdeParam, hasta: hastaParam, proyectoId, tipoVehiculo, soloAlertas } = await searchParams;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyMx();
   const desde = desdeParam ?? hoy;
   const hasta = hastaParam ?? hoy;
   const filtroSoloAlertas = soloAlertas === "1";

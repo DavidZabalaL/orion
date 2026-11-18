@@ -5,6 +5,7 @@ import { crearCombustible } from "@/app/(app)/combustible/actions";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
+import { hoyMx } from "@/lib/timezone";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -124,7 +125,7 @@ export function CombustibleForm({
         )}
         <div>
           <CampoAyuda style={labelStyle} texto="Fecha en la que se realizó la carga.">Fecha *</CampoAyuda>
-          <input name="fecha" type="date" required max={new Date().toISOString().slice(0, 10)} style={fieldStyle} />
+          <input name="fecha" type="date" required max={hoyMx()} style={fieldStyle} />
         </div>
         <div>
           <CampoAyuda style={labelStyle} texto="Cantidad de combustible cargado, en litros.">Litros *</CampoAyuda>
