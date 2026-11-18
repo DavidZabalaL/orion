@@ -346,6 +346,7 @@ export function FichaUnidad({
   motivosCombustible = {},
   gastoUnidad,
   kmOficial,
+  kmBase = null,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -366,6 +367,8 @@ export function FichaUnidad({
   gastoUnidad?: { anio: GastoUnidad; historico: GastoUnidad };
   /** Km oficial triangulado (src/lib/km-oficial.ts) y lo que dice cada fuente. */
   kmOficial?: KmOficialFicha;
+  /** Km al inicio del año en curso (KmBaseAnual), base de "km recorridos en el año". */
+  kmBase?: KmBaseFicha | null;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -557,7 +560,7 @@ export function FichaUnidad({
         </div>
 
         <div className="pt-5">
-          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} gastoUnidad={gastoUnidad} kmOficial={kmOficial} />}
+          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} gastoUnidad={gastoUnidad} kmOficial={kmOficial} kmBase={kmBase} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} insumos={insumos} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "llantas" && <TabLlantas historial={unidad.historialLlantas ?? []} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
@@ -623,6 +626,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+type KmBaseFicha = { anio: number; km: number; fecha: string; fuente: string };
+
 type KmOficialFicha = {
   oficial: { km: number; fecha: string; fuente: FuenteKm } | null;
   discrepancia: boolean;
@@ -669,6 +674,7 @@ function TabGeneral({
   rendimientoPlataforma,
   gastoUnidad,
   kmOficial,
+  kmBase,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -676,7 +682,9 @@ function TabGeneral({
   rendimientoPlataforma: { kmL: number; cargas: number } | null;
   gastoUnidad?: { anio: GastoUnidad; historico: GastoUnidad };
   kmOficial?: KmOficialFicha;
+  kmBase?: KmBaseFicha | null;
 }) {
+  const kmActual = kmOficial?.oficial?.km ?? Number(unidad.kmOficial);
   const estatusVisible = estatusVisibleUnidad(unidad.estatus, disponible);
   const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
   return (
@@ -705,6 +713,21 @@ function TabGeneral({
           ) : (
             <Field label="Km oficial" value={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km`} />
           )}
+          <Field
+            label={kmBase ? `Km recorridos en ${kmBase.anio}` : "Km recorridos en el año"}
+            value={
+              kmBase ? (
+                <>
+                  {(kmActual - kmBase.km).toLocaleString("es-MX")} km{" "}
+                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 400, color: "var(--sidebar-text)" }}>
+                    · desde {kmBase.km.toLocaleString("es-MX")} km al {fmtFecha(kmBase.fecha)}
+                  </span>
+                </>
+              ) : (
+                "Sin km de inicio de año"
+              )
+            }
+          />
           {gastoUnidad && (
             <Field label="Gasto total" value={<GastoUnidadCampo numeroEconomico={unidad.numeroEconomico} anio={gastoUnidad.anio} historico={gastoUnidad.historico} />} />
           )}

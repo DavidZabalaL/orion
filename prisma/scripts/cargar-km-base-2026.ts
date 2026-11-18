@@ -3,10 +3,13 @@
 // 1-ene-2026 (cargas del estado de cuenta con km y checklists, ver
 // primeraLecturaConfiable en src/lib/km-oficial.ts); si la unidad no tiene
 // lectura en enero usa la primera posterior y la marca. Desde 2027 la base la
-// crea sola el cron de GPS. Por defecto solo simula; con --aplicar inserta (no
+// crea sola el cron de GPS. Con --archivo, el km al 1-ene del Excel de Control
+// Vehicular (columnas: N° económico, placas, km; "SIN REGISTRO" = sin dato) manda
+// sobre lo calculado. Por defecto solo simula; con --aplicar inserta (no
 // pisa bases ya cargadas). Uso:
-//   npx tsx prisma/scripts/cargar-km-base-2026.ts [--aplicar] [--detalle]
+//   npx tsx prisma/scripts/cargar-km-base-2026.ts [--archivo <ruta.xlsx>] [--aplicar] [--detalle]
 import "dotenv/config";
+import * as XLSX from "xlsx";
 import { prisma } from "../../src/lib/prisma";
 import { Prisma } from "../../src/generated/prisma/client";
 import { primeraLecturaConfiable, cuadran, type Lectura } from "../../src/lib/km-oficial";
@@ -17,6 +20,15 @@ const INICIO = new Date("2026-01-01T06:00:00Z"); // medianoche MX
 const FIN_ENERO = new Date("2026-02-01T06:00:00Z");
 const aplicar = process.argv.includes("--aplicar");
 const dia = (d: Date) => d.toISOString().slice(0, 10);
+const iArchivo = process.argv.indexOf("--archivo");
+const archivo = iArchivo > 0 ? process.argv[iArchivo + 1] : null;
+
+/** N° económico → km al 1-ene del Excel; solo las celdas numéricas ("SIN REGISTRO" queda fuera). */
+function leerArchivo(ruta: string): Map<string, number> {
+  const wb = XLSX.readFile(ruta);
+  const filas = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: null, raw: true }).slice(1);
+  return new Map(filas.filter((r) => r[0] && typeof r[2] === "number" && r[2] >= 0).map((r) => [String(r[0]).trim(), Math.round(r[2] as number)]));
+}
 
 type Fila = { numeroEconomico: string; fecha: Date; km: number; fuente: "CARGA" | "CHECKLIST" };
 
@@ -39,9 +51,16 @@ async function main() {
   const oficialPor = new Map(oficiales.map((o) => [o.numeroEconomico, o]));
   const kmActual = new Map(oficiales.map((o) => [o.numeroEconomico, o.oficial?.km ?? o.actual]));
 
+  const kmArchivo = archivo ? leerArchivo(archivo) : new Map<string, number>();
+  const ajenas = [...kmArchivo.keys()].filter((n) => !numeros.includes(n));
+  if (archivo) console.log(`Archivo: ${kmArchivo.size} unidades con km al 1-ene${ajenas.length ? ` · no existen o están de baja en Orión (se ignoran): ${ajenas.join(", ")}` : ""}`);
+
   const propuestas = numeros.map((n) => {
     const lecturas = porUnidad.get(n)!;
-    const base = primeraLecturaConfiable(lecturas) as (Lectura & { fuente: string }) | null;
+    const kmEnero = kmArchivo.get(n);
+    const base = (kmEnero != null
+      ? { km: kmEnero, fecha: INICIO, gps: null, fuente: "ARCHIVO" }
+      : primeraLecturaConfiable(lecturas)) as (Lectura & { fuente: string }) | null;
     const enEnero = lecturas.filter((l) => l.fecha < FIN_ENERO).length;
     const oficial = oficialPor.get(n)?.oficial;
     // Una base que no cuadra con el km actual (más km que hoy, o más de 1,000 km/día) es un dato basura del estado de cuenta: no se inserta.
@@ -74,9 +93,16 @@ async function main() {
     }
   }
 
+  // Con archivo, "SIN REGISTRO" solo se completa con una lectura de enero: una base de otro mes no es la de enero.
+  const insertables = propuestas.filter((p) => p.base && p.cuadraConActual && (!archivo || p.base.fecha < FIN_ENERO));
+  const porFuente = new Map<string, number>();
+  for (const p of insertables) porFuente.set(p.base!.fuente, (porFuente.get(p.base!.fuente) ?? 0) + 1);
+  console.log(`\nSe insertarían ${insertables.length} bases: ${[...porFuente].map(([f, c]) => `${f} ${c}`).join(" · ")}`);
+  console.log(`Sin base ${ANIO}: ${propuestas.filter((p) => !insertables.includes(p)).map((p) => p.n).join(", ")}`);
+
   if (aplicar) {
     const { count } = await prisma.kmBaseAnual.createMany({
-      data: propuestas.filter((p) => p.base && p.cuadraConActual).map((p) => ({ numeroEconomico: p.n, anio: ANIO, km: p.base!.km, fuente: p.base!.fuente, fecha: p.base!.fecha })),
+      data: insertables.map((p) => ({ numeroEconomico: p.n, anio: ANIO, km: p.base!.km, fuente: p.base!.fuente, fecha: p.base!.fecha })),
       skipDuplicates: true,
     });
     console.log(`\nInsertadas: ${count} (las que ya tenían base ${ANIO} no se tocaron).`);

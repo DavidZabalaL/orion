@@ -158,10 +158,14 @@ export default async function FichaUnidadPage({
   );
 
   // Gasto total de la unidad (año en curso e histórico) con desglose por partida.
-  const [gastoAnio, gastoHistorico, lecturasKm] = await Promise.all([
+  const [gastoAnio, gastoHistorico, lecturasKm, kmBase] = await Promise.all([
     gastoPorUnidad([numeroEconomico], inicioDeAnioMx()),
     gastoPorUnidad([numeroEconomico], null),
     cargarLecturasKm([numeroEconomico]).then((m) => m.get(numeroEconomico)!),
+    prisma.kmBaseAnual.findUnique({
+      where: { numeroEconomico_anio: { numeroEconomico, anio: inicioDeAnioMx().getUTCFullYear() } },
+      select: { anio: true, km: true, fecha: true, fuente: true },
+    }),
   ]);
   // Km oficial con la regla triangulada en vivo (el cron lo guarda cada 10 min) y lo que dice cada fuente.
   const resultadoKm = resolverKmOficial(lecturasKm);
@@ -189,6 +193,7 @@ export default async function FichaUnidadPage({
       motivosCombustible={motivosCombustible}
       gastoUnidad={{ anio: gastoAnio.get(numeroEconomico)!, historico: gastoHistorico.get(numeroEconomico)! }}
       kmOficial={kmOficial}
+      kmBase={JSON.parse(JSON.stringify(kmBase))}
     />
   );
 }
