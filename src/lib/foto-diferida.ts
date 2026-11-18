@@ -1,5 +1,6 @@
 import { comprimirImagen } from "@/lib/comprimir-imagen";
 import { subirFotoChecklist } from "@/app/(app)/checklist/actions";
+import { recargarSiVersionNueva, MENSAJE_VERSION_NUEVA } from "@/lib/version-nueva";
 
 export type ResultadoFotoDiferida = { ok: true; url: string } | { ok: false; error: string };
 
@@ -26,7 +27,13 @@ export async function prepararFotoDiferida(file: File): Promise<{ archivo: File;
   const subida = (async (): Promise<ResultadoFotoDiferida> => {
     const fd = new FormData();
     fd.set("file", archivo);
-    const r = await subirFotoChecklist(fd);
+    let r: Awaited<ReturnType<typeof subirFotoChecklist>>;
+    try {
+      r = await subirFotoChecklist(fd);
+    } catch (e) {
+      // Nunca rechazar: los wizards solo usan .then(), y una promesa rechazada dejaba la foto sin URL ni aviso.
+      return { ok: false, error: recargarSiVersionNueva(e) ? MENSAJE_VERSION_NUEVA : "No se pudo subir la foto. Revisa tu conexión." };
+    }
     if (!r.ok) return { ok: false, error: r.error };
     return { ok: true, url: r.url };
   })();

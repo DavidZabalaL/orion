@@ -5,6 +5,7 @@ import { Plus, X, Camera, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { registrarAccidente } from "@/app/(app)/accidentes/actions";
 import { subirFotoChecklist } from "@/app/(app)/checklist/actions";
+import { recargarSiVersionNueva, MENSAJE_VERSION_NUEVA } from "@/lib/version-nueva";
 
 const fieldStyle: React.CSSProperties = {
   background: "var(--field-bg)",
@@ -57,6 +58,7 @@ export function FormAccidente({ numeroEconomico, operadorId }: Props) {
       if (!result.ok) throw new Error(result.error);
       setEvidencias((prev) => [...prev, result.url]);
     } catch (e) {
+      if (recargarSiVersionNueva(e)) return setError(MENSAJE_VERSION_NUEVA);
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
     } finally {
       setSubiendoFoto(false);

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Camera, CheckCircle2, Loader2 } from "lucide-react";
 import { subirFotoChecklist } from "@/app/(app)/checklist/actions";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
+import { recargarSiVersionNueva, MENSAJE_VERSION_NUEVA } from "@/lib/version-nueva";
 
 export function CampoFotoSemanal({
   name,
@@ -71,6 +72,7 @@ export function CampoFotoSemanal({
       if (!result.ok) throw new Error(result.error);
       actualizarUrl(result.url);
     } catch (e) {
+      if (recargarSiVersionNueva(e)) return setError(MENSAJE_VERSION_NUEVA);
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
       setListo(false);
       setNombreArchivo(null);

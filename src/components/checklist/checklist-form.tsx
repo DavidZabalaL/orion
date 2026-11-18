@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Camera, CheckCircle2, Loader2 } from "lucide-react";
 import { crearChecklist, subirFotoChecklist } from "@/app/(app)/checklist/actions";
+import { recargarSiVersionNueva, MENSAJE_VERSION_NUEVA } from "@/lib/version-nueva";
 import { CampoAyuda } from "@/components/ui/campo-ayuda";
 import { ComboboxUnidad } from "@/components/ui/combobox-unidad";
 // PUNTOS_INSPECCION moved to @/lib/checklist (server action files may only export async functions)
@@ -66,6 +67,7 @@ export function ChecklistForm({
       if (!result.ok) throw new Error(result.error);
       setFotoUrl(result.url);
     } catch (e) {
+      if (recargarSiVersionNueva(e)) return setError(MENSAJE_VERSION_NUEVA);
       setError(e instanceof Error ? e.message : "No se pudo subir la foto. Intenta de nuevo.");
       setFotoNombre(null);
     } finally {
