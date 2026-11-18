@@ -6,7 +6,8 @@ import { requerirPermisoModulo, esRolGlobal, puedeVerSlaDisponibilidad } from "@
 import { proyectosPermitidosParaModulo, unidadRestringidaParaOperador } from "@/lib/proyectos-usuario";
 import { CATALOGO_WIDGETS_UNIDADES, WIDGETS_DEFAULT_UNIDADES, generarLayoutsPorDefecto, esLayoutValido, conAlturaSegura, type WidgetConfigItem, type WidgetActivo } from "@/lib/widgets";
 import Link from "next/link";
-import { inicioDeHoyMx } from "@/lib/timezone";
+import { inicioDeHoyMx, inicioDeAnioMx } from "@/lib/timezone";
+import { gastoPorUnidad, rendimientoReal } from "@/lib/gasto-unidad";
 import { calcularDiasSinOperar } from "@/lib/actividad-unidad";
 import { calcularSlaMesActualPorUnidades } from "@/lib/sla-disponibilidad";
 import { preferenciaOcultaPorUsuario, CLAVE_OCULTAR_SLA_DISPONIBILIDAD } from "@/lib/preferencias-usuario";
@@ -26,7 +27,7 @@ export default async function UnidadesPage() {
   // compilador no aplica aquí.
   // eslint-disable-next-line react-hooks/purity
   const treintaDias = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos] = await Promise.all([
+  const [unidades, ultimosMantenimientos, proximosMantenimientos, ultimosCombustibles, ultimosTags, ultimosGps, segurosProximos, basesKm] = await Promise.all([
     prisma.unidad.findMany({
       where: { ...(proyectosPermitidos !== null ? { proyectoId: { in: proyectosPermitidos } } : {}), ...filtroOperador },
       include: {
@@ -57,6 +58,8 @@ export default async function UnidadesPage() {
       },
       _count: { id: true },
     }),
+    // Km al inicio del año (KmBaseAnual) para la columna "Km recorridos (año)".
+    prisma.kmBaseAnual.findMany({ where: { anio: inicioDeAnioMx().getUTCFullYear() }, select: { numeroEconomico: true, km: true, fecha: true } }),
   ]);
 
   const ultimoPorEconomico = new Map(ultimosMantenimientos.map((m) => [m.numeroEconomico, m._max.fecha]));
@@ -65,6 +68,7 @@ export default async function UnidadesPage() {
   const ultimoTagPorEconomico = new Map(ultimosTags.map((m) => [m.numeroEconomico as string, m._max.fecha]));
   const ultimoGpsPorEconomico = new Map(ultimosGps.map((m) => [m.numeroEconomico, m._max.timestamp]));
   const conSeguroProximo = new Set(segurosProximos.map((s) => s.numeroEconomico));
+  const basePorEconomico = new Map(basesKm.map((b) => [b.numeroEconomico, b]));
 
   const rows: UnidadRow[] = unidades.map((u) => {
     const { diasSinOperar, origen, fuente } = calcularDiasSinOperar(
@@ -98,11 +102,22 @@ export default async function UnidadesPage() {
       slaPorcentaje: null,
       motivoIndisponibilidad: u.motivoIndisponibilidad,
       motivoIndisponibilidadDetalle: u.motivoIndisponibilidadDetalle,
+      numeroSerie: u.numeroSerie,
+      anio: u.anio,
+      tipoCombustible: u.tipoCombustible,
+      capacidadTanqueLitros: u.capacidadTanqueLitros != null ? Number(u.capacidadTanqueLitros) : null,
+      rendimientoFicha: u.rendimientoPromedio != null ? Number(u.rendimientoPromedio) : null,
+      kmOficial: u.kmOficial,
+      rendimientoRealAnio: null,
+      gastoAnio: 0,
+      kmBaseAnio: basePorEconomico.get(u.numeroEconomico)?.km ?? null,
+      fechaBaseAnio: basePorEconomico.get(u.numeroEconomico)?.fecha.toISOString() ?? null,
+      kmRecorridosAnio: basePorEconomico.has(u.numeroEconomico) ? u.kmOficial - basePorEconomico.get(u.numeroEconomico)!.km : null,
     };
   });
 
   const hoyInicio = inicioDeHoyMx();
-  const [gastoHoyAgg, configWidgets, puedeConfigurar, puedeVerSla, slaOculto] = await Promise.all([
+  const [gastoHoyAgg, configWidgets, puedeConfigurar, puedeVerSla, slaOculto, gastosAnio] = await Promise.all([
     prisma.gastoVehicular.aggregate({
       where: { fecha: { gte: hoyInicio }, ...(proyectosPermitidos !== null ? { unidad: { proyectoId: { in: proyectosPermitidos } } } : {}) },
       _sum: { costo: true },
@@ -111,7 +126,14 @@ export default async function UnidadesPage() {
     esRolGlobal(),
     puedeVerSlaDisponibilidad(),
     preferenciaOcultaPorUsuario(CLAVE_OCULTAR_SLA_DISPONIBILIDAD),
+    // Columnas opcionales de gasto y rendimiento del año: consultas agrupadas para todas las unidades (sin N+1).
+    gastoPorUnidad(unidades.map((u) => u.numeroEconomico), inicioDeAnioMx()),
   ]);
+  for (const row of rows) {
+    const g = gastosAnio.get(row.numeroEconomico)!;
+    row.gastoAnio = g.total;
+    row.rendimientoRealAnio = rendimientoReal(g);
+  }
 
   const gastoHoy = Number(gastoHoyAgg._sum.costo ?? 0);
 

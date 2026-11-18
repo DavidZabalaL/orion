@@ -557,12 +557,32 @@ model Unidad {
   consumosInsumos    ConsumoInsumo[]
   documentos         DocumentoUnidad[]
   historialLlantas   HistorialLlanta[]
+  kmBasesAnuales     KmBaseAnual[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([proyectoId])
   @@index([estatus])
+}
+
+/// Km de cada unidad al inicio del año: base de "km recorridos en el año"
+/// (km oficial − base). 2026 se carga con prisma/scripts/cargar-km-base-2026.ts;
+/// desde 2027 la crea el cron de GPS el 1-ene con el km oficial al cierre
+/// (asegurarBaseAnual en src/lib/km-oficial-datos.ts).
+model KmBaseAnual {
+  id              String   @id @default(cuid())
+  numeroEconomico String
+  unidad          Unidad   @relation(fields: [numeroEconomico], references: [numeroEconomico])
+  anio            Int
+  km              Int
+  /// CARGA | CHECKLIST | GPS | KM_OFICIAL (cierre del año anterior) | ARCHIVO
+  fuente          String
+  /// Fecha de la lectura usada; posterior a enero = la unidad no tuvo lectura en enero.
+  fecha           DateTime
+  createdAt       DateTime @default(now())
+
+  @@unique([numeroEconomico, anio])
 }
 
 model DocumentoUnidad {

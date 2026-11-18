@@ -3,14 +3,14 @@
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Download, Plus, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Search, Download, Plus, ChevronRight, Eye, EyeOff, Columns3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   ESTATUS_UNIDAD_LABEL,
   TIPO_VEHICULO_LABEL,
   estatusVisibleUnidad,
 } from "@/lib/estatus";
-import { fmtFecha } from "@/lib/formato";
+import { fmtFecha, fmtMoney } from "@/lib/formato";
 import { labelFuenteActividad, type FuenteActividad } from "@/lib/actividad-unidad";
 import { ToggleDisponibilidad } from "@/components/unidades/toggle-disponibilidad";
 import { alternarOcultarSlaDisponibilidad } from "@/app/(app)/unidades/actions";
@@ -39,7 +39,47 @@ export type UnidadRow = {
   /** Motivo del periodo de indisponibilidad actualmente abierto (HistoricoDisponibilidadUnidad) — null si está disponible o si nunca se registró un motivo. */
   motivoIndisponibilidad: MotivoIndisponibilidad | null;
   motivoIndisponibilidadDetalle: string | null;
+  numeroSerie: string;
+  anio: number;
+  tipoCombustible: string;
+  capacidadTanqueLitros: number | null;
+  rendimientoFicha: number | null;
+  kmOficial: number;
+  /** Año en curso (hora MX), mismo cálculo que la ficha y el comparativo — ver src/lib/gasto-unidad.ts. */
+  rendimientoRealAnio: number | null;
+  gastoAnio: number;
+  /** Km al inicio del año en curso (KmBaseAnual) y su fecha; null = sin base. Fecha posterior a enero = sin lectura en enero. */
+  kmBaseAnio: number | null;
+  fechaBaseAnio: string | null;
+  /** Km oficial − base del año. */
+  kmRecorridosAnio: number | null;
 };
+
+type ColumnaExtra = { id: string; label: string; valor: (r: UnidadRow) => string | number | null; sufijo?: string; moneda?: boolean };
+
+/** Columnas opcionales del selector "Columnas" — ocultas por defecto; la elección se recuerda en este navegador. */
+const COLUMNAS_EXTRA: ColumnaExtra[] = [
+  { id: "kmOficial", label: "Km oficial", valor: (r) => r.kmOficial, sufijo: " km" },
+  { id: "numeroSerie", label: "N° de serie", valor: (r) => r.numeroSerie },
+  { id: "anio", label: "Año", valor: (r) => String(r.anio) },
+  { id: "tipoCombustible", label: "Combustible", valor: (r) => r.tipoCombustible },
+  { id: "capacidadTanque", label: "Tanque", valor: (r) => r.capacidadTanqueLitros, sufijo: " L" },
+  { id: "rendimientoFicha", label: "Rend. ficha", valor: (r) => r.rendimientoFicha, sufijo: " km/L" },
+  { id: "rendimientoReal", label: "Rend. real (año)", valor: (r) => r.rendimientoRealAnio, sufijo: " km/L" },
+  { id: "gastoAnio", label: "Gasto (año)", valor: (r) => r.gastoAnio, moneda: true },
+  { id: "kmBaseAnio", label: "Km al 1-ene", valor: (r) => r.kmBaseAnio, sufijo: " km" },
+  // La base de una unidad sin lectura en enero es su primera lectura posterior: se avisa (mes en hora MX, UTC-6).
+  { id: "fechaBaseAnio", label: "Fecha de la base", valor: (r) => (r.fechaBaseAnio ? fmtFecha(r.fechaBaseAnio) + (new Date(Date.parse(r.fechaBaseAnio) - 6 * 3_600_000).getUTCMonth() > 0 ? " (sin dato en enero)" : "") : null) },
+  { id: "kmRecorridosAnio", label: "Km recorridos (año)", valor: (r) => r.kmRecorridosAnio, sufijo: " km" },
+];
+const CLAVE_COLUMNAS = "inventario-unidades:columnas";
+
+function textoColumna(c: ColumnaExtra, r: UnidadRow): string {
+  const v = c.valor(r);
+  if (v == null) return "—";
+  if (c.moneda) return fmtMoney(v);
+  return typeof v === "number" ? `${v.toLocaleString("es-MX")}${c.sufijo ?? ""}` : v;
+}
 
 function motivoTexto(r: UnidadRow): string {
   if (r.disponibilidad) return "—";
@@ -59,11 +99,12 @@ const SEMAFORO_LABEL: Record<string, string> = {
   rojo: "Parada por daño, baja, mantenimiento o inactiva",
 };
 
-function exportarExcelUnidades(rows: UnidadRow[], incluirSla: boolean) {
+function exportarExcelUnidades(rows: UnidadRow[], incluirSla: boolean, extras: ColumnaExtra[]) {
   const headers = [
     "N° económico", "Placas", "Tipo", "Marca", "Unidad", "Proyecto", "Estatus", "Disponible", "Motivo", "Días sin operar",
     ...(incluirSla ? ["SLA disponibilidad mes en curso (%)"] : []),
     "Resguardante", "Último mantenimiento", "Próximo mantenimiento",
+    ...extras.map((c) => c.label + (c.sufijo ? ` (${c.sufijo.trim()})` : "")),
   ];
   const filas = rows.map((r) => [
     r.numeroEconomico,
@@ -80,6 +121,7 @@ function exportarExcelUnidades(rows: UnidadRow[], incluirSla: boolean) {
     r.resguardante ?? "",
     fmtFecha(r.ultimoMantenimiento),
     fmtFecha(r.proximoMantenimiento),
+    ...extras.map((c) => c.valor(r) ?? ""),
   ]);
   exportarExcel("inventario-unidades", [{ nombre: "Unidades", headers, filas }]);
 }
@@ -124,6 +166,28 @@ export function UnidadesTable({
     setSlaOculto(nuevo);
     alternarOcultarSlaDisponibilidad(nuevo);
   }
+  const [columnasVisibles, setColumnasVisibles] = useState<string[]>([]);
+  useEffect(() => {
+    // Se lee tras montar (localStorage no existe en el servidor); sin almacenamiento quedan ocultas.
+    try {
+      const guardadas = JSON.parse(localStorage.getItem(CLAVE_COLUMNAS) ?? "[]");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (Array.isArray(guardadas)) setColumnasVisibles(guardadas.filter((id) => typeof id === "string"));
+    } catch {
+      // Valor corrupto: se ignora.
+    }
+  }, []);
+  function alternarColumna(id: string) {
+    const nuevas = columnasVisibles.includes(id) ? columnasVisibles.filter((c) => c !== id) : [...columnasVisibles, id];
+    setColumnasVisibles(nuevas);
+    try {
+      localStorage.setItem(CLAVE_COLUMNAS, JSON.stringify(nuevas));
+    } catch {
+      // Sin almacenamiento (modo privado, bloqueado): vale solo para esta pestaña.
+    }
+  }
+  const extras = COLUMNAS_EXTRA.filter((c) => columnasVisibles.includes(c.id));
+
   const [busqueda, setBusqueda] = useState("");
   const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
@@ -245,8 +309,22 @@ export function UnidadesTable({
               <span style={{ fontSize: "var(--text-base)" }}>{slaOculto ? "Mostrar SLA" : "Ocultar SLA"}</span>
             </button>
           )}
+          <details className="relative">
+            <summary className="flex items-center gap-2 rounded-md px-3 cursor-pointer list-none" style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}>
+              <Columns3 size={15} />
+              <span style={{ fontSize: "var(--text-base)" }}>Columnas{extras.length > 0 ? ` (${extras.length})` : ""}</span>
+            </summary>
+            <div className="absolute right-0 z-20 mt-1 flex w-56 flex-col gap-1 rounded-md p-2" style={{ background: "var(--panel-bg)", boxShadow: "var(--shadow-md)", border: "1px solid var(--field-border)" }}>
+              {COLUMNAS_EXTRA.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 rounded px-2 py-1 cursor-pointer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}>
+                  <input type="checkbox" checked={columnasVisibles.includes(c.id)} onChange={() => alternarColumna(c.id)} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          </details>
           <button
-            onClick={() => exportarExcelUnidades(filtradas, mostrarColumnaSla)}
+            onClick={() => exportarExcelUnidades(filtradas, mostrarColumnaSla, extras)}
             className="flex items-center gap-2 rounded-md px-3"
             style={{ ...selectStyle, color: "var(--sidebar-text-active)" }}
           >
@@ -274,7 +352,9 @@ export function UnidadesTable({
               {[
                 "", "N° económico", "Placas", "Tipo", "Marca / Unidad", "Proyecto", "Estatus", "Disp.", "Motivo", "Días s/operar",
                 ...(mostrarColumnaSla ? ["SLA disp. (mes)"] : []),
-                "Resguardante", "Último manto.", "Próx. manto.", "",
+                "Resguardante", "Último manto.", "Próx. manto.",
+                ...extras.map((c) => c.label),
+                "",
               ].map((h) => (
                 <th
                   key={h}
@@ -385,6 +465,15 @@ export function UnidadesTable({
                 <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: r.proximoMantenimiento ? "var(--field-text)" : "var(--sidebar-text)" }}>
                   {r.proximoMantenimiento ? fmtFecha(r.proximoMantenimiento) : "Sin programar"}
                 </td>
+                {extras.map((c) => (
+                  <td
+                    key={c.id}
+                    className="px-4 py-3 whitespace-nowrap"
+                    style={{ fontFamily: c.id === "numeroSerie" || c.sufijo || c.moneda ? "var(--font-mono)" : "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--field-text)" }}
+                  >
+                    {textoColumna(c, r)}
+                  </td>
+                ))}
                 <td className="px-4 py-3">
                   <Link href={`/unidades/${r.numeroEconomico}`}>
                     <ChevronRight size={16} color="var(--sidebar-text)" />
@@ -394,7 +483,7 @@ export function UnidadesTable({
             ))}
             {filtradas.length === 0 && (
               <tr>
-                <td colSpan={mostrarColumnaSla ? 15 : 14} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
+                <td colSpan={(mostrarColumnaSla ? 15 : 14) + extras.length} className="px-4 py-10 text-center" style={{ fontFamily: "var(--font-ui)", color: "var(--sidebar-text)" }}>
                   No se encontraron unidades con los filtros aplicados.
                 </td>
               </tr>

@@ -9,6 +9,8 @@ import { FichaUnidad } from "@/components/unidades/ficha-unidad";
 import { obtenerAlertaPreventivaUnidad } from "@/lib/mantenimiento-preventivo";
 import { calcularSlaMensualPorUnidad } from "@/lib/sla-disponibilidad";
 import { obtenerComparativoCargaCombustible } from "@/app/(app)/checklist/actions";
+import { cargarLecturasKm } from "@/lib/km-oficial-datos";
+import { resolverKmOficial, compararConOficial } from "@/lib/km-oficial";
 
 export const dynamic = "force-dynamic";
 
@@ -156,7 +158,14 @@ export default async function FichaUnidadPage({
   );
 
   // Gasto total de la unidad (año en curso e histórico) con desglose por partida.
-  const [gastoAnio, gastoHistorico] = await Promise.all([gastoPorUnidad([numeroEconomico], inicioDeAnioMx()), gastoPorUnidad([numeroEconomico], null)]);
+  const [gastoAnio, gastoHistorico, lecturasKm] = await Promise.all([
+    gastoPorUnidad([numeroEconomico], inicioDeAnioMx()),
+    gastoPorUnidad([numeroEconomico], null),
+    cargarLecturasKm([numeroEconomico]).then((m) => m.get(numeroEconomico)!),
+  ]);
+  // Km oficial con la regla triangulada en vivo (el cron lo guarda cada 10 min) y lo que dice cada fuente.
+  const resultadoKm = resolverKmOficial(lecturasKm);
+  const kmOficial = JSON.parse(JSON.stringify({ ...resultadoKm, comparacion: compararConOficial(lecturasKm, resultadoKm) }));
 
   const serializado = JSON.parse(JSON.stringify(unidadParaCliente));
   const insumosSerializados = JSON.parse(JSON.stringify(insumos));
@@ -179,6 +188,7 @@ export default async function FichaUnidadPage({
       rendimientoPlataforma={rendimientoPlataforma}
       motivosCombustible={motivosCombustible}
       gastoUnidad={{ anio: gastoAnio.get(numeroEconomico)!, historico: gastoHistorico.get(numeroEconomico)! }}
+      kmOficial={kmOficial}
     />
   );
 }

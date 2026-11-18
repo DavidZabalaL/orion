@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { evaluarAnomalia } from "@/lib/gps";
+import { recalcularKmOficial } from "@/lib/km-oficial-datos";
 import { invalidarCacheBI } from "@/lib/bi/invalidar";
 import type { FuenteGPS } from "@/generated/prisma/enums";
 
@@ -81,11 +82,9 @@ export async function registrarPosicionGPS(input: RegistroPosicionInput): Promis
     }
   }
 
-  let kmActualizado = false;
-  if (!esAnomalo && kmReportado) {
-    await prisma.unidad.update({ where: { numeroEconomico }, data: { kmOficial: kmReportado } });
-    kmActualizado = true;
-  }
+  // El odómetro GPS ya no se copia tal cual al km oficial (en varias unidades está
+  // desfasado): se aplica la regla triangulada, que solo lo usa si no hay checklist ni carga.
+  const kmActualizado = !esAnomalo && kmReportado ? (await recalcularKmOficial([numeroEconomico], true)).cambios.length > 0 : false;
 
   revalidatePath("/mapa");
   revalidatePath("/mapa/integridad");
@@ -129,7 +128,6 @@ export async function registrarPosicionesGPSBatch(inputs: RegistroPosicionInput[
 
   const posicionesACrear: Prisma.PosicionGPSCreateManyInput[] = [];
   const huecosACrear: Prisma.HuecoSenalGPSCreateManyInput[] = [];
-  const kmActualizaciones: { numeroEconomico: string; km: number }[] = [];
   const rutasParaRevalidar = new Set<string>();
   let omitidos = 0;
   let anomalos = 0;
@@ -178,34 +176,18 @@ export async function registrarPosicionesGPSBatch(inputs: RegistroPosicionInput[
       }
     }
 
-    if (!esAnomalo && kmReportado) kmActualizaciones.push({ numeroEconomico, km: kmReportado });
     rutasParaRevalidar.add(numeroEconomico);
   }
 
   if (posicionesACrear.length > 0) await prisma.posicionGPS.createMany({ data: posicionesACrear });
   if (huecosACrear.length > 0) await prisma.huecoSenalGPS.createMany({ data: huecosACrear });
-  if (kmActualizaciones.length > 0) {
-    // Un solo UPDATE para todas las unidades — Prisma no tiene un "bulk update"
-    // con valores distintos por fila en su API normal.
-    await prisma.$executeRaw(Prisma.sql`
-      UPDATE "Unidad" AS u
-      SET "kmOficial" = c.km
-      FROM (VALUES ${Prisma.join(
-        kmActualizaciones.map((k) => Prisma.sql`(${k.numeroEconomico}::text, ${k.km}::int)`)
-      )}) AS c("numeroEconomico", km)
-      WHERE u."numeroEconomico" = c."numeroEconomico"
-    `);
-  }
+  // Unidad.kmOficial ya no se toca aquí: lo recalcula el cron con la regla de src/lib/km-oficial.ts.
 
   if (rutasParaRevalidar.size > 0) {
     revalidatePath("/mapa");
     revalidatePath("/mapa/integridad");
     for (const numeroEconomico of rutasParaRevalidar) revalidatePath(`/unidades/${numeroEconomico}`);
-    invalidarCacheBI([
-      "gps_posiciones",
-      ...(huecosACrear.length > 0 ? ["gps_huecos_senal"] : []),
-      ...(kmActualizaciones.length > 0 ? ["unidades"] : []),
-    ]);
+    invalidarCacheBI(["gps_posiciones", ...(huecosACrear.length > 0 ? ["gps_huecos_senal"] : [])]);
   }
 
   return { procesados: posicionesACrear.length, omitidos, anomalos };

@@ -42,6 +42,7 @@ import { Modal } from "@/components/ui/modal";
 import { BadgeMotivo } from "@/components/ui/badge-motivo";
 import { GastoUnidadCampo } from "@/components/unidades/gasto-unidad-card";
 import type { GastoUnidad } from "@/lib/gasto-unidad";
+import { FUENTE_KM_LABEL, type FuenteKm } from "@/lib/km-oficial";
 import { NuevaOrdenForm } from "@/components/mantenimiento/nueva-orden-form";
 import { CombustibleForm } from "@/components/combustible/combustible-form";
 import { TagForm } from "@/components/tag/tag-form";
@@ -344,6 +345,7 @@ export function FichaUnidad({
   rendimientoPlataforma = null,
   motivosCombustible = {},
   gastoUnidad,
+  kmOficial,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
@@ -362,6 +364,8 @@ export function FichaUnidad({
   motivosCombustible?: Record<string, { motivoSobrellenado: string | null; discrepanciaGps: string | null; gpsAplica: boolean }>;
   /** Gasto total de la unidad (año en curso e histórico) — ver src/lib/gasto-unidad.ts. */
   gastoUnidad?: { anio: GastoUnidad; historico: GastoUnidad };
+  /** Km oficial triangulado (src/lib/km-oficial.ts) y lo que dice cada fuente. */
+  kmOficial?: KmOficialFicha;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -553,7 +557,7 @@ export function FichaUnidad({
         </div>
 
         <div className="pt-5">
-          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} gastoUnidad={gastoUnidad} />}
+          {tab === "general" && <TabGeneral unidad={unidad} puedeEditarCapacidad={puedeEditarCapacidad} disponible={disponible} rendimientoPlataforma={rendimientoPlataforma} gastoUnidad={gastoUnidad} kmOficial={kmOficial} />}
           {tab === "mantenimiento" && <TabMantenimiento gastos={unidad.gastos ?? []} numeroEconomico={unidad.numeroEconomico} insumos={insumos} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
           {tab === "gastos" && <TabGastos gastos={unidad.gastos ?? []} historicos={unidad.historicosProyecto ?? []} proyectoActual={unidad.proyecto?.nombre ?? null} />}
           {tab === "llantas" && <TabLlantas historial={unidad.historialLlantas ?? []} dobleRodadoTrasero={!!unidad.dobleRodadoTrasero} />}
@@ -619,18 +623,59 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+type KmOficialFicha = {
+  oficial: { km: number; fecha: string; fuente: FuenteKm } | null;
+  discrepancia: boolean;
+  comparacion: { fuente: FuenteKm; lectura: { km: number; fecha: string }; cuadra: boolean | null }[];
+};
+
+const KM_FUENTE_COMPARACION: Record<FuenteKm, { label: string; motivo: string }> = {
+  CHECKLIST: { label: "Último checklist", motivo: "No cuadra con los checklists anteriores ni con la última carga (retrocede o avanza más de lo posible): no se usó como km oficial." },
+  CARGA: { label: "Última carga (estado de cuenta)", motivo: "La diferencia contra el km oficial no corresponde a lo recorrido según el GPS o a los días transcurridos." },
+  GPS: { label: "Odómetro GPS", motivo: "El odómetro del equipo GPS no coincide con el del vehículo (está desfasado); de él solo se usan los km que avanza." },
+};
+
+function KmOficialCampo({ datos, guardado }: { datos: KmOficialFicha; guardado: number }) {
+  const sub: React.CSSProperties = { fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 400, color: "var(--sidebar-text)" };
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        {(datos.oficial?.km ?? guardado).toLocaleString("es-MX")} km{" "}
+        <span style={sub}>
+          · {datos.oficial ? `${FUENTE_KM_LABEL[datos.oficial.fuente]} del ${fmtFecha(datos.oficial.fecha)}` : "valor registrado (ninguna lectura confiable)"}
+        </span>
+      </div>
+      {datos.comparacion.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {datos.comparacion.map((c) => (
+            <li key={c.fuente} className="flex flex-wrap items-center gap-2" style={sub}>
+              <span>{KM_FUENTE_COMPARACION[c.fuente].label}:</span>
+              <span style={{ fontFamily: "var(--font-mono)", color: "var(--field-text)" }}>{c.lectura.km.toLocaleString("es-MX")} km</span>
+              <span>{fmtFecha(c.lectura.fecha)}</span>
+              {c.cuadra === true && <Badge label="Coincide" color="var(--color-status-cerrado)" bg="var(--status-cerrado-bg)" />}
+              {c.cuadra === false && <BadgeMotivo label="Discrepancia" motivo={KM_FUENTE_COMPARACION[c.fuente].motivo} color="var(--color-status-revision)" bg="var(--status-revision-bg)" />}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function TabGeneral({
   unidad,
   puedeEditarCapacidad,
   disponible,
   rendimientoPlataforma,
   gastoUnidad,
+  kmOficial,
 }: {
   unidad: Unidad;
   puedeEditarCapacidad: boolean;
   disponible: boolean;
   rendimientoPlataforma: { kmL: number; cargas: number } | null;
   gastoUnidad?: { anio: GastoUnidad; historico: GastoUnidad };
+  kmOficial?: KmOficialFicha;
 }) {
   const estatusVisible = estatusVisibleUnidad(unidad.estatus, disponible);
   const placasHistorial: Unidad[] = unidad.placasHistorial ?? [];
@@ -653,7 +698,13 @@ function TabGeneral({
             label="Rendimiento real (plataforma)"
             value={rendimientoPlataforma ? `${rendimientoPlataforma.kmL.toLocaleString("es-MX")} km/L · ${rendimientoPlataforma.cargas} cargas` : "Sin cargas con km válidos"}
           />
-          <Field label="Km oficial" value={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km`} />
+          {kmOficial ? (
+            <div className="col-span-2">
+              <Field label="Km oficial" value={<KmOficialCampo datos={kmOficial} guardado={Number(unidad.kmOficial)} />} />
+            </div>
+          ) : (
+            <Field label="Km oficial" value={`${Number(unidad.kmOficial).toLocaleString("es-MX")} km`} />
+          )}
           {gastoUnidad && (
             <Field label="Gasto total" value={<GastoUnidadCampo numeroEconomico={unidad.numeroEconomico} anio={gastoUnidad.anio} historico={gastoUnidad.historico} />} />
           )}

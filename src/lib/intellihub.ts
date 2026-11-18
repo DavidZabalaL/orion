@@ -118,6 +118,24 @@ export async function obtenerLogVehiculo(
   return puntos.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
+/**
+ * Empareja unidades sin GPS con vehículos de Intellihub aún sin mapear por el
+ * económico con que empieza el nombre allá ("CP-004 Suburban" → CP-004). Solo
+ * si hay exactamente un candidato: con duplicados (equipo reemplazado) se deja
+ * para revisión manual.
+ */
+export function emparejarPorNombre(
+  vehiculos: { vehicleId: number; vehicleName: string }[],
+  idsMapeados: Set<number>,
+  sinGps: string[]
+): { vehicleId: number; numeroEconomico: string }[] {
+  const libres = vehiculos.filter((v) => !idsMapeados.has(v.vehicleId));
+  return sinGps.flatMap((numeroEconomico) => {
+    const candidatos = libres.filter((v) => v.vehicleName.trim().split(/[\s_]/)[0].toUpperCase() === numeroEconomico.toUpperCase());
+    return candidatos.length === 1 ? [{ vehicleId: candidatos[0].vehicleId, numeroEconomico }] : [];
+  });
+}
+
 export function mphAKmh(mph: number): number {
   return mph * MILLAS_A_KM;
 }
