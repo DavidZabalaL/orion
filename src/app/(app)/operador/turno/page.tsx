@@ -165,6 +165,11 @@ export default async function PageTurnoOperador({
           </button>
         </form>
 
+        <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+          {/* obtenerBitacoraUsoTodos corta en 500 registros */}
+          Total: {registros.length >= 500 ? "500+" : registros.length} registro{registros.length === 1 ? "" : "s"}
+        </p>
+
         {registros.length === 0 ? (
           <EmptyState>Sin registros de uso de unidades en el rango elegido.</EmptyState>
         ) : (

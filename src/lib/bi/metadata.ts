@@ -163,7 +163,7 @@ export const BI_DATASETS: DatasetMeta[] = [
     label: "Inventario de unidades",
     from: `"Unidad" u LEFT JOIN "Proyecto" p ON p.id = u."proyectoId" LEFT JOIN "Operador" r ON r.id = u."resguardanteId"`,
     proyectoScopeExpr: `u."proyectoId"`,
-    tablasBase: ["Unidad", "Proyecto", "Operador", "HistoricoDisponibilidadUnidad", "GastoVehicular"],
+    tablasBase: ["Unidad", "Proyecto", "Operador", "HistoricoDisponibilidadUnidad", "GastoVehicular", "Checklist"],
     campos: [
       // Máxima granularidad posible (1 fila = 1 unidad) — útil como eje X
       // para ver un campo "por unidad" en vez de agrupado/promediado, igual
@@ -177,6 +177,18 @@ export const BI_DATASETS: DatasetMeta[] = [
         tipo: "texto",
         expr: `CASE WHEN u."disponibilidad" THEN 'Disponible' ELSE 'No disponible' END`,
         opciones: [{ valor: "Disponible", label: "Disponible" }, { valor: "No disponible", label: "No disponible" }],
+      },
+      {
+        id: "checklistHoy",
+        label: "Checklist de hoy (diario o semanal)",
+        tipo: "texto",
+        // NULL para bajas (el motor descarta dimensión NULL). "Hoy" = desde la
+        // medianoche de México, convertida a UTC como se guarda Checklist.fecha.
+        expr: `CASE WHEN u."estatus" = 'BAJA' THEN NULL
+          WHEN EXISTS (SELECT 1 FROM "Checklist" ck WHERE ck."numeroEconomico" = u."numeroEconomico" AND ck."tipo" IN ('DIARIO', 'SEMANAL')
+            AND ck."fecha" >= (date_trunc('day', NOW() AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'UTC')
+          THEN 'Con checklist hoy' ELSE 'Sin checklist hoy' END`,
+        opciones: [{ valor: "Con checklist hoy", label: "Con checklist hoy" }, { valor: "Sin checklist hoy", label: "Sin checklist hoy" }],
       },
       {
         id: "motivoIndisponibilidad",
@@ -1070,6 +1082,9 @@ export const BI_COMBINACIONES_SUGERIDAS: CombinacionGuardable[] = [
   { label: "Unidades por disponibilidad", dataset: "unidades", ejeX: "disponibilidad", ejeY: "disponibilidad", agregacion: "conteo", tipoGrafica: "pie" },
   { label: "Motivo de indisponibilidad", dataset: "unidades", ejeX: "motivoIndisponibilidad", ejeY: "motivoIndisponibilidad", agregacion: "conteo", tipoGrafica: "barras" },
   { label: "Unidades por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras" },
+  { label: "Unidades sin checklist hoy", dataset: "unidades", ejeX: "checklistHoy", ejeY: "checklistHoy", agregacion: "conteo", tipoGrafica: "contador", filtros: [{ campoId: "checklistHoy", valores: ["Sin checklist hoy"] }] },
+  { label: "Unidades sin checklist hoy por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "proyecto", agregacion: "conteo", tipoGrafica: "barras", filtros: [{ campoId: "checklistHoy", valores: ["Sin checklist hoy"] }] },
+  { label: "Unidades sin checklist hoy (lista)", dataset: "unidades", ejeX: "numeroEconomico", ejeY: "numeroEconomico", agregacion: "conteo", tipoGrafica: "barras", vistaPreferida: "tabla", filtros: [{ campoId: "checklistHoy", valores: ["Sin checklist hoy"] }] },
   { label: "SLA de disponibilidad por proyecto", dataset: "unidades", ejeX: "proyecto", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "barras" },
   { label: "SLA de disponibilidad por unidad", dataset: "unidades", ejeX: "numeroEconomico", ejeY: "slaDisponibilidad", agregacion: "promedio", tipoGrafica: "puntos", orden: "valor_asc" },
   { label: "Disponibilidad por proyecto (avance)", dataset: "unidades", ejeX: "proyecto", ejeY: "unidadesDisponiblesConteo", ejeMeta: "unidadesConteo", agregacion: "suma", tipoGrafica: "avance", colorimetria: "positivo" },

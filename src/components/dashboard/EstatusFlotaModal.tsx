@@ -124,6 +124,7 @@ function nuevaProgramacion(base: {
   proyectoIds: string[];
   camposExtra: CampoExtraSeleccionado[];
   ordenSecciones: SeccionReporteId[];
+  seccionesOcultas: SeccionReporteId[];
   incluirGeneral: boolean;
   vistaDashboardId: string | null;
   vistaDashboardIds: string[];
@@ -141,6 +142,7 @@ function nuevaProgramacion(base: {
     activo: true,
     camposExtra: base.camposExtra,
     ordenSecciones: base.ordenSecciones,
+    seccionesOcultas: base.seccionesOcultas,
     incluirGeneral: base.incluirGeneral,
     vistaDashboardId: base.vistaDashboardId,
     vistaDashboardIds: base.vistaDashboardIds,
@@ -171,6 +173,7 @@ export function EstatusFlotaModal({
   const [camposExtra, setCamposExtra] = useState<CampoExtraSeleccionado[]>(primera?.camposExtra ?? []);
   const [mostrarSelectorCampos, setMostrarSelectorCampos] = useState(false);
   const [ordenSecciones, setOrdenSecciones] = useState<SeccionReporteId[]>(primera?.ordenSecciones ?? ORDEN_SECCIONES_DEFAULT);
+  const [seccionesOcultas, setSeccionesOcultas] = useState<SeccionReporteId[]>(primera?.seccionesOcultas ?? []);
   const [incluirGeneral, setIncluirGeneral] = useState(primera?.incluirGeneral ?? true);
   const [vistaDashboardIds, setVistaDashboardIds] = useState<string[]>(() => {
     if (primera?.vistaDashboardIds && primera.vistaDashboardIds.length > 0) {
@@ -300,7 +303,7 @@ export function EstatusFlotaModal({
         <EstatusFlotaDocument
           datos={datos}
           indicadoresDashboard={indicadoresDashboard}
-          ordenSecciones={ordenSecciones}
+          ordenSecciones={ordenSecciones.filter((id) => !seccionesOcultas.includes(id))}
           incluirGeneral={incluirGeneral}
           vistasDashboard={res.vistasDashboard}
           vistaDashboard={res.vistaDashboard}
@@ -340,6 +343,7 @@ export function EstatusFlotaModal({
       camposExtra,
       indicadoresDashboard,
       ordenSecciones,
+      seccionesOcultas,
       incluirGeneral,
       vistaDashboardIds,
       vistaDashboardId: vistaDashboardIds[0] ?? null,
@@ -355,6 +359,7 @@ export function EstatusFlotaModal({
         proyectoIds: seleccionados,
         camposExtra,
         ordenSecciones,
+        seccionesOcultas,
         incluirGeneral,
         vistaDashboardId: vistaDashboardIds[0] ?? null,
         vistaDashboardIds,
@@ -393,6 +398,7 @@ export function EstatusFlotaModal({
       // por todos los envíos); la copia del item quedaría desactualizada.
       camposExtra,
       ordenSecciones,
+      seccionesOcultas,
       incluirGeneral: item.incluirGeneral,
       vistaDashboardId: vistaDashboardIds[0] ?? null,
       vistaDashboardIds,
@@ -685,7 +691,7 @@ export function EstatusFlotaModal({
           </div>
 
           <div>
-            <label style={labelStyle}>Orden de las secciones</label>
+            <label style={labelStyle}>Secciones y orden (desmarca las que no quieras)</label>
             <div className="flex flex-col gap-1">
               {ordenSecciones.map((id, i) => (
                 <div
@@ -693,9 +699,14 @@ export function EstatusFlotaModal({
                   className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5"
                   style={{ background: "var(--chip)" }}
                 >
-                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)" }}>
+                  <label className="flex items-center gap-2 cursor-pointer" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-sm)", color: "var(--sidebar-text-active)", opacity: seccionesOcultas.includes(id) ? 0.5 : 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={!seccionesOcultas.includes(id)}
+                      onChange={() => setSeccionesOcultas((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
+                    />
                     {i + 1}. {SECCION_REPORTE_LABEL[id]}
-                  </span>
+                  </label>
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
@@ -722,7 +733,7 @@ export function EstatusFlotaModal({
               ))}
             </div>
             <p className="mt-1.5" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-xs)", color: "var(--sidebar-text)" }}>
-              Así se acomodan las secciones en el PDF, tanto al descargarlo como al enviarlo (ahora o automático).
+              Así se acomodan las secciones en el PDF, tanto al descargarlo como al enviarlo (ahora o automático). Las desmarcadas no aparecen; para checklists elige pendientes, realizados o ambos.
             </p>
           </div>
 

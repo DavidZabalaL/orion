@@ -208,7 +208,7 @@ export function PanelTurnoOperador({ datos }: { datos: DatosTurno }) {
         <div className="flex items-center gap-2">
           <Clock size={18} style={{ color: "var(--sidebar-text)" }} />
           <span style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "var(--text-base)", color: "var(--sidebar-text-active)" }}>
-            Registro del día
+            Registro del día ({datos.registrosHoy.length})
           </span>
         </div>
 

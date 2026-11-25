@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Shield, FolderCog, BellRing, ChevronRight, LayoutGrid, UserCheck, Building2 } from "lucide-react";
+import { Users, Shield, FolderCog, ChevronRight, LayoutGrid, UserCheck, Building2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/stat-card";
 import { InvitarUsuarioForm } from "@/components/usuarios/invitar-usuario-form";
@@ -13,7 +13,6 @@ const SECCIONES = [
   { href: "/usuarios", icon: Users, titulo: "Usuarios", descripcion: "Invitar, editar y desactivar cuentas", actual: true },
   { href: "/usuarios/roles", icon: Shield, titulo: "Roles y permisos", descripcion: "Ver / Editar / Aprobar por módulo" },
   { href: "/usuarios/proyectos", icon: FolderCog, titulo: "Módulos por proyecto", descripcion: "Activar o desactivar módulos" },
-  { href: "/usuarios/notificaciones", icon: BellRing, titulo: "Notificaciones", descripcion: "Umbrales de alertas por módulo" },
   { href: "/usuarios/widgets", icon: LayoutGrid, titulo: "Widgets del resumen", descripcion: "Qué recuadros se muestran arriba de cada listado" },
   { href: "/usuarios/padron", icon: UserCheck, titulo: "Padrón de personal", descripcion: "Valida el autorregistro de Operadores en /registro-operador" },
   { href: "/usuarios/departamentos", icon: Building2, titulo: "Departamentos de apoyo", descripcion: "Catálogo para \"Apoyo de pagos\" en Mantenimiento y Gastos" },
@@ -65,7 +64,7 @@ export default async function UsuariosPage() {
             Administración
           </h1>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", color: "var(--sidebar-text)" }}>
-            Usuarios, roles y permisos, módulos por proyecto y notificaciones — todo lo que necesitas para administrar Orión.
+            Usuarios, roles y permisos, módulos por proyecto y más — todo lo que necesitas para administrar Orión.
           </p>
         </div>
         <CopiarEnlaceRegistro />

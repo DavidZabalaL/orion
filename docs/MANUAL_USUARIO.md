@@ -1,6 +1,6 @@
 # Manual de Usuario — Orión (Control Vehicular, Grupo Kabat)
 
-> Manual de referencia exhaustivo de la plataforma Orión: módulos, pantallas, campos de formulario, etiquetas, reglas de negocio y permisos de usuario. Generado a partir de una revisión completa del código fuente (Next.js 16 + Prisma/PostgreSQL) al **25 de agosto de 2026**, commit `69292d4`, y actualizado el **31 de agosto de 2026** (commit `bf71e12`) para incorporar: autoservicio de recuperación de contraseña para operadores, permisos por rol para pólizas de seguro (ver/editar/descargar) y registro de póliza sin coberturas, pestaña de Documentos por unidad, corrección del proyecto en gastos capturados desde la ficha de unidad + búsqueda de historial completo en Mantenimiento, unificación de Inventario de Unidades como pestaña del Dashboard + exportación de resumen ejecutivo en PDF, reporte "Estatus semanal de flota", motivo de indisponibilidad al apagar una unidad, permisos ampliados de Control Vehicular/Gerente administrativo, y retiro de la conciliación manual de TAG a favor de alertas de triangulación TAG/combustible/GPS. Pensado para responder cualquier duda operativa sobre la plataforma.
+> Manual de referencia exhaustivo de la plataforma Orión: módulos, pantallas, campos de formulario, etiquetas, reglas de negocio y permisos de usuario. Generado a partir de una revisión completa del código fuente (Next.js 16 + Prisma/PostgreSQL) al **25 de agosto de 2026**, commit `69292d4`, y actualizado el **31 de agosto de 2026** (commit `bf71e12`) para incorporar: autoservicio de recuperación de contraseña para operadores, permisos por rol para pólizas de seguro (ver/editar/descargar) y registro de póliza sin coberturas, pestaña de Documentos por unidad, corrección del proyecto en gastos capturados desde la ficha de unidad + búsqueda de historial completo en Mantenimiento, unificación de Inventario de Unidades como pestaña del Dashboard + exportación de resumen ejecutivo en PDF, reporte "Estatus semanal de flota", motivo de indisponibilidad al apagar una unidad, permisos ampliados de Control Vehicular/Gerente administrativo, y retiro de la conciliación manual de TAG a favor de alertas de triangulación TAG/combustible/GPS. Revisado el **9 de noviembre de 2026**, commit `0942a38`, para incorporar la pestaña **Comparador** de Dashboards con sus reglas de color (§8.4). Revisado el **25 de noviembre de 2026** para incorporar: secciones de checklists (pendientes/realizados) y GPS (sin reporte/sin movimiento) en el reporte de Estatus de flota con opción de deshabilitar cualquier sección, campo BI "Checklist de hoy", contadores totales en Checklist y Mi Turno, y retiro de la tarjeta Notificaciones del hub de Administración. Pensado para responder cualquier duda operativa sobre la plataforma.
 >
 > Nota de lectura: donde el código revela una discrepancia entre lo que un texto de la interfaz *dice* que hace y lo que el código *realmente* hace (por ejemplo, funcionalidad descrita pero no implementada, o campos del modelo de datos sin pantalla asociada), este manual lo señala explícitamente como **"Hallazgo"** o **"Nota"**, en vez de omitirlo.
 
@@ -382,7 +382,7 @@ Inspección diaria y semanal de unidades, más checklist de carga de combustible
 
 #### Pantallas
 
-**`/checklist`**: tres tarjetas de inicio (Checklist Diario, Checklist Semanal — "Inspección completa de 59 puntos", Carga de Combustible), cada una abre un wizard de pantalla completa. Banner con unidades activas sin checklist diario hoy. Dos listas del día ("Checklists diarios de hoy" y "Checklists semanales de hoy"), filas expandibles con buscador.
+**`/checklist`**: tres tarjetas de inicio (Checklist Diario, Checklist Semanal — "Inspección completa de 59 puntos", Carga de Combustible), cada una abre un wizard de pantalla completa. Banner con unidades activas sin checklist diario hoy. Dos listas del día ("Checklists diarios de hoy" y "Checklists semanales de hoy"), filas expandibles con buscador. Arriba de las listas, **"Total de checklists de hoy"** suma diarios, semanales, carga de combustible y reportes de falla (con los filtros de proyecto/tipo aplicados). En Dashboards, el dataset *Inventario de unidades* tiene el campo **"Checklist de hoy (diario o semanal)"** y tres sugerencias del Explorador: *Unidades sin checklist hoy* (contador, por proyecto y lista).
 
 **`/checklist/historial`**: selector de fecha + tabla de checklists Diarios de esa fecha, casillas de selección, botón Exportar (CSV — todos o seleccionados).
 
@@ -1038,6 +1038,7 @@ Unifica en pestañas los dashboards guardados (widgets en cuadrícula), el explo
 |---|---|---|
 | Mis dashboards | Cuadrícula de vistas guardadas (`BiDashboardEditor`) | `M: ver` |
 | Explorador libre | `BiExplorer` — combinaciones ad-hoc, lenguaje natural, insight, forecast, análisis avanzado (ver abajo) | `M: ver` |
+| Comparador | Varias métricas entre 2 y 4 periodos, en total o desglosadas por proyecto/unidad (ver "Comparador" abajo). Se abre directo con `/dashboards?tab=comparador` | `M: ver` (guardar/eliminar comparaciones: `M: editar`) |
 | Inventario de Unidades | Los mismos widgets/tabla de `/unidades`, sin duplicar código ni datos | `M: ver` **y** `A: ver` — si falta el segundo, la pestaña no aparece |
 
 Dos botones son visibles en cualquier pestaña: **"Exportar resumen ejecutivo"** y **"Estatus semanal de flota"** (ambos detallados abajo).
@@ -1101,6 +1102,28 @@ Proyección **100% determinista** (regresión lineal, sin LLM), detección de an
 - **Funnel**: campo con opciones fijas como progresión ordenada (máx. 8 etapas).
 - **Cohorte**: solo disponible para el dataset `combustible` (único con `cohorteConfig`); retención mes a mes (M0–M11).
 
+#### Comparador (métricas × periodos)
+
+Pestaña para comparar varias métricas a la vez entre 2 y 4 periodos de fechas libres. A diferencia de "Variación %" (una métrica contra el periodo inmediato anterior), aquí cada periodo se elige por separado.
+
+- **Métricas (hasta 10)**: se arman con *Fuente* (dataset) → *Dato* ("N° de registros" o un campo numérico) → *Cálculo* (Suma/Promedio), con filtros opcionales (ej. Categoría = Llantas). También se pueden agregar con un clic las **métricas de negocio guardadas** y **Disponibilidad (SLA %)**.
+  - Solo aparecen las fuentes con fecha propia de evento (mantenimiento, combustible, TAG, gasto total, siniestros, accidentes, tickets de rescate, checklist, huecos de señal GPS, consumo de insumos). Las de estado (unidades, seguros, operadores) no se pueden repartir por periodo.
+  - **Nota**: "Posiciones GPS" se excluye a propósito: la tabla no tiene índice por fecha y cada comparación la recorrería completa (costo de cómputo en Neon).
+- **Periodos (2 a 4)**: cada uno con fecha desde/hasta y un atajo opcional — Mes actual, Mes anterior, Trimestre actual/anterior, Año actual/anterior, y (solo del 2º en adelante) *Periodo anterior al base* y *Mismo periodo, año anterior*. El primero es el **periodo base**. Editar una fecha a mano convierte el periodo en "Personalizado". "Periodo anterior" de una base que empieza en día 1 se recorre en meses completos (1–9 nov → 1–9 oct); si no, toma los mismos días inmediatamente antes.
+- **Alcance de proyecto**: Nacional o proyectos específicos; el servidor siempre lo intersecta con los proyectos que el rol puede ver en el módulo M (proyectos con el módulo M activo).
+- **Desglose**: Sin desglose (tabla métricas × periodos), Por proyecto o Por unidad (una tabla por métrica con fila Total). Se muestran hasta 50 filas, de mayor a menor en el periodo base; en Disponibilidad, de **peor** a mejor. Tickets de rescate e insumos no tienen unidad: con "Por unidad" muestran solo el total y un aviso.
+- **Resultado**: cada periodo muestra su valor y, contra la base, el % y la diferencia (en métricas que ya son %, como el SLA, el cambio se da en **puntos porcentuales**, "pp"). «—» = sin registros en el periodo (distinto de 0; en conteos, 0 sí es un dato). Si los periodos difieren más de 15% en duración, aparece un aviso.
+- **Reglas de color** (botón de paleta en cada métrica): mismo editor que las reglas de color de los widgets (Mayor/Menor/Igual/Entre/Personalizada/Arriba o debajo del promedio + color). Cada métrica tiene dos listas:
+  - *Color del valor*: colorea el número de cada periodo (ej. Disponibilidad «Menor que 85» en rojo).
+  - *Color del cambio (flecha)*: colorea la flecha y el texto del cambio contra la base. Se evalúa en % (12.5 = +12.5%), o en puntos si la métrica ya es un %; desde una base 0, cualquier alza cuenta como infinita (la marca «Mayor que 10»). Ej. en gasto: «Mayor que 0» rojo y «Menor que 0» verde; en disponibilidad, al revés.
+  - «Promedio» = promedio de los periodos de esa misma fila. Si varias reglas aplican, gana la primera. Por defecto no hay colores (subir es malo en gasto y bueno en disponibilidad, así que cada quien define su regla).
+  - Se ven al instante sobre el último resultado y se guardan con la comparación. Solo aplican a la tabla: la gráfica y el Excel van sin color.
+- **Gráfica**: sin desglose, barras por periodo; con desglose, barras agrupadas (grupo = proyecto/unidad, serie = periodo), primeros 12 grupos.
+- **Disponibilidad (SLA %)**: promedio simple del % de cada unidad con historial en el periodo (mismo criterio que el SLA mensual por proyecto); un periodo que termina hoy se corta en "ahora". Por proyecto agrupa cada unidad en su proyecto **actual**.
+- **Excel**: una hoja "Comparación" (sin desglose) o una hoja por métrica (con desglose), con columnas de valor, "Dif." y "%" por periodo, en números. Queda en `AccesoReporteBI` (`tipoRecurso = comparador`), igual que la vista de la pestaña (una vez por sesión del navegador).
+- **Comparaciones guardadas** (`ComparacionGuardada`): visibles para todos con acceso a Dashboards. Guardar requiere `M: editar`; con el mismo nombre se actualiza la abierta, con otro nombre se crea una nueva. Solo quien la creó o un rol global puede actualizarla o eliminarla. Los periodos con atajo se recalculan al abrirla (una comparación guardada con "Mes anterior" se recorre sola cada mes) y se ejecuta automáticamente.
+- **Nota de datos**: la atribución de gasto por proyecto anterior a agosto de 2026 está incompleta y el GPS existe solo desde el 17-sep-2026: comparar contra periodos previos puede dar «—» o valores bajos que no son caídas reales.
+
 #### Exportar
 
 Excel, PDF (server, revalida permiso, confía en los datos que ya recibió el cliente — mismos datos ya validados de esa sesión), Imagen PNG (100% cliente). Tope 5000 filas. Cada exportación queda en `AccesoReporteBI`.
@@ -1152,6 +1175,11 @@ Acciones en el modal:
 - **Descargar PDF** — inmediato, cualquiera con acceso al módulo M.
 - **Enviar por correo ahora** — a los destinatarios que se escriban en el modal (separados por coma), cualquiera con acceso al módulo M.
 - **Envío automático semanal** (solo con `M: editar`) — activa/desactiva, define hora (México) y guarda proyectos/destinatarios; se envía los lunes, mismo criterio que el resto de reportes programados semanales de la plataforma. Se guarda como un único `ReporteProgramado` de tipo `estatus_flota` (no uno por proyecto).
+- **Secciones y orden** — cada sección (incluidas las de default) tiene una casilla: desmarcada no aparece en el PDF ni en el correo (ahora o automático; se guarda en `filtrosJson.seccionesOcultas`). Secciones de lista por unidad (no BAJA) en el periodo:
+  - *Checklists pendientes*: unidades sin **ningún** checklist diario ni semanal; muestra su disponibilidad al corte. *Checklists realizados*: unidades con al menos uno, con cuántos diarios y semanales. Marcar una, otra o ambas = pendientes, realizados o ambos.
+  - *Unidades sin reporte de GPS*: sin ninguna posición en el periodo; muestra el último reporte (o "Sin reportes registrados").
+  - *Unidades sin movimiento GPS*: sí reportaron, pero recorrieron menos de 1 km (mismo umbral que Checklist).
+  - Los envíos guardados antes de este cambio las incluyen todas hasta que se desmarquen.
 
 #### Panel de gobernanza/auditoría de accesos BI
 
@@ -1273,7 +1301,7 @@ Centraliza gestión de usuarios, roles y permisos, alcance de módulos por proye
 
 #### Pantallas
 
-`/usuarios` es un hub con 5 tarjetas (Usuarios, Roles y permisos, Módulos por proyecto, Notificaciones, Widgets del resumen) y 3 KPIs (Usuarios totales, Activos, Roles configurados). Formulario **Invitar usuario** (colapsable) + lista con buscador.
+`/usuarios` es un hub de tarjetas (Usuarios, Roles y permisos, Módulos por proyecto, Widgets del resumen, Padrón, Departamentos de apoyo — la de Notificaciones se retiró el 25-nov-2026; la página sigue en `/usuarios/notificaciones` y se llega desde la campana) y 3 KPIs (Usuarios totales, Activos, Roles configurados). Formulario **Invitar usuario** (colapsable) + lista con buscador.
 
 `/usuarios/roles`: un desplegable por rol con la matriz de permisos.
 

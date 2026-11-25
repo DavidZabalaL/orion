@@ -8,7 +8,7 @@ import type { MetricaDisponible } from "@/components/bi/bi-explorer";
 import type { WidgetDashboardBI } from "@/lib/bi/metadata";
 import type { VistaDashboard } from "@/components/bi/bi-dashboard-editor";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
-import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
+import { sanearOrdenSecciones, sanearSeccionesOcultas } from "@/lib/reportes/estatus-flota-secciones";
 import type { ConfigEstatusFlotaProgramado } from "@/app/(app)/dashboards/actions";
 import type { ConfigComparador } from "@/lib/bi/comparador-tipos";
 
@@ -50,6 +50,7 @@ export default async function DashboardsPage({
       proyectoIds?: string[] | null;
       camposExtra?: CampoExtraSeleccionado[];
       ordenSecciones?: unknown;
+      seccionesOcultas?: unknown;
       incluirGeneral?: boolean;
       vistaDashboardId?: string | null;
       vistaDashboardIds?: string[] | null;
@@ -70,6 +71,7 @@ export default async function DashboardsPage({
       activo: r.activo,
       camposExtra: filtros?.camposExtra ?? [],
       ordenSecciones: sanearOrdenSecciones(filtros?.ordenSecciones),
+      seccionesOcultas: sanearSeccionesOcultas(filtros?.seccionesOcultas),
       // Configuraciones guardadas antes de este campo no lo tienen — se asumen "sí" (comportamiento previo).
       incluirGeneral: filtros?.incluirGeneral ?? true,
       vistaDashboardId: filtros?.vistaDashboardId ?? vistaDashboardIds[0] ?? null,

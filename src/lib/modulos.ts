@@ -49,7 +49,7 @@ export const MODULOS: Modulo[] = [
   { id: "I", label: "Bitácora de movimientos", href: "/auditoria", icon: ClipboardList, descripcion: "Consulta cualquier movimiento de unidades, proyectos y operadores", grupo: "Gestión" },
   { id: "M", label: "Dashboards", href: "/dashboards", icon: LayoutDashboard, descripcion: "Dashboards guardados y explorador libre de BI (lenguaje natural, insights, forecast)", grupo: "Gestión" },
   { id: "L", label: "Gestión de Operadores", href: "/operadores", icon: IdCard, descripcion: "Expediente digital y alertas de vencimiento", grupo: "Gestión" },
-  { id: "K", label: "Administración", href: "/usuarios", icon: Settings, descripcion: "Usuarios, roles, notificaciones y módulos por proyecto", grupo: "Gestión" },
+  { id: "K", label: "Administración", href: "/usuarios", icon: Settings, descripcion: "Usuarios, roles y módulos por proyecto", grupo: "Gestión" },
   { id: "N", label: "Inventario de Insumos", href: "/inventario-insumos", icon: Package, descripcion: "Stock de aceite, anticongelante y consumibles por proyecto", grupo: "Gestión" },
   { id: "R", label: "Rescate de Unidades", href: "/rescate", icon: Siren, descripcion: "Tickets de rescate en campo con folio RSC-AAAA-######", grupo: "Rescate y campo" },
   { id: "S", label: "Siniestros", href: "/siniestros", icon: AlertOctagon, descripcion: "Registro y seguimiento de siniestros vehiculares", grupo: "Rescate y campo" },

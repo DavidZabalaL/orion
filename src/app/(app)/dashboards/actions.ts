@@ -11,7 +11,7 @@ import { calcularEstatusFlotaReporte, type EstatusFlotaReporte } from "@/lib/rep
 import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
 import { calcularVistasDashboardReporte, adjuntosGraficas, type VistaDashboardReporte } from "@/lib/reportes/vista-dashboard-reporte";
 import type { IndicadorDashboard } from "@/components/dashboard/EstatusFlotaDocument";
-import { sanearOrdenSecciones, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
+import { sanearOrdenSecciones, sanearSeccionesOcultas, seccionesVisibles, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
 import { enviarReporteEstatusFlotaHtml } from "@/lib/email";
 import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
@@ -394,6 +394,8 @@ export async function enviarEstatusFlotaAhora(input: {
   indicadoresDashboard?: IndicadorDashboard[];
   /** Orden de secciones elegido en el modal — ver estatus-flota-secciones.ts. */
   ordenSecciones?: SeccionReporteId[];
+  /** Secciones deshabilitadas en el modal — no se pintan. */
+  seccionesOcultas?: SeccionReporteId[];
   /** Incluir el bloque de alcance global (todo lo permitido, no solo los proyectos seleccionados) — default true. */
   incluirGeneral?: boolean;
   /** Vista guardada de "Mis dashboards" a incluir (compatibilidad). */
@@ -415,7 +417,7 @@ export async function enviarEstatusFlotaAhora(input: {
       calcularReporteConAlcance(input),
       calcularVistasDashboardReporte(ids, await alcanceGeneralPermitido()),
     ]);
-    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, input.ordenSecciones && sanearOrdenSecciones(input.ordenSecciones), input.incluirGeneral ?? true, vistasDashboard);
+    const html = generarEstatusFlotaHtml(datos, input.indicadoresDashboard, seccionesVisibles(input.ordenSecciones, input.seccionesOcultas), input.incluirGeneral ?? true, vistasDashboard);
     const envio = await enviarReporteEstatusFlotaHtml({ destinatarios: input.destinatarios, html, imagenesInline: adjuntosGraficas(vistasDashboard) });
     if (!envio.enviado) return { ok: false, error: envio.error ?? "No se pudo enviar el correo." };
     return { ok: true };
@@ -439,6 +441,8 @@ export type ConfigEstatusFlotaProgramado = {
   camposExtra: CampoExtraSeleccionado[];
   /** Orden de las secciones del PDF elegido en el modal — ver estatus-flota-secciones.ts. */
   ordenSecciones: SeccionReporteId[];
+  /** Secciones deshabilitadas (no se pintan) — configuraciones guardadas antes de este campo no ocultan ninguna. */
+  seccionesOcultas: SeccionReporteId[];
   /** Incluir el bloque de alcance global (todo lo permitido, no solo los proyectos seleccionados) — default true, configuraciones guardadas antes de este campo lo asumen así. */
   incluirGeneral: boolean;
   /** Vista guardada de "Mis dashboards" que se incluye en cada envío (null = ninguna, compatibilidad). */
@@ -472,6 +476,7 @@ export async function guardarProgramacionEstatusFlota(input: {
   activo: boolean;
   camposExtra: CampoExtraSeleccionado[];
   ordenSecciones: SeccionReporteId[];
+  seccionesOcultas?: SeccionReporteId[];
   incluirGeneral: boolean;
   vistaDashboardId?: string | null;
   vistaDashboardIds?: string[];
@@ -527,6 +532,7 @@ export async function guardarProgramacionEstatusFlota(input: {
       proyectoIds: proyectoIdsValidados,
       camposExtra: camposExtraValidos,
       ordenSecciones: sanearOrdenSecciones(input.ordenSecciones),
+      seccionesOcultas: sanearSeccionesOcultas(input.seccionesOcultas),
       incluirGeneral: input.incluirGeneral,
       vistaDashboardId,
       vistaDashboardIds,

@@ -14,6 +14,10 @@ export type SeccionReporteId =
   | "unidadesNoDisponibles"
   | "siniestros"
   | "apoyosComprasFinanzas"
+  | "checklistsPendientes"
+  | "checklistsRealizados"
+  | "gpsSinReporte"
+  | "gpsSinMovimiento"
   | "datosAdicionales";
 
 export const SECCION_REPORTE_LABEL: Record<SeccionReporteId, string> = {
@@ -25,6 +29,10 @@ export const SECCION_REPORTE_LABEL: Record<SeccionReporteId, string> = {
   unidadesNoDisponibles: "Unidades no disponibles (detalle)",
   siniestros: "Siniestros del periodo y acumulado anual",
   apoyosComprasFinanzas: "Apoyos de compras y finanzas",
+  checklistsPendientes: "Checklists pendientes (unidades sin diario ni semanal)",
+  checklistsRealizados: "Checklists realizados",
+  gpsSinReporte: "Unidades sin reporte de GPS",
+  gpsSinMovimiento: "Unidades sin movimiento GPS",
   datosAdicionales: "Datos adicionales",
 };
 
@@ -37,6 +45,10 @@ export const ORDEN_SECCIONES_DEFAULT: SeccionReporteId[] = [
   "unidadesNoDisponibles",
   "siniestros",
   "apoyosComprasFinanzas",
+  "checklistsPendientes",
+  "checklistsRealizados",
+  "gpsSinReporte",
+  "gpsSinMovimiento",
   "datosAdicionales",
 ];
 
@@ -54,4 +66,15 @@ export function sanearOrdenSecciones(orden: unknown): SeccionReporteId[] {
   const sinDuplicados = Array.from(new Set(recibido));
   const faltantes = ORDEN_SECCIONES_DEFAULT.filter((id) => !sinDuplicados.includes(id));
   return [...sinDuplicados, ...faltantes];
+}
+
+/** Secciones que quien configura el reporte deshabilitó — sanea igual que el orden (JSON de BD / input de server action). */
+export function sanearSeccionesOcultas(ocultas: unknown): SeccionReporteId[] {
+  return Array.isArray(ocultas) ? ORDEN_SECCIONES_DEFAULT.filter((id) => ocultas.includes(id)) : [];
+}
+
+/** Orden final a pintar: el orden guardado sin las secciones deshabilitadas. */
+export function seccionesVisibles(orden: unknown, ocultas: unknown): SeccionReporteId[] {
+  const fuera = sanearSeccionesOcultas(ocultas);
+  return sanearOrdenSecciones(orden).filter((id) => !fuera.includes(id));
 }

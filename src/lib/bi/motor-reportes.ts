@@ -15,7 +15,7 @@ import { calcularEstatusFlotaReporte } from "@/lib/reportes/estatus-flota";
 import { generarEstatusFlotaHtml } from "@/lib/reportes/estatus-flota-html";
 import { calcularVistasDashboardReporte, adjuntosGraficas } from "@/lib/reportes/vista-dashboard-reporte";
 import type { CampoExtraSeleccionado } from "@/lib/reportes/campos-extra-tipos";
-import { sanearOrdenSecciones } from "@/lib/reportes/estatus-flota-secciones";
+import { seccionesVisibles } from "@/lib/reportes/estatus-flota-secciones";
 import { inicioDeHoyMx } from "@/lib/timezone";
 import { obtenerDataset, obtenerCampo, type FiltroGuardable } from "@/lib/bi/metadata";
 import { ejecutarTablaFilas } from "@/lib/bi/motor-consultas";
@@ -57,6 +57,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
         proyectoIds?: string[] | null;
         camposExtra?: CampoExtraSeleccionado[];
         ordenSecciones?: unknown;
+        seccionesOcultas?: unknown;
         incluirGeneral?: boolean;
         vistaDashboardId?: string | null;
         vistaDashboardIds?: string[] | null;
@@ -84,7 +85,7 @@ export async function ejecutarReporteProgramado(reporteId: string): Promise<Resu
       const vistasDashboard = vistaDashboardIds.length > 0
         ? await calcularVistasDashboardReporte(vistaDashboardIds, permitidosCreador)
         : [];
-      const html = generarEstatusFlotaHtml(datos, undefined, sanearOrdenSecciones(filtros?.ordenSecciones), filtros?.incluirGeneral ?? true, vistasDashboard);
+      const html = generarEstatusFlotaHtml(datos, undefined, seccionesVisibles(filtros?.ordenSecciones, filtros?.seccionesOcultas), filtros?.incluirGeneral ?? true, vistasDashboard);
       totalRegistros = datos.general.totalUnidades;
       envio = await enviarReporteEstatusFlotaHtml({ destinatarios, html, imagenesInline: adjuntosGraficas(vistasDashboard) });
     } else if (reporte.tipo === TIPO_BI_TABLA) {

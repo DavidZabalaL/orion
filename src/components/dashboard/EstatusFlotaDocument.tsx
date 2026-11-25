@@ -11,7 +11,7 @@ import {
 } from "@/lib/reportes/estatus-flota-labels";
 import { TIPO_VEHICULO_LABEL } from "@/lib/estatus";
 import { KABAT_LOGO_DATA_URI } from "@/components/dashboard/kabat-logo-base64";
-import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto, ApoyoReporteItem } from "@/lib/reportes/estatus-flota";
+import type { EstatusFlota, EstatusFlotaReporte, FlotaProyecto, ApoyoReporteItem, UnidadReporteItem } from "@/lib/reportes/estatus-flota";
 import type { TipoVehiculo, CategoriaGasto } from "@/generated/prisma/enums";
 import { ORDEN_SECCIONES_DEFAULT, type SeccionReporteId } from "@/lib/reportes/estatus-flota-secciones";
 import { AGRUPACION_TEMPORAL_LABEL } from "@/lib/reportes/campos-extra-tipos";
@@ -421,6 +421,35 @@ function TarjetaIndicadorDashboard({ indicador }: { indicador: IndicadorDashboar
   );
 }
 
+/** Lista simple de unidades (checklists / GPS) — misma tabla que tablaUnidades del correo. */
+function TablaUnidades({ titulo, filas, columnaDetalle, vacio }: { titulo: string; filas: UnidadReporteItem[]; columnaDetalle: string; vacio: string }) {
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={styles.seccionTitulo}>{titulo} ({filas.length})</Text>
+      {filas.length === 0 ? (
+        <View style={{ ...styles.tablaContenedor, padding: 12 }}>
+          <Text style={styles.listaVacio}>{vacio}</Text>
+        </View>
+      ) : (
+        <View style={styles.tablaContenedor}>
+          <View style={styles.tablaHeaderFila}>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 200 }}>UNIDAD</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, width: 160 }}>PROYECTO</Text>
+            <Text style={{ ...styles.tablaCeldaHeader, flex: 1 }}>{columnaDetalle}</Text>
+          </View>
+          {filas.map((u) => (
+            <View key={u.numeroEconomico} style={styles.tablaFila} wrap={false}>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 200 }}>{u.numeroEconomico}{u.vehiculo ? ` (${u.vehiculo})` : ""}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, width: 160 }}>{u.proyecto ?? "—"}</Text>
+              <Text style={{ ...styles.tablaCeldaTexto, flex: 1 }}>{u.detalle}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function TablaSiniestros({ datos }: { datos: EstatusFlota }) {
   const filas = datos.siniestrosDetalle;
   return (
@@ -673,6 +702,14 @@ function PaginaEstatus({
     siniestros: () => <TablaSiniestros datos={datos} />,
 
     apoyosComprasFinanzas: () => <TablaApoyosComprasFinanzas datos={datos} />,
+
+    checklistsPendientes: () => <TablaUnidades titulo="CHECKLISTS PENDIENTES — SIN DIARIO NI SEMANAL EN EL PERIODO" filas={datos.checklistsPendientes} columnaDetalle="DISPONIBILIDAD AL CORTE" vacio="Todas las unidades tienen al menos un checklist en el periodo." />,
+
+    checklistsRealizados: () => <TablaUnidades titulo="CHECKLISTS REALIZADOS EN EL PERIODO" filas={datos.checklistsRealizados} columnaDetalle="CHECKLISTS" vacio="Ninguna unidad registró checklist en el periodo." />,
+
+    gpsSinReporte: () => <TablaUnidades titulo="UNIDADES SIN REPORTE DE GPS EN EL PERIODO" filas={datos.gpsSinReporte} columnaDetalle="ÚLTIMO REPORTE" vacio="Todas las unidades reportaron GPS en el periodo." />,
+
+    gpsSinMovimiento: () => <TablaUnidades titulo="UNIDADES SIN MOVIMIENTO GPS (MENOS DE 1 KM)" filas={datos.gpsSinMovimiento} columnaDetalle="RECORRIDO" vacio="Todas las unidades que reportaron GPS se movieron." />,
 
     datosAdicionales: () => {
       if (datos.camposExtra.length === 0) return null;

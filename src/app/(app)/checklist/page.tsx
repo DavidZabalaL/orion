@@ -304,6 +304,10 @@ export default async function ChecklistPage({
         </button>
       </form>
 
+      <p style={{ fontFamily: "var(--font-ui)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--sidebar-text-active)" }}>
+        Total de checklists de hoy: {checklistsDiarios.length + checklistsSemanales.length + checklistsCombustible.length + checklistsReporteFalla.length}
+      </p>
+
       {/* Cada grupo se puede contraer (y "Contraer todo") para no hacer tan largo el scroll. */}
       <GrupoSecciones grupo="checklist">
         <SeccionColapsable id="indicadores" titulo="Indicadores (último checklist semanal de cada unidad)">

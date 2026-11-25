@@ -16,6 +16,7 @@ import {
   type EstatusFlotaReporte,
   type FlotaProyecto,
   type ApoyoReporteItem,
+  type UnidadReporteItem,
   TIPO_SINIESTRO_LABEL,
   ESTATUS_SINIESTRO_LABEL,
   ESTATUS_GASTO_LABEL,
@@ -248,6 +249,22 @@ function listaProximosServicios(datos: EstatusFlota): string {
     ${restantes > 0 ? `<div style="font-size:11px; color:${SLATE}; font-style:italic;">+ ${restantes} más</div>` : ""}`;
 }
 
+/** Lista simple de unidades (checklists / GPS): unidad, proyecto y una columna de detalle. */
+function tablaUnidades(titulo: string, filas: UnidadReporteItem[], columnaDetalle: string, vacio: string): string {
+  const th = (texto: string) => `<td style="padding:6px 10px; font-size:9px; font-weight:bold; color:${SLATE}; border-bottom:1px solid ${BORDER};">${esc(texto)}</td>`;
+  const td = (texto: string) => `<td style="padding:5px 10px; color:${NAVY}; border-bottom:1px solid ${BORDER};">${esc(texto)}</td>`;
+  return `
+    <div style="margin-bottom:16px;">
+      ${seccionTitulo(`${titulo} (${filas.length})`)}
+      ${filas.length === 0
+        ? `<div style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; padding:12px; font-size:11px; color:${SLATE}; font-style:italic;">${esc(vacio)}</div>`
+        : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid ${BORDER}; border-radius:8px; border-collapse:collapse; font-size:11px;">
+            <tr style="background:${SURFACE};">${th("UNIDAD")}${th("PROYECTO")}${th(columnaDetalle)}</tr>
+            ${filas.map((u) => `<tr>${td(u.numeroEconomico + (u.vehiculo ? ` (${u.vehiculo})` : ""))}${td(u.proyecto ?? "—")}${td(u.detalle)}</tr>`).join("")}
+          </table>`}
+    </div>`;
+}
+
 function tablaSiniestros(datos: EstatusFlota): string {
   const filas = datos.siniestrosDetalle;
   return `
@@ -468,6 +485,14 @@ function bloqueEstatus(datos: EstatusFlota, indicadoresDashboard: IndicadorDashb
     siniestros: () => tablaSiniestros(datos),
 
     apoyosComprasFinanzas: () => tablaApoyosComprasFinanzas(datos),
+
+    checklistsPendientes: () => tablaUnidades("CHECKLISTS PENDIENTES — SIN DIARIO NI SEMANAL EN EL PERIODO", datos.checklistsPendientes, "DISPONIBILIDAD AL CORTE", "Todas las unidades tienen al menos un checklist en el periodo."),
+
+    checklistsRealizados: () => tablaUnidades("CHECKLISTS REALIZADOS EN EL PERIODO", datos.checklistsRealizados, "CHECKLISTS", "Ninguna unidad registró checklist en el periodo."),
+
+    gpsSinReporte: () => tablaUnidades("UNIDADES SIN REPORTE DE GPS EN EL PERIODO", datos.gpsSinReporte, "ÚLTIMO REPORTE", "Todas las unidades reportaron GPS en el periodo."),
+
+    gpsSinMovimiento: () => tablaUnidades("UNIDADES SIN MOVIMIENTO GPS (MENOS DE 1 KM)", datos.gpsSinMovimiento, "RECORRIDO", "Todas las unidades que reportaron GPS se movieron."),
 
     datosAdicionales: () => {
       if (datos.camposExtra.length === 0) return "";

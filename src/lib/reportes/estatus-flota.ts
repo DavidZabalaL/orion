@@ -13,11 +13,22 @@ import type {
   EstatusGasto,
 } from "@/generated/prisma/enums";
 
+import { LABEL_MOTIVO } from "@/lib/reportes/estatus-flota-labels";
+import { fmtFechaHora } from "@/lib/formato";
+
 export {
   TIPO_SINIESTRO_LABEL,
   ESTATUS_SINIESTRO_LABEL,
   ESTATUS_GASTO_LABEL,
 } from "@/lib/reportes/estatus-flota-labels";
+
+/** Renglón de las listas de unidades del reporte (checklists y GPS) — `detalle` ya viene como texto para que PDF y correo lo muestren igual. */
+export type UnidadReporteItem = {
+  numeroEconomico: string;
+  vehiculo: string | null;
+  proyecto: string | null;
+  detalle: string;
+};
 
 export type SiniestroReporteItem = {
   id: string;
@@ -147,6 +158,14 @@ export type EstatusFlota = {
   totalApoyosFinanzas: number;
   /** Datos adicionales elegidos libremente por quien configuró el reporte — ver src/lib/reportes/campos-extra.ts. */
   camposExtra: CampoExtraResultado[];
+  /** Unidades (no BAJA) sin ningún checklist diario ni semanal en el periodo. */
+  checklistsPendientes: UnidadReporteItem[];
+  /** Unidades (no BAJA) con al menos un checklist diario o semanal en el periodo. */
+  checklistsRealizados: UnidadReporteItem[];
+  /** Unidades (no BAJA) sin ninguna posición GPS en el periodo. */
+  gpsSinReporte: UnidadReporteItem[];
+  /** Unidades (no BAJA) que sí reportaron GPS en el periodo pero recorrieron menos de 1 km. */
+  gpsSinMovimiento: UnidadReporteItem[];
 };
 
 /**
@@ -331,6 +350,7 @@ export async function calcularEstatusFlota({
     presupuestoMes, totalChecklists, camposExtra, presupuestoPartidaAgg,
     siniestrosPeriodoRaw, siniestrosAnioCount, apoyosRaw,
     posicionesGpsPeriodo, checklistsSemanalesRaw,
+    checklistsPorUnidadRaw, ultimoGpsRaw,
   ] = await Promise.all([
     prisma.gastoVehicular.groupBy({
       by: ["categoria"],
@@ -459,6 +479,25 @@ export async function calcularEstatusFlota({
           },
         })
       : Promise.resolve([]),
+    economicosNoBaja.length > 0
+      ? prisma.checklist.groupBy({
+          by: ["numeroEconomico", "tipo"],
+          where: { numeroEconomico: { in: economicosNoBaja }, tipo: { in: ["DIARIO", "SEMANAL"] }, fecha: { gte: desde, lte: hasta } },
+          _count: { _all: true },
+        })
+      : Promise.resolve([]),
+    // Último reporte GPS de cada unidad al corte: LATERAL + LIMIT 1 usa el
+    // índice (numeroEconomico, timestamp) sin recorrer todo el histórico.
+    economicosNoBaja.length > 0
+      ? prisma.$queryRaw<{ numeroEconomico: string; ultimo: Date | null }[]>`
+          SELECT e.ne AS "numeroEconomico", p.ts AS "ultimo"
+          FROM unnest(${economicosNoBaja}::text[]) AS e(ne)
+          LEFT JOIN LATERAL (
+            SELECT g."timestamp" AS ts FROM "PosicionGPS" g
+            WHERE g."numeroEconomico" = e.ne AND g."timestamp" <= ${hasta.toISOString()}::timestamp
+            ORDER BY g."timestamp" DESC LIMIT 1
+          ) p ON true`
+      : Promise.resolve([]),
   ]);
   const presupuestoAnual = Number(presupuestoPartidaAgg._sum.montoPresupuestado ?? 0);
   const checklistsPromedioDiario = Math.round((totalChecklists / diasPeriodo) * 10) / 10;
@@ -486,6 +525,43 @@ export async function calcularEstatusFlota({
     unidadesMovieron > 0
       ? Math.round((unidadesConChecklistSemanal / unidadesMovieron) * 100)
       : null;
+
+  const itemUnidad = (numeroEconomico: string, detalle: string): UnidadReporteItem => {
+    const info = infoPorEconomico.get(numeroEconomico);
+    return { numeroEconomico, vehiculo: info ? `${info.marca} ${info.unidadModelo}` : null, proyecto: info?.proyecto?.nombre ?? null, detalle };
+  };
+  const conteoChecklists = new Map<string, { diarios: number; semanales: number }>();
+  for (const c of checklistsPorUnidadRaw) {
+    const conteo = conteoChecklists.get(c.numeroEconomico) ?? { diarios: 0, semanales: 0 };
+    if (c.tipo === "DIARIO") conteo.diarios += c._count._all;
+    else conteo.semanales += c._count._all;
+    conteoChecklists.set(c.numeroEconomico, conteo);
+  }
+  const ultimoGps = new Map(ultimoGpsRaw.map((r) => [r.numeroEconomico, r.ultimo ? new Date(r.ultimo) : null]));
+  const kmPeriodo = new Map(posicionesGpsPeriodo.map((p) => [p.numeroEconomico, p._min.kmValidado !== null && p._max.kmValidado !== null ? p._max.kmValidado - p._min.kmValidado : null]));
+  const checklistsPendientes: UnidadReporteItem[] = [];
+  const checklistsRealizados: UnidadReporteItem[] = [];
+  const gpsSinReporte: UnidadReporteItem[] = [];
+  const gpsSinMovimiento: UnidadReporteItem[] = [];
+  for (const e of [...economicosNoBaja].sort((a, b) => a.localeCompare(b, "es", { numeric: true }))) {
+    const conteo = conteoChecklists.get(e);
+    if (conteo) {
+      checklistsRealizados.push(itemUnidad(e, `${conteo.diarios} diario(s) · ${conteo.semanales} semanal(es)`));
+    } else {
+      // Disponibilidad al corte: explica si la unidad estaba en taller, siniestrada, etc.
+      const periodo = periodoPorEconomico.get(e);
+      const disponible = periodo?.disponible ?? true;
+      checklistsPendientes.push(itemUnidad(e, disponible ? "Disponible" : `No disponible · ${periodo?.motivo ? LABEL_MOTIVO[periodo.motivo] : "Sin motivo"}`));
+    }
+
+    const ultimo = ultimoGps.get(e) ?? null;
+    if (!ultimo || ultimo < desde) {
+      gpsSinReporte.push(itemUnidad(e, ultimo ? `Último reporte: ${fmtFechaHora(ultimo)}` : "Sin reportes registrados"));
+    } else if (!economicosMovidos.has(e)) {
+      const km = kmPeriodo.get(e);
+      gpsSinMovimiento.push(itemUnidad(e, km != null ? `${km} km en el periodo` : "Sin km validado en el periodo"));
+    }
+  }
 
   const siniestrosDetalle: SiniestroReporteItem[] = siniestrosPeriodoRaw.map((s) => {
     const reparacion = Number(s.costoReparacion ?? 0);
@@ -598,6 +674,10 @@ export async function calcularEstatusFlota({
     totalApoyosCompras,
     totalApoyosFinanzas,
     camposExtra,
+    checklistsPendientes,
+    checklistsRealizados,
+    gpsSinReporte,
+    gpsSinMovimiento,
   };
 }
 
