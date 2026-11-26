@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { SECCIONES_CHECKLIST_SEMANAL, esNoAplica } from "@/lib/checklist-semanal";
-import { exigirPermisoModulo } from "@/lib/permisos";
+import { exigirPermisoModulo, esRolGlobal } from "@/lib/permisos";
 import { proyectosPermitidosParaModulo } from "@/lib/proyectos-usuario";
 import { consumirCuotaUsuario } from "@/lib/limite-intentos";
 import { logActivity } from "@/lib/activity";
@@ -779,6 +779,51 @@ export async function cerrarReporteFalla(input: { id: string; costoResolucion?: 
   revalidatePath("/checklist/historial");
   revalidatePath(`/unidades/${checklist.numeroEconomico}`);
   return { ok: true };
+}
+
+/**
+ * Borrado definitivo de un checklist (cualquier tipo) — solo Administrador
+ * (rol global), igual que eliminar proyectos. Se lleva su Documento de
+ * evidencia; las fotos en Blob se dejan (recuperables). El detalle queda en
+ * ActivityLog porque el registro ya no existe.
+ */
+export async function eliminarChecklist(id: string): Promise<{ ok: true; numeroEconomico: string } | { ok: false; error: string }> {
+  if (!(await esRolGlobal())) return { ok: false, error: "Solo el Administrador puede borrar checklists." };
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Sesión no válida." };
+
+  const checklist = await prisma.checklist.findUnique({
+    where: { id },
+    select: { tipo: true, numeroEconomico: true, fecha: true, odometro: true, evidenciaId: true, capturadoPor: { select: { nombre: true } } },
+  });
+  if (!checklist) return { ok: false, error: "El checklist ya no existe." };
+
+  try {
+    await prisma.$transaction([
+      prisma.checklist.delete({ where: { id } }),
+      ...(checklist.evidenciaId
+        ? [prisma.documento.deleteMany({ where: { id: checklist.evidenciaId, tipo: "evidencia_checklist", checklists: { none: {} } } })]
+        : []),
+    ]);
+  } catch {
+    return { ok: false, error: "No se pudo borrar el checklist." };
+  }
+
+  await logActivity({
+    userId: session.user.id,
+    modulo: "checklist",
+    accion: "delete",
+    entidad: "Checklist",
+    entidadId: id,
+    detalle: { tipo: checklist.tipo, numeroEconomico: checklist.numeroEconomico, fecha: checklist.fecha.toISOString(), odometro: checklist.odometro, capturadoPor: checklist.capturadoPor?.nombre ?? null },
+  });
+
+  revalidatePath("/checklist");
+  revalidatePath("/checklist/historial");
+  revalidatePath("/checklist/combustible");
+  revalidatePath(`/unidades/${checklist.numeroEconomico}`);
+  invalidarCacheBI(["checklist"]);
+  return { ok: true, numeroEconomico: checklist.numeroEconomico };
 }
 
 export type FilaComparativoCombustible = {

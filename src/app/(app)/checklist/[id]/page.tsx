@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requerirPermisoModulo } from "@/lib/permisos";
+import { requerirPermisoModulo, esRolGlobal } from "@/lib/permisos";
+import { BotonEliminarChecklist } from "@/components/checklist/boton-eliminar-checklist";
 import { PUNTOS_INSPECCION } from "@/lib/checklist";
 import { SECCIONES_CHECKLIST_SEMANAL, listarAlertasSemanal } from "@/lib/checklist-semanal";
 import { SECCIONES_CARGA_COMBUSTIBLE } from "@/lib/checklist-carga-combustible";
@@ -521,6 +522,7 @@ export default async function DetalleChecklistPage({
   });
 
   if (!checklist) notFound();
+  const puedeEliminar = await esRolGlobal();
 
   const tipoLabel =
     checklist.tipo === "DIARIO"
@@ -582,7 +584,10 @@ export default async function DetalleChecklistPage({
               </span>
             </div>
           </div>
-          {checklist.tipo === "SEMANAL" && <PrintButton />}
+          <div className="flex flex-wrap items-start gap-2">
+            {checklist.tipo === "SEMANAL" && <PrintButton />}
+            {puedeEliminar && <BotonEliminarChecklist id={checklist.id} />}
+          </div>
         </div>
 
         {/* ── Meta resumen ── */}
